@@ -14,6 +14,11 @@ COPY . .
 RUN npm run build
 
 FROM node:22-alpine AS runtime
+# Apply Alpine security fixes, and remove the package managers: the runtime only needs node,
+# and npm's bundled dependencies otherwise show up in the image scan.
+RUN apk upgrade --no-cache \
+ && rm -rf /usr/local/lib/node_modules/npm /usr/local/lib/node_modules/corepack /opt/yarn-* \
+           /usr/local/bin/npm /usr/local/bin/npx /usr/local/bin/corepack /usr/local/bin/yarn /usr/local/bin/yarnpkg
 WORKDIR /app
 ENV NODE_ENV=production \
     NEXT_TELEMETRY_DISABLED=1 \
