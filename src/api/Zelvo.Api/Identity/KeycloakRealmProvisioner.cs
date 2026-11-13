@@ -1,3 +1,4 @@
+using System.Net;
 using System.Text.Json.Nodes;
 using Zelvo.Data.Identity;
 using Zelvo.Data.Tenancy;
@@ -149,8 +150,18 @@ internal sealed class KeycloakRealmProvisioner(KeycloakAdminClient admin, Identi
             id = (string)found[0]!["id"]!;
         }
 
-        using var reset = await admin.SendAsync(HttpMethod.Put, $"realms/{E(realm)}/users/{E(id)}/reset-password",
-            new JsonObject { ["type"] = "password", ["value"] = password, ["temporary"] = false }, cancellationToken).ConfigureAwait(false);
+        try
+        {
+            using var reset = await admin.SendAsync(HttpMethod.Put, $"realms/{E(realm)}/users/{E(id)}/reset-password",
+                new JsonObject { ["type"] = "password", ["value"] = password, ["temporary"] = false }, cancellationToken).ConfigureAwait(false);
+        }
+        catch (KeycloakAdminException ex) when (ex.Status == HttpStatusCode.BadRequest
+            && ex.Message.Contains("invalidPasswordHistoryMessage", StringComparison.Ordinal))
+        {
+            // The realm's password history refuses a password the user already had, which is the
+            // case on every later run of `migrate` with the same development password.
+        }
+
         return id;
     }
 
