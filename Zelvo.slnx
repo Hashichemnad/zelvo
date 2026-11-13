@@ -1,0 +1,13 @@
+<Solution>
+  <Folder Name="/src/api/">
+    <Project Path="src/api/Zelvo.Api/Zelvo.Api.csproj" />
+    <Project Path="src/api/Zelvo.Licensing.Abstractions/Zelvo.Licensing.Abstractions.csproj" />
+    <Project Path="src/api/Zelvo.Licensing.Development/Zelvo.Licensing.Development.csproj" />
+  </Folder>
+  <Folder Name="/src/worker/">
+    <Project Path="src/worker/Zelvo.Worker/Zelvo.Worker.csproj" />
+  </Folder>
+  <Folder Name="/tests/">
+    <Project Path="src/api/tests/Zelvo.Api.Tests/Zelvo.Api.Tests.csproj" />
+  </Folder>
+</Solution>

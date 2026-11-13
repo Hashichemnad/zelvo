@@ -1,0 +1,58 @@
+{
+  "meta": {
+    "title": "زيلفو",
+    "description": "منصة ثنائية اللغة لإدارة خدمات تقنية المعلومات في دولة الإمارات."
+  },
+  "common": {
+    "productName": "زيلفو",
+    "skipToContent": "الانتقال إلى المحتوى الرئيسي",
+    "poweredBy": "بتقنية زيلفو"
+  },
+  "language": {
+    "name": "العربية",
+    "switchTo": "English",
+    "switchLabel": "تغيير اللغة إلى"
+  },
+  "welcome": {
+    "greeting": "مرحبًا بكم في زيلفو",
+    "subtitle": "إدارة خدمات تقنية المعلومات مصممة للعربية والإنجليزية، وتُستضاف على خوادمكم.",
+    "otherLanguageGreeting": "مرحبًا بكم في زيلفو",
+    "todayHeading": "اليوم",
+    "gregorian": "ميلادي",
+    "hijri": "هجري",
+    "setupNotice": "هذا هو التطبيق المبدئي الفارغ. تُضاف الميزات وحدةً تلو الأخرى خلال المرحلة الأولى."
+  },
+  "status": {
+    "heading": "حالة النظام",
+    "checking": "جارٍ فحص الخدمات…",
+    "allHealthy": "جميع الخدمات تعمل.",
+    "someUnhealthy": "بعض الخدمات لا تستجيب بعد، وقد تكون قيد التشغيل.",
+    "apiUnreachable": "تعذّر الوصول إلى واجهة البرمجة بعد، وقد تكون قيد التشغيل.",
+    "healthy": "تعمل",
+    "degraded": "أداء منخفض",
+    "unhealthy": "لا تستجيب",
+    "services": {
+      "api": "واجهة البرمجة (API)",
+      "postgres": "قاعدة البيانات (PostgreSQL)",
+      "redis": "الذاكرة المؤقتة (Redis)",
+      "rabbitmq": "قائمة الرسائل (RabbitMQ)",
+      "opensearch": "البحث (OpenSearch)",
+      "keycloak": "الهوية (Keycloak)"
+    },
+    "installationHeading": "التثبيت",
+    "version": "الإصدار",
+    "license": "الترخيص",
+    "licenseModes": {
+      "None": "لا يوجد ترخيص",
+      "Development": "ترخيص تطوير، غير مخصص للإنتاج",
+      "Demo": "ترخيص عرض توضيحي",
+      "Production": "ترخيص إنتاج",
+      "Test": "ترخيص بيئة اختبار"
+    }
+  },
+  "notFound": {
+    "title": "الصفحة غير موجودة",
+    "description": "الصفحة التي تبحث عنها غير موجودة.",
+    "home": "الانتقال إلى الصفحة الرئيسية"
+  }
+}
