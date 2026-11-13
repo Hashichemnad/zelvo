@@ -1,7 +1,8 @@
 import { redirect } from "next/navigation";
 import { getTranslations, setRequestLocale } from "next-intl/server";
 import { getDirection, otherLocale, type Locale } from "@/i18n/routing";
-import { getCurrentUser, type LocalizedText } from "@/lib/api";
+import { PreferencesForm } from "@/components/PreferencesForm";
+import { getCurrentUser, getLocalizationSettings, type LocalizedText } from "@/lib/api";
 import { getAuthConfig } from "@/lib/auth/config";
 import { getSession } from "@/lib/auth/session";
 
@@ -30,8 +31,13 @@ export default async function AccountPage({ params }: PageProps<"/[locale]/accou
   if (!session) {
     redirect(`/auth/login?${new URLSearchParams({ locale, returnTo: `/${locale}/account` })}`);
   }
-  const user = await getCurrentUser(session.data.accessToken, getAuthConfig().tenant);
-  const t = await getTranslations({ locale, namespace: "account" });
+  const tenant = getAuthConfig().tenant;
+  const [user, tenantSettings, t, tPreferences] = await Promise.all([
+    getCurrentUser(session.data.accessToken, tenant),
+    getLocalizationSettings(tenant),
+    getTranslations({ locale, namespace: "account" }),
+    getTranslations({ locale, namespace: "preferences" }),
+  ]);
 
   if (!user) {
     return (
@@ -66,6 +72,22 @@ export default async function AccountPage({ params }: PageProps<"/[locale]/accou
           </dd>
         </div>
       </dl>
+
+      <section aria-labelledby="preferences-heading" className="space-y-3">
+        <h2 id="preferences-heading" className="text-xl font-bold">
+          {tPreferences("heading")}
+        </h2>
+        <p className="max-w-2xl text-ink-muted">{tPreferences("intro")}</p>
+        <PreferencesForm
+          initial={user.preferences}
+          csrfToken={session.data.csrfToken}
+          defaults={
+            tenantSettings
+              ? { language: tenantSettings.defaultLanguage, calendar: tenantSettings.defaultCalendar, digits: tenantSettings.defaultDigits }
+              : { language: "en", calendar: "Gregorian", digits: "Western" }
+          }
+        />
+      </section>
 
       <section aria-labelledby="roles-heading" className="space-y-3">
         <h2 id="roles-heading" className="text-xl font-bold">

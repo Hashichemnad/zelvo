@@ -1,11 +1,15 @@
 import { getTranslations } from "next-intl/server";
+import { getCurrentUser } from "@/lib/api";
+import { getAuthConfig } from "@/lib/auth/config";
 import { getSession } from "@/lib/auth/session";
+import { sectionsFor } from "@/lib/settings-sections";
 import { AccountMenu } from "./AccountMenu";
 import { LanguageSwitcher } from "./LanguageSwitcher";
 
 export async function SiteHeader() {
   const t = await getTranslations("common");
   const session = await getSession().catch(() => null);
+  const user = session ? await getCurrentUser(session.data.accessToken, getAuthConfig().tenant) : null;
 
   return (
     <header className="border-b border-line bg-surface">
@@ -15,6 +19,7 @@ export async function SiteHeader() {
           <AccountMenu
             userName={session ? (session.data.name ?? session.data.email ?? session.data.subject) : null}
             csrfToken={session?.data.csrfToken ?? null}
+            showSettings={sectionsFor(user?.permissions ?? []).length > 0}
           />
           <LanguageSwitcher />
         </div>

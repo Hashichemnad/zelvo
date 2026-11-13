@@ -1,10 +1,23 @@
 /**
  * Date and number display (LANG-8): Gregorian or Hijri calendar, Western or Arabic-Indic digits.
- * Per-user choices arrive with the profile settings; callers pass them in explicitly.
+ * The tenant sets the defaults and each user can override them; `getDisplayFormat` (server) gives
+ * what applies, and callers pass it in explicitly.
  */
 
 export type CalendarSystem = "gregory" | "islamic-umalqura";
 export type DigitSystem = "latn" | "arab";
+
+/** Calendar and digit choices as the API names them. */
+export type ApiCalendar = "Gregorian" | "Hijri";
+export type ApiDigits = "Western" | "ArabicIndic";
+
+export function toCalendarSystem(calendar: ApiCalendar): CalendarSystem {
+  return calendar === "Hijri" ? "islamic-umalqura" : "gregory";
+}
+
+export function toDigitSystem(digits: ApiDigits): DigitSystem {
+  return digits === "ArabicIndic" ? "arab" : "latn";
+}
 
 export interface DateDisplayOptions {
   locale: string;
