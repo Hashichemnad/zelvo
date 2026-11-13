@@ -26,6 +26,15 @@ updates:
     ignore:
       - dependency-name: "@types/node"
         update-types: ["version-update:semver-major"]
+      # TypeScript and ESLint majors wait until the Next.js lint toolchain
+      # (eslint-config-next, typescript-eslint and its React/import/a11y
+      # plugins) supports them. TypeScript 7 fails `npm run lint` outright
+      # ("typescript-eslint does not support TS 7.0"); ESLint 10 is outside
+      # those plugins' peer ranges. Upgrade both by hand when they catch up.
+      - dependency-name: "typescript"
+        update-types: ["version-update:semver-major"]
+      - dependency-name: "eslint"
+        update-types: ["version-update:semver-major"]
   - package-ecosystem: maven
     directory: /src/keycloak
     schedule: { interval: weekly }
