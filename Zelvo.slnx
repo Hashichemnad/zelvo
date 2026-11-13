@@ -1,6 +1,8 @@
 <Solution>
+  <Folder Name="/src/" />
   <Folder Name="/src/api/">
     <Project Path="src/api/Zelvo.Api/Zelvo.Api.csproj" />
+    <Project Path="src/api/Zelvo.Data/Zelvo.Data.csproj" />
     <Project Path="src/api/Zelvo.Licensing.Abstractions/Zelvo.Licensing.Abstractions.csproj" />
     <Project Path="src/api/Zelvo.Licensing.Development/Zelvo.Licensing.Development.csproj" />
   </Folder>
