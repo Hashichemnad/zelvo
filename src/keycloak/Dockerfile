@@ -1,7 +1,7 @@
 # Zelvo's Keycloak: the upstream image plus Zelvo's extension (email one-time code sign-in and the
 # "zelvo" login and email theme). The extension's tests run while the image is built.
 
-FROM maven:3.9-eclipse-temurin-21 AS build
+FROM maven:3.9-eclipse-temurin-26 AS build
 WORKDIR /src
 COPY pom.xml ./
 RUN mvn -B -q dependency:go-offline
