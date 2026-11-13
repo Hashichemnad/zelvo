@@ -1,0 +1,58 @@
+{
+  "meta": {
+    "title": "Zelvo",
+    "description": "Bilingual IT service management for the UAE."
+  },
+  "common": {
+    "productName": "Zelvo",
+    "skipToContent": "Skip to main content",
+    "poweredBy": "Powered by Zelvo"
+  },
+  "language": {
+    "name": "English",
+    "switchTo": "العربية",
+    "switchLabel": "Change language to"
+  },
+  "welcome": {
+    "greeting": "Welcome to Zelvo",
+    "subtitle": "IT service management designed for Arabic and English, hosted on your own servers.",
+    "otherLanguageGreeting": "Welcome to Zelvo",
+    "todayHeading": "Today",
+    "gregorian": "Gregorian",
+    "hijri": "Hijri",
+    "setupNotice": "This is the empty starter application. Features arrive module by module in Phase 1."
+  },
+  "status": {
+    "heading": "System status",
+    "checking": "Checking services…",
+    "allHealthy": "All services are running.",
+    "someUnhealthy": "Some services are not responding yet. They may still be starting.",
+    "apiUnreachable": "The API is not reachable yet. It may still be starting.",
+    "healthy": "Running",
+    "degraded": "Degraded",
+    "unhealthy": "Not responding",
+    "services": {
+      "api": "API",
+      "postgres": "Database (PostgreSQL)",
+      "redis": "Cache (Redis)",
+      "rabbitmq": "Message queue (RabbitMQ)",
+      "opensearch": "Search (OpenSearch)",
+      "keycloak": "Identity (Keycloak)"
+    },
+    "installationHeading": "Installation",
+    "version": "Version",
+    "license": "License",
+    "licenseModes": {
+      "None": "No license",
+      "Development": "Development license, not for production",
+      "Demo": "Demo license",
+      "Production": "Production license",
+      "Test": "Test installation license"
+    }
+  },
+  "notFound": {
+    "title": "Page not found",
+    "description": "The page you are looking for does not exist.",
+    "home": "Go to the home page"
+  }
+}

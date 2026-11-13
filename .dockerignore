@@ -1,0 +1,11 @@
+**/bin/
+**/obj/
+**/node_modules/
+**/.next/
+**/TestResults/
+.git/
+.github/
+**/.env
+**/.env.*
+docs/
+tests/e2e/

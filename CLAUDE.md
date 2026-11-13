@@ -69,17 +69,21 @@ Changing any of these needs the product owner's approval.
 - Database changes only through migrations.
 - Small, focused commits with clear messages.
 
-## Repository layout (planned; created in the Phase 1 setup task)
+## Repository layout
 
 ```
-docs/            requirements and design notes
-src/api/         ASP.NET Core backend
-src/web/         Next.js frontend (portal, agent workspace, admin)
-src/worker/      background jobs: SLA timers, notifications, integrations, AI
-deploy/compose/  Docker Compose for development and small installs
-deploy/helm/     Helm charts for Kubernetes installs
-tests/           cross-service and end-to-end tests
+docs/                    requirements, Phase 1 build plan, architecture notes, screenshots
+src/api/                 ASP.NET Core backend (Zelvo.Api), licensing contract and development stub
+src/api/tests/           backend unit and integration tests (integration tests use real PostgreSQL via Testcontainers)
+src/web/                 Next.js frontend (portal, agent workspace, admin); translations in src/web/messages/{en,ar}.json
+src/worker/              background jobs: SLA timers, notifications, integrations, AI
+deploy/compose/          Docker Compose for development and small installs
+deploy/helm/             Helm charts for Kubernetes installs
+tests/e2e/               Playwright end-to-end and accessibility tests
+scripts/                 dev-up.sh / dev-down.sh (wrapped by the Makefile)
 ```
+
+Start everything with `make up`; see README.md. Licensing boundary: `docs/architecture/licensing.md`.
 
 ## Progress
 
@@ -89,9 +93,9 @@ Update this at the end of every task.
 
 - [x] Requirements approved and added (`docs/requirements.md`)
 - [x] Project instructions (`CLAUDE.md`), proprietary license, `.gitignore`
-- [ ] Project setup: repository structure, Docker Compose, CI with security scanning, empty running app
-- [ ] Phase 1 build plan broken into tasks (proposed to the product owner for approval)
-- [ ] Modules 1–15 and demo mode (tasks to be listed once the build plan is approved)
+- [x] Project setup: repository structure, ASP.NET Core API, worker, Next.js frontend (English/Arabic, RTL), Docker Compose (PostgreSQL + pgvector, Redis, OpenSearch, RabbitMQ, Keycloak), one-command start (`make up`), bilingual welcome page with live service status, CI (build, tests, end-to-end and accessibility tests, CodeQL, Grype image scanning, SBOM, Gitleaks, Dependabot), `ILicenseService` with a development stub
+- [x] Phase 1 build plan broken into tasks: `docs/phase1-build-plan.md` (proposed; **awaiting product owner approval**)
+- [ ] Modules 1–15 and demo mode: tasks A1–F7 in `docs/phase1-build-plan.md`, to start once the plan is approved
 
 ### Phase 2: Control (not started)
 ### Phase 3: Scale (not started)
@@ -105,3 +109,7 @@ Update this at the end of every task.
 | 2026-11-13 | Security updates are free; feature updates are paid and unlocked by an upgrade license. Updates are delivered as signed packages imported in Settings. |
 | 2026-11-13 | AI uses the customer's own provider and API key; Zelvo includes an MCP server. |
 | 2026-11-13 | Repository stays public during development; licensing code is kept in a separate private repository. |
+| 2026-11-13 | Setup: .NET 10 LTS with central package management and warnings as errors; Next.js 16 App Router with next-intl (locale in the URL: `/en`, `/ar`); Tailwind CSS 4 with logical properties only (enforced by a test); IBM Plex Sans Arabic bundled locally (works offline); Playwright + axe for end-to-end and accessibility tests. |
+| 2026-11-13 | Database roles: a superuser-owned database for migrations and a separate application role without `BYPASSRLS`, so row-level security always applies to the app. |
+| 2026-11-13 | Workflow engine: **proposed** Elsa Workflows 3 (MIT, embedded in .NET, PostgreSQL persistence), to be confirmed by a spike in task C3; Temporal stays the fallback. Awaiting product owner approval. |
+| 2026-11-13 | Open for approval: replace Redis with Valkey (BSD) because Redis 7.4+ is not permissively licensed and customers receive our images. Until approved, the stack uses the official Redis image. |

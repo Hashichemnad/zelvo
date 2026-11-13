@@ -1,0 +1,12 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <RootNamespace>Zelvo.Licensing</RootNamespace>
+    <Description>Development stub for ILicenseService. Allows everything; refuses to run in Production.</Description>
+  </PropertyGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\Zelvo.Licensing.Abstractions\Zelvo.Licensing.Abstractions.csproj" />
+  </ItemGroup>
+  <ItemGroup>
+    <InternalsVisibleTo Include="Zelvo.Api.Tests" />
+  </ItemGroup>
+</Project>
