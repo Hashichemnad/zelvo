@@ -13,7 +13,7 @@ COPY src/api/Zelvo.Licensing.Abstractions/ src/api/Zelvo.Licensing.Abstractions/
 COPY src/api/Zelvo.Licensing.Development/ src/api/Zelvo.Licensing.Development/
 RUN dotnet publish src/api/Zelvo.Api/Zelvo.Api.csproj -c Release -o /app --no-restore -p:UseAppHost=false
 
-FROM mcr.microsoft.com/dotnet/aspnet:10.0 AS runtime
+FROM mcr.microsoft.com/dotnet/aspnet:11.0 AS runtime
 WORKDIR /app
 COPY --from=build /app .
 ENV ASPNETCORE_HTTP_PORTS=8080
