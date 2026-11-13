@@ -85,7 +85,7 @@ services:
 
   keycloak:
     <<: *restart
-    image: keycloak/keycloak:26.4
+    image: keycloak/keycloak:26.7
     command: ["start-dev", "--import-realm"]
     environment:
       KC_DB: postgres
