@@ -54,5 +54,32 @@
     "title": "Page not found",
     "description": "The page you are looking for does not exist.",
     "home": "Go to the home page"
+  },
+  "auth": {
+    "signIn": "Sign in",
+    "signOut": "Sign out",
+    "accountOf": "Account of"
+  },
+  "account": {
+    "title": "Your account",
+    "name": "Name",
+    "email": "Email",
+    "secondFactor": "Second factor",
+    "secondFactorUsed": "Used for this sign-in",
+    "secondFactorNotUsed": "Not used for this sign-in",
+    "roles": "Your roles",
+    "unavailable": "Your account details cannot be shown right now. Please try again shortly."
+  },
+  "signInProblem": {
+    "title": "Sign-in did not finish",
+    "tryAgain": "Try again",
+    "reasons": {
+      "expired": "The sign-in took too long or was started in another window. Please sign in again.",
+      "cancelled": "Sign-in was cancelled.",
+      "failed": "The sign-in service could not complete your sign-in.",
+      "refused": "Your account cannot use this service. Contact your administrator if you think this is a mistake.",
+      "mfa": "Your role needs a second factor, such as an authenticator app. Please sign in again and complete that step.",
+      "unavailable": "The sign-in service is not available right now. Please try again shortly."
+    }
   }
 }

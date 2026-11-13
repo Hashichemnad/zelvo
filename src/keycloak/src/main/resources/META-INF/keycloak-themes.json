@@ -1,0 +1,8 @@
+{
+  "themes": [
+    {
+      "name": "zelvo",
+      "types": ["login", "email"]
+    }
+  ]
+}

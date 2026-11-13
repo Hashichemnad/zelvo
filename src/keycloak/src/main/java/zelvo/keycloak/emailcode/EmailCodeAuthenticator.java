@@ -19,6 +19,7 @@ import org.keycloak.models.RealmModel;
 import org.keycloak.models.UserModel;
 import org.keycloak.models.utils.FormMessage;
 import org.keycloak.sessions.AuthenticationSessionModel;
+import org.keycloak.storage.adapter.AbstractInMemoryUserAdapter;
 
 /**
  * Sign in with a one-time code sent by email (module 4, "email + one-time code").
@@ -222,7 +223,7 @@ public final class EmailCodeAuthenticator implements Authenticator {
 
         UserModel user = target.startsWith(TARGET_USER_PREFIX)
             ? context.getSession().users().getUserById(context.getRealm(), target.substring(TARGET_USER_PREFIX.length()))
-            : null;
+            : new PendingRecipient(context.getSession(), context.getRealm(), email);
         Map<String, Object> attributes = new HashMap<>();
         attributes.put("code", code);
         attributes.put("ttlMinutes", Math.max(1, ttl / 60));
@@ -231,10 +232,8 @@ public final class EmailCodeAuthenticator implements Authenticator {
         try {
             EmailTemplateProvider emails = context.getSession().getProvider(EmailTemplateProvider.class)
                 .setRealm(context.getRealm())
-                .setAuthenticationSession(auth);
-            if (user != null) {
-                emails.setUser(user);
-            }
+                .setAuthenticationSession(auth)
+                .setUser(user);
             emails.send("zelvoEmailCodeSubject", List.of(), EMAIL_TEMPLATE, attributes, email);
         } catch (EmailException e) {
             // The page stays the same so the response does not reveal whether the address exists.
@@ -299,6 +298,23 @@ public final class EmailCodeAuthenticator implements Authenticator {
             form.addSuccess(info);
         }
         return form.createForm(FORM_CODE);
+    }
+
+    /**
+     * Stands in for an account that does not exist yet, so the email templates have a recipient.
+     * Kept in memory only; the account is created after a correct code.
+     */
+    static final class PendingRecipient extends AbstractInMemoryUserAdapter {
+        PendingRecipient(KeycloakSession session, RealmModel realm, String email) {
+            super(session, realm, "zelvo-pending-" + java.util.UUID.randomUUID());
+            setEmail(email);
+            setUsername(email);
+        }
+
+        @Override
+        public org.keycloak.models.SubjectCredentialManager credentialManager() {
+            throw new UnsupportedOperationException("A pending recipient has no credentials.");
+        }
     }
 
     @Override

@@ -321,7 +321,7 @@ internal sealed class KeycloakRealmProvisioner(KeycloakAdminClient admin, Identi
 
     /// <summary>
     /// The browser flow: an existing session cookie, or (level 1) password or email code, then
-    /// (level 2, only when the client asks for <c>acr=mfa</c>) an authenticator app or passkey.
+    /// (level 2, only when the client asks for <c>acr=mfa</c>) a code from an authenticator app.
     /// Built once; afterwards only the email code settings are updated.
     /// </summary>
     private async Task EnsureBrowserFlowAsync(string realm, IdentitySettings settings, CancellationToken cancellationToken)
@@ -354,9 +354,9 @@ internal sealed class KeycloakRealmProvisioner(KeycloakAdminClient admin, Identi
             await AddFlowAsync(realm, "zelvo forms", "zelvo level 2", "CONDITIONAL", cancellationToken).ConfigureAwait(false);
             await AddExecutionAsync(realm, "zelvo level 2", "conditional-level-of-authentication", "REQUIRED", cancellationToken,
                 new Dictionary<string, string>(StringComparer.Ordinal) { ["loa-condition-level"] = "2", ["loa-max-age"] = "36000" }).ConfigureAwait(false);
-            await AddFlowAsync(realm, "zelvo level 2", "zelvo second factor", "REQUIRED", cancellationToken).ConfigureAwait(false);
-            await AddExecutionAsync(realm, "zelvo second factor", "auth-otp-form", "ALTERNATIVE", cancellationToken).ConfigureAwait(false);
-            await AddExecutionAsync(realm, "zelvo second factor", "webauthn-authenticator", "ALTERNATIVE", cancellationToken).ConfigureAwait(false);
+            // Required, not one of several alternatives: Keycloak then asks staff without an
+            // authenticator app to set one up, instead of failing the sign-in.
+            await AddExecutionAsync(realm, "zelvo level 2", "auth-otp-form", "REQUIRED", cancellationToken).ConfigureAwait(false);
         }
 
         await admin.SetEmailCodeSignInAsync(realm, settings.EmailCodeSignIn, settings.AllowedDomains, cancellationToken).ConfigureAwait(false);
