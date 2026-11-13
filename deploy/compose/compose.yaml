@@ -65,7 +65,7 @@ services:
 
   opensearch:
     <<: *restart
-    image: opensearchproject/opensearch:3.3.0
+    image: opensearchproject/opensearch:3.9.0
     environment:
       discovery.type: single-node
       # Development only: the security plugin is off and the port is bound to 127.0.0.1.
