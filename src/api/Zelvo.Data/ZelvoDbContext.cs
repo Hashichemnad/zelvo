@@ -3,6 +3,7 @@ using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 using Zelvo.Data.Auditing;
 using Zelvo.Data.Identity;
 using Zelvo.Data.Localization;
+using Zelvo.Data.Settings;
 using Zelvo.Data.Tenancy;
 
 namespace Zelvo.Data;
@@ -40,6 +41,9 @@ public sealed class ZelvoDbContext(DbContextOptions<ZelvoDbContext> options) : D
 
     /// <summary>Sign-in settings (one row per tenant).</summary>
     public DbSet<IdentitySettings> IdentitySettings => Set<IdentitySettings>();
+
+    /// <summary>Tenant settings (one row per changed key).</summary>
+    public DbSet<TenantSetting> TenantSettings => Set<TenantSetting>();
 
     /// <inheritdoc />
     protected override void OnModelCreating(ModelBuilder modelBuilder)
@@ -94,6 +98,17 @@ public sealed class ZelvoDbContext(DbContextOptions<ZelvoDbContext> options) : D
         });
 
         ConfigureIdentity(modelBuilder);
+
+        modelBuilder.Entity<TenantSetting>(setting =>
+        {
+            setting.ToTable("tenant_settings", table =>
+                table.HasCheckConstraint("ck_tenant_settings_key", "key ~ '^[a-z][a-zA-Z0-9]*(\\.[a-z][a-zA-Z0-9]*)+$'"));
+            setting.HasKey(s => new { s.TenantId, s.Key });
+            setting.HasOne<Tenant>().WithMany().HasForeignKey(s => s.TenantId).OnDelete(DeleteBehavior.Restrict);
+            setting.Property(s => s.Key).HasMaxLength(TenantSetting.KeyMaxLength);
+            setting.Property(s => s.Value).HasColumnType("jsonb");
+            setting.Property(s => s.Version).IsRowVersion();
+        });
     }
 
     private static void ConfigureIdentity(ModelBuilder modelBuilder)
@@ -101,7 +116,12 @@ public sealed class ZelvoDbContext(DbContextOptions<ZelvoDbContext> options) : D
         modelBuilder.Entity<UserAccount>(user =>
         {
             user.ToTable("users", table =>
-                table.HasCheckConstraint("ck_users_status", EnumCheck("status", Enum.GetNames<UserStatus>())));
+            {
+                table.HasCheckConstraint("ck_users_status", EnumCheck("status", Enum.GetNames<UserStatus>()));
+                table.HasCheckConstraint("ck_users_preferred_language", EnumCheck("preferred_language", LocalizedText.Languages));
+                table.HasCheckConstraint("ck_users_calendar", EnumCheck("calendar", Enum.GetNames<CalendarSystem>()));
+                table.HasCheckConstraint("ck_users_digits", EnumCheck("digits", Enum.GetNames<DigitSystem>()));
+            });
             user.HasKey(u => u.Id);
             user.Property(u => u.Id).ValueGeneratedNever();
             user.HasOne<Tenant>().WithMany().HasForeignKey(u => u.TenantId).OnDelete(DeleteBehavior.Restrict);
@@ -109,6 +129,9 @@ public sealed class ZelvoDbContext(DbContextOptions<ZelvoDbContext> options) : D
             user.Property(u => u.Email).HasMaxLength(UserAccount.EmailMaxLength);
             user.Property(u => u.DisplayName).HasMaxLength(UserAccount.DisplayNameMaxLength);
             user.Property(u => u.Status).HasConversion<string>().HasMaxLength(20);
+            user.Property(u => u.PreferredLanguage).HasMaxLength(2);
+            user.Property(u => u.Calendar).HasConversion<string>().HasMaxLength(20);
+            user.Property(u => u.Digits).HasConversion<string>().HasMaxLength(20);
             user.Property(u => u.Version).IsRowVersion();
             user.HasIndex(u => new { u.TenantId, u.Subject }).IsUnique();
             user.HasIndex(u => new { u.TenantId, u.Email });
