@@ -29,7 +29,7 @@ The application role gets `SELECT, INSERT, UPDATE, DELETE` on tables through def
 
 **Guard test:** `Every_tenant_owned_table_has_forced_row_level_security_and_a_policy` fails the build when a table with a `tenant_id` column lacks forced RLS or a policy. New modules cannot forget it.
 
-Signed-in users (task A2) must also carry a `zelvo_tenant_id` claim equal to the request's tenant (`CurrentTenantMemberRequirement`), so a user of one tenant cannot pick another with the header.
+Signed-in requests (task A2) must carry an access token issued by the request tenant's own Keycloak realm, with a `zelvo_tenant_id` claim equal to the tenant (`ZelvoBearerHandler`), so a user of one tenant cannot pick another with the header. See [identity-access.md](identity-access.md).
 
 ## Audit log
 

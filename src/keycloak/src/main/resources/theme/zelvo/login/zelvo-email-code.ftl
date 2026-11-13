@@ -14,9 +14,10 @@
             </@buttons.actionGroup>
         </form>
         <form id="zelvo-code-other" class="${properties.kcFormClass!}" action="${url.loginAction}" method="post">
-            <@buttons.actionGroup horizontal=true>
-                <@buttons.button id="zelvo-resend" name="resend" label="zelvoResendCode" type="secondary" fullWidth=false />
-                <@buttons.button id="zelvo-back" name="back" label="zelvoUseOtherEmail" type="link" fullWidth=false />
+            <#-- Stacked, full width: long Arabic labels must not overflow on phones. -->
+            <@buttons.actionGroup>
+                <@buttons.button id="zelvo-resend" name="resend" label="zelvoResendCode" type="secondary" />
+                <@buttons.button id="zelvo-back" name="back" label="zelvoUseOtherEmail" type="secondary" />
             </@buttons.actionGroup>
         </form>
     </#if>

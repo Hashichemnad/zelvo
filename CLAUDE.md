@@ -28,7 +28,7 @@ Zelvo is a bilingual (English/Arabic) ITSM platform for the UAE market, sold as 
 | Cache / queue | Valkey (Redis-compatible), RabbitMQ |
 | Real-time | SignalR |
 | Workflow engine | Elsa Workflows 3 (approved; confirmed by a spike in task C3, Temporal is the fallback) |
-| Identity | Keycloak (SAML/OIDC, MFA), UAE PASS |
+| Identity | Keycloak (SAML/OIDC, MFA), one realm per tenant, UAE PASS; a small Zelvo Keycloak extension in Java (`src/keycloak`) for email one-time codes only |
 | AI | Provider-agnostic AI gateway; customer supplies the provider and API key; built-in MCP server |
 | Packaging | Docker images; Docker Compose (small installs) and Helm/Kubernetes (medium and large) |
 | Observability | OpenTelemetry, Prometheus, Grafana |
@@ -77,13 +77,14 @@ src/api/                 ASP.NET Core backend (Zelvo.Api), data layer and migrat
 src/api/tests/           backend unit and integration tests (integration tests use real PostgreSQL via Testcontainers)
 src/web/                 Next.js frontend (portal, agent workspace, admin); translations in src/web/messages/{en,ar}.json
 src/worker/              background jobs: SLA timers, notifications, integrations, AI
+src/keycloak/            Keycloak extension (email one-time code sign-in) and the zelvo login/email theme (Java, Maven)
 deploy/compose/          Docker Compose for development and small installs
 deploy/helm/             Helm charts for Kubernetes installs
 tests/e2e/               Playwright end-to-end and accessibility tests
 scripts/                 dev-up.sh / dev-down.sh (wrapped by the Makefile)
 ```
 
-Start everything with `make up`; see README.md. Licensing boundary: `docs/architecture/licensing.md`.
+Start everything with `make up`; see README.md. Licensing boundary: `docs/architecture/licensing.md`. Identity and access: `docs/architecture/identity-access.md`.
 
 ## Progress
 
@@ -96,7 +97,8 @@ Update this at the end of every task.
 - [x] Project setup: repository structure, ASP.NET Core API, worker, Next.js frontend (English/Arabic, RTL), Docker Compose (PostgreSQL + pgvector, Redis, OpenSearch, RabbitMQ, Keycloak), one-command start (`make up`), bilingual welcome page with live service status, CI (build, tests, end-to-end and accessibility tests, CodeQL, Grype image scanning, SBOM, Gitleaks, Dependabot), `ILicenseService` with a development stub
 - [x] Phase 1 build plan broken into tasks: `docs/phase1-build-plan.md` (approved 2026-11-13)
 - [ ] Modules 1–15 and demo mode: tasks A1–F7 in `docs/phase1-build-plan.md`
-  - [x] A1 data, tenancy and audit (in review): `Zelvo.Data` with EF Core migrations and a `migrate` step in Compose; tenants; PostgreSQL row-level security from a per-connection tenant setting, with a guard test for every tenant-owned table; append-only, hash-chained audit log (database triggers) with automatic field-level change capture and a verification endpoint; bilingual `LocalizedText` with missing-translation report; API conventions (problem details with codes, validation, paging); Scalar API explorer. See `docs/architecture/data-tenancy-audit.md` and `docs/architecture/api-conventions.md`
+  - [x] A1 data, tenancy and audit: `Zelvo.Data` with EF Core migrations and a `migrate` step in Compose; tenants; PostgreSQL row-level security from a per-connection tenant setting, with a guard test for every tenant-owned table; append-only, hash-chained audit log (database triggers) with automatic field-level change capture and a verification endpoint; bilingual `LocalizedText` with missing-translation report; API conventions (problem details with codes, validation, paging); Scalar API explorer. See `docs/architecture/data-tenancy-audit.md` and `docs/architecture/api-conventions.md`
+  - [x] A2 identity and access (in review): one Keycloak realm per tenant, provisioned by `migrate` (clients, brute-force protection, English/Arabic, `zelvo` theme, sign-in flow); API accepts only tokens of the request tenant's realm; Zelvo users created as requesters at first sign-in; the six personas as built-in roles whose permissions and field rules are data (defaults given once, admin changes kept, lock-out guards); field-level access (hidden fields left out, read-only fields refused, personal-data views audited); mandatory second factor for agents, team leads and admins through `acr=mfa` step-up (RFC 9470); email one-time code sign-in through a Zelvo Keycloak extension with the tenant setting known users / allowed domains / anyone; anonymous access for public endpoints; web backend-for-frontend with server-side sessions in Valkey, CSRF protection and an API proxy; development users per persona and Mailpit in Compose. See `docs/architecture/identity-access.md`
 
 ### Phase 2: Control (not started)
 ### Phase 3: Scale (not started)
@@ -117,3 +119,8 @@ Update this at the end of every task.
 | 2026-11-13 | Cache: **approved** Valkey (BSD, Redis-protocol compatible) instead of Redis, because Redis 7.4+ is not permissively licensed and customers receive our images. Client code (StackExchange.Redis) is unchanged. |
 | 2026-11-13 | A1: tenant isolation through a per-connection PostgreSQL setting (`zelvo.tenant_id`) read by forced RLS policies; the API picks the tenant from the `X-Zelvo-Tenant` header or the installation default, and from A2 also requires the user's tenant claim to match. Audit hash chain computed and enforced by database triggers so every writer is covered. API explorer: Scalar (MIT, assets bundled). |
 | 2026-11-13 | Arabic product wording **approved**: product name "زيلفو"; "Powered by Zelvo" is "بتقنية زيلفو". |
+| 2026-11-13 | Branches: work happens on the branch the Claude Code session provides (`claude/...`); pull request titles start with the task ID, for example "A2: Identity and access". |
+| 2026-11-13 | A2: **one Keycloak realm per tenant** (`zelvo-<slug>`); the API accepts only tokens issued by the request tenant's realm. |
+| 2026-11-13 | A2: Keycloak 26.7.5 has no built-in way to email a sign-in code (checked), so a **small Zelvo Keycloak extension in Java** (`src/keycloak`, with its own tests) adds that login step only. |
+| 2026-11-13 | A2: who may sign in with an email code is a **tenant setting**: "only known users" (default), "allowed email domains" (anyone with a listed domain gets a requester account automatically) or "anyone" (public portals). |
+| 2026-11-13 | A2: roles are the six personas; what each role may do (permissions and field rules) is data in Zelvo, not in Keycloak; staff roles need a second factor, checked by the API from the token's `acr` and asked for with step-up. Web sessions are server side (Valkey); the browser never holds tokens. |
