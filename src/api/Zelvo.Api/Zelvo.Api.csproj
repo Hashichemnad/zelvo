@@ -10,11 +10,13 @@
     <PackageReference Include="AspNetCore.HealthChecks.Rabbitmq" />
     <PackageReference Include="AspNetCore.HealthChecks.Uris" />
     <PackageReference Include="Npgsql" />
+    <PackageReference Include="Scalar.AspNetCore" />
     <PackageReference Include="StackExchange.Redis" />
     <PackageReference Include="RabbitMQ.Client" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\Zelvo.Licensing.Abstractions\Zelvo.Licensing.Abstractions.csproj" />
+    <ProjectReference Include="..\Zelvo.Data\Zelvo.Data.csproj" />
   </ItemGroup>
   <!-- Development builds use the stub; release builds pass -p:ZelvoLicensingProject=<private project>. -->
   <ItemGroup Condition="'$(ZelvoLicensingProject)' == ''">

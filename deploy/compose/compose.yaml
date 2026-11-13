@@ -30,19 +30,22 @@ services:
       timeout: 5s
       retries: 20
 
+  # Cache: Valkey (BSD licence, Redis-protocol compatible). The service keeps the name "redis"
+  # because clients speak the Redis protocol; see the decisions log in CLAUDE.md.
   redis:
     <<: *restart
-    image: redis:8.2-alpine
-    command: ["sh", "-c", "exec redis-server --requirepass \"$${REDIS_PASSWORD}\" --appendonly yes"]
+    image: valkey/valkey:8.1-alpine
+    command: ["sh", "-c", "exec valkey-server --requirepass \"$${REDIS_PASSWORD}\" --appendonly yes"]
     environment:
       REDIS_PASSWORD: ${REDIS_PASSWORD:?set in .env}
+      VALKEYCLI_AUTH: ${REDIS_PASSWORD:?set in .env}
       REDISCLI_AUTH: ${REDIS_PASSWORD:?set in .env}
     volumes:
       - redis-data:/data
     ports:
       - "127.0.0.1:${REDIS_PORT:-6379}:6379"
     healthcheck:
-      test: ["CMD", "redis-cli", "ping"]
+      test: ["CMD", "valkey-cli", "ping"]
       interval: 5s
       timeout: 5s
       retries: 20
@@ -118,15 +121,32 @@ services:
       retries: 30
       start_period: 30s
 
-  api:
-    <<: *restart
+  # One-off: applies database migrations as the database owner, creates the default tenant,
+  # then exits. The API starts only after it succeeds.
+  migrate:
     build:
       context: ../..
       dockerfile: src/api/Zelvo.Api/Dockerfile
     image: zelvo/api:dev
+    command: ["migrate"]
+    restart: "no"
+    environment:
+      DOTNET_ENVIRONMENT: Development
+      ConnectionStrings__PostgresOwner: Host=postgres;Database=${POSTGRES_DB};Username=${POSTGRES_SUPERUSER};Password=${POSTGRES_SUPERUSER_PASSWORD}
+      Tenancy__Bootstrap__Slug: ${ZELVO_DEFAULT_TENANT:-default}
+      Tenancy__Bootstrap__NameEn: ${ZELVO_DEFAULT_TENANT_NAME_EN:-Zelvo}
+      Tenancy__Bootstrap__NameAr: ${ZELVO_DEFAULT_TENANT_NAME_AR:-زيلفو}
+    depends_on:
+      postgres: { condition: service_healthy }
+
+  api:
+    <<: *restart
+    image: zelvo/api:dev
+    pull_policy: never
     environment:
       ASPNETCORE_ENVIRONMENT: Development
       ConnectionStrings__Postgres: Host=postgres;Database=${POSTGRES_DB};Username=${ZELVO_APP_DB_USER};Password=${ZELVO_APP_DB_PASSWORD}
+      Tenancy__DefaultTenant: ${ZELVO_DEFAULT_TENANT:-default}
       ConnectionStrings__Redis: redis:6379,password=${REDIS_PASSWORD},abortConnect=false
       ConnectionStrings__RabbitMq: amqp://${RABBITMQ_USER}:${RABBITMQ_PASSWORD}@rabbitmq:5672/
       Services__OpenSearch: http://opensearch:9200/
@@ -134,6 +154,7 @@ services:
     ports:
       - "127.0.0.1:${API_PORT:-8080}:8080"
     depends_on:
+      migrate: { condition: service_completed_successfully }
       postgres: { condition: service_healthy }
       redis: { condition: service_healthy }
       rabbitmq: { condition: service_healthy }

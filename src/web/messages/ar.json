@@ -34,7 +34,7 @@
     "services": {
       "api": "واجهة البرمجة (API)",
       "postgres": "قاعدة البيانات (PostgreSQL)",
-      "redis": "الذاكرة المؤقتة (Redis)",
+      "redis": "الذاكرة المؤقتة (Valkey)",
       "rabbitmq": "قائمة الرسائل (RabbitMQ)",
       "opensearch": "البحث (OpenSearch)",
       "keycloak": "الهوية (Keycloak)"

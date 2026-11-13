@@ -1,4 +1,4 @@
-# Phase 1 build plan (proposed, awaiting product owner approval)
+# Phase 1 build plan (approved 2026-11-13)
 
 Phase 1 delivers modules 1–15 and demo mode from [requirements.md](requirements.md). This plan breaks it into tasks of one branch and one pull request each, in build order. Each task follows CLAUDE.md: plan first, build with tests, run in Docker Compose, update Progress.
 
@@ -71,9 +71,9 @@ Everything else builds on these. They cover the release-blocking non-functional 
 | F6 | `phase1/release-packaging` | Hardened Compose for small installs; Helm charts for medium and large; release pipeline with the private licensing project, signed images, obfuscation and minified builds; backup and restore (RPO 15 min, RTO 4 h) | NFR deployment, backup; module 12 (compiled delivery) | F4 |
 | F7 | `phase1/release-readiness` | Load tests (API p95 < 200 ms, 1,000 concurrent agents), accessibility audit in both languages, ASVS L2 review, demo walkthrough; then the external penetration test | NFR performance, security, accessibility | all |
 
-## Decisions needed from the product owner
+## Product owner decisions (2026-11-13)
 
-1. **Approve this plan** (order, splitting and scope per task).
-2. **Workflow engine:** Elsa Workflows 3 is proposed (see the decisions log in CLAUDE.md). It is confirmed with a short spike at the start of C3, with Temporal as the fallback.
-3. **Redis licence:** Redis 7.4 and later are not under a permissive open-source licence (RSALv2/SSPL, and AGPLv3 from Redis 8). Because customers receive our Docker images, we propose **Valkey** (BSD, protocol-compatible). The client code does not change. This change to the stack needs approval.
-4. **Arabic product wording:** please confirm "زيلفو" as the Arabic product name and "بتقنية زيلفو" for "Powered by Zelvo".
+1. **Plan approved** (order, splitting and scope per task).
+2. **Workflow engine:** Elsa Workflows 3 approved. It is confirmed with a short spike at the start of C3, with Temporal as the fallback.
+3. **Cache:** Valkey (BSD, Redis-protocol compatible) approved in place of Redis, because customers receive our Docker images. The client code does not change.
+4. **Arabic product wording:** "زيلفو" is the Arabic product name and "بتقنية زيلفو" is "Powered by Zelvo".

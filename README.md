@@ -16,13 +16,14 @@ You need Docker with the Compose plugin and about 4 GB of free memory. From the 
 make up
 ```
 
-(or `./scripts/dev-up.sh` without `make`). The first run creates `deploy/compose/.env` with random development passwords, builds the images and waits until every service is healthy (a few minutes the first time). Then open:
+(or `./scripts/dev-up.sh` without `make`). The first run creates `deploy/compose/.env` with random development passwords, builds the images, applies the database migrations (the one-off `migrate` service, which also creates the `default` tenant) and waits until every service is healthy (a few minutes the first time). Then open:
 
 | What | Address |
 | --- | --- |
 | Welcome page (English and Arabic) | http://localhost:3000 |
 | API readiness | http://localhost:8080/health/ready |
 | OpenAPI document | http://localhost:8080/openapi/v1.json |
+| API explorer | http://localhost:8080/api-explorer |
 | Keycloak admin (credentials in `deploy/compose/.env`) | http://localhost:8180 |
 | RabbitMQ admin | http://localhost:15672 |
 
@@ -31,8 +32,8 @@ make up
 ## Repository layout
 
 ```
-docs/            requirements, build plan, architecture notes
-src/api/         ASP.NET Core API, licensing contract and development stub, backend tests
+docs/            requirements, build plan, architecture notes (tenancy and audit, API conventions, licensing)
+src/api/         ASP.NET Core API, data layer and migrations (Zelvo.Data), licensing contract and stub, backend tests
 src/web/         Next.js frontend (portal, agent workspace, admin)
 src/worker/      background jobs
 deploy/compose/  Docker Compose for development
@@ -45,7 +46,7 @@ scripts/         start and stop scripts
 
 | Part | Tools | Commands |
 | --- | --- | --- |
-| Backend | .NET 10 SDK, Docker (integration tests start PostgreSQL) | `dotnet build Zelvo.slnx`, `dotnet test --solution Zelvo.slnx` |
+| Backend | .NET 10 SDK, Docker (integration tests start PostgreSQL) | `dotnet build Zelvo.slnx`, `dotnet test --solution Zelvo.slnx`; new migration: `dotnet tool restore`, then `dotnet ef migrations add <Name> -p src/api/Zelvo.Data -s src/api/Zelvo.Data -o Migrations` |
 | Frontend | Node.js 22 | in `src/web`: `npm ci`, `npm run dev`, `npm run lint`, `npm run typecheck`, `npm test` |
 | End-to-end | Node.js 22, running stack | `make up`, then `make e2e` |
 

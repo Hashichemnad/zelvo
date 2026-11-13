@@ -25,9 +25,9 @@ Zelvo is a bilingual (English/Arabic) ITSM platform for the UAE market, sold as 
 | Frontend | Next.js + React + TypeScript, Tailwind CSS |
 | Database | PostgreSQL with pgvector; row-level security for tenant isolation |
 | Search | OpenSearch (Arabic and English analysers) |
-| Cache / queue | Redis, RabbitMQ |
+| Cache / queue | Valkey (Redis-compatible), RabbitMQ |
 | Real-time | SignalR |
-| Workflow engine | Elsa Workflows (decide in the Phase 1 setup task; Temporal is the fallback) |
+| Workflow engine | Elsa Workflows 3 (approved; confirmed by a spike in task C3, Temporal is the fallback) |
 | Identity | Keycloak (SAML/OIDC, MFA), UAE PASS |
 | AI | Provider-agnostic AI gateway; customer supplies the provider and API key; built-in MCP server |
 | Packaging | Docker images; Docker Compose (small installs) and Helm/Kubernetes (medium and large) |
@@ -73,7 +73,7 @@ Changing any of these needs the product owner's approval.
 
 ```
 docs/                    requirements, Phase 1 build plan, architecture notes, screenshots
-src/api/                 ASP.NET Core backend (Zelvo.Api), licensing contract and development stub
+src/api/                 ASP.NET Core backend (Zelvo.Api), data layer and migrations (Zelvo.Data), licensing contract and development stub
 src/api/tests/           backend unit and integration tests (integration tests use real PostgreSQL via Testcontainers)
 src/web/                 Next.js frontend (portal, agent workspace, admin); translations in src/web/messages/{en,ar}.json
 src/worker/              background jobs: SLA timers, notifications, integrations, AI
@@ -94,8 +94,9 @@ Update this at the end of every task.
 - [x] Requirements approved and added (`docs/requirements.md`)
 - [x] Project instructions (`CLAUDE.md`), proprietary license, `.gitignore`
 - [x] Project setup: repository structure, ASP.NET Core API, worker, Next.js frontend (English/Arabic, RTL), Docker Compose (PostgreSQL + pgvector, Redis, OpenSearch, RabbitMQ, Keycloak), one-command start (`make up`), bilingual welcome page with live service status, CI (build, tests, end-to-end and accessibility tests, CodeQL, Grype image scanning, SBOM, Gitleaks, Dependabot), `ILicenseService` with a development stub
-- [x] Phase 1 build plan broken into tasks: `docs/phase1-build-plan.md` (proposed; **awaiting product owner approval**)
-- [ ] Modules 1–15 and demo mode: tasks A1–F7 in `docs/phase1-build-plan.md`, to start once the plan is approved
+- [x] Phase 1 build plan broken into tasks: `docs/phase1-build-plan.md` (approved 2026-11-13)
+- [ ] Modules 1–15 and demo mode: tasks A1–F7 in `docs/phase1-build-plan.md`
+  - [x] A1 data, tenancy and audit (in review): `Zelvo.Data` with EF Core migrations and a `migrate` step in Compose; tenants; PostgreSQL row-level security from a per-connection tenant setting, with a guard test for every tenant-owned table; append-only, hash-chained audit log (database triggers) with automatic field-level change capture and a verification endpoint; bilingual `LocalizedText` with missing-translation report; API conventions (problem details with codes, validation, paging); Scalar API explorer. See `docs/architecture/data-tenancy-audit.md` and `docs/architecture/api-conventions.md`
 
 ### Phase 2: Control (not started)
 ### Phase 3: Scale (not started)
@@ -111,5 +112,8 @@ Update this at the end of every task.
 | 2026-11-13 | Repository stays public during development; licensing code is kept in a separate private repository. |
 | 2026-11-13 | Setup: .NET 10 LTS with central package management and warnings as errors; Next.js 16 App Router with next-intl (locale in the URL: `/en`, `/ar`); Tailwind CSS 4 with logical properties only (enforced by a test); IBM Plex Sans Arabic bundled locally (works offline); Playwright + axe for end-to-end and accessibility tests. |
 | 2026-11-13 | Database roles: a superuser-owned database for migrations and a separate application role without `BYPASSRLS`, so row-level security always applies to the app. |
-| 2026-11-13 | Workflow engine: **proposed** Elsa Workflows 3 (MIT, embedded in .NET, PostgreSQL persistence), to be confirmed by a spike in task C3; Temporal stays the fallback. Awaiting product owner approval. |
-| 2026-11-13 | Open for approval: replace Redis with Valkey (BSD) because Redis 7.4+ is not permissively licensed and customers receive our images. Until approved, the stack uses the official Redis image. |
+| 2026-11-13 | Phase 1 build plan (`docs/phase1-build-plan.md`) approved by the product owner: order, splitting and scope per task. |
+| 2026-11-13 | Workflow engine: **approved** Elsa Workflows 3 (MIT, embedded in .NET, PostgreSQL persistence), confirmed by a spike at the start of task C3; Temporal stays the fallback. |
+| 2026-11-13 | Cache: **approved** Valkey (BSD, Redis-protocol compatible) instead of Redis, because Redis 7.4+ is not permissively licensed and customers receive our images. Client code (StackExchange.Redis) is unchanged. |
+| 2026-11-13 | A1: tenant isolation through a per-connection PostgreSQL setting (`zelvo.tenant_id`) read by forced RLS policies; the API picks the tenant from the `X-Zelvo-Tenant` header or the installation default, and from A2 also requires the user's tenant claim to match. Audit hash chain computed and enforced by database triggers so every writer is covered. API explorer: Scalar (MIT, assets bundled). |
+| 2026-11-13 | Arabic product wording **approved**: product name "زيلفو"; "Powered by Zelvo" is "بتقنية زيلفو". |

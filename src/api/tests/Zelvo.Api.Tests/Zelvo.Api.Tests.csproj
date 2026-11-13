@@ -18,6 +18,7 @@
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\..\Zelvo.Api\Zelvo.Api.csproj" />
+    <ProjectReference Include="..\..\Zelvo.Data\Zelvo.Data.csproj" />
     <ProjectReference Include="..\..\Zelvo.Licensing.Development\Zelvo.Licensing.Development.csproj" />
   </ItemGroup>
 </Project>
