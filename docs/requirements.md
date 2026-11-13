@@ -69,12 +69,11 @@ Six roles use the platform; each sees only the screens and data its role allows.
 
 English and Arabic are both first-class: every screen, email, notification, report and AI reply works fully in either language.
 
-**Language resolution order** — the system picks the display language in this order:
+**Language resolution order** — the system picks the display language in this order (product owner decision 2026-11-13):
 
-1. The user's or agent's personal default, set in their profile.
-2. The tenant default, set by the administrator in Settings.
-3. The browser language, for anonymous portal visitors.
-4. English, as the platform fallback.
+- **Signed-in users and agents:** their personal default, set in their profile; then the tenant default, set by the administrator in Settings; then English.
+- **Visitors who are not signed in:** the browser language, when it is English or Arabic; then the tenant default; then English.
+- **Language switch:** switching language applies to the current visit and is remembered on that device. It does not change the personal default, which is changed in the profile.
 
 **Requirements**
 
@@ -85,7 +84,7 @@ English and Arabic are both first-class: every screen, email, notification, repo
 - **LANG-5** Catalog items, categories, forms, knowledge articles, email templates and SLA names hold both an English and an Arabic value; admins see a warning when one is missing.
 - **LANG-6** Notifications go out in the recipient's language, not the sender's.
 - **LANG-7** An agent and a user can each work in their own language on the same ticket; the AI offers a one-click translation of messages.
-- **LANG-8** Dates support Gregorian and Hijri display; numbers support Western and Arabic-Indic digits, set per user.
+- **LANG-8** Dates support Gregorian and Hijri display; numbers support Western and Arabic-Indic digits. The administrator sets the tenant default for both in Settings (initially Gregorian and Western digits); each user can override them in their profile.
 - **LANG-9** Search works across both languages, including Arabic word variants (with or without diacritics, different letter forms).
 - **LANG-10** The AI understands Modern Standard Arabic and Gulf dialect in chat, email and WhatsApp messages.
 

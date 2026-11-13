@@ -52,8 +52,8 @@ Changing any of these needs the product owner's approval.
 ### Language, RTL and accessibility
 - Every user-facing string comes from translation files in both English and Arabic. No hard-coded text in the UI, emails or notifications.
 - Layouts work in both left-to-right and right-to-left. Use logical CSS properties (`margin-inline-start`, not `margin-left`).
-- Dates support Gregorian and Hijri display; numbers support Western and Arabic-Indic digits.
-- Display language order: the user's own setting, then the tenant default, then the browser language, then English.
+- Dates support Gregorian and Hijri display; numbers support Western and Arabic-Indic digits. The tenant sets the defaults (initially Gregorian, Western digits); each user can override them in their profile.
+- Display language order: signed-in users get their profile setting, then the tenant default, then English; visitors who are not signed in get the browser language (if English or Arabic), then the tenant default, then English. The language switch applies to the current visit and is remembered on the device (cookie); it does not change the profile.
 - Meet WCAG 2.2 AA: keyboard access, labels, contrast and screen readers in both languages.
 
 ### Configuration over code
@@ -124,3 +124,5 @@ Update this at the end of every task.
 | 2026-11-13 | A2: Keycloak 26.7.5 has no built-in way to email a sign-in code (checked), so a **small Zelvo Keycloak extension in Java** (`src/keycloak`, with its own tests) adds that login step only. |
 | 2026-11-13 | A2: who may sign in with an email code is a **tenant setting**: "only known users" (default), "allowed email domains" (anyone with a listed domain gets a requester account automatically) or "anyone" (public portals). |
 | 2026-11-13 | A2: roles are the six personas; what each role may do (permissions and field rules) is data in Zelvo, not in Keycloak; staff roles need a second factor, checked by the API from the token's `acr` and asked for with step-up. Web sessions are server side (Valkey); the browser never holds tokens. |
+| 2026-11-13 | A3: language order **approved**: signed-in users get profile → tenant default → English; visitors who are not signed in get browser language (English or Arabic) → tenant default → English. The language switch applies to the current visit and is remembered on the device (cookie); it never changes the profile default. |
+| 2026-11-13 | A3: **tenant defaults for calendar and digits** (Gregorian/Hijri, Western/Arabic-Indic), set by the admin in Settings and starting as Gregorian and Western digits; each user can override them in their profile (LANG-8 updated). |
