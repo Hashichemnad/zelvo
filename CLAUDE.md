@@ -84,7 +84,7 @@ tests/e2e/               Playwright end-to-end and accessibility tests
 scripts/                 dev-up.sh / dev-down.sh (wrapped by the Makefile)
 ```
 
-Start everything with `make up`; see README.md. Licensing boundary: `docs/architecture/licensing.md`. Identity and access: `docs/architecture/identity-access.md`.
+Start everything with `make up`; see README.md. Licensing boundary: `docs/architecture/licensing.md`. Identity and access: `docs/architecture/identity-access.md`. Settings and localization: `docs/architecture/settings-localization.md`.
 
 ## Progress
 
@@ -99,6 +99,7 @@ Update this at the end of every task.
 - [ ] Modules 1–15 and demo mode: tasks A1–F7 in `docs/phase1-build-plan.md`
   - [x] A1 data, tenancy and audit: `Zelvo.Data` with EF Core migrations and a `migrate` step in Compose; tenants; PostgreSQL row-level security from a per-connection tenant setting, with a guard test for every tenant-owned table; append-only, hash-chained audit log (database triggers) with automatic field-level change capture and a verification endpoint; bilingual `LocalizedText` with missing-translation report; API conventions (problem details with codes, validation, paging); Scalar API explorer. See `docs/architecture/data-tenancy-audit.md` and `docs/architecture/api-conventions.md`
   - [x] A2 identity and access (in review): one Keycloak realm per tenant, provisioned by `migrate` (clients, brute-force protection, English/Arabic, `zelvo` theme, sign-in flow); API accepts only tokens of the request tenant's realm; Zelvo users created as requesters at first sign-in; the six personas as built-in roles whose permissions and field rules are data (defaults given once, admin changes kept, lock-out guards); field-level access (hidden fields left out, read-only fields refused, personal-data views audited); mandatory second factor for agents, team leads and admins through `acr=mfa` step-up (RFC 9470); email one-time code sign-in through a Zelvo Keycloak extension with the tenant setting known users / allowed domains / anyone; anonymous access for public endpoints; web backend-for-frontend with server-side sessions in Valkey, CSRF protection and an API proxy; development users per persona and Mailpit in Compose. See `docs/architecture/identity-access.md`
+  - [x] A3 settings and localization (in review): tenant settings store (`tenant_settings`, JSON per key, row-level security, audited; typed definitions in code with defaults); Settings shell with a permission-filtered menu and the missing-translation warning; Settings → Language and region (tenant default language, calendar and digits; `settings.manage`); personal language, calendar and digits on the Account page with live preview; display language order as decided 2026-11-13 (profile → tenant → English when signed in; browser → tenant → English for visitors; language switch per visit, remembered on the device); formal Arabic correspondence guidelines (`docs/guidelines/arabic-formal-correspondence.md`, GOV-8 base). See `docs/architecture/settings-localization.md`
 
 ### Phase 2: Control (not started)
 ### Phase 3: Scale (not started)
