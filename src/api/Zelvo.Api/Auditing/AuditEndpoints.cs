@@ -3,7 +3,7 @@ using System.Text.Json;
 using Microsoft.AspNetCore.Http.HttpResults;
 using Microsoft.EntityFrameworkCore;
 using Zelvo.Api.Conventions;
-using Zelvo.Api.Security;
+using Zelvo.Api.Identity;
 using Zelvo.Api.Tenancy;
 using Zelvo.Data;
 using Zelvo.Data.Auditing;
@@ -17,7 +17,7 @@ internal static class AuditEndpoints
     public static RouteGroupBuilder MapAuditEndpoints(this RouteGroupBuilder group)
     {
         var audit = group.MapGroup("/audit").WithTags("Audit").RequireTenant()
-            .RequireAuthorization(ZelvoPolicies.AuditRead);
+            .RequirePermission(Permissions.AuditRead);
 
         audit.MapGet("/events", ListAsync)
             .WithName("ListAuditEvents")

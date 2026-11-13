@@ -3,8 +3,8 @@
     <IsPackable>false</IsPackable>
     <OutputType>Exe</OutputType>
     <RootNamespace>Zelvo.Api.Tests</RootNamespace>
-    <!-- Async test helpers do not need a synchronization context. -->
-    <NoWarn>$(NoWarn);CA2007</NoWarn>
+    <!-- Async test helpers need no synchronization context; inline request bodies read better than static arrays. -->
+    <NoWarn>$(NoWarn);CA2007;CA1861</NoWarn>
   </PropertyGroup>
   <ItemGroup>
     <Using Include="Xunit" />

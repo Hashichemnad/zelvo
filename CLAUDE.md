@@ -10,7 +10,7 @@ Zelvo is a bilingual (English/Arabic) ITSM platform for the UAE market, sold as 
 
 ## How we work
 
-1. One task per session, one branch per task: `phase<N>/<module>-<short-name>` (for example `phase1/m01-incidents`).
+1. One task per session, one branch per task. The branch is the one the Claude Code session provides (`claude/...`); do not rename it. Pull request titles start with the task ID from the build plan, for example "A2: Identity and access".
 2. Read the requirement section, then plan: data model, API, UI, tests. Share the plan before writing large amounts of code.
 3. Build with tests. A task is done only when it builds, tests pass, and it runs in Docker Compose.
 4. Open a pull request with: what was built, which requirements it covers, how to test it, screenshots for UI work, and anything left out.

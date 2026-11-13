@@ -11,6 +11,8 @@
     <PackageReference Include="AspNetCore.HealthChecks.Uris" />
     <PackageReference Include="Npgsql" />
     <PackageReference Include="Scalar.AspNetCore" />
+    <PackageReference Include="Microsoft.IdentityModel.JsonWebTokens" />
+    <PackageReference Include="Microsoft.IdentityModel.Protocols.OpenIdConnect" />
     <PackageReference Include="StackExchange.Redis" />
     <PackageReference Include="RabbitMQ.Client" />
   </ItemGroup>

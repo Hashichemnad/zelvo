@@ -1,7 +1,7 @@
 using System.Net;
 using System.Net.Http.Json;
 using Microsoft.EntityFrameworkCore;
-using Zelvo.Api.Security;
+using Zelvo.Data.Identity;
 using Zelvo.Data.Tenancy;
 
 namespace Zelvo.Api.Tests;
@@ -89,7 +89,7 @@ public sealed class TenantApiTests(DatabaseFixture database) : IAsyncDisposable
     public async Task Updating_needs_the_admin_role()
     {
         var tenant = await database.CreateTenantAsync();
-        using var client = _factory.ForTenant(tenant).SignedIn(tenant, ZelvoRoles.Auditor);
+        using var client = await _factory.ForTenant(tenant).SignedInAsync(database, tenant, BuiltInRoles.ExecutiveAuditor);
 
         var response = await client.PatchAsJsonAsync(TenantUri, new { name = new { en = "X" } }, Ct);
 
@@ -101,11 +101,12 @@ public sealed class TenantApiTests(DatabaseFixture database) : IAsyncDisposable
     {
         var home = await database.CreateTenantAsync("home");
         var target = await database.CreateTenantAsync("target", nameEn: "Untouched");
-        using var client = _factory.ForTenant(target).SignedIn(home, ZelvoRoles.TenantAdmin);
+        using var client = await _factory.ForTenant(target).SignedInAsync(database, home, BuiltInRoles.TenantAdmin);
 
         var response = await client.PatchAsJsonAsync(TenantUri, new { name = new { en = "Taken over" } }, Ct);
 
-        Assert.Equal(HttpStatusCode.Forbidden, response.StatusCode);
+        // The token comes from the home tenant's realm, so it is not valid for the target tenant.
+        Assert.Equal(HttpStatusCode.Unauthorized, response.StatusCode);
         await using var db = TestData.AppContext(database, target);
         Assert.Equal("Untouched", (await db.Tenants.SingleAsync(Ct)).Name.En);
     }
@@ -114,7 +115,8 @@ public sealed class TenantApiTests(DatabaseFixture database) : IAsyncDisposable
     public async Task An_admin_updates_the_name_and_the_change_is_audited_with_the_user()
     {
         var tenant = await database.CreateTenantAsync(nameEn: "Before", nameAr: "قبل");
-        using var client = _factory.ForTenant(tenant).SignedIn(tenant, ZelvoRoles.TenantAdmin);
+        var admin = await database.CreateUserAsync(tenant, BuiltInRoles.TenantAdmin);
+        using var client = _factory.ForTenant(tenant).As(admin);
 
         var response = await client.PatchAsJsonAsync(TenantUri, new { name = new { en = "After", ar = "بعد" } }, Ct);
         var body = await response.Content.ReadFromJsonAsync<TenantBody>(Ct);
@@ -127,7 +129,7 @@ public sealed class TenantApiTests(DatabaseFixture database) : IAsyncDisposable
         await using var db = TestData.AppContext(database, tenant);
         var entry = await db.AuditEvents.OrderByDescending(e => e.Sequence).FirstAsync(Ct);
         Assert.Equal("tenant.updated", entry.Action);
-        Assert.Equal("user-42", entry.ActorId);
+        Assert.Equal(admin.Id.ToString(), entry.ActorId);
         Assert.Contains("\"name.ar\"", entry.Changes, StringComparison.Ordinal);
         Assert.Contains("correlationId", entry.Metadata, StringComparison.Ordinal);
     }
@@ -139,7 +141,7 @@ public sealed class TenantApiTests(DatabaseFixture database) : IAsyncDisposable
     public async Task Invalid_updates_are_validation_problems(string json)
     {
         var tenant = await database.CreateTenantAsync();
-        using var client = _factory.ForTenant(tenant).SignedIn(tenant, ZelvoRoles.TenantAdmin);
+        using var client = await _factory.ForTenant(tenant).SignedInAsync(database, tenant, BuiltInRoles.TenantAdmin);
 
         using var content = new StringContent(json, System.Text.Encoding.UTF8, "application/json");
         var response = await client.PatchAsync(TenantUri, content, Ct);
@@ -154,7 +156,7 @@ public sealed class TenantApiTests(DatabaseFixture database) : IAsyncDisposable
     public async Task A_name_longer_than_the_column_is_a_validation_problem()
     {
         var tenant = await database.CreateTenantAsync();
-        using var client = _factory.ForTenant(tenant).SignedIn(tenant, ZelvoRoles.TenantAdmin);
+        using var client = await _factory.ForTenant(tenant).SignedInAsync(database, tenant, BuiltInRoles.TenantAdmin);
 
         var response = await client.PatchAsJsonAsync(TenantUri, new { name = new { en = new string('x', Tenant.NameMaxLength + 1) } }, Ct);
         var problem = await response.Content.ReadFromJsonAsync<ProblemBody>(Ct);

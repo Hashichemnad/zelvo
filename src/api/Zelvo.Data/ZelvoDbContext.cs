@@ -1,6 +1,7 @@
 using Microsoft.EntityFrameworkCore;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 using Zelvo.Data.Auditing;
+using Zelvo.Data.Identity;
 using Zelvo.Data.Localization;
 using Zelvo.Data.Tenancy;
 
@@ -18,6 +19,27 @@ public sealed class ZelvoDbContext(DbContextOptions<ZelvoDbContext> options) : D
 
     /// <summary>Audit log entries. Append-only.</summary>
     public DbSet<AuditEvent> AuditEvents => Set<AuditEvent>();
+
+    /// <summary>People who sign in to the tenant.</summary>
+    public DbSet<UserAccount> Users => Set<UserAccount>();
+
+    /// <summary>Roles given to users.</summary>
+    public DbSet<UserRole> UserRoles => Set<UserRole>();
+
+    /// <summary>Roles: the six built-in personas and any added later.</summary>
+    public DbSet<Role> Roles => Set<Role>();
+
+    /// <summary>Permissions of roles.</summary>
+    public DbSet<RoleGrant> RoleGrants => Set<RoleGrant>();
+
+    /// <summary>Field rules of roles.</summary>
+    public DbSet<RoleFieldRule> RoleFieldRules => Set<RoleFieldRule>();
+
+    /// <summary>Default grants of built-in roles already given to the tenant.</summary>
+    public DbSet<RoleDefaultGrant> RoleDefaultGrants => Set<RoleDefaultGrant>();
+
+    /// <summary>Sign-in settings (one row per tenant).</summary>
+    public DbSet<IdentitySettings> IdentitySettings => Set<IdentitySettings>();
 
     /// <inheritdoc />
     protected override void OnModelCreating(ModelBuilder modelBuilder)
@@ -69,6 +91,90 @@ public sealed class ZelvoDbContext(DbContextOptions<ZelvoDbContext> options) : D
             audit.HasIndex(a => new { a.TenantId, a.Sequence }).IsUnique();
             audit.HasIndex(a => new { a.TenantId, a.OccurredAt });
             audit.HasIndex(a => new { a.TenantId, a.EntityType, a.EntityId });
+        });
+
+        ConfigureIdentity(modelBuilder);
+    }
+
+    private static void ConfigureIdentity(ModelBuilder modelBuilder)
+    {
+        modelBuilder.Entity<UserAccount>(user =>
+        {
+            user.ToTable("users", table =>
+                table.HasCheckConstraint("ck_users_status", EnumCheck("status", Enum.GetNames<UserStatus>())));
+            user.HasKey(u => u.Id);
+            user.Property(u => u.Id).ValueGeneratedNever();
+            user.HasOne<Tenant>().WithMany().HasForeignKey(u => u.TenantId).OnDelete(DeleteBehavior.Restrict);
+            user.Property(u => u.Subject).HasMaxLength(UserAccount.SubjectMaxLength);
+            user.Property(u => u.Email).HasMaxLength(UserAccount.EmailMaxLength);
+            user.Property(u => u.DisplayName).HasMaxLength(UserAccount.DisplayNameMaxLength);
+            user.Property(u => u.Status).HasConversion<string>().HasMaxLength(20);
+            user.Property(u => u.Version).IsRowVersion();
+            user.HasIndex(u => new { u.TenantId, u.Subject }).IsUnique();
+            user.HasIndex(u => new { u.TenantId, u.Email });
+            user.HasMany(u => u.Roles).WithOne().HasForeignKey(r => r.UserId).OnDelete(DeleteBehavior.Cascade);
+        });
+
+        modelBuilder.Entity<Role>(role =>
+        {
+            role.ToTable("roles", table =>
+                table.HasCheckConstraint("ck_roles_key", "key ~ '^[a-z0-9]([a-z0-9-]{0,48}[a-z0-9])?$'"));
+            role.HasKey(r => r.Id);
+            role.Property(r => r.Id).ValueGeneratedNever();
+            role.HasOne<Tenant>().WithMany().HasForeignKey(r => r.TenantId).OnDelete(DeleteBehavior.Restrict);
+            role.Property(r => r.Key).HasMaxLength(Role.KeyMaxLength);
+            role.ConfigureLocalizedText(r => r.Name, "name", Role.NameMaxLength);
+            role.Property(r => r.Version).IsRowVersion();
+            role.HasIndex(r => new { r.TenantId, r.Key }).IsUnique();
+            role.HasMany(r => r.Permissions).WithOne().HasForeignKey(p => p.RoleId).OnDelete(DeleteBehavior.Cascade);
+            role.HasMany(r => r.FieldRules).WithOne().HasForeignKey(f => f.RoleId).OnDelete(DeleteBehavior.Cascade);
+        });
+
+        modelBuilder.Entity<UserRole>(userRole =>
+        {
+            userRole.ToTable("user_roles");
+            userRole.HasKey(u => new { u.UserId, u.RoleId });
+            userRole.HasOne(u => u.Role).WithMany().HasForeignKey(u => u.RoleId).OnDelete(DeleteBehavior.Cascade);
+            userRole.HasIndex(u => new { u.TenantId, u.RoleId });
+        });
+
+        modelBuilder.Entity<RoleGrant>(permission =>
+        {
+            permission.ToTable("role_permissions");
+            permission.HasKey(p => new { p.RoleId, p.Permission });
+            permission.Property(p => p.Permission).HasMaxLength(RoleGrant.PermissionMaxLength);
+            permission.HasIndex(p => p.TenantId);
+        });
+
+        modelBuilder.Entity<RoleFieldRule>(rule =>
+        {
+            rule.ToTable("role_field_rules", table =>
+                table.HasCheckConstraint("ck_role_field_rules_access", EnumCheck("access", Enum.GetNames<FieldAccess>())));
+            rule.HasKey(f => new { f.RoleId, f.Resource, f.Field });
+            rule.Property(f => f.Resource).HasMaxLength(RoleFieldRule.NameMaxLength);
+            rule.Property(f => f.Field).HasMaxLength(RoleFieldRule.NameMaxLength);
+            rule.Property(f => f.Access).HasConversion<string>().HasMaxLength(20);
+            rule.HasIndex(f => f.TenantId);
+        });
+
+        modelBuilder.Entity<RoleDefaultGrant>(grant =>
+        {
+            grant.ToTable("role_default_grants");
+            grant.HasKey(g => new { g.TenantId, g.RoleKey, g.Grant });
+            grant.HasOne<Tenant>().WithMany().HasForeignKey(g => g.TenantId).OnDelete(DeleteBehavior.Restrict);
+            grant.Property(g => g.RoleKey).HasMaxLength(Role.KeyMaxLength);
+            grant.Property(g => g.Grant).HasMaxLength(RoleDefaultGrant.GrantMaxLength);
+        });
+
+        modelBuilder.Entity<IdentitySettings>(settings =>
+        {
+            settings.ToTable("identity_settings", table =>
+                table.HasCheckConstraint("ck_identity_settings_email_code_sign_in",
+                    EnumCheck("email_code_sign_in", Enum.GetNames<EmailCodeSignIn>())));
+            settings.HasKey(s => s.TenantId);
+            settings.HasOne<Tenant>().WithMany().HasForeignKey(s => s.TenantId).OnDelete(DeleteBehavior.Restrict);
+            settings.Property(s => s.EmailCodeSignIn).HasConversion<string>().HasMaxLength(20);
+            settings.Property(s => s.Version).IsRowVersion();
         });
     }
 

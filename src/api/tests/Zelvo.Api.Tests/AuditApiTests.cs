@@ -1,7 +1,7 @@
 using System.Net;
 using System.Net.Http.Json;
 using Microsoft.EntityFrameworkCore;
-using Zelvo.Api.Security;
+using Zelvo.Data.Identity;
 
 namespace Zelvo.Api.Tests;
 
@@ -18,7 +18,7 @@ public sealed class AuditApiTests(DatabaseFixture database) : IAsyncDisposable
     {
         var tenant = await database.CreateTenantAsync();
         using var anonymous = _factory.ForTenant(tenant);
-        using var agent = _factory.ForTenant(tenant).SignedIn(tenant, "agent");
+        using var agent = await _factory.ForTenant(tenant).SignedInAsync(database, tenant, "agent");
 
         Assert.Equal(HttpStatusCode.Unauthorized, (await anonymous.GetAsync(Events(), Ct)).StatusCode);
         Assert.Equal(HttpStatusCode.Forbidden, (await agent.GetAsync(Events(), Ct)).StatusCode);
@@ -28,22 +28,21 @@ public sealed class AuditApiTests(DatabaseFixture database) : IAsyncDisposable
     public async Task An_auditor_pages_through_entries_newest_first_and_the_view_is_audited()
     {
         var tenant = await database.CreateTenantAsync();
-        using var client = _factory.ForTenant(tenant).SignedIn(tenant, ZelvoRoles.Auditor);
+        var auditor = await database.CreateUserAsync(tenant, BuiltInRoles.ExecutiveAuditor);
+        using var client = _factory.ForTenant(tenant).As(auditor);
 
         var first = await client.GetFromJsonAsync<PageBody>(Events("?page=1&pageSize=1"), Ct);
         var second = await client.GetFromJsonAsync<PageBody>(Events("?page=1&pageSize=10"), Ct);
 
         Assert.Single(first!.Items);
-        Assert.Equal("tenant.created", first.Items[0].Action);
-        Assert.Equal(1, first.TotalCount);
         Assert.Equal(1, first.Page);
         Assert.Equal(1, first.PageSize);
 
         // The first read is itself in the log now, newest first.
-        Assert.Equal(2, second!.TotalCount);
+        Assert.Equal(first.TotalCount + 1, second!.TotalCount);
         Assert.Equal("audit.events.viewed", second.Items[0].Action);
         Assert.Equal("View", second.Items[0].Category);
-        Assert.Equal("user-42", second.Items[0].Actor.Id);
+        Assert.Equal(auditor.Id.ToString(), second.Items[0].Actor.Id);
         Assert.Equal(64, second.Items[0].Hash.Length);
         Assert.Equal(second.Items[1].Hash, second.Items[0].PreviousHash);
     }
@@ -52,7 +51,7 @@ public sealed class AuditApiTests(DatabaseFixture database) : IAsyncDisposable
     public async Task Entries_can_be_filtered()
     {
         var tenant = await database.CreateTenantAsync();
-        using var client = _factory.ForTenant(tenant).SignedIn(tenant, ZelvoRoles.TenantAdmin);
+        using var client = await _factory.ForTenant(tenant).SignedInAsync(database, tenant, BuiltInRoles.TenantAdmin);
         await client.GetAsync(Events(), Ct);
 
         var created = await client.GetFromJsonAsync<PageBody>(Events($"?category=Create&entityType=tenant&entityId={tenant.Id}"), Ct);
@@ -67,7 +66,7 @@ public sealed class AuditApiTests(DatabaseFixture database) : IAsyncDisposable
     public async Task Out_of_range_paging_is_a_validation_problem(string query)
     {
         var tenant = await database.CreateTenantAsync();
-        using var client = _factory.ForTenant(tenant).SignedIn(tenant, ZelvoRoles.Auditor);
+        using var client = await _factory.ForTenant(tenant).SignedInAsync(database, tenant, BuiltInRoles.ExecutiveAuditor);
 
         var response = await client.GetAsync(Events(query), Ct);
         var problem = await response.Content.ReadFromJsonAsync<ProblemBody>(Ct);
@@ -80,13 +79,13 @@ public sealed class AuditApiTests(DatabaseFixture database) : IAsyncDisposable
     public async Task Verification_reports_an_intact_chain_and_is_audited()
     {
         var tenant = await database.CreateTenantAsync();
-        using var client = _factory.ForTenant(tenant).SignedIn(tenant, ZelvoRoles.Auditor);
+        using var client = await _factory.ForTenant(tenant).SignedInAsync(database, tenant, BuiltInRoles.ExecutiveAuditor);
 
         var result = await client.GetFromJsonAsync<VerificationBody>(new Uri("/api/v1/audit/verification", UriKind.Relative), Ct);
 
         Assert.True(result!.Valid);
-        Assert.Equal(1, result.EventsChecked);
-        Assert.Equal(1, result.HeadSequence);
+        Assert.True(result.EventsChecked > 1);
+        Assert.Equal(result.EventsChecked, result.HeadSequence);
         Assert.Equal(64, result.HeadHash!.Length);
         await using var db = TestData.AppContext(database, tenant);
         Assert.True(await db.AuditEvents.AnyAsync(e => e.Action == "audit.chain.verified", Ct));

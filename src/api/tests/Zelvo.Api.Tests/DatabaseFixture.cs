@@ -1,5 +1,6 @@
 using Npgsql;
 using Testcontainers.PostgreSql;
+using Zelvo.Api.Identity;
 using Zelvo.Data;
 using Zelvo.Data.Localization;
 using Zelvo.Data.Tenancy;
@@ -46,7 +47,7 @@ public sealed class DatabaseFixture : IAsyncLifetime
 
     public async ValueTask DisposeAsync() => await _postgres.DisposeAsync();
 
-    /// <summary>Creates a tenant with a unique slug.</summary>
+    /// <summary>Creates a tenant with a unique slug. Its roles are added by <see cref="EnsureIdentityAsync"/>.</summary>
     public async Task<Tenant> CreateTenantAsync(string prefix = "t", string? nameEn = "Test tenant", string? nameAr = "مستأجر تجريبي")
     {
         var slug = $"{prefix}-{Guid.NewGuid():N}"[..Math.Min(40, prefix.Length + 33)];
@@ -54,6 +55,10 @@ public sealed class DatabaseFixture : IAsyncLifetime
             OwnerConnectionString, slug, new LocalizedText(nameEn, nameAr), TestContext.Current.CancellationToken);
         return tenant;
     }
+
+    /// <summary>Gives a tenant its built-in roles and sign-in settings, as <c>migrate</c> does.</summary>
+    public Task EnsureIdentityAsync(Tenant tenant) =>
+        IdentityProvisioning.EnsureTenantIdentityAsync(OwnerConnectionString, tenant, TestContext.Current.CancellationToken);
 
     public async Task<int> ExecuteAsOwnerAsync(string sql, params (string Name, object Value)[] parameters)
     {
