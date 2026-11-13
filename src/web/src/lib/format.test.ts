@@ -32,3 +32,18 @@ describe("formatNumber", () => {
     expect(formatNumber(1234, "ar", "arab")).toBe("١٬٢٣٤");
   });
 });
+
+describe("formatDateTime", () => {
+  it("uses the chosen calendar and digits", async () => {
+    const { formatDateTime } = await import("./format");
+    const text = formatDateTime(new Date("2026-11-13T19:18:00Z"), {
+      locale: "ar",
+      calendar: "islamic-umalqura",
+      digits: "arab",
+      timeZone: "Asia/Dubai",
+    });
+    expect(text).toMatch(/[٠-٩]/);
+    expect(text).not.toMatch(/[0-9]/);
+    expect(text).toContain("١٤٤٨");
+  });
+});

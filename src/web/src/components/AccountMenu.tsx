@@ -5,6 +5,8 @@ export interface AccountMenuProps {
   userName: string | null;
   /** The session's CSRF token, sent with the sign-out form. */
   csrfToken: string | null;
+  /** Whether the user may open at least one Settings section. */
+  showSettings?: boolean;
 }
 
 const buttonClass =
@@ -14,7 +16,7 @@ const buttonClass =
  * Sign in, or the signed-in user's name with a link to the account page and a sign-out button.
  * Sign-out is a POST form with the CSRF token, never a link.
  */
-export function AccountMenu({ userName, csrfToken }: AccountMenuProps) {
+export function AccountMenu({ userName, csrfToken, showSettings = false }: AccountMenuProps) {
   const t = useTranslations("auth");
   const locale = useLocale();
 
@@ -33,6 +35,11 @@ export function AccountMenu({ userName, csrfToken }: AccountMenuProps) {
         {/* Accessible name "Account of <name>" contains the visible name (WCAG 2.5.3). */}
         <span className="sr-only">{t("accountOf")}</span> {userName}
       </a>
+      {showSettings && (
+        <a href={`/${locale}/settings`} className="text-sm font-semibold text-brand underline-offset-4 hover:underline">
+          {t("settings")}
+        </a>
+      )}
       <form action="/auth/logout" method="post">
         <input type="hidden" name="csrf" value={csrfToken} />
         <input type="hidden" name="locale" value={locale} />

@@ -26,6 +26,9 @@ internal static class Permissions
 
     /// <summary>Change sign-in settings (who may sign in with an email code).</summary>
     public const string IdentityManage = "identity.manage";
+
+    /// <summary>Change tenant settings such as the default language, calendar and digits.</summary>
+    public const string SettingsManage = "settings.manage";
 }
 
 /// <summary>A field of a resource that field rules can hide or make read-only.</summary>
@@ -68,6 +71,7 @@ internal static class PermissionCatalog
         Permissions.UsersManage,
         Permissions.RolesManage,
         Permissions.IdentityManage,
+        Permissions.SettingsManage,
     ];
 
     public static ResourceDefinition Users { get; } = new(

@@ -1,4 +1,5 @@
 using Zelvo.Api.Conventions;
+using Zelvo.Api.Settings;
 using Zelvo.Api.Tenancy;
 
 namespace Zelvo.Api.Identity;
@@ -11,14 +12,14 @@ internal static class MeEndpoints
         group.MapGet("/me", Get)
             .WithTags("Identity")
             .WithName("GetCurrentUser")
-            .WithSummary("The signed-in user: profile, roles, permissions that apply now, and whether a second factor is needed.")
+            .WithSummary("The signed-in user: profile, display preferences, roles, permissions that apply now, and whether a second factor is needed.")
             .WithDescription("The user record is created at the first sign-in, with the requester role. When `mfa.required` is true, sign in again asking for `acr_values=mfa`; `pendingPermissions` then apply too.")
             .RequireTenant()
             .RequireAuthorization();
         return group;
     }
 
-    internal static MeResponse Get(CurrentUser user)
+    internal static async Task<MeResponse> Get(CurrentUser user, TenantSettingsStore store, CancellationToken cancellationToken)
     {
         var account = user.Account!;
         return new MeResponse(
@@ -28,7 +29,8 @@ internal static class MeEndpoints
             [.. user.Roles.Select(r => new RoleSummary(r.Key, LocalizedTextDto.From(r.Name), r.RequiresMfa)).OrderBy(r => r.Key, StringComparer.Ordinal)],
             [.. user.Permissions.Order(StringComparer.Ordinal)],
             [.. user.PendingMfaPermissions.Order(StringComparer.Ordinal)],
-            new MfaStatus(user.HasMfa, user.MfaRequired));
+            new MfaStatus(user.HasMfa, user.MfaRequired),
+            await PreferencesResponse.LoadAsync(account, store, cancellationToken).ConfigureAwait(false));
     }
 }
 
@@ -40,9 +42,10 @@ internal static class MeEndpoints
 /// <param name="Permissions">Permissions that apply now.</param>
 /// <param name="PendingPermissions">Permissions that apply after signing in with a second factor.</param>
 /// <param name="Mfa">Second-factor status.</param>
+/// <param name="Preferences">Own language, calendar and digits, and what applies.</param>
 internal sealed record MeResponse(
     Guid Id, string? Email, string? DisplayName, IReadOnlyList<RoleSummary> Roles,
-    IReadOnlyList<string> Permissions, IReadOnlyList<string> PendingPermissions, MfaStatus Mfa);
+    IReadOnlyList<string> Permissions, IReadOnlyList<string> PendingPermissions, MfaStatus Mfa, PreferencesResponse Preferences);
 
 /// <summary>A role, briefly.</summary>
 internal sealed record RoleSummary(string Key, LocalizedTextDto Name, bool RequiresMfa);

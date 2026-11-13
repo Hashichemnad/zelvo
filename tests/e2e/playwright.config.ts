@@ -16,7 +16,14 @@ export default defineConfig({
     launchOptions: process.env.CHROMIUM_PATH ? { executablePath: process.env.CHROMIUM_PATH } : {},
   },
   projects: [
-    { name: "desktop", use: { ...devices["Desktop Chrome"] } },
-    { name: "mobile", use: { ...devices["Pixel 7"] } },
+    { name: "desktop", use: { ...devices["Desktop Chrome"] }, testIgnore: /settings\.spec\.ts/ },
+    { name: "mobile", use: { ...devices["Pixel 7"] }, testIgnore: /settings\.spec\.ts/ },
+    // Changes tenant-wide defaults, so it runs after every other test, on its own.
+    {
+      name: "tenant-settings",
+      use: { ...devices["Desktop Chrome"] },
+      testMatch: /settings\.spec\.ts/,
+      dependencies: ["desktop", "mobile"],
+    },
   ],
 });

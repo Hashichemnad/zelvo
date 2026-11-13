@@ -317,9 +317,19 @@ namespace Zelvo.Data.Migrations
                         .HasColumnType("uuid")
                         .HasColumnName("id");
 
+                    b.Property<string>("Calendar")
+                        .HasMaxLength(20)
+                        .HasColumnType("character varying(20)")
+                        .HasColumnName("calendar");
+
                     b.Property<DateTimeOffset>("CreatedAt")
                         .HasColumnType("timestamp with time zone")
                         .HasColumnName("created_at");
+
+                    b.Property<string>("Digits")
+                        .HasMaxLength(20)
+                        .HasColumnType("character varying(20)")
+                        .HasColumnName("digits");
 
                     b.Property<string>("DisplayName")
                         .HasMaxLength(200)
@@ -334,6 +344,11 @@ namespace Zelvo.Data.Migrations
                     b.Property<DateTimeOffset?>("LastSeenAt")
                         .HasColumnType("timestamp with time zone")
                         .HasColumnName("last_seen_at");
+
+                    b.Property<string>("PreferredLanguage")
+                        .HasMaxLength(2)
+                        .HasColumnType("character varying(2)")
+                        .HasColumnName("preferred_language");
 
                     b.Property<string>("Status")
                         .IsRequired()
@@ -373,6 +388,12 @@ namespace Zelvo.Data.Migrations
 
                     b.ToTable("users", null, t =>
                         {
+                            t.HasCheckConstraint("ck_users_calendar", "calendar IN ('Gregorian', 'Hijri')");
+
+                            t.HasCheckConstraint("ck_users_digits", "digits IN ('Western', 'ArabicIndic')");
+
+                            t.HasCheckConstraint("ck_users_preferred_language", "preferred_language IN ('en', 'ar')");
+
                             t.HasCheckConstraint("ck_users_status", "status IN ('Active', 'Disabled')");
                         });
                 });
@@ -401,6 +422,41 @@ namespace Zelvo.Data.Migrations
                         .HasDatabaseName("ix_user_roles_tenant_id_role_id");
 
                     b.ToTable("user_roles", (string)null);
+                });
+
+            modelBuilder.Entity("Zelvo.Data.Settings.TenantSetting", b =>
+                {
+                    b.Property<Guid>("TenantId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("tenant_id");
+
+                    b.Property<string>("Key")
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)")
+                        .HasColumnName("key");
+
+                    b.Property<DateTimeOffset>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("updated_at");
+
+                    b.Property<string>("Value")
+                        .IsRequired()
+                        .HasColumnType("jsonb")
+                        .HasColumnName("value");
+
+                    b.Property<uint>("Version")
+                        .IsConcurrencyToken()
+                        .ValueGeneratedOnAddOrUpdate()
+                        .HasColumnType("xid")
+                        .HasColumnName("xmin");
+
+                    b.HasKey("TenantId", "Key")
+                        .HasName("pk_tenant_settings");
+
+                    b.ToTable("tenant_settings", null, t =>
+                        {
+                            t.HasCheckConstraint("ck_tenant_settings_key", "key ~ '^[a-z][a-zA-Z0-9]*(\\.[a-z][a-zA-Z0-9]*)+$'");
+                        });
                 });
 
             modelBuilder.Entity("Zelvo.Data.Tenancy.Tenant", b =>
@@ -552,6 +608,16 @@ namespace Zelvo.Data.Migrations
                         .HasConstraintName("fk_user_roles_users_user_id");
 
                     b.Navigation("Role");
+                });
+
+            modelBuilder.Entity("Zelvo.Data.Settings.TenantSetting", b =>
+                {
+                    b.HasOne("Zelvo.Data.Tenancy.Tenant", null)
+                        .WithMany()
+                        .HasForeignKey("TenantId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired()
+                        .HasConstraintName("fk_tenant_settings_tenants_tenant_id");
                 });
 
             modelBuilder.Entity("Zelvo.Data.Identity.Role", b =>

@@ -5,12 +5,14 @@ import { getOidcConfiguration, oidc } from "@/lib/auth/oidc";
 import { pendingSignInKey, secretsMatch } from "@/lib/auth/security";
 import { cookieOptions, createSession, sessionCookieName, signInCookieName } from "@/lib/auth/session";
 import { getSessionStore } from "@/lib/auth/store";
+import { hasLanguagePrefix, languageCookieMaxAgeSeconds, languageCookieName, withLanguage } from "@/lib/localization";
 import type { PendingSignIn } from "../login/route";
 
 /**
  * Keycloak sends the browser back here. Checks state (bound to this browser by a cookie), PKCE
  * and nonce, exchanges the code, and starts a server-side session. Staff whose roles need a
  * second factor and who signed in without one are sent straight back to sign in with it.
+ * Signed-in users then see their profile language, or else the tenant default (LANG-2).
  */
 export async function GET(request: NextRequest) {
   const config = getAuthConfig();
@@ -66,8 +68,14 @@ export async function GET(request: NextRequest) {
   }
 
   const session = await createSession(tokens, config);
-  const response = NextResponse.redirect(new URL(pending.returnTo, config.appUrl), 303);
+  const language = user.preferences.effective.language;
+  const returnTo = new URL(pending.returnTo, config.appUrl);
+  if (hasLanguagePrefix(returnTo.pathname)) {
+    returnTo.pathname = withLanguage(returnTo.pathname, language);
+  }
+  const response = NextResponse.redirect(returnTo, 303);
   response.cookies.delete(signInCookieName(config));
   response.cookies.set(sessionCookieName(config), session.id, cookieOptions(config, config.absoluteTimeoutSeconds));
+  response.cookies.set(languageCookieName, language, { path: "/", sameSite: "lax", maxAge: languageCookieMaxAgeSeconds });
   return response;
 }

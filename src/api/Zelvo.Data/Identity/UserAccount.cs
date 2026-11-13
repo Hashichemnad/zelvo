@@ -1,4 +1,5 @@
 using Zelvo.Data.Auditing;
+using Zelvo.Data.Localization;
 using Zelvo.Data.Tenancy;
 
 namespace Zelvo.Data.Identity;
@@ -45,6 +46,15 @@ public sealed class UserAccount : ITenantOwned, IAuditedEntity
 
     /// <summary>When the user last used Zelvo (updated at most once an hour).</summary>
     public DateTimeOffset? LastSeenAt { get; set; }
+
+    /// <summary>Personal display language (<c>en</c> or <c>ar</c>); <see langword="null"/> uses the tenant default (LANG-2).</summary>
+    public string? PreferredLanguage { get; set; }
+
+    /// <summary>Personal calendar; <see langword="null"/> uses the tenant default (LANG-8).</summary>
+    public CalendarSystem? Calendar { get; set; }
+
+    /// <summary>Personal digits; <see langword="null"/> uses the tenant default (LANG-8).</summary>
+    public DigitSystem? Digits { get; set; }
 
     /// <summary>Roles of the user.</summary>
     public List<UserRole> Roles { get; init; } = [];

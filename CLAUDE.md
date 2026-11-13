@@ -52,8 +52,8 @@ Changing any of these needs the product owner's approval.
 ### Language, RTL and accessibility
 - Every user-facing string comes from translation files in both English and Arabic. No hard-coded text in the UI, emails or notifications.
 - Layouts work in both left-to-right and right-to-left. Use logical CSS properties (`margin-inline-start`, not `margin-left`).
-- Dates support Gregorian and Hijri display; numbers support Western and Arabic-Indic digits.
-- Display language order: the user's own setting, then the tenant default, then the browser language, then English.
+- Dates support Gregorian and Hijri display; numbers support Western and Arabic-Indic digits. The tenant sets the defaults (initially Gregorian, Western digits); each user can override them in their profile.
+- Display language order: signed-in users get their profile setting, then the tenant default, then English; visitors who are not signed in get the browser language (if English or Arabic), then the tenant default, then English. The language switch applies to the current visit and is remembered on the device (cookie); it does not change the profile.
 - Meet WCAG 2.2 AA: keyboard access, labels, contrast and screen readers in both languages.
 
 ### Configuration over code
@@ -84,7 +84,7 @@ tests/e2e/               Playwright end-to-end and accessibility tests
 scripts/                 dev-up.sh / dev-down.sh (wrapped by the Makefile)
 ```
 
-Start everything with `make up`; see README.md. Licensing boundary: `docs/architecture/licensing.md`. Identity and access: `docs/architecture/identity-access.md`.
+Start everything with `make up`; see README.md. Licensing boundary: `docs/architecture/licensing.md`. Identity and access: `docs/architecture/identity-access.md`. Settings and localization: `docs/architecture/settings-localization.md`.
 
 ## Progress
 
@@ -99,6 +99,7 @@ Update this at the end of every task.
 - [ ] Modules 1–15 and demo mode: tasks A1–F7 in `docs/phase1-build-plan.md`
   - [x] A1 data, tenancy and audit: `Zelvo.Data` with EF Core migrations and a `migrate` step in Compose; tenants; PostgreSQL row-level security from a per-connection tenant setting, with a guard test for every tenant-owned table; append-only, hash-chained audit log (database triggers) with automatic field-level change capture and a verification endpoint; bilingual `LocalizedText` with missing-translation report; API conventions (problem details with codes, validation, paging); Scalar API explorer. See `docs/architecture/data-tenancy-audit.md` and `docs/architecture/api-conventions.md`
   - [x] A2 identity and access (in review): one Keycloak realm per tenant, provisioned by `migrate` (clients, brute-force protection, English/Arabic, `zelvo` theme, sign-in flow); API accepts only tokens of the request tenant's realm; Zelvo users created as requesters at first sign-in; the six personas as built-in roles whose permissions and field rules are data (defaults given once, admin changes kept, lock-out guards); field-level access (hidden fields left out, read-only fields refused, personal-data views audited); mandatory second factor for agents, team leads and admins through `acr=mfa` step-up (RFC 9470); email one-time code sign-in through a Zelvo Keycloak extension with the tenant setting known users / allowed domains / anyone; anonymous access for public endpoints; web backend-for-frontend with server-side sessions in Valkey, CSRF protection and an API proxy; development users per persona and Mailpit in Compose. See `docs/architecture/identity-access.md`
+  - [x] A3 settings and localization (in review): tenant settings store (`tenant_settings`, JSON per key, row-level security, audited; typed definitions in code with defaults); Settings shell with a permission-filtered menu and the missing-translation warning; Settings → Language and region (tenant default language, calendar and digits; `settings.manage`); personal language, calendar and digits on the Account page with live preview; display language order as decided 2026-11-13 (profile → tenant → English when signed in; browser → tenant → English for visitors; language switch per visit, remembered on the device); formal Arabic correspondence guidelines (`docs/guidelines/arabic-formal-correspondence.md`, GOV-8 base). See `docs/architecture/settings-localization.md`
 
 ### Phase 2: Control (not started)
 ### Phase 3: Scale (not started)
@@ -124,3 +125,5 @@ Update this at the end of every task.
 | 2026-11-13 | A2: Keycloak 26.7.5 has no built-in way to email a sign-in code (checked), so a **small Zelvo Keycloak extension in Java** (`src/keycloak`, with its own tests) adds that login step only. |
 | 2026-11-13 | A2: who may sign in with an email code is a **tenant setting**: "only known users" (default), "allowed email domains" (anyone with a listed domain gets a requester account automatically) or "anyone" (public portals). |
 | 2026-11-13 | A2: roles are the six personas; what each role may do (permissions and field rules) is data in Zelvo, not in Keycloak; staff roles need a second factor, checked by the API from the token's `acr` and asked for with step-up. Web sessions are server side (Valkey); the browser never holds tokens. |
+| 2026-11-13 | A3: language order **approved**: signed-in users get profile → tenant default → English; visitors who are not signed in get browser language (English or Arabic) → tenant default → English. The language switch applies to the current visit and is remembered on the device (cookie); it never changes the profile default. |
+| 2026-11-13 | A3: **tenant defaults for calendar and digits** (Gregorian/Hijri, Western/Arabic-Indic), set by the admin in Settings and starting as Gregorian and Western digits; each user can override them in their profile (LANG-8 updated). |

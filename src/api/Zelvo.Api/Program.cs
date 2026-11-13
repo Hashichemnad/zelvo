@@ -9,6 +9,7 @@ using Zelvo.Api.Localization;
 using Zelvo.Api.OpenApi;
 using Zelvo.Api.Platform;
 using Zelvo.Api.Security;
+using Zelvo.Api.Settings;
 using Zelvo.Api.Tenancy;
 using Zelvo.Data;
 using Zelvo.Data.Localization;
@@ -37,6 +38,7 @@ builder.Services.AddZelvoData(builder.Configuration.GetConnectionString("Postgre
     ?? throw new InvalidOperationException("Configuration value 'ConnectionStrings:Postgres' is required."));
 builder.Services.AddMemoryCache();
 builder.Services.AddScoped<TenantResolver>();
+builder.Services.AddScoped<TenantSettingsStore>();
 builder.Services.AddSingleton<IMissingTranslationSource, TenantMissingTranslations>();
 
 var app = builder.Build();
@@ -64,6 +66,8 @@ v1.MapMeEndpoints();
 v1.MapUserEndpoints();
 v1.MapRoleEndpoints();
 v1.MapIdentitySettingsEndpoints();
+v1.MapPreferenceEndpoints();
+v1.MapSettingsEndpoints();
 
 await app.RunAsync();
 return 0;

@@ -20,7 +20,9 @@
     "todayHeading": "Today",
     "gregorian": "Gregorian",
     "hijri": "Hijri",
-    "setupNotice": "This is the empty starter application. Features arrive module by module in Phase 1."
+    "setupNotice": "This is the empty starter application. Features arrive module by module in Phase 1.",
+    "yourCalendar": "Your calendar",
+    "otherCalendar": "Other calendar"
   },
   "status": {
     "heading": "System status",
@@ -58,7 +60,8 @@
   "auth": {
     "signIn": "Sign in",
     "signOut": "Sign out",
-    "accountOf": "Account of"
+    "accountOf": "Account of",
+    "settings": "Settings"
   },
   "account": {
     "title": "Your account",
@@ -80,6 +83,81 @@
       "refused": "Your account cannot use this service. Contact your administrator if you think this is a mistake.",
       "mfa": "Your role needs a second factor, such as an authenticator app. Please sign in again and complete that step.",
       "unavailable": "The sign-in service is not available right now. Please try again shortly."
+    }
+  },
+  "display": {
+    "languages": {
+      "en": "English",
+      "ar": "Arabic"
+    },
+    "calendars": {
+      "Gregorian": "Gregorian",
+      "Hijri": "Hijri (Umm al-Qura)"
+    },
+    "digits": {
+      "Western": "Western (0123456789)",
+      "ArabicIndic": "Arabic-Indic (٠١٢٣٤٥٦٧٨٩)"
+    }
+  },
+  "preferences": {
+    "heading": "Language and region",
+    "intro": "Choose how Zelvo shows text, dates and numbers to you. Your choices apply only to you; the language switch at the top changes the language for this visit only.",
+    "language": "Language",
+    "calendar": "Calendar",
+    "digits": "Digits",
+    "useDefault": "Organisation default ({value})",
+    "preview": "Preview",
+    "previewDate": "Today",
+    "previewNumber": "Number",
+    "save": "Save",
+    "saving": "Saving…",
+    "saved": "Your preferences are saved.",
+    "failed": "Your preferences could not be saved. Please try again."
+  },
+  "settings": {
+    "title": "Settings",
+    "navLabel": "Settings sections",
+    "intro": "Settings for your organisation. You see the sections your role allows.",
+    "noAccess": "Your role does not include any settings. Contact your administrator if you need access.",
+    "unavailable": "Settings cannot be shown right now. Please try again shortly.",
+    "sections": {
+      "language": {
+        "title": "Language and region",
+        "description": "Default language, calendar and digits for everyone in your organisation."
+      },
+      "translations": {
+        "title": "Missing translations",
+        "description": "Names and texts that do not yet have both an English and an Arabic version."
+      }
+    },
+    "missingWarning": "{count, plural, one {# text is} other {# texts are}} missing a translation.",
+    "missingWarningLink": "See missing translations",
+    "language": {
+      "intro": "These defaults apply to everyone who has not chosen their own in their profile, and to visitors who are not signed in. Visitors whose browser asks for English or Arabic see that language.",
+      "defaultLanguage": "Default language",
+      "defaultCalendar": "Default calendar",
+      "defaultDigits": "Default digits",
+      "save": "Save",
+      "saving": "Saving…",
+      "saved": "The defaults are saved.",
+      "failed": "The defaults could not be saved. Please try again.",
+      "lastChanged": "Last changed {date}",
+      "neverChanged": "Not changed yet: the platform defaults apply."
+    },
+    "translations": {
+      "intro": "Each of these needs a value in both languages before go-live. Until then, screens show the language that is available.",
+      "none": "Every text has both an English and an Arabic version.",
+      "entity": "Item",
+      "field": "Field",
+      "missing": "Missing",
+      "total": "{count, plural, one {# text} other {# texts}}",
+      "entityTypes": {
+        "tenant": "Organisation",
+        "role": "Role"
+      },
+      "fields": {
+        "name": "Name"
+      }
     }
   }
 }
