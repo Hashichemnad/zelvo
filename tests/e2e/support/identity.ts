@@ -1,5 +1,5 @@
 import { createHmac } from "node:crypto";
-import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
+import { mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import path from "node:path";
 import { expect, type Page } from "@playwright/test";
 
@@ -12,14 +12,20 @@ import { expect, type Page } from "@playwright/test";
 const envFile = path.resolve(__dirname, "../../../deploy/compose/.env");
 const stateDir = path.resolve(__dirname, "../.auth");
 
+/** Reads a file, or returns undefined when it does not exist (no separate existence check). */
+function readIfPresent(file: string): string | undefined {
+  try {
+    return readFileSync(file, "utf8");
+  } catch {
+    return undefined;
+  }
+}
+
 function readEnv(name: string): string | undefined {
   if (process.env[name]) {
     return process.env[name];
   }
-  if (!existsSync(envFile)) {
-    return undefined;
-  }
-  const line = readFileSync(envFile, "utf8").split("\n").find((l) => l.startsWith(`${name}=`));
+  const line = readIfPresent(envFile)?.split("\n").find((l) => l.startsWith(`${name}=`));
   return line?.slice(name.length + 1).trim();
 }
 
@@ -31,7 +37,8 @@ export const devPassword = (): string => {
   return value;
 };
 
-export const mailpitUrl = process.env.MAILPIT_URL ?? `http://localhost:${readEnv("MAILPIT_PORT") ?? "8025"}`;
+// Set MAILPIT_URL when Mailpit is not on its default port.
+export const mailpitUrl = process.env.MAILPIT_URL ?? "http://localhost:8025";
 
 export const devUser = (name: "requester" | "agent" | "lead" | "approver" | "admin" | "executive") => `${name}@zelvo.test`;
 
@@ -81,7 +88,7 @@ export function totp(secret: string, at = Date.now()): string {
  */
 async function freshCode(user: string, secret: string): Promise<string> {
   const usedFile = path.join(stateDir, `${user}.used`);
-  const used = existsSync(usedFile) ? readFileSync(usedFile, "utf8").trim() : "";
+  const used = readIfPresent(usedFile)?.trim() ?? "";
   let code = totp(secret);
   while (code === used) {
     await new Promise((resolve) => setTimeout(resolve, 1_000));
@@ -115,10 +122,11 @@ export async function completeSecondFactor(page: Page, user: string): Promise<vo
     return;
   }
 
-  if (!existsSync(secretFile)) {
+  const secret = readIfPresent(secretFile)?.trim();
+  if (!secret) {
     throw new Error(`${user} already has an authenticator app, but its secret is unknown. Reset the stack (make reset).`);
   }
-  await otp.fill(await freshCode(user, readFileSync(secretFile, "utf8").trim()));
+  await otp.fill(await freshCode(user, secret));
   await page.locator("#kc-login").click();
 }
 
