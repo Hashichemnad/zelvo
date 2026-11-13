@@ -34,7 +34,7 @@
     "services": {
       "api": "API",
       "postgres": "Database (PostgreSQL)",
-      "redis": "Cache (Redis)",
+      "redis": "Cache (Valkey)",
       "rabbitmq": "Message queue (RabbitMQ)",
       "opensearch": "Search (OpenSearch)",
       "keycloak": "Identity (Keycloak)"

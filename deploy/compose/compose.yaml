@@ -30,19 +30,22 @@ services:
       timeout: 5s
       retries: 20
 
+  # Cache: Valkey (BSD licence, Redis-protocol compatible). The service keeps the name "redis"
+  # because clients speak the Redis protocol; see the decisions log in CLAUDE.md.
   redis:
     <<: *restart
-    image: redis:8.2-alpine
-    command: ["sh", "-c", "exec redis-server --requirepass \"$${REDIS_PASSWORD}\" --appendonly yes"]
+    image: valkey/valkey:8.1-alpine
+    command: ["sh", "-c", "exec valkey-server --requirepass \"$${REDIS_PASSWORD}\" --appendonly yes"]
     environment:
       REDIS_PASSWORD: ${REDIS_PASSWORD:?set in .env}
+      VALKEYCLI_AUTH: ${REDIS_PASSWORD:?set in .env}
       REDISCLI_AUTH: ${REDIS_PASSWORD:?set in .env}
     volumes:
       - redis-data:/data
     ports:
       - "127.0.0.1:${REDIS_PORT:-6379}:6379"
     healthcheck:
-      test: ["CMD", "redis-cli", "ping"]
+      test: ["CMD", "valkey-cli", "ping"]
       interval: 5s
       timeout: 5s
       retries: 20
