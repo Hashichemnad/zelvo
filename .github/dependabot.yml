@@ -1,18 +1,43 @@
 version: 2
+# Zelvo stays on long-term-support runtimes (.NET 10 LTS, Node 22 LTS).
+# Major runtime upgrades are a stack change and need product owner approval,
+# so Dependabot only proposes minor and patch updates for them.
 updates:
   - package-ecosystem: nuget
     directory: /
     schedule: { interval: weekly }
     groups:
       nuget: { patterns: ["*"] }
+    ignore:
+      # .NET framework packages follow the runtime major version (10.x)
+      - dependency-name: "Microsoft.AspNetCore.*"
+        update-types: ["version-update:semver-major"]
+      - dependency-name: "Microsoft.EntityFrameworkCore*"
+        update-types: ["version-update:semver-major"]
+      - dependency-name: "Microsoft.Extensions.*"
+        update-types: ["version-update:semver-major"]
+      - dependency-name: "Npgsql.EntityFrameworkCore.PostgreSQL"
+        update-types: ["version-update:semver-major"]
   - package-ecosystem: npm
     directories: [/src/web, /tests/e2e]
     schedule: { interval: weekly }
     groups:
       npm: { patterns: ["*"] }
+    ignore:
+      - dependency-name: "@types/node"
+        update-types: ["version-update:semver-major"]
   - package-ecosystem: docker
     directories: [/src/api/Zelvo.Api, /src/worker/Zelvo.Worker, /src/web]
     schedule: { interval: weekly }
+    ignore:
+      - dependency-name: "dotnet/sdk"
+        update-types: ["version-update:semver-major"]
+      - dependency-name: "dotnet/aspnet"
+        update-types: ["version-update:semver-major"]
+      - dependency-name: "dotnet/runtime"
+        update-types: ["version-update:semver-major"]
+      - dependency-name: "node"
+        update-types: ["version-update:semver-major"]
   - package-ecosystem: docker-compose
     directory: /deploy/compose
     schedule: { interval: weekly }
