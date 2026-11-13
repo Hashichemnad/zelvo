@@ -3,7 +3,7 @@
 
 FROM mcr.microsoft.com/dotnet/sdk:10.0 AS build
 WORKDIR /src
-COPY global.json Directory.Build.props Directory.Packages.props ./
+COPY global.json Directory.Build.props Directory.Packages.props .editorconfig ./
 COPY src/api/Zelvo.Api/Zelvo.Api.csproj src/api/Zelvo.Api/
 COPY src/api/Zelvo.Data/Zelvo.Data.csproj src/api/Zelvo.Data/
 COPY src/api/Zelvo.Licensing.Abstractions/Zelvo.Licensing.Abstractions.csproj src/api/Zelvo.Licensing.Abstractions/
