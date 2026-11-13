@@ -34,7 +34,7 @@ services:
   # because clients speak the Redis protocol; see the decisions log in CLAUDE.md.
   redis:
     <<: *restart
-    image: valkey/valkey:8.1-alpine
+    image: valkey/valkey:9.1-alpine
     command: ["sh", "-c", "exec valkey-server --requirepass \"$${REDIS_PASSWORD}\" --appendonly yes"]
     environment:
       REDIS_PASSWORD: ${REDIS_PASSWORD:?set in .env}
