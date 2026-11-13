@@ -22,8 +22,11 @@ export default async function proxy(request: NextRequest) {
   const config = getAuthConfig();
   const deviceLanguage = request.cookies.get(languageCookieName)?.value;
   const signedIn = request.cookies.has(sessionCookieName(config));
+  // Only first visits (no language cookie yet) need the tenant default; ask the API directly.
   const tenantDefault =
-    deviceLanguage === undefined ? (await getLocalizationSettings(config.tenant))?.defaultLanguage : undefined;
+    deviceLanguage === undefined
+      ? (await getLocalizationSettings(config.tenant, { useCache: false }))?.defaultLanguage
+      : undefined;
   const language = resolveLanguage({
     deviceLanguage,
     signedIn,

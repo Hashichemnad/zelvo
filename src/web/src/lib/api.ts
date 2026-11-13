@@ -1,4 +1,5 @@
 import "server-only";
+import { revalidateTag } from "next/cache";
 import { cache } from "react";
 import type { ApiCalendar, ApiDigits } from "./format";
 
@@ -126,36 +127,34 @@ export async function getJsonAs<T>(path: string, accessToken: string, tenant: st
   }
 }
 
-const tenantDefaultsTtlMs = 60_000;
-const tenantDefaultsCache = new Map<string, { value: LocalizationSettings; expiresAt: number }>();
+/** Cache tag of a tenant's language and region defaults in Next's data cache. */
+export function localizationSettingsTag(tenant: string): string {
+  return `zelvo-localization-${tenant}`;
+}
 
 /**
- * The tenant's language and region defaults, readable without signing in. Kept for a minute, so
- * pages for visitors do not call the API each time; a change in Settings shows within a minute.
+ * The tenant's language and region defaults, readable without signing in. Pages keep them in
+ * Next's data cache for a minute, shared by all of the app's bundles, so visitors' pages do not
+ * call the API each time; saving them in Settings expires the cache at once
+ * (`forgetLocalizationSettings`). `useCache: false` always asks the API.
  */
-export async function getLocalizationSettings(tenant: string): Promise<LocalizationSettings | null> {
-  const cached = tenantDefaultsCache.get(tenant);
-  if (cached && cached.expiresAt > Date.now()) {
-    return cached.value;
-  }
+export async function getLocalizationSettings(
+  tenant: string,
+  { useCache = true }: { useCache?: boolean } = {},
+): Promise<LocalizationSettings | null> {
   try {
     const response = await fetch(new URL("/api/v1/settings/localization", apiBaseUrl), {
-      cache: "no-store",
+      ...(useCache ? { next: { revalidate: 60, tags: [localizationSettingsTag(tenant)] } } : { cache: "no-store" as const }),
       signal: AbortSignal.timeout(timeoutMs),
       headers: { Accept: "application/json", "X-Zelvo-Tenant": tenant },
     });
-    if (!response.ok) {
-      return cached?.value ?? null;
-    }
-    const value = (await response.json()) as LocalizationSettings;
-    tenantDefaultsCache.set(tenant, { value, expiresAt: Date.now() + tenantDefaultsTtlMs });
-    return value;
+    return response.ok ? ((await response.json()) as LocalizationSettings) : null;
   } catch {
-    return cached?.value ?? null;
+    return null;
   }
 }
 
-/** Forgets the cached defaults, after an admin changes them here. */
+/** Expires the cached defaults, after an admin changes them through this web app. */
 export function forgetLocalizationSettings(tenant: string): void {
-  tenantDefaultsCache.delete(tenant);
+  revalidateTag(localizationSettingsTag(tenant), { expire: 0 });
 }

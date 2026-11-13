@@ -48,6 +48,10 @@ test.describe("identity and access", () => {
     await page.locator("#code").fill(code!);
     await page.locator("#zelvo-sign-in").click();
 
+    // After sign-in the profile language applies, else the tenant default (English here; A3,
+    // decision 2026-11-13). The sign-in pages above were in Arabic; switch to see the account in it.
+    await expect(page).toHaveURL(/\/en\/account$/);
+    await page.getByRole("link", { name: "Change language to العربية" }).click();
     await expect(page).toHaveURL(/\/ar\/account$/);
     await expect(page.locator("html")).toHaveAttribute("dir", "rtl");
     await expect(page.getByRole("heading", { level: 1 })).toHaveText("حسابك");

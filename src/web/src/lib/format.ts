@@ -46,3 +46,14 @@ export function formatLongDate(date: Date, options: DateDisplayOptions): string 
 export function formatNumber(value: number, locale: string, digits: DigitSystem): string {
   return new Intl.NumberFormat(displayLocale(locale), { numberingSystem: digits }).format(value);
 }
+
+/** Date and time, for example "13 November 2026 at 11:18 PM", in the user's calendar and digits. */
+export function formatDateTime(date: Date, options: DateDisplayOptions): string {
+  return new Intl.DateTimeFormat(displayLocale(options.locale), {
+    calendar: options.calendar,
+    numberingSystem: options.digits,
+    timeZone: options.timeZone,
+    dateStyle: "long",
+    timeStyle: "short",
+  }).format(date);
+}

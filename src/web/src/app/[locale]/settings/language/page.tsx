@@ -1,6 +1,8 @@
-import { getFormatter, getTranslations, setRequestLocale } from "next-intl/server";
+import { getTranslations, setRequestLocale } from "next-intl/server";
 import { LocalizationSettingsForm } from "@/components/settings/LocalizationSettingsForm";
 import { getJsonAs, type LocalizationSettings } from "@/lib/api";
+import { getDisplayFormat } from "@/lib/display";
+import { formatDateTime } from "@/lib/format";
 import { requireSignedIn } from "@/lib/signed-in";
 
 export async function generateMetadata({ params }: PageProps<"/[locale]/settings/language">) {
@@ -14,10 +16,10 @@ export default async function LanguageSettingsPage({ params }: PageProps<"/[loca
   const { locale } = await params;
   setRequestLocale(locale);
   const { session, tenant, user } = await requireSignedIn(locale, `/${locale}/settings/language`);
-  const [t, tSection, format] = await Promise.all([
+  const [t, tSection, display] = await Promise.all([
     getTranslations({ locale, namespace: "settings.language" }),
     getTranslations({ locale, namespace: "settings.sections.language" }),
-    getFormatter({ locale }),
+    getDisplayFormat(),
   ]);
   const settings = user?.permissions.includes("settings.manage")
     ? await getJsonAs<LocalizationSettings>("/api/v1/settings/localization", session.data.accessToken, tenant)
@@ -36,7 +38,7 @@ export default async function LanguageSettingsPage({ params }: PageProps<"/[loca
           <p className="max-w-2xl">{t("intro")}</p>
           <p className="text-sm text-ink-muted">
             {settings.updatedAt
-              ? t("lastChanged", { date: format.dateTime(new Date(settings.updatedAt), { dateStyle: "long", timeStyle: "short" }) })
+              ? t("lastChanged", { date: formatDateTime(new Date(settings.updatedAt), { locale, ...display }) })
               : t("neverChanged")}
           </p>
           <LocalizationSettingsForm

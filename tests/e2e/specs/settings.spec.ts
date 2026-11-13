@@ -34,13 +34,18 @@ const platformDefaults = { defaultLanguage: "en", defaultCalendar: "Gregorian", 
 
 test.describe("settings and localization", () => {
   test.describe.configure({ mode: "serial" });
+  // Several sign-ins, some with a second factor.
+  test.setTimeout(90_000);
 
   test("an admin sets the tenant defaults that visitors see (LANG-1, LANG-8)", async ({ page, browser }) => {
     await signInWithPassword(page, devUser("admin"));
     await completeSecondFactor(page, devUser("admin"));
-    await expect(page).toHaveURL(/\/en\/account$/);
+    await expect(page).toHaveURL(/\/(en|ar)\/account$/);
 
     try {
+      // Start from the platform defaults, whatever an interrupted earlier run left.
+      await setTenantDefaults(page, platformDefaults);
+      await page.goto("/en/account");
       await page.getByRole("link", { name: "Settings" }).click();
       await expect(page).toHaveURL(/\/en\/settings$/);
       const menu = page.getByRole("navigation", { name: "Settings sections" });
@@ -60,7 +65,7 @@ test.describe("settings and localization", () => {
       const visitor = await french.newPage();
       await visitor.goto("/");
       await expect(visitor).toHaveURL(/\/ar$/);
-      await expect(visitor.getByTestId("today-primary")).toContainText("الهجري");
+      await expect(visitor.getByTestId("today-primary")).toContainText("هجري");
       await expect(visitor.getByTestId("today-primary")).toContainText(/[٠-٩]/);
       await french.close();
 

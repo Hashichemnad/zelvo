@@ -45,7 +45,7 @@ How the web app does it:
 - **Sign-in.** At sign-in (`/auth/callback`), the user's effective language (profile, then tenant default) is written to the cookie, and the page they came from opens in that language. So the next sign-in again starts in the profile language, even if they switched language on the last visit.
 - **Saving a new profile language.** The web proxy writes the cookie when the save succeeds, and the page reloads in the new language.
 - **Never the other way round.** The language switch never changes the profile.
-- **Tenant defaults in the web app.** They are cached for one minute. A change made through this web app clears the cache at once.
+- **Tenant defaults in the web app.** Pages keep them for up to a minute in Next's data cache (tag `zelvo-localization-<tenant>`). A change saved through this web app expires that cache at once (`revalidateTag`). The proxy only reads them on a visitor's first visit, and asks the API directly.
 
 ## Settings shell
 
