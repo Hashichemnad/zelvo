@@ -49,7 +49,7 @@ services:
 
   rabbitmq:
     <<: *restart
-    image: rabbitmq:4.1-management-alpine
+    image: rabbitmq:4.4-management-alpine
     environment:
       RABBITMQ_DEFAULT_USER: ${RABBITMQ_USER:?set in .env}
       RABBITMQ_DEFAULT_PASS: ${RABBITMQ_PASSWORD:?set in .env}
