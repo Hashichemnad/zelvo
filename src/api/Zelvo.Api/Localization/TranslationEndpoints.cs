@@ -1,6 +1,6 @@
 using Microsoft.AspNetCore.Http.HttpResults;
 using Zelvo.Api.Conventions;
-using Zelvo.Api.Security;
+using Zelvo.Api.Identity;
 using Zelvo.Api.Tenancy;
 using Zelvo.Data;
 using Zelvo.Data.Localization;
@@ -17,7 +17,7 @@ internal static class TranslationEndpoints
             .WithName("ListMissingTranslations")
             .WithSummary("Bilingual fields with a language still to translate, across all record types.")
             .RequireTenant()
-            .RequireAuthorization(ZelvoPolicies.TenantAdmin)
+            .RequirePermission(Permissions.TranslationsRead)
             .ProducesValidationProblem();
         return group;
     }

@@ -1,5 +1,5 @@
 using System.Net.Http.Json;
-using Zelvo.Api.Security;
+using Zelvo.Data.Identity;
 
 namespace Zelvo.Api.Tests;
 
@@ -16,7 +16,7 @@ public sealed class TranslationApiTests(DatabaseFixture database) : IAsyncDispos
     public async Task Admins_see_fields_missing_a_language()
     {
         var tenant = await database.CreateTenantAsync(nameEn: "English only", nameAr: null);
-        using var client = _factory.ForTenant(tenant).SignedIn(tenant, ZelvoRoles.TenantAdmin);
+        using var client = await _factory.ForTenant(tenant).SignedInAsync(database, tenant, BuiltInRoles.TenantAdmin);
 
         var page = await client.GetFromJsonAsync<PageBody>(MissingUri, Ct);
 
@@ -31,7 +31,7 @@ public sealed class TranslationApiTests(DatabaseFixture database) : IAsyncDispos
     public async Task A_complete_tenant_has_nothing_missing()
     {
         var tenant = await database.CreateTenantAsync();
-        using var client = _factory.ForTenant(tenant).SignedIn(tenant, ZelvoRoles.TenantAdmin);
+        using var client = await _factory.ForTenant(tenant).SignedInAsync(database, tenant, BuiltInRoles.TenantAdmin);
 
         var page = await client.GetFromJsonAsync<PageBody>(MissingUri, Ct);
 

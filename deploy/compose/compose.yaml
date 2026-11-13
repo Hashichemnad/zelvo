@@ -86,10 +86,14 @@ services:
       timeout: 10s
       retries: 30
 
+  # Keycloak with Zelvo's extension (email one-time code) and theme: src/keycloak.
+  # One realm per tenant, created by the migrate service; no realm is imported here.
   keycloak:
     <<: *restart
-    image: keycloak/keycloak:26.7
-    command: ["start-dev", "--import-realm"]
+    build:
+      context: ../../src/keycloak
+    image: zelvo/keycloak:dev
+    command: ["start-dev"]
     environment:
       KC_DB: postgres
       KC_DB_URL: jdbc:postgresql://postgres:5432/keycloak
@@ -99,8 +103,10 @@ services:
       KC_BOOTSTRAP_ADMIN_PASSWORD: ${KEYCLOAK_ADMIN_PASSWORD:?set in .env}
       KC_HEALTH_ENABLED: "true"
       KC_HTTP_PORT: "8080"
-    volumes:
-      - ./keycloak/zelvo-realm.json:/opt/keycloak/data/import/zelvo-realm.json:ro
+      # Browsers reach Keycloak here, so token issuers use this address; Zelvo's servers reach
+      # it as http://keycloak:8080 (back channel).
+      KC_HOSTNAME: http://localhost:${KEYCLOAK_PORT:-8180}
+      KC_HOSTNAME_BACKCHANNEL_DYNAMIC: "true"
     ports:
       - "127.0.0.1:${KEYCLOAK_PORT:-8180}:8080"
     depends_on:
@@ -121,8 +127,21 @@ services:
       retries: 30
       start_period: 30s
 
-  # One-off: applies database migrations as the database owner, creates the default tenant,
-  # then exits. The API starts only after it succeeds.
+  # Development mail catcher: sign-in codes and other emails appear at http://localhost:8025.
+  mailpit:
+    <<: *restart
+    image: axllent/mailpit:v1.27
+    ports:
+      - "127.0.0.1:${MAILPIT_PORT:-8025}:8025"
+    healthcheck:
+      test: ["CMD", "/mailpit", "readyz"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+
+  # One-off: applies database migrations as the database owner, creates the default tenant and
+  # its built-in roles, sets up each tenant's Keycloak realm and the development users, then
+  # exits. The API starts only after it succeeds.
   migrate:
     build:
       context: ../..
@@ -136,8 +155,24 @@ services:
       Tenancy__Bootstrap__Slug: ${ZELVO_DEFAULT_TENANT:-default}
       Tenancy__Bootstrap__NameEn: ${ZELVO_DEFAULT_TENANT_NAME_EN:-Zelvo}
       Tenancy__Bootstrap__NameAr: ${ZELVO_DEFAULT_TENANT_NAME_AR:-زيلفو}
+      <<: &identity
+        Identity__PublicUrl: http://localhost:${KEYCLOAK_PORT:-8180}
+        Identity__InternalUrl: http://keycloak:8080
+        Identity__ProvisionerClientSecret: ${KEYCLOAK_PROVISIONER_SECRET:?set in .env}
+      Identity__Provisioning__AdminUser: ${KEYCLOAK_ADMIN_USER:?set in .env}
+      Identity__Provisioning__AdminPassword: ${KEYCLOAK_ADMIN_PASSWORD:?set in .env}
+      Identity__Provisioning__WebUrl: http://localhost:${WEB_PORT:-3000}
+      Identity__Provisioning__WebClientSecret: ${ZELVO_WEB_CLIENT_SECRET:?set in .env}
+      Identity__Provisioning__Smtp__Host: mailpit
+      Identity__Provisioning__Smtp__Port: "1025"
+      Identity__Provisioning__Smtp__From: no-reply@zelvo.test
+      # Development only: one user per persona (requester@zelvo.test, agent@, lead@, approver@,
+      # admin@, executive@) with this password.
+      Identity__Provisioning__DevUsersPassword: ${ZELVO_DEV_USERS_PASSWORD:-}
     depends_on:
       postgres: { condition: service_healthy }
+      keycloak: { condition: service_healthy }
+      mailpit: { condition: service_healthy }
 
   api:
     <<: *restart
@@ -151,6 +186,7 @@ services:
       ConnectionStrings__RabbitMq: amqp://${RABBITMQ_USER}:${RABBITMQ_PASSWORD}@rabbitmq:5672/
       Services__OpenSearch: http://opensearch:9200/
       Services__KeycloakHealth: http://keycloak:9000/health/ready
+      <<: *identity
     ports:
       - "127.0.0.1:${API_PORT:-8080}:8080"
     depends_on:
@@ -199,10 +235,18 @@ services:
     image: zelvo/web:dev
     environment:
       API_INTERNAL_URL: http://api:8080
+      APP_URL: http://localhost:${WEB_PORT:-3000}
+      ZELVO_TENANT: ${ZELVO_DEFAULT_TENANT:-default}
+      KEYCLOAK_PUBLIC_URL: http://localhost:${KEYCLOAK_PORT:-8180}
+      KEYCLOAK_INTERNAL_URL: http://keycloak:8080
+      ZELVO_WEB_CLIENT_SECRET: ${ZELVO_WEB_CLIENT_SECRET:?set in .env}
+      SESSION_STORE_URL: redis://:${REDIS_PASSWORD}@redis:6379/1
     ports:
       - "127.0.0.1:${WEB_PORT:-3000}:3000"
     depends_on:
       api: { condition: service_healthy }
+      redis: { condition: service_healthy }
+      keycloak: { condition: service_healthy }
     healthcheck:
       test: ["CMD-SHELL", "wget -qO- http://127.0.0.1:3000/healthz >/dev/null"]
       interval: 5s

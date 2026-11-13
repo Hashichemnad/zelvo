@@ -6,8 +6,8 @@ namespace Zelvo.Api.Tenancy;
 /// <summary>
 /// Sets the tenant of each API request from the <c>X-Zelvo-Tenant</c> header (a tenant slug), or
 /// from <c>Tenancy:DefaultTenant</c> for single-tenant installations. Unknown tenants get 404 and
-/// suspended tenants 403. Task A2 checks that signed-in users belong to the tenant
-/// (<see cref="Security.CurrentTenantMemberRequirement"/>); later tasks add custom domains.
+/// suspended tenants 403. Signed-in requests must carry a token from this tenant's own Keycloak realm
+/// (<see cref="Identity.ZelvoBearerHandler"/>), so the header cannot switch tenants. Later tasks add custom domains.
 /// </summary>
 internal sealed class TenantResolutionMiddleware(RequestDelegate next, IConfiguration configuration)
 {

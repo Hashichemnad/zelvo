@@ -2,7 +2,7 @@ using System.ComponentModel.DataAnnotations;
 using Microsoft.AspNetCore.Http.HttpResults;
 using Microsoft.EntityFrameworkCore;
 using Zelvo.Api.Conventions;
-using Zelvo.Api.Security;
+using Zelvo.Api.Identity;
 using Zelvo.Data;
 using Zelvo.Data.Tenancy;
 
@@ -17,13 +17,13 @@ internal static class TenantEndpoints
 
         tenant.MapGet("/", GetAsync)
             .WithName("GetCurrentTenant")
-            .WithSummary("The tenant of this request: id, slug and bilingual name.")
-            .AllowAnonymous();
+            .WithSummary("The tenant of this request: id, slug and bilingual name. Open to anonymous visitors.")
+            .AllowAnonymousAccess();
 
         tenant.MapPatch("/", UpdateAsync)
             .WithName("UpdateCurrentTenant")
-            .WithSummary("Change the tenant's name. Tenant administrators only; audited.")
-            .RequireAuthorization(ZelvoPolicies.TenantAdmin)
+            .WithSummary("Change the tenant's name. Needs tenant.manage; audited.")
+            .RequirePermission(Permissions.TenantManage)
             .ProducesValidationProblem();
 
         return group;

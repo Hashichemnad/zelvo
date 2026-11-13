@@ -26,8 +26,16 @@ updates:
     ignore:
       - dependency-name: "@types/node"
         update-types: ["version-update:semver-major"]
+  - package-ecosystem: maven
+    directory: /src/keycloak
+    schedule: { interval: weekly }
+    groups:
+      maven: { patterns: ["*"] }
+    ignore:
+      # Keycloak libraries follow the Keycloak image; upgrade both together by hand.
+      - dependency-name: "org.keycloak:*"
   - package-ecosystem: docker
-    directories: [/src/api/Zelvo.Api, /src/worker/Zelvo.Worker, /src/web]
+    directories: [/src/api/Zelvo.Api, /src/worker/Zelvo.Worker, /src/web, /src/keycloak]
     schedule: { interval: weekly }
     ignore:
       - dependency-name: "dotnet/sdk"

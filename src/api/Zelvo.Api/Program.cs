@@ -4,6 +4,7 @@ using Zelvo.Api.Auditing;
 using Zelvo.Api.Commands;
 using Zelvo.Api.Conventions;
 using Zelvo.Api.Health;
+using Zelvo.Api.Identity;
 using Zelvo.Api.Localization;
 using Zelvo.Api.OpenApi;
 using Zelvo.Api.Platform;
@@ -30,7 +31,7 @@ builder.Services.ConfigureHttpJsonOptions(options =>
 builder.Services.AddZelvoOpenApi();
 builder.Services.AddZelvoLicensing();
 builder.Services.AddZelvoHealthChecks(builder.Configuration);
-builder.Services.AddZelvoAuthorization();
+builder.Services.AddZelvoIdentity(builder.Configuration);
 
 builder.Services.AddZelvoData(builder.Configuration.GetConnectionString("Postgres")
     ?? throw new InvalidOperationException("Configuration value 'ConnectionStrings:Postgres' is required."));
@@ -43,9 +44,12 @@ var app = builder.Build();
 app.UseExceptionHandler();
 app.UseStatusCodePages();
 app.UseMiddleware<SecurityHeadersMiddleware>();
-app.UseAuthentication();
+
+// The tenant comes first: tokens are checked against the tenant's own Keycloak realm.
 app.UseMiddleware<TenantResolutionMiddleware>();
+app.UseAuthentication();
 app.UseMiddleware<AuditContextMiddleware>();
+app.UseMiddleware<CurrentUserMiddleware>();
 app.UseAuthorization();
 
 app.MapZelvoOpenApi();
@@ -56,6 +60,10 @@ v1.MapSystemEndpoints();
 v1.MapTenantEndpoints();
 v1.MapAuditEndpoints();
 v1.MapTranslationEndpoints();
+v1.MapMeEndpoints();
+v1.MapUserEndpoints();
+v1.MapRoleEndpoints();
+v1.MapIdentitySettingsEndpoints();
 
 await app.RunAsync();
 return 0;

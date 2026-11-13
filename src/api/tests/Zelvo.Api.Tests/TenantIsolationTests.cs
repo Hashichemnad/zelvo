@@ -148,5 +148,8 @@ public sealed class TenantIsolationTests(DatabaseFixture database)
         }
 
         Assert.Contains("audit_events", tables);
+        Assert.Contains("users", tables);
+        Assert.Contains("role_permissions", tables);
+        Assert.Contains("identity_settings", tables);
     }
 }

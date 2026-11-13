@@ -32,6 +32,20 @@ if [[ ! -f "$env_file" ]]; then
   done < "$compose_dir/.env.example" > "$env_file"
 fi
 
+# Settings added to .env.example after .env was created get their own random value.
+while IFS= read -r line || [[ -n "$line" ]]; do
+  [[ "$line" =~ ^([A-Z0-9_]+)= ]] || continue
+  key="${BASH_REMATCH[1]}"
+  if ! grep -q "^${key}=" "$env_file"; then
+    echo "Adding ${key} to deploy/compose/.env"
+    if [[ "$line" == *=change-me ]]; then
+      printf '%s=%s\n' "$key" "$(random_secret)" >> "$env_file"
+    else
+      printf '%s\n' "$line" >> "$env_file"
+    fi
+  fi
+done < "$compose_dir/.env.example"
+
 # Run from the compose directory so a local compose.override.yaml (git-ignored) is picked up.
 cd "$compose_dir"
 docker compose up --build --detach --wait --wait-timeout "${ZELVO_WAIT_TIMEOUT:-900}" "$@"
@@ -45,6 +59,9 @@ Zelvo is running:
   API readiness       http://localhost:${API_PORT:-8080}/health/ready
   OpenAPI document    http://localhost:${API_PORT:-8080}/openapi/v1.json
   Keycloak admin      http://localhost:${KEYCLOAK_PORT:-8180}  (credentials in deploy/compose/.env)
+  Sign-in emails      http://localhost:${MAILPIT_PORT:-8025}  (development mail catcher)
+  Development users   requester@zelvo.test, agent@, lead@, approver@, admin@, executive@
+                      password: ZELVO_DEV_USERS_PASSWORD in deploy/compose/.env
   RabbitMQ admin      http://localhost:${RABBITMQ_MANAGEMENT_PORT:-15672}
 
 Stop it with: make down

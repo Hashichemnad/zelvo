@@ -4,6 +4,8 @@ Phase 1 delivers modules 1–15 and demo mode from [requirements.md](requirement
 
 **How to read it:** tasks in the same milestone that do not depend on each other can run in parallel. Large modules are split so each pull request stays reviewable. Every UI task ships English and Arabic, RTL and WCAG 2.2 AA from the start; every API task ships OpenAPI documentation and audit logging. Demo data (task D) grows with each module rather than being built at the end.
 
+**Branches and pull requests:** the Branch column names each task's scope only. The actual branch is the one the Claude Code session provides (`claude/...`), and the pull request title starts with the task ID, for example "A2: Identity and access" (product owner decision, 2026-11-13).
+
 ## Milestone A: Platform foundation
 
 Everything else builds on these. They cover the release-blocking non-functional requirements: tenant isolation, audit, identity and security.
