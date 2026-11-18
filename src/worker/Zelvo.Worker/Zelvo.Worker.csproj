@@ -8,6 +8,8 @@
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\..\api\Zelvo.Licensing.Abstractions\Zelvo.Licensing.Abstractions.csproj" />
+    <ProjectReference Include="..\..\api\Zelvo.Data\Zelvo.Data.csproj" />
+    <ProjectReference Include="..\..\api\Zelvo.Search\Zelvo.Search.csproj" />
   </ItemGroup>
   <ItemGroup Condition="'$(ZelvoLicensingProject)' == ''">
     <ProjectReference Include="..\..\api\Zelvo.Licensing.Development\Zelvo.Licensing.Development.csproj" />

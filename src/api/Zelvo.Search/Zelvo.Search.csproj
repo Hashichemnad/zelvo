@@ -1,0 +1,16 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <RootNamespace>Zelvo.Search</RootNamespace>
+    <Description>Zelvo search: per-tenant OpenSearch indices with Arabic and English analysers, the outbox relay and indexer that run in the worker, and the query service the API uses.</Description>
+  </PropertyGroup>
+  <ItemGroup>
+    <PackageReference Include="RabbitMQ.Client" />
+    <PackageReference Include="Microsoft.Extensions.Hosting.Abstractions" />
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\Zelvo.Data\Zelvo.Data.csproj" />
+  </ItemGroup>
+  <ItemGroup>
+    <InternalsVisibleTo Include="Zelvo.Api.Tests" />
+  </ItemGroup>
+</Project>
