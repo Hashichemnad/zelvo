@@ -1,4 +1,4 @@
-.PHONY: up down reset logs test test-api test-keycloak test-web e2e
+.PHONY: up down reset logs demo demo-down demo-wipe test test-api test-keycloak test-web e2e e2e-demo
 
 up: ## Build and start the whole stack (creates deploy/compose/.env on first run)
 	./scripts/dev-up.sh
@@ -8,6 +8,15 @@ down: ## Stop the stack, keep its data
 
 reset: ## Stop the stack and delete its data
 	./scripts/dev-down.sh --volumes
+
+demo: ## Start the demo installation (sample organisations and demo users; own data, stop the development stack first)
+	ZELVO_PROFILE=demo ./scripts/dev-up.sh
+
+demo-down: ## Stop the demo installation, keep its data
+	ZELVO_PROFILE=demo ./scripts/dev-down.sh
+
+demo-wipe: ## Stop the demo installation and delete its data (the next make demo seeds it again)
+	ZELVO_PROFILE=demo ./scripts/dev-down.sh --volumes
 
 logs: ## Follow the logs of all services
 	cd deploy/compose && docker compose logs -f
@@ -25,3 +34,6 @@ test-web: ## Frontend lint, type check and component tests
 
 e2e: ## End-to-end tests against the running stack (run make up first)
 	cd tests/e2e && npm ci && npx playwright test
+
+e2e-demo: ## End-to-end tests of demo mode against the running demo (run make demo first)
+	cd tests/e2e && npm ci && E2E_DEMO=1 npx playwright test --project=demo

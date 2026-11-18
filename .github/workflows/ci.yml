@@ -111,6 +111,42 @@ jobs:
         if: always()
         run: make reset
 
+  e2e-demo:
+    name: Demo installation starts and demo mode end-to-end tests pass
+    runs-on: ubuntu-latest
+    needs: [backend, frontend, keycloak]
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: tests/e2e/package-lock.json
+      - name: Start the demo installation with one command
+        run: make demo
+      - name: Install Playwright
+        working-directory: tests/e2e
+        run: |
+          npm ci --no-audit --no-fund
+          npx playwright install --with-deps chromium
+      - name: Demo mode end-to-end tests
+        working-directory: tests/e2e
+        env:
+          E2E_DEMO: "1"
+        run: npx playwright test --project=demo
+      - name: Service logs on failure
+        if: failure()
+        run: cd deploy/compose && COMPOSE_PROJECT_NAME=zelvo-demo COMPOSE_FILE=compose.yaml:compose.demo.yaml docker compose logs --tail 200
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        if: failure()
+        with:
+          name: playwright-report-demo
+          path: tests/e2e/playwright-report
+          retention-days: 7
+      - name: Stop the demo
+        if: always()
+        run: make demo-wipe
+
   images:
     name: Container scan and SBOM (${{ matrix.image.name }})
     runs-on: ubuntu-latest

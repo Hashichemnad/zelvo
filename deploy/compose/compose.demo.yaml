@@ -1,0 +1,35 @@
+# Demo installation profile (demo mode, task D): `make demo` starts compose.yaml with this file as
+# its own Compose project (zelvo-demo), so it has its own volumes, database and Keycloak realms and
+# never mixes with the development stack's data. Stop the development stack first (same ports).
+#
+# The development licensing stub reports a demo license when Installation__Profile is Demo; a
+# release demo installation gets a demo license file instead. Sample organisations, their demo
+# users and sample data are created by migrate; "Reset demo" in the demo panel restores them.
+
+x-demo: &demo
+  Installation__Profile: Demo
+
+services:
+  migrate:
+    environment:
+      <<: *demo
+      # No bootstrap tenant and no development users: only the sample organisations.
+      Tenancy__Bootstrap__Slug: ""
+      Identity__Provisioning__DevUsersPassword: ""
+      # Demo seeders write as the application role, so row-level security applies.
+      ConnectionStrings__Postgres: Host=postgres;Database=${POSTGRES_DB};Username=${ZELVO_APP_DB_USER};Password=${ZELVO_APP_DB_PASSWORD}
+
+  api:
+    environment:
+      <<: *demo
+      Tenancy__DefaultTenant: demo-municipality
+
+  worker:
+    environment:
+      <<: *demo
+
+  web:
+    environment:
+      ZELVO_TENANT: demo-municipality
+      # The sample organisations the demo panel switches between.
+      ZELVO_DEMO_TENANTS: demo-municipality,demo-company
