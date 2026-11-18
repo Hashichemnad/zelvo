@@ -74,8 +74,8 @@ jobs:
       - run: npm run typecheck
       - run: npm test
       - run: npm run build
-      - name: Fail on high or critical vulnerabilities in runtime dependencies
-        run: npm audit --omit=dev --audit-level=high
+      - name: Fail on high or critical vulnerabilities in runtime dependencies (approved exceptions in audit-exceptions.json)
+        run: node scripts/audit.mjs
 
   e2e:
     name: Stack starts and end-to-end tests pass
