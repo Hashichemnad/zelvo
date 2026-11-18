@@ -64,6 +64,28 @@ if [[ ! -f "$master_key" ]]; then
   chmod 644 "$master_key"
 fi
 
+# RabbitMQ users, permissions and the "zelvo" virtual host (A5), from the passwords in .env.
+# Each service has its own user: the API may only connect (health), the worker may use queues and
+# exchanges named zelvo.* only. Rewritten on every start so it follows .env.
+# shellcheck disable=SC1090
+set -a; source "$env_file"; set +a
+umask 022
+cat > "$secrets_dir/rabbitmq-definitions.json" <<JSON
+{
+  "users": [
+    { "name": "${RABBITMQ_USER}", "password": "${RABBITMQ_PASSWORD}", "tags": ["administrator"] },
+    { "name": "zelvo-api", "password": "${RABBITMQ_API_PASSWORD}", "tags": [] },
+    { "name": "zelvo-worker", "password": "${RABBITMQ_WORKER_PASSWORD}", "tags": [] }
+  ],
+  "vhosts": [{ "name": "zelvo" }],
+  "permissions": [
+    { "user": "${RABBITMQ_USER}", "vhost": "zelvo", "configure": ".*", "write": ".*", "read": ".*" },
+    { "user": "zelvo-api", "vhost": "zelvo", "configure": "^\$", "write": "^\$", "read": "^\$" },
+    { "user": "zelvo-worker", "vhost": "zelvo", "configure": "^zelvo\\\\..*", "write": "^zelvo\\\\..*", "read": "^zelvo\\\\..*" }
+  ]
+}
+JSON
+
 # Run from the compose directory so a local compose.override.yaml (git-ignored) is picked up.
 cd "$compose_dir"
 docker compose up --build --detach --wait --wait-timeout "${ZELVO_WAIT_TIMEOUT:-900}" "$@"

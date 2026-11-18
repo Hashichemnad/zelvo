@@ -14,11 +14,30 @@ x-telemetry-env: &telemetry-env
   OTEL_EXPORTER_OTLP_ENDPOINT: http://otel-collector:4317
   OTEL_EXPORTER_OTLP_PROTOCOL: grpc
 
+# Clients of OpenSearch and RabbitMQ trust the development CA (certs volume, ca/ folder).
+x-ca-volume: &ca-volume
+  type: volume
+  source: certs
+  target: /run/certs
+  read_only: true
+  volume: { subpath: ca }
+
 x-secrets-env: &secrets-env
   Secrets__Provider: File
   Secrets__File__Path: /run/secrets/zelvo-master-key
 
 services:
+  # One-off: development CA and TLS certificates for OpenSearch and RabbitMQ (A5), kept in the
+  # "certs" volume and renewed before they expire. Uses the database image for its openssl.
+  certs:
+    image: pgvector/pgvector:pg17
+    entrypoint: ["sh", "/generate-certs.sh"]
+    user: root
+    restart: "no"
+    volumes:
+      - ./security/generate-certs.sh:/generate-certs.sh:ro
+      - certs:/certs
+
   postgres:
     <<: *restart
     image: pgvector/pgvector:pg17
@@ -64,11 +83,17 @@ services:
   rabbitmq:
     <<: *restart
     image: rabbitmq:4.4-management-alpine
-    environment:
-      RABBITMQ_DEFAULT_USER: ${RABBITMQ_USER:?set in .env}
-      RABBITMQ_DEFAULT_PASS: ${RABBITMQ_PASSWORD:?set in .env}
+    # TLS 1.3 only, no plain listener; users and the "zelvo" virtual host come from
+    # secrets/rabbitmq-definitions.json (scripts/dev-up.sh, from .env). See security/rabbitmq.
     volumes:
       - rabbitmq-data:/var/lib/rabbitmq
+      - ./security/rabbitmq/10-zelvo.conf:/etc/rabbitmq/conf.d/10-zelvo.conf:ro
+      - ./secrets/rabbitmq-definitions.json:/etc/rabbitmq/definitions.json:ro
+      - type: volume
+        source: certs
+        target: /certs
+        read_only: true
+        volume: { subpath: rabbitmq }
     ports:
       - "127.0.0.1:${RABBITMQ_MANAGEMENT_PORT:-15672}:15672"
     healthcheck:
@@ -76,6 +101,8 @@ services:
       interval: 10s
       timeout: 10s
       retries: 20
+    depends_on:
+      certs: { condition: service_completed_successfully }
 
   # OpenSearch with the ICU analysis plugin (Arabic and English analysers): deploy/opensearch.
   opensearch:
@@ -83,12 +110,29 @@ services:
     build:
       context: ../opensearch
     image: zelvo/opensearch:dev
+    # Security plugin on (A5): HTTPS and TLS between nodes with the development certificates,
+    # users admin, zelvo-api (reads) and zelvo-worker (writes zelvo-* indices). See security/opensearch.
+    entrypoint: ["/zelvo-security/start.sh"]
     environment:
       discovery.type: single-node
-      # Development only: the security plugin is off and the port is bound to 127.0.0.1.
-      # Installs enable it with TLS and credentials (tracked in the Phase 1 plan).
-      DISABLE_SECURITY_PLUGIN: "true"
       DISABLE_INSTALL_DEMO_CONFIG: "true"
+      OPENSEARCH_ADMIN_PASSWORD: ${OPENSEARCH_ADMIN_PASSWORD:?set in .env}
+      OPENSEARCH_API_PASSWORD: ${OPENSEARCH_API_PASSWORD:?set in .env}
+      OPENSEARCH_WORKER_PASSWORD: ${OPENSEARCH_WORKER_PASSWORD:?set in .env}
+      plugins.security.ssl.http.enabled: "true"
+      plugins.security.ssl.http.pemcert_filepath: certs/node.crt
+      plugins.security.ssl.http.pemkey_filepath: certs/node.key
+      plugins.security.ssl.http.pemtrustedcas_filepath: certs/ca.crt
+      plugins.security.ssl.transport.pemcert_filepath: certs/node.crt
+      plugins.security.ssl.transport.pemkey_filepath: certs/node.key
+      plugins.security.ssl.transport.pemtrustedcas_filepath: certs/ca.crt
+      plugins.security.ssl.transport.enforce_hostname_verification: "false"
+      plugins.security.ssl.http.enabled_protocols: TLSv1.3
+      plugins.security.ssl.transport.enabled_protocols: TLSv1.3
+      plugins.security.nodes_dn: CN=opensearch,O=Zelvo Development
+      plugins.security.authcz.admin_dn: CN=zelvo-opensearch-admin,O=Zelvo Development
+      plugins.security.allow_default_init_securityindex: "true"
+      plugins.security.audit.type: log4j
       OPENSEARCH_JAVA_OPTS: -Xms512m -Xmx512m
       # Development only: disk limits in free space rather than percent used, so a large but
       # nearly full disk does not stop OpenSearch from creating tenants' indices.
@@ -97,13 +141,21 @@ services:
       cluster.routing.allocation.disk.watermark.flood_stage: 500mb
     volumes:
       - opensearch-data:/usr/share/opensearch/data
+      - ./security/opensearch:/zelvo-security:ro
+      - type: volume
+        source: certs
+        target: /usr/share/opensearch/config/certs
+        read_only: true
+        volume: { subpath: opensearch }
     ports:
       - "127.0.0.1:${OPENSEARCH_PORT:-9200}:9200"
     healthcheck:
-      test: ["CMD-SHELL", "curl -fsS 'http://localhost:9200/_cluster/health?wait_for_status=yellow&timeout=5s' >/dev/null"]
+      test: ["CMD-SHELL", "curl -fsS --cacert config/certs/ca.crt -u \"admin:$${OPENSEARCH_ADMIN_PASSWORD}\" 'https://localhost:9200/_cluster/health?wait_for_status=yellow&timeout=5s' >/dev/null"]
       interval: 10s
       timeout: 10s
       retries: 30
+    depends_on:
+      certs: { condition: service_completed_successfully }
 
   # Keycloak with Zelvo's extension (email one-time code) and theme: src/keycloak.
   # One realm per tenant, created by the migrate service; no realm is imported here.
@@ -234,8 +286,12 @@ services:
       ConnectionStrings__Postgres: Host=postgres;Database=${POSTGRES_DB};Username=${ZELVO_APP_DB_USER};Password=${ZELVO_APP_DB_PASSWORD}
       Tenancy__DefaultTenant: ${ZELVO_DEFAULT_TENANT:-default}
       ConnectionStrings__Redis: redis:6379,password=${REDIS_PASSWORD},abortConnect=false
-      ConnectionStrings__RabbitMq: amqp://${RABBITMQ_USER}:${RABBITMQ_PASSWORD}@rabbitmq:5672/
-      Services__OpenSearch: http://opensearch:9200/
+      ConnectionStrings__RabbitMq: amqps://zelvo-api:${RABBITMQ_API_PASSWORD}@rabbitmq:5671/zelvo
+      RabbitMq__CaFile: /run/certs/ca.crt
+      Services__OpenSearch: https://opensearch:9200/
+      Search__Username: zelvo-api
+      Search__Password: ${OPENSEARCH_API_PASSWORD}
+      Search__CaFile: /run/certs/ca.crt
       Services__KeycloakHealth: http://keycloak:9000/health/ready
       <<: [*identity, *secrets-env, *telemetry-env]
       # Development: everything in the Compose network (the web app's server) may forward client
@@ -247,6 +303,7 @@ services:
       # so visitors share one limit; installs keep the default of 120 a minute per address.
       RateLimiting__VisitorPermits: ${ZELVO_RATE_LIMIT_VISITORS:-1200}
     secrets: [zelvo-master-key]
+    volumes: [*ca-volume]
     ports:
       - "127.0.0.1:${API_PORT:-8080}:8080"
     depends_on:
@@ -282,10 +339,15 @@ services:
       # Search indexing (A4): reads the search outbox as the application role (row-level
       # security applies), relays it through RabbitMQ and writes to OpenSearch.
       ConnectionStrings__Postgres: Host=postgres;Database=${POSTGRES_DB};Username=${ZELVO_APP_DB_USER};Password=${ZELVO_APP_DB_PASSWORD}
-      ConnectionStrings__RabbitMq: amqp://${RABBITMQ_USER}:${RABBITMQ_PASSWORD}@rabbitmq:5672/
-      Services__OpenSearch: http://opensearch:9200/
+      ConnectionStrings__RabbitMq: amqps://zelvo-worker:${RABBITMQ_WORKER_PASSWORD}@rabbitmq:5671/zelvo
+      RabbitMq__CaFile: /run/certs/ca.crt
+      Services__OpenSearch: https://opensearch:9200/
+      Search__Username: zelvo-worker
+      Search__Password: ${OPENSEARCH_WORKER_PASSWORD}
+      Search__CaFile: /run/certs/ca.crt
       <<: [*secrets-env, *telemetry-env]
     secrets: [zelvo-master-key]
+    volumes: [*ca-volume]
     depends_on:
       migrate: { condition: service_completed_successfully }
       postgres: { condition: service_healthy }
@@ -416,6 +478,7 @@ volumes:
   tempo-data:
   loki-data:
   grafana-data:
+  certs:
 
 secrets:
   zelvo-master-key:

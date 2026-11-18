@@ -27,6 +27,9 @@ public static class SearchServiceCollectionExtensions
                 o.IndexPrefix = section["IndexPrefix"] ?? o.IndexPrefix;
                 o.Replicas = Int(section["Replicas"]) ?? o.Replicas;
                 o.RequestTimeout = Time(section["RequestTimeout"]) ?? o.RequestTimeout;
+                o.Username = section["Username"] is { Length: > 0 } user ? user : o.Username;
+                o.Password = section["Password"] is { Length: > 0 } password ? password : o.Password;
+                o.CaFile = section["CaFile"] is { Length: > 0 } caFile ? caFile : o.CaFile;
             })
             .Validate(o => SearchDocument.IsType(o.IndexPrefix) && o.Replicas is >= 0 and <= 5, "Search:IndexPrefix must be lower-case letters, digits or hyphens; Search:Replicas 0-5.");
         services.TryAddSingleton<OpenSearchClient>();
@@ -63,7 +66,7 @@ public static class SearchServiceCollectionExtensions
             o.BatchSize = Int(section["BatchSize"]) is { } size and > 0 and <= 1000 ? size : o.BatchSize;
             o.Prefetch = (ushort)(Int(section["Prefetch"]) is { } prefetch and > 0 and <= 100 ? prefetch : o.Prefetch);
         });
-        services.TryAddSingleton(_ => new SearchRabbitConnection(rabbitMq, "zelvo-worker-search"));
+        services.TryAddSingleton(_ => new SearchRabbitConnection(rabbitMq, "zelvo-worker-search", configuration["RabbitMq:CaFile"]));
         services.TryAddSingleton<SearchOutboxRelay>();
         services.TryAddSingleton<SearchIndexConsumer>();
         services.AddHostedService(sp => sp.GetRequiredService<SearchOutboxRelay>());

@@ -216,6 +216,8 @@ public sealed class VaultTransitKeyEncryptionKey : IKeyEncryptionKey, IDisposabl
             handler.SslOptions.CertificateChainPolicy = new X509ChainPolicy
             {
                 TrustMode = X509ChainTrustMode.CustomRootTrust,
+                // A private CA usually publishes no revocation list.
+                RevocationMode = X509RevocationMode.NoCheck,
                 CustomTrustStore = { ca },
             };
         }
