@@ -36,6 +36,8 @@ make up
 
 **Security in development (A5):** OpenSearch and RabbitMQ use TLS with a development CA (made by the one-off `certs` service) and one user per service; the master key that encrypts stored secrets is `deploy/compose/secrets/master.key` (created once, git-ignored, keep it: without it stored secrets cannot be decrypted). See `docs/architecture/security-baseline.md` and `docs/architecture/secrets-encryption.md`.
 
+**Demo installation:** `make demo` starts a separate demo (its own data; stop the development stack first with `make down`) with two sample organisations, a government entity and a private company. Open "Demo" under the header to sign in as any persona with one click, switch organisation, or, as the demo administrator, reset the demo. `make demo-down` stops it, `make demo-wipe` deletes its data. See `docs/architecture/demo-mode.md`.
+
 `make down` stops the stack, `make reset` also deletes its data, `make logs` follows the logs. Local Compose changes go in `deploy/compose/compose.override.yaml`, which is git-ignored.
 
 ## Repository layout
