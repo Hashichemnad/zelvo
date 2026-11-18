@@ -9,6 +9,11 @@ x-restart: &restart
 
 # Encryption at rest for stored secrets (A5): the master key file from deploy/compose/secrets,
 # created by scripts/dev-up.sh. Installs can use Vault or OpenBao instead (Secrets__Provider: Vault).
+# Telemetry (A5): Zelvo's services send traces, metrics and logs over OTLP to the collector.
+x-telemetry-env: &telemetry-env
+  OTEL_EXPORTER_OTLP_ENDPOINT: http://otel-collector:4317
+  OTEL_EXPORTER_OTLP_PROTOCOL: grpc
+
 x-secrets-env: &secrets-env
   Secrets__Provider: File
   Secrets__File__Path: /run/secrets/zelvo-master-key
@@ -121,6 +126,11 @@ services:
       # it as http://keycloak:8080 (back channel).
       KC_HOSTNAME: http://localhost:${KEYCLOAK_PORT:-8180}
       KC_HOSTNAME_BACKCHANNEL_DYNAMIC: "true"
+      # Metrics for Prometheus on the management port, traces to the collector (A5).
+      KC_METRICS_ENABLED: "true"
+      KC_TRACING_ENABLED: "true"
+      KC_TRACING_ENDPOINT: http://otel-collector:4317
+      KC_TRACING_SERVICE_NAME: keycloak
     ports:
       - "127.0.0.1:${KEYCLOAK_PORT:-8180}:8080"
     depends_on:
@@ -227,7 +237,15 @@ services:
       ConnectionStrings__RabbitMq: amqp://${RABBITMQ_USER}:${RABBITMQ_PASSWORD}@rabbitmq:5672/
       Services__OpenSearch: http://opensearch:9200/
       Services__KeycloakHealth: http://keycloak:9000/health/ready
-      <<: [*identity, *secrets-env]
+      <<: [*identity, *secrets-env, *telemetry-env]
+      # Development: everything in the Compose network (the web app's server) may forward client
+      # addresses. Installs list their proxies' exact addresses.
+      Network__TrustedProxies__0: 172.16.0.0/12
+      Network__TrustedProxies__1: 192.168.0.0/16
+      Network__TrustedProxies__2: 10.0.0.0/8
+      # Development: every local browser reaches the stack from one address (the Docker gateway),
+      # so visitors share one limit; installs keep the default of 120 a minute per address.
+      RateLimiting__VisitorPermits: ${ZELVO_RATE_LIMIT_VISITORS:-1200}
     secrets: [zelvo-master-key]
     ports:
       - "127.0.0.1:${API_PORT:-8080}:8080"
@@ -266,7 +284,7 @@ services:
       ConnectionStrings__Postgres: Host=postgres;Database=${POSTGRES_DB};Username=${ZELVO_APP_DB_USER};Password=${ZELVO_APP_DB_PASSWORD}
       ConnectionStrings__RabbitMq: amqp://${RABBITMQ_USER}:${RABBITMQ_PASSWORD}@rabbitmq:5672/
       Services__OpenSearch: http://opensearch:9200/
-      <<: *secrets-env
+      <<: [*secrets-env, *telemetry-env]
     secrets: [zelvo-master-key]
     depends_on:
       migrate: { condition: service_completed_successfully }
@@ -293,6 +311,10 @@ services:
       KEYCLOAK_INTERNAL_URL: http://keycloak:8080
       ZELVO_WEB_CLIENT_SECRET: ${ZELVO_WEB_CLIENT_SECRET:?set in .env}
       SESSION_STORE_URL: redis://:${REDIS_PASSWORD}@redis:6379/1
+      # Traces of the web app's server (pages, sign-in, API proxy) to the collector (A5).
+      OTEL_EXPORTER_OTLP_ENDPOINT: http://otel-collector:4318
+      # Reverse proxies in front of the web app whose X-Forwarded-For is trusted; none in development.
+      TRUSTED_PROXY_HOPS: "0"
     ports:
       - "127.0.0.1:${WEB_PORT:-3000}:3000"
     depends_on:
@@ -305,11 +327,95 @@ services:
       timeout: 5s
       retries: 30
 
+  # Observability (A5, docs/architecture/observability.md). Operator tools, English only.
+  # The collector receives OTLP from Zelvo's services and fans it out.
+  otel-collector:
+    <<: *restart
+    image: otel/opentelemetry-collector:0.165.0
+    command: ["--config=/etc/otelcol/config.yaml"]
+    volumes:
+      - ./observability/otel-collector.yaml:/etc/otelcol/config.yaml:ro
+    depends_on:
+      prometheus: { condition: service_healthy }
+      tempo: { condition: service_started }
+      loki: { condition: service_started }
+
+  prometheus:
+    <<: *restart
+    image: prom/prometheus:v3.16.0
+    command:
+      - --config.file=/etc/prometheus/prometheus.yaml
+      - --storage.tsdb.path=/prometheus
+      - --storage.tsdb.retention.time=15d
+      - --web.enable-otlp-receiver
+    volumes:
+      - ./observability/prometheus.yaml:/etc/prometheus/prometheus.yaml:ro
+      - ./observability/alerts.yaml:/etc/prometheus/alerts.yaml:ro
+      - prometheus-data:/prometheus
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://127.0.0.1:9090/-/ready"]
+      interval: 10s
+      timeout: 5s
+      retries: 12
+
+  # Traces, kept 7 days. The image has no shell, so Compose cannot check its health.
+  tempo:
+    <<: *restart
+    image: grafana/tempo:3.1.1
+    command: ["-config.file=/etc/tempo.yaml"]
+    volumes:
+      - ./observability/tempo.yaml:/etc/tempo.yaml:ro
+      - tempo-data:/var/tempo
+
+  # Logs, kept 15 days. The image has no shell, so Compose cannot check its health.
+  loki:
+    <<: *restart
+    image: grafana/loki:3.7.10
+    command: ["-config.file=/etc/loki/config.yaml"]
+    volumes:
+      - ./observability/loki.yaml:/etc/loki/config.yaml:ro
+      - loki-data:/loki
+
+  # Dashboards and alerts: http://localhost:3001 (GRAFANA_ADMIN_USER / GRAFANA_ADMIN_PASSWORD).
+  grafana:
+    <<: *restart
+    image: grafana/grafana:13.2.6
+    environment:
+      GF_SECURITY_ADMIN_USER: ${GRAFANA_ADMIN_USER:-admin}
+      GF_SECURITY_ADMIN_PASSWORD: ${GRAFANA_ADMIN_PASSWORD:?set in .env}
+      GF_SECURITY_DISABLE_GRAVATAR: "true"
+      GF_SECURITY_COOKIE_SAMESITE: strict
+      GF_AUTH_ANONYMOUS_ENABLED: "false"
+      GF_USERS_ALLOW_SIGN_UP: "false"
+      # Works offline: no calls home, no plugin downloads.
+      GF_ANALYTICS_REPORTING_ENABLED: "false"
+      GF_ANALYTICS_CHECK_FOR_UPDATES: "false"
+      GF_ANALYTICS_CHECK_FOR_PLUGIN_UPDATES: "false"
+      GF_NEWS_NEWS_FEED_ENABLED: "false"
+      GF_PLUGINS_PREINSTALL_DISABLED: "true"
+    volumes:
+      - ./observability/grafana/provisioning:/etc/grafana/provisioning:ro
+      - ./observability/grafana/dashboards:/var/lib/grafana/dashboards:ro
+      - grafana-data:/var/lib/grafana
+    ports:
+      - "127.0.0.1:${GRAFANA_PORT:-3001}:3000"
+    depends_on:
+      prometheus: { condition: service_healthy }
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://127.0.0.1:3000/api/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 20
+
 volumes:
   postgres-data:
   redis-data:
   rabbitmq-data:
   opensearch-data:
+  prometheus-data:
+  tempo-data:
+  loki-data:
+  grafana-data:
 
 secrets:
   zelvo-master-key:

@@ -68,7 +68,7 @@ public static class ZelvoTelemetry
                 .AddAttributes([new("deployment.environment.name", builder.Environment.EnvironmentName)]))
             .WithTracing(trace =>
             {
-                trace.SetSampler(new ParentBasedSampler(new TraceIdRatioBasedSampler(ratio)))
+                trace.SetSampler(new BackgroundNoiseSampler(new ParentBasedSampler(new TraceIdRatioBasedSampler(ratio))))
                     .AddSource(SourceName, "Zelvo.*", "Npgsql", "RabbitMQ.Client.Publisher", "RabbitMQ.Client.Subscriber")
                     .AddHttpClientInstrumentation(http =>
                     {

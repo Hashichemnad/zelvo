@@ -1,0 +1,26 @@
+# Prometheus (A5): metrics of Zelvo's services arrive over OTLP from the collector; the services
+# that publish Prometheus metrics themselves are scraped.
+global:
+  scrape_interval: 15s
+  evaluation_interval: 15s
+
+otlp:
+  # Keep these resource attributes as labels (service.name and service.instance.id become job and instance).
+  promote_resource_attributes: [service.namespace, service.version, deployment.environment.name]
+
+storage:
+  tsdb:
+    out_of_order_time_window: 30m
+
+rule_files: [/etc/prometheus/alerts.yaml]
+
+scrape_configs:
+  - job_name: prometheus
+    static_configs: [{ targets: ["localhost:9090"] }]
+  - job_name: otel-collector
+    static_configs: [{ targets: ["otel-collector:8888"] }]
+  - job_name: keycloak
+    metrics_path: /metrics
+    static_configs: [{ targets: ["keycloak:9000"] }]
+  - job_name: rabbitmq
+    static_configs: [{ targets: ["rabbitmq:15692"] }]

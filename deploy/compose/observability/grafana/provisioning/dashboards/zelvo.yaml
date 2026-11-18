@@ -1,0 +1,10 @@
+# Dashboards in deploy/compose/observability/grafana/dashboards, in the "Zelvo" folder, read-only.
+apiVersion: 1
+providers:
+  - name: zelvo
+    folder: Zelvo
+    type: file
+    disableDeletion: true
+    allowUiUpdates: false
+    options:
+      path: /var/lib/grafana/dashboards
