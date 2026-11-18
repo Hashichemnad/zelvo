@@ -1,1 +1,2 @@
 zelvo.keycloak.emailcode.EmailCodeAuthenticatorFactory
+zelvo.keycloak.uaepass.FirstLoginAuthenticatorFactory
