@@ -50,7 +50,7 @@ test.describe("settings and localization", () => {
       await page.getByRole("link", { name: "Settings" }).click();
       await expect(page).toHaveURL(/\/en\/settings$/);
       const menu = page.getByRole("navigation", { name: "Settings sections" });
-      await expect(menu.getByRole("link")).toHaveText(["Language and region", "Search", "Missing translations"]);
+      await expect(menu.getByRole("link")).toHaveText(["Language and region", "Sign-in", "Search", "Missing translations"]);
       await expectAccessible(page);
 
       await menu.getByRole("link", { name: "Language and region" }).click();

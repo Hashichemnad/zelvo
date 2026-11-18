@@ -82,7 +82,8 @@
       "failed": "The sign-in service could not complete your sign-in.",
       "refused": "Your account cannot use this service. Contact your administrator if you think this is a mistake.",
       "mfa": "Your role needs a second factor, such as an authenticator app. Please sign in again and complete that step.",
-      "unavailable": "The sign-in service is not available right now. Please try again shortly."
+      "unavailable": "The sign-in service is not available right now. Please try again shortly.",
+      "uaePassLevel": "Your UAE PASS account level is not enough to sign in here. Verify your account in the UAE PASS app, or sign in another way."
     }
   },
   "display": {
@@ -124,6 +125,10 @@
       "language": {
         "title": "Language and region",
         "description": "Default language, calendar and digits for everyone in your organisation."
+      },
+      "signIn": {
+        "title": "Sign-in",
+        "description": "How people sign in: UAE PASS, its account levels and automatic accounts."
       },
       "search": {
         "title": "Search",
@@ -191,6 +196,52 @@
       "rebuildFailed": "The rebuild could not be started. Please try again.",
       "refresh": "Refresh",
       "refreshFailed": "The status could not be refreshed. Please try again."
+    },
+    "uaePass": {
+      "title": "UAE PASS",
+      "intro": "People can sign in with UAE PASS, the UAE national digital identity. Enter the client ID and client secret issued to your organisation by the UAE PASS programme.",
+      "enabled": "Offer UAE PASS on the sign-in page",
+      "environment": "UAE PASS environment",
+      "environments": {
+        "Staging": "Staging (for testing with UAE PASS staging accounts)",
+        "Production": "Production",
+        "Mock": "Development mock (this installation only)"
+      },
+      "clientId": "Client ID",
+      "clientSecret": "Client secret",
+      "clientSecretSet": "A client secret is saved (last changed {date}). Leave this empty to keep it.",
+      "clientSecretMissing": "No client secret is saved yet.",
+      "rules": "Rules for staff and requesters",
+      "acceptAsSecondFactor": "Accept UAE PASS as the second factor for staff",
+      "acceptAsSecondFactorHint": "Only verified UAE PASS accounts (SOP2 or higher) count. When this is off, staff confirm their sign-in with their authenticator app after UAE PASS.",
+      "staffMinimum": "Staff always need a verified UAE PASS account ({level} or higher). This cannot be changed.",
+      "requesterMinimumLevel": "Minimum UAE PASS account level for requesters",
+      "levels": {
+        "SOP1": "SOP1: basic (identity not verified)",
+        "SOP2": "SOP2: advanced (identity verified)",
+        "SOP3": "SOP3: qualified (identity verified with biometrics)"
+      },
+      "createRequesters": "Create requester accounts automatically on first UAE PASS sign-in",
+      "createRequestersHint": "When this is off, only people who already have an account can sign in with UAE PASS. Staff accounts are never created automatically: they are matched by the Emirates ID recorded on their account, or by email once the account's owner confirms it.",
+      "redirectUri": "Redirect URI",
+      "redirectUriHint": "Register this address with the UAE PASS programme as your redirect URI.",
+      "save": "Save",
+      "saving": "Saving…",
+      "saved": "The UAE PASS settings are saved.",
+      "failed": "The UAE PASS settings could not be saved. Please try again.",
+      "errors": {
+        "clientId": "Enter the client ID issued by UAE PASS (no spaces).",
+        "clientSecret": "Enter the client secret issued by UAE PASS.",
+        "environment": "Choose one of the environments in the list.",
+        "unavailable": "The sign-in service did not accept the change, so nothing was changed. Please try again shortly."
+      },
+      "lastChanged": "Last changed {date}",
+      "neverChanged": "Not set up yet."
+    },
+    "signIn": {
+      "intro": "Choose how people sign in to your organisation's Zelvo.",
+      "uaePass": "UAE PASS",
+      "uaePassDescription": "Sign-in with the UAE national digital identity: environment, client credentials and rules for staff and requesters."
     }
   }
 }

@@ -12,6 +12,8 @@ export interface SessionData {
   name: string | null;
   email: string | null;
   acr: string | null;
+  /** Identity provider the sign-in came through, for example "uaepass"; null for Zelvo's own sign-in. */
+  identityProvider?: string | null;
   accessToken: string;
   accessTokenExpiresAt: number;
   refreshToken: string | null;
@@ -62,6 +64,7 @@ export async function createSession(
     name: typeof claims?.name === "string" ? claims.name : null,
     email: typeof claims?.email === "string" ? claims.email : null,
     acr: typeof claims?.acr === "string" ? claims.acr : null,
+    identityProvider: typeof claims?.zelvo_idp === "string" ? claims.zelvo_idp : null,
     accessToken: tokens.access_token,
     accessTokenExpiresAt: now + (tokens.expiresIn() ?? 60) * 1000,
     refreshToken: tokens.refresh_token ?? null,

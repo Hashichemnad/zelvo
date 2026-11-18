@@ -1,5 +1,5 @@
 import { NextResponse, type NextRequest } from "next/server";
-import { getCurrentUser } from "@/lib/api";
+import { getCurrentUser, getSignInRefusal } from "@/lib/api";
 import { getAuthConfig } from "@/lib/auth/config";
 import { getOidcConfiguration, oidc } from "@/lib/auth/oidc";
 import { pendingSignInKey, secretsMatch } from "@/lib/auth/security";
@@ -53,7 +53,9 @@ export async function GET(request: NextRequest) {
 
   const user = await getCurrentUser(tokens.access_token, config.tenant);
   if (!user) {
-    return problem("refused");
+    // A UAE PASS account below the level this account needs (GOV-1) gets its own explanation.
+    const refusal = await getSignInRefusal(tokens.access_token, config.tenant);
+    return problem(refusal === "uae-pass-level-too-low" ? "uaePassLevel" : "refused");
   }
   if (user.mfa.required) {
     if (pending.mfa) {
