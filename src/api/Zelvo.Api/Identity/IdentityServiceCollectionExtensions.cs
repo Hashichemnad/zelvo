@@ -10,6 +10,7 @@ internal static class IdentityServiceCollectionExtensions
     public static IServiceCollection AddZelvoIdentity(this IServiceCollection services, IConfiguration configuration)
     {
         services.AddOptions<IdentityOptions>().Bind(configuration.GetSection(IdentityOptions.Section));
+        services.AddOptions<UaePassOptions>().Bind(configuration.GetSection(UaePassOptions.Section));
         services.AddHttpClient(OidcRealmSigningKeys.HttpClientName, client => client.Timeout = TimeSpan.FromSeconds(10));
         services.AddHttpClient(KeycloakAdminClient.HttpClientName, client => client.Timeout = TimeSpan.FromSeconds(30));
         services.AddSingleton<IRealmSigningKeys, OidcRealmSigningKeys>();

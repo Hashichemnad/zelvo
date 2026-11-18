@@ -1,7 +1,7 @@
 import { getTranslations, setRequestLocale } from "next-intl/server";
 import type { Locale } from "@/i18n/routing";
 
-const reasons = ["expired", "cancelled", "failed", "refused", "mfa"] as const;
+const reasons = ["expired", "cancelled", "failed", "refused", "mfa", "uaePassLevel"] as const;
 type Reason = (typeof reasons)[number] | "unavailable";
 
 export async function generateMetadata({ params }: PageProps<"/[locale]/sign-in-problem">) {

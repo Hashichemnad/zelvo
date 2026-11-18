@@ -21,7 +21,7 @@ function readIfPresent(file: string): string | undefined {
   }
 }
 
-function readEnv(name: string): string | undefined {
+export function readEnv(name: string): string | undefined {
   if (process.env[name]) {
     return process.env[name];
   }

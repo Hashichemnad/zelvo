@@ -147,6 +147,29 @@ services:
       timeout: 5s
       retries: 20
 
+  # Development stand-in for UAE PASS (GOV-1): http://localhost:8095. Choose "Mock" as the UAE PASS
+  # environment in Settings → UAE PASS, with client ID zelvo-mock and UAEPASS_MOCK_CLIENT_SECRET.
+  # Plain Node.js without packages, so the official image runs it as is.
+  uaepass-mock:
+    <<: *restart
+    image: node:22-alpine
+    command: ["node", "/app/server.mjs"]
+    user: node
+    working_dir: /app
+    environment:
+      PORT: "8095"
+      UAEPASS_MOCK_CLIENT_ID: zelvo-mock
+      UAEPASS_MOCK_CLIENT_SECRET: ${UAEPASS_MOCK_CLIENT_SECRET:?set in .env}
+    volumes:
+      - ./uaepass-mock:/app:ro
+    ports:
+      - "127.0.0.1:${UAEPASS_MOCK_PORT:-8095}:8095"
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://127.0.0.1:8095/healthz"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+
   # One-off: applies database migrations as the database owner, creates the default tenant and
   # its built-in roles, sets up each tenant's Keycloak realm and the development users, then
   # exits. The API starts only after it succeeds.
@@ -167,6 +190,10 @@ services:
         Identity__PublicUrl: http://localhost:${KEYCLOAK_PORT:-8180}
         Identity__InternalUrl: http://keycloak:8080
         Identity__ProvisionerClientSecret: ${KEYCLOAK_PROVISIONER_SECRET:?set in .env}
+        # Development only: offers "Mock" as a UAE PASS environment. Browsers open the first
+        # address; Keycloak calls the second. Never set in an install.
+        Identity__UaePass__Mock__PublicUrl: http://localhost:${UAEPASS_MOCK_PORT:-8095}
+        Identity__UaePass__Mock__InternalUrl: http://uaepass-mock:8095
       Identity__Provisioning__AdminUser: ${KEYCLOAK_ADMIN_USER:?set in .env}
       Identity__Provisioning__AdminPassword: ${KEYCLOAK_ADMIN_PASSWORD:?set in .env}
       Identity__Provisioning__WebUrl: http://localhost:${WEB_PORT:-3000}

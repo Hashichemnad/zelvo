@@ -1,0 +1,122 @@
+[
+  {
+    "uuid": "3f0c8b52-6a1e-4c55-9d1a-7d2b1c9e0a11",
+    "userType": "SOP3",
+    "email": "mariam.citizen@uaepass.test",
+    "mobile": "971500000001",
+    "firstnameEN": "Mariam",
+    "lastnameEN": "Al Mansoori",
+    "fullnameEN": "Mariam,,,,Al Mansoori,,",
+    "firstnameAR": "مريم",
+    "lastnameAR": "المنصوري",
+    "fullnameAR": "مريم,,,,المنصوري,,",
+    "idn": "784000000000001",
+    "idType": "ID",
+    "gender": "Female",
+    "nationalityEN": "ARE",
+    "nationalityAR": "إماراتية",
+    "acr": "urn:safelayer:tws:policies:authentication:level:high",
+    "amr": [
+      "urn:safelayer:tws:policies:authentication:adaptive:methods:mobileid",
+      "urn:uae:authentication:method:verified"
+    ]
+  },
+  {
+    "uuid": "8a7d1e44-0b2f-4f6c-8a33-52c1f0d4e622",
+    "userType": "SOP2",
+    "email": "ravi.resident@uaepass.test",
+    "mobile": "971500000002",
+    "firstnameEN": "Ravi",
+    "lastnameEN": "Kumar",
+    "fullnameEN": "Ravi,,,,Kumar,,",
+    "firstnameAR": "رافي",
+    "lastnameAR": "كومار",
+    "fullnameAR": "رافي,,,,كومار,,",
+    "idn": "784000000000002",
+    "idType": "ID",
+    "gender": "Male",
+    "nationalityEN": "IND",
+    "nationalityAR": "هندي",
+    "acr": "urn:safelayer:tws:policies:authentication:level:low",
+    "amr": [
+      "urn:safelayer:tws:policies:authentication:adaptive:methods:mobileid"
+    ]
+  },
+  {
+    "uuid": "c2e95f10-3d4b-4a8e-b6f7-0e9a8d7c6b33",
+    "userType": "SOP1",
+    "email": "sara.basic@uaepass.test",
+    "mobile": "971500000003",
+    "firstnameEN": "Sara",
+    "lastnameEN": "Haddad",
+    "acr": "urn:safelayer:tws:policies:authentication:level:low",
+    "amr": [
+      "urn:safelayer:tws:policies:authentication:adaptive:methods:mobileid"
+    ]
+  },
+  {
+    "uuid": "5b1f7c88-9e2a-4d0b-8c64-a1f2e3d4c544",
+    "userType": "SOP3",
+    "email": "agent@zelvo.test",
+    "mobile": "971500000004",
+    "firstnameEN": "Adel",
+    "lastnameEN": "Agent",
+    "fullnameEN": "Adel,,,,Agent,,",
+    "firstnameAR": "عادل",
+    "lastnameAR": "الوكيل",
+    "fullnameAR": "عادل,,,,الوكيل,,",
+    "idn": "784000000000004",
+    "idType": "ID",
+    "gender": "Male",
+    "nationalityEN": "ARE",
+    "nationalityAR": "إماراتي",
+    "acr": "urn:safelayer:tws:policies:authentication:level:high",
+    "amr": [
+      "urn:safelayer:tws:policies:authentication:adaptive:methods:mobileid",
+      "urn:uae:authentication:method:verified"
+    ]
+  },
+  {
+    "uuid": "9d8c7b6a-5f4e-4d3c-8b2a-1f0e9d8c7b66",
+    "userType": "SOP3",
+    "email": "layla.personal@uaepass.test",
+    "mobile": "971500000006",
+    "firstnameEN": "Layla",
+    "lastnameEN": "Lead",
+    "fullnameEN": "Layla,,,,Lead,,",
+    "firstnameAR": "ليلى",
+    "lastnameAR": "القائدة",
+    "fullnameAR": "ليلى,,,,القائدة,,",
+    "idn": "784000000000006",
+    "idType": "ID",
+    "gender": "Female",
+    "nationalityEN": "ARE",
+    "nationalityAR": "إماراتية",
+    "acr": "urn:safelayer:tws:policies:authentication:level:high",
+    "amr": [
+      "urn:safelayer:tws:policies:authentication:adaptive:methods:mobileid",
+      "urn:uae:authentication:method:verified"
+    ]
+  },
+  {
+    "uuid": "e4d3c2b1-a0f9-4e8d-9c7b-6a5f4e3d2c55",
+    "userType": "SOP2",
+    "email": "requester@zelvo.test",
+    "mobile": "971500000005",
+    "firstnameEN": "Rana",
+    "lastnameEN": "Requester",
+    "fullnameEN": "Rana,,,,Requester,,",
+    "firstnameAR": "رنا",
+    "lastnameAR": "مقدمة الطلب",
+    "fullnameAR": "رنا,,,,مقدمة الطلب,,",
+    "idn": "784000000000005",
+    "idType": "ID",
+    "gender": "Female",
+    "nationalityEN": "ARE",
+    "nationalityAR": "إماراتية",
+    "acr": "urn:safelayer:tws:policies:authentication:level:low",
+    "amr": [
+      "urn:safelayer:tws:policies:authentication:adaptive:methods:mobileid"
+    ]
+  }
+]

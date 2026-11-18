@@ -26,9 +26,12 @@ make up
 | API explorer | http://localhost:8080/api-explorer |
 | Keycloak admin (credentials in `deploy/compose/.env`) | http://localhost:8180 |
 | Sign-in emails (Mailpit, development only) | http://localhost:8025 |
+| UAE PASS mock (development only) | http://localhost:8095 |
 | RabbitMQ admin | http://localhost:15672 |
 
 **Sign in** from the header. Development users: `requester@zelvo.test`, `agent@zelvo.test`, `lead@zelvo.test`, `approver@zelvo.test`, `admin@zelvo.test` and `executive@zelvo.test`, all with the password `ZELVO_DEV_USERS_PASSWORD` from `deploy/compose/.env`. Agents, team leads and admins are asked to set up an authenticator app at their first sign-in. To try the email one-time code, choose "Try Another Way" on the sign-in page; the code arrives in Mailpit. See `docs/architecture/identity-access.md`.
+
+**UAE PASS:** as `admin@zelvo.test`, open Settings → Sign-in → UAE PASS, choose "Development mock", client ID `zelvo-mock` and the secret `UAEPASS_MOCK_CLIENT_SECRET` from `deploy/compose/.env`, and save. The sign-in page then offers UAE PASS. See `docs/architecture/uae-pass.md`.
 
 `make down` stops the stack, `make reset` also deletes its data, `make logs` follows the logs. Local Compose changes go in `deploy/compose/compose.override.yaml`, which is git-ignored.
 

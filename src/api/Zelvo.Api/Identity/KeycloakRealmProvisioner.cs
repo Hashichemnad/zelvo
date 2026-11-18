@@ -62,7 +62,9 @@ internal sealed class KeycloakRealmProvisioner(KeycloakAdminClient admin, Identi
     /// <summary>Level-of-authentication names in tokens (<c>acr</c>): 1 = one factor, 2 = second factor.</summary>
     public const string AcrLoaMap = """{"pwd":1,"mfa":2}""";
 
-    private static readonly string[] ProvisionerRealmRoles = ["view-realm", "manage-realm", "view-users", "manage-users"];
+    // Identity provider roles: the API sets up UAE PASS (GOV-1) when an administrator saves it.
+    private static readonly string[] ProvisionerRealmRoles =
+        ["view-realm", "manage-realm", "view-users", "manage-users", "view-identity-providers", "manage-identity-providers"];
 
     public async Task EnsureProvisionerAsync(CancellationToken cancellationToken)
     {
@@ -120,6 +122,8 @@ internal sealed class KeycloakRealmProvisioner(KeycloakAdminClient admin, Identi
         }, cancellationToken).ConfigureAwait(false);
 
         await EnsureBrowserFlowAsync(realm, settings, cancellationToken).ConfigureAwait(false);
+        await EnsureUaePassFlowsAsync(realm, cancellationToken).ConfigureAwait(false);
+        await EnsureEmiratesIdAttributeAsync(realm, cancellationToken).ConfigureAwait(false);
         await GrantProvisionerAsync(realm, cancellationToken).ConfigureAwait(false);
     }
 
@@ -270,6 +274,39 @@ internal sealed class KeycloakRealmProvisioner(KeycloakAdminClient admin, Identi
                 },
                 new JsonObject
                 {
+                    // Which identity provider the session came from ("uaepass"), so that signing
+                    // out also ends the UAE PASS session, as UAE PASS requires.
+                    ["name"] = "zelvo identity provider",
+                    ["protocol"] = "openid-connect",
+                    ["protocolMapper"] = "oidc-usersessionmodel-note-mapper",
+                    ["config"] = new JsonObject
+                    {
+                        ["user.session.note"] = "identity_provider",
+                        ["claim.name"] = ZelvoClaimTypes.IdentityProvider,
+                        ["jsonType.label"] = "String",
+                        ["access.token.claim"] = "true",
+                        ["id.token.claim"] = "true",
+                        ["userinfo.token.claim"] = "false",
+                    },
+                },
+                new JsonObject
+                {
+                    // The UAE PASS account level of this session (GOV-1 rules for staff and requesters).
+                    ["name"] = "zelvo uaepass level",
+                    ["protocol"] = "openid-connect",
+                    ["protocolMapper"] = "oidc-usersessionmodel-note-mapper",
+                    ["config"] = new JsonObject
+                    {
+                        ["user.session.note"] = UaePassProvider.LevelSessionNote,
+                        ["claim.name"] = ZelvoClaimTypes.UaePassLevel,
+                        ["jsonType.label"] = "String",
+                        ["access.token.claim"] = "true",
+                        ["id.token.claim"] = "true",
+                        ["userinfo.token.claim"] = "false",
+                    },
+                },
+                new JsonObject
+                {
                     ["name"] = "zelvo tenant id",
                     ["protocol"] = "openid-connect",
                     ["protocolMapper"] = "oidc-hardcoded-claim-mapper",
@@ -378,6 +415,104 @@ internal sealed class KeycloakRealmProvisioner(KeycloakAdminClient admin, Identi
             using var _ = await admin.SendAsync(HttpMethod.Put, $"realms/{E(realm)}",
                 new JsonObject { ["realm"] = realm, ["browserFlow"] = KeycloakAdminClient.BrowserFlow }, cancellationToken).ConfigureAwait(false);
         }
+    }
+
+    /// <summary>
+    /// Sign-in flows of the UAE PASS identity provider (GOV-1), built once; the provider itself is
+    /// created when an administrator sets UAE PASS up in Settings.
+    /// <list type="bullet">
+    /// <item>First UAE PASS sign-in (Zelvo extension step): a verified account whose Emirates ID an
+    /// administrator recorded on one account is linked to it; when an account has the same email,
+    /// it is linked only after its owner proves it is theirs (a link sent to the email, or the
+    /// account's password); otherwise a requester account, if the tenant allows it. No step lets
+    /// people edit what UAE PASS sent.</item>
+    /// <item>Every UAE PASS sign-in: counts as level 1 (one factor), and asks for the authenticator
+    /// app (level 2) when the client asks for <c>acr=mfa</c>, as for staff.</item>
+    /// </list>
+    /// </summary>
+    private async Task EnsureUaePassFlowsAsync(string realm, CancellationToken cancellationToken)
+    {
+        var flows = await admin.GetArrayAsync($"realms/{E(realm)}/authentication/flows", cancellationToken).ConfigureAwait(false);
+        if (flows.All(f => (string?)f?["alias"] != UaePassProvider.FirstLoginFlow))
+        {
+            await AddTopLevelFlowAsync(realm, UaePassProvider.FirstLoginFlow,
+                "First UAE PASS sign-in: linked by Emirates ID, linked by email after proof, or a new requester account.", cancellationToken).ConfigureAwait(false);
+            const string first = UaePassProvider.FirstLoginFlow;
+            // Zelvo extension step: links by Emirates ID, creates requesters as the tenant allows,
+            // or passes on to the proof steps when an account has the same email.
+            await AddExecutionAsync(realm, first, UaePassProvider.FirstLoginStep, "ALTERNATIVE", cancellationToken,
+                KeycloakAdminClient.FirstLoginConfig(new UaePassProvider(false, UaePassEndpoints.At("https://unset", "https://unset"), "", null))).ConfigureAwait(false);
+            await AddFlowAsync(realm, first, "zelvo uaepass prove account", "ALTERNATIVE", cancellationToken).ConfigureAwait(false);
+            await AddExecutionAsync(realm, "zelvo uaepass prove account", "idp-email-verification", "ALTERNATIVE", cancellationToken).ConfigureAwait(false);
+            await AddFlowAsync(realm, "zelvo uaepass prove account", "zelvo uaepass prove with password", "ALTERNATIVE", cancellationToken).ConfigureAwait(false);
+            await AddExecutionAsync(realm, "zelvo uaepass prove with password", "idp-username-password-form", "REQUIRED", cancellationToken).ConfigureAwait(false);
+        }
+
+        if (flows.All(f => (string?)f?["alias"] != UaePassProvider.AfterLoginFlow))
+        {
+            await AddTopLevelFlowAsync(realm, UaePassProvider.AfterLoginFlow,
+                "After each UAE PASS sign-in: one factor done; a second factor when asked for acr=mfa.", cancellationToken).ConfigureAwait(false);
+            const string after = UaePassProvider.AfterLoginFlow;
+            await AddFlowAsync(realm, after, "zelvo uaepass level 1", "CONDITIONAL", cancellationToken).ConfigureAwait(false);
+            await AddExecutionAsync(realm, "zelvo uaepass level 1", "conditional-level-of-authentication", "REQUIRED", cancellationToken,
+                new Dictionary<string, string>(StringComparer.Ordinal) { ["loa-condition-level"] = "1", ["loa-max-age"] = "36000" }).ConfigureAwait(false);
+            // Records level 1 in the session, so a later step-up asks only for the second factor.
+            await AddExecutionAsync(realm, "zelvo uaepass level 1", "allow-access-authenticator", "REQUIRED", cancellationToken).ConfigureAwait(false);
+            await AddFlowAsync(realm, after, "zelvo uaepass level 2", "CONDITIONAL", cancellationToken).ConfigureAwait(false);
+            await AddExecutionAsync(realm, "zelvo uaepass level 2", "conditional-level-of-authentication", "REQUIRED", cancellationToken,
+                new Dictionary<string, string>(StringComparer.Ordinal) { ["loa-condition-level"] = "2", ["loa-max-age"] = "36000" }).ConfigureAwait(false);
+            await AddExecutionAsync(realm, "zelvo uaepass level 2", "auth-otp-form", "REQUIRED", cancellationToken).ConfigureAwait(false);
+        }
+    }
+
+    /// <summary>
+    /// Declares the Emirates ID attribute in the realm's user profile: administrators (the Zelvo
+    /// API) may see and set it, users may not, and it must be 15 digits starting with 784.
+    /// </summary>
+    private async Task EnsureEmiratesIdAttributeAsync(string realm, CancellationToken cancellationToken)
+    {
+        var path = $"realms/{E(realm)}/users/profile";
+        var profile = await admin.GetAsync(path, cancellationToken).ConfigureAwait(false) as JsonObject
+            ?? throw new KeycloakAdminException($"Realm {realm} has no user profile.");
+        if (profile["attributes"] is not JsonArray attributes)
+        {
+            attributes = [];
+            profile["attributes"] = attributes;
+        }
+
+        var declared = new JsonObject
+        {
+            ["name"] = UaePassProvider.EmiratesIdAttribute,
+            ["displayName"] = "Emirates ID",
+            ["multivalued"] = false,
+            ["permissions"] = new JsonObject { ["view"] = new JsonArray("admin"), ["edit"] = new JsonArray("admin") },
+            ["validations"] = new JsonObject { ["pattern"] = new JsonObject { ["pattern"] = "^784[0-9]{12}$", ["error-message"] = "Emirates ID" } },
+        };
+        var existing = attributes.FirstOrDefault(a => (string?)a?["name"] == UaePassProvider.EmiratesIdAttribute);
+        if (existing is not null && JsonNode.DeepEquals(existing, declared))
+        {
+            return;
+        }
+
+        if (existing is not null)
+        {
+            attributes.Remove(existing);
+        }
+
+        attributes.Add(declared);
+        using var _ = await admin.SendAsync(HttpMethod.Put, path, profile, cancellationToken).ConfigureAwait(false);
+    }
+
+    private async Task AddTopLevelFlowAsync(string realm, string alias, string description, CancellationToken cancellationToken)
+    {
+        using var _ = await admin.SendAsync(HttpMethod.Post, $"realms/{E(realm)}/authentication/flows", new JsonObject
+        {
+            ["alias"] = alias,
+            ["description"] = description,
+            ["providerId"] = "basic-flow",
+            ["topLevel"] = true,
+            ["builtIn"] = false,
+        }, cancellationToken).ConfigureAwait(false);
     }
 
     private async Task AddFlowAsync(string realm, string parent, string alias, string requirement, CancellationToken cancellationToken)

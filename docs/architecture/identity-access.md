@@ -1,6 +1,6 @@
 # Identity and access (task A2)
 
-Covers the non-functional requirements **Authentication** (SSO, mandatory MFA for agents and admins) and **Authorization** (role-based down to field level, least privilege), module 4's logins (single sign-on, email + one-time code, anonymous for public forms) and the six personas. UAE PASS is task D3; API keys and OAuth clients for integrations are task E1.
+Covers the non-functional requirements **Authentication** (SSO, mandatory MFA for agents and admins) and **Authorization** (role-based down to field level, least privilege), module 4's logins (single sign-on, email + one-time code, anonymous for public forms) and the six personas. UAE PASS is task D3 (`uae-pass.md`); API keys and OAuth clients for integrations are task E1.
 
 ## Pieces
 
@@ -23,7 +23,7 @@ Covers the non-functional requirements **Authentication** (SSO, mandatory MFA fo
   - level 1: password **or** email one-time code ("Try Another Way"), then
   - level 2, only when the client asks for `acr_values=mfa`: a code from an authenticator app (TOTP). Staff without one are asked to set it up.
   - `acr` in tokens: `pwd` after level 1, `mfa` after level 2 (`acr.loa.map`).
-- The master-realm service account `zelvo-provisioner` gets `view/manage-realm` and `view/manage-users` on this realm only. The API uses it at run time to apply sign-in settings; `migrate` uses the bootstrap administrator once to set it up.
+- The master-realm service account `zelvo-provisioner` gets `view/manage-realm`, `view/manage-users` and (from D3) `view/manage-identity-providers` on this realm only. The API uses it at run time to apply sign-in settings; `migrate` uses the bootstrap administrator once to set it up.
 
 ## Email one-time code (product owner decision 2026-11-13: Keycloak extension)
 
@@ -73,7 +73,7 @@ For each field of a resource in the catalog, a role's access is its explicit rul
 - Changes to fields without `Edit` are refused: 403 `fields-read-only` listing the fields.
 - Showing personal data is audited (`users.personal-data.viewed`, category `View`).
 
-First resource: `users` (`displayName`, `email` (sensitive), `status`, `roles`, `lastSeenAt`).
+First resource: `users` (`displayName`, `email` (sensitive), `emiratesId` (sensitive, from D3; Edit for tenant administrators), `status`, `roles`, `lastSeenAt`).
 
 ### Anonymous access
 
@@ -110,4 +110,4 @@ First resource: `users` (`displayName`, `email` (sensitive), `status`, `roles`, 
 ## Not in A2
 
 - Passkeys (WebAuthn) as a second factor. Keycloak needs a different flow shape so that people without any second factor are asked to set one up. Follow-up.
-- UAE PASS (D3), Entra ID / LDAP (E7), API keys and OAuth clients (E1), Settings screens for users and roles (B2), demo user switching (D), rate limiting (A5), tenant branding of the Keycloak pages (F1).
+- UAE PASS (D3, see `uae-pass.md`), Entra ID / LDAP (E7), API keys and OAuth clients (E1), Settings screens for users and roles (B2), demo user switching (D), rate limiting (A5), tenant branding of the Keycloak pages (F1).

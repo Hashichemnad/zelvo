@@ -174,3 +174,36 @@ export async function getLocalizationSettings(
 export function forgetLocalizationSettings(tenant: string): void {
   revalidateTag(localizationSettingsTag(tenant), { expire: 0 });
 }
+
+/** Sign-in methods besides password and email code (GET /api/v1/identity/sign-in-methods). */
+export interface SignInMethods {
+  uaePass: { enabled: boolean; signOutUrl: string | null };
+}
+
+/** The tenant's sign-in methods, readable without signing in; null when the API cannot be reached. */
+export async function getSignInMethods(tenant: string): Promise<SignInMethods | null> {
+  try {
+    const response = await fetch(new URL("/api/v1/identity/sign-in-methods", apiBaseUrl), {
+      cache: "no-store",
+      signal: AbortSignal.timeout(timeoutMs),
+      headers: { Accept: "application/json", "X-Zelvo-Tenant": tenant },
+    });
+    return response.ok ? ((await response.json()) as SignInMethods) : null;
+  } catch {
+    return null;
+  }
+}
+
+/** Why the API refused this sign-in (its problem code, for example "uae-pass-level-too-low"), or null. */
+export async function getSignInRefusal(accessToken: string, tenant: string): Promise<string | null> {
+  try {
+    const response = await apiFetch("/api/v1/me", accessToken, tenant);
+    if (response.status !== 403) {
+      return null;
+    }
+    const problem = (await response.json().catch(() => null)) as { code?: unknown } | null;
+    return typeof problem?.code === "string" ? problem.code : null;
+  } catch {
+    return null;
+  }
+}

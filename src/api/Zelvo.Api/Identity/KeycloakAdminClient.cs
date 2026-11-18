@@ -13,6 +13,15 @@ internal interface IKeycloakAdmin
 {
     /// <summary>Copies the email one-time code sign-in setting into the realm's sign-in flow.</summary>
     Task SetEmailCodeSignInAsync(string realm, EmailCodeSignIn mode, IReadOnlyList<string> allowedDomains, CancellationToken cancellationToken);
+
+    /// <summary>
+    /// Creates or updates the realm's UAE PASS identity provider (GOV-1), its profile mapper and the
+    /// first sign-in settings (automatic requester accounts, requesters' minimum level).
+    /// </summary>
+    Task ApplyUaePassAsync(string realm, UaePassProvider provider, CancellationToken cancellationToken);
+
+    /// <summary>Records (or with <see langword="null"/> removes) the Emirates ID on a Keycloak user, for UAE PASS matching.</summary>
+    Task SetEmiratesIdAsync(string realm, string subject, string? emiratesId, CancellationToken cancellationToken);
 }
 
 /// <summary>Keycloak refused or failed an admin request.</summary>
@@ -85,6 +94,124 @@ internal sealed class KeycloakAdminClient : IKeycloakAdmin
             ?? throw new KeycloakAdminException($"The sign-in flow of realm {realm} has no email code step.");
         await SetExecutionConfigAsync(realm, execution, "zelvo-email-code", EmailCodeConfig(mode, allowedDomains), cancellationToken).ConfigureAwait(false);
     }
+
+    public async Task ApplyUaePassAsync(string realm, UaePassProvider provider, CancellationToken cancellationToken)
+    {
+        var path = $"realms/{E(realm)}/identity-provider/instances";
+        var existing = await GetAsync($"{path}/{E(UaePassProvider.Alias)}", cancellationToken).ConfigureAwait(false);
+        if (existing is null && provider.ClientSecret is null)
+        {
+            throw new KeycloakAdminException($"Realm {realm} has no UAE PASS provider yet, so a client secret is needed.");
+        }
+
+        var representation = UaePassRepresentation(provider);
+        if (existing is null)
+        {
+            using var _ = await SendAsync(HttpMethod.Post, path, representation, cancellationToken).ConfigureAwait(false);
+        }
+        else
+        {
+            representation["internalId"] = existing["internalId"]?.DeepClone();
+            using var _ = await SendAsync(HttpMethod.Put, $"{path}/{E(UaePassProvider.Alias)}", representation, cancellationToken).ConfigureAwait(false);
+        }
+
+        // The profile mapper keeps the UAE PASS level of each sign-in for Zelvo's tokens.
+        var mappersPath = $"{path}/{E(UaePassProvider.Alias)}/mappers";
+        var mappers = await GetArrayAsync(mappersPath, cancellationToken).ConfigureAwait(false);
+        var mapper = new JsonObject
+        {
+            ["name"] = "zelvo uaepass profile",
+            ["identityProviderAlias"] = UaePassProvider.Alias,
+            ["identityProviderMapper"] = UaePassProvider.ProfileMapper,
+            // FORCE: the mapper also runs after linking and at every sign-in, to keep the level.
+            ["config"] = new JsonObject { ["syncMode"] = "FORCE" },
+        };
+        var current = mappers.FirstOrDefault(m => (string?)m?["identityProviderMapper"] == UaePassProvider.ProfileMapper);
+        if (current is null)
+        {
+            using var _ = await SendAsync(HttpMethod.Post, mappersPath, mapper, cancellationToken).ConfigureAwait(false);
+        }
+        else if ((string?)current["config"]?["syncMode"] != "FORCE")
+        {
+            mapper["id"] = current["id"]?.DeepClone();
+            using var _ = await SendAsync(HttpMethod.Put, $"{mappersPath}/{E((string)current["id"]!)}", mapper, cancellationToken).ConfigureAwait(false);
+        }
+
+        var executions = await GetArrayAsync($"realms/{E(realm)}/authentication/flows/{E(UaePassProvider.FirstLoginFlow)}/executions", cancellationToken).ConfigureAwait(false);
+        var step = executions.FirstOrDefault(e => (string?)e?["providerId"] == UaePassProvider.FirstLoginStep)
+            ?? throw new KeycloakAdminException($"The UAE PASS first sign-in flow of realm {realm} has no Zelvo step.");
+        await SetExecutionConfigAsync(realm, step, UaePassProvider.FirstLoginStep, FirstLoginConfig(provider), cancellationToken).ConfigureAwait(false);
+    }
+
+    /// <summary>Settings of the Zelvo first UAE PASS sign-in step.</summary>
+    public static Dictionary<string, string> FirstLoginConfig(UaePassProvider provider) => new(StringComparer.Ordinal)
+    {
+        ["createRequesters"] = provider.CreateRequesters ? "true" : "false",
+        ["requesterMinimumLevel"] = provider.RequesterMinimumLevel.ToString(),
+    };
+
+    public async Task SetEmiratesIdAsync(string realm, string subject, string? emiratesId, CancellationToken cancellationToken)
+    {
+        var path = $"realms/{E(realm)}/users/{E(subject)}";
+        var user = await GetAsync(path, cancellationToken).ConfigureAwait(false)
+            ?? throw new KeycloakAdminException($"User {subject} does not exist in realm {realm}.", HttpStatusCode.NotFound);
+        var attributes = user["attributes"] as JsonObject ?? new JsonObject();
+        if (emiratesId is null)
+        {
+            attributes.Remove(UaePassProvider.EmiratesIdAttribute);
+        }
+        else
+        {
+            attributes[UaePassProvider.EmiratesIdAttribute] = new JsonArray(emiratesId);
+        }
+
+        // Send back the whole representation so that the user's other details are kept.
+        user["attributes"] = attributes.DeepClone();
+        using var _ = await SendAsync(HttpMethod.Put, path, user, cancellationToken).ConfigureAwait(false);
+    }
+
+    /// <summary>
+    /// The UAE PASS identity provider: Keycloak's generic OAuth 2.0 broker, because UAE PASS issues
+    /// an opaque access token and no ID token; the profile comes from its user information endpoint.
+    /// People are matched by their UAE PASS <c>uuid</c>, which UAE PASS recommends because email and
+    /// mobile can change.
+    /// </summary>
+    public static JsonObject UaePassRepresentation(UaePassProvider provider) => new()
+    {
+        ["alias"] = UaePassProvider.Alias,
+        ["displayName"] = "UAE PASS",
+        ["providerId"] = "oauth2",
+        ["enabled"] = provider.Enabled,
+        ["hideOnLogin"] = false,
+        // Emails are only linked to an existing account after that account's owner proves it is
+        // theirs (email link or password); see the first login flow.
+        ["trustEmail"] = false,
+        ["storeToken"] = false,
+        ["addReadTokenRoleOnCreate"] = false,
+        ["linkOnly"] = false,
+        ["firstBrokerLoginFlowAlias"] = UaePassProvider.FirstLoginFlow,
+        ["postBrokerLoginFlowAlias"] = UaePassProvider.AfterLoginFlow,
+        ["config"] = new JsonObject
+        {
+            // UAE PASS expects acr_values on the authorization request; Keycloak keeps the query.
+            ["authorizationUrl"] = $"{provider.Endpoints.Authorization}?acr_values={Uri.EscapeDataString(UaePassEndpoints.AcrValues)}",
+            ["tokenUrl"] = provider.Endpoints.Token,
+            ["userInfoUrl"] = provider.Endpoints.UserInfo,
+            ["clientId"] = provider.ClientId,
+            // Keycloak keeps the stored secret when it receives its own mask back.
+            ["clientSecret"] = provider.ClientSecret ?? "**********",
+            ["clientAuthMethod"] = "client_secret_basic",
+            ["defaultScope"] = UaePassEndpoints.Scope,
+            ["uiLocales"] = "true",
+            ["pkceEnabled"] = "false",
+            ["syncMode"] = "IMPORT",
+            ["userIDClaim"] = "uuid",
+            ["userNameClaim"] = "email",
+            ["emailClaim"] = "email",
+            ["givenNameClaim"] = "firstnameEN",
+            ["familyNameClaim"] = "lastnameEN",
+        },
+    };
 
     /// <summary>Settings of the email code step for <paramref name="mode"/>.</summary>
     public static Dictionary<string, string> EmailCodeConfig(EmailCodeSignIn mode, IReadOnlyList<string> allowedDomains) => new(StringComparer.Ordinal)

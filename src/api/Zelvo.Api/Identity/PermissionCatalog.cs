@@ -85,6 +85,8 @@ internal static class PermissionCatalog
         [
             new FieldDefinition("displayName", Writable: true),
             new FieldDefinition("email", Sensitive: true),
+            // Recorded by administrators to match UAE PASS sign-ins (GOV-1).
+            new FieldDefinition("emiratesId", Sensitive: true, Writable: true),
             new FieldDefinition("status", Writable: true),
             new FieldDefinition("roles"),
             new FieldDefinition("lastSeenAt"),
@@ -104,7 +106,7 @@ internal static class PermissionCatalog
         new(BuiltInRoles.Approver, new LocalizedText("Approver", "المعتمِد"), [], new Dictionary<string, FieldAccess>()),
         new(BuiltInRoles.TenantAdmin, new LocalizedText("Tenant administrator", "مسؤول الجهة"),
             All,
-            new Dictionary<string, FieldAccess> { ["users.email"] = FieldAccess.Read }),
+            new Dictionary<string, FieldAccess> { ["users.email"] = FieldAccess.Read, ["users.emiratesId"] = FieldAccess.Edit }),
         new(BuiltInRoles.ExecutiveAuditor, new LocalizedText("Executive / auditor", "تنفيذي / مدقق"),
             [Permissions.AuditRead, Permissions.UsersRead],
             new Dictionary<string, FieldAccess> { ["users.email"] = FieldAccess.Read }),

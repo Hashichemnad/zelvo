@@ -2,18 +2,23 @@ using System.ComponentModel.DataAnnotations;
 using System.Text.Json.Nodes;
 using Microsoft.AspNetCore.Http.HttpResults;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Options;
 using Zelvo.Api.Conventions;
 using Zelvo.Api.Tenancy;
 using Zelvo.Data;
 using Zelvo.Data.Auditing;
 using Zelvo.Data.Identity;
+using Zelvo.Data.Tenancy;
 
 namespace Zelvo.Api.Identity;
 
 /// <summary>Users of the tenant. Field rules decide which fields each caller sees and may change.</summary>
-internal static class UserEndpoints
+internal static partial class UserEndpoints
 {
-    private static readonly string[] SensitiveFields = ["email"];
+    private static readonly string[] SensitiveFields = ["email", "emiratesId"];
+
+    [LoggerMessage(Level = LogLevel.Error, Message = "Could not record the Emirates ID in Keycloak.")]
+    private static partial void LogKeycloakRefused(ILogger logger, Exception exception);
 
     public static RouteGroupBuilder MapUserEndpoints(this RouteGroupBuilder group)
     {
@@ -33,7 +38,7 @@ internal static class UserEndpoints
 
         users.MapPatch("/{id:guid}", UpdateAsync)
             .WithName("UpdateUser")
-            .WithSummary("Change a user's display name or status. Needs edit access to each field; audited.")
+            .WithSummary("Change a user's display name, status or Emirates ID (used to match UAE PASS sign-ins; empty string removes it). Needs edit access to each field; audited.")
             .RequirePermission(Permissions.UsersManage)
             .Produces<UserResponse>()
             .ProducesValidationProblem();
@@ -80,9 +85,21 @@ internal static class UserEndpoints
     }
 
     internal static async Task<Results<Ok<JsonObject>, ValidationProblem, ProblemHttpResult>> UpdateAsync(
-        Guid id, UpdateUserRequest request, ZelvoDbContext db, CurrentUser user, CancellationToken cancellationToken)
+        Guid id, UpdateUserRequest request, ZelvoDbContext db, CurrentUser user, ITenantContext tenant, IKeycloakAdmin keycloak,
+        IOptions<IdentityOptions> options, ILoggerFactory loggers, CancellationToken cancellationToken)
     {
         var changed = new List<string>();
+        string? emiratesId = null;
+        if (request.EmiratesId is not null)
+        {
+            changed.Add("emiratesId");
+            emiratesId = request.EmiratesId.Replace("-", "", StringComparison.Ordinal).Replace(" ", "", StringComparison.Ordinal);
+            if (emiratesId.Length > 0 && !IsEmiratesId(emiratesId))
+            {
+                return Validation("emiratesId", "Use the 15-digit Emirates ID number, starting with 784.");
+            }
+        }
+
         if (request.DisplayName is not null)
         {
             changed.Add("displayName");
@@ -125,10 +142,45 @@ internal static class UserEndpoints
             account.Status = status;
         }
 
+        var newEmiratesId = string.IsNullOrEmpty(emiratesId) ? null : emiratesId;
+        var emiratesIdChanged = request.EmiratesId is not null && newEmiratesId != account.EmiratesId;
+        if (emiratesIdChanged && newEmiratesId is not null
+            && await db.Users.AnyAsync(u => u.Id != account.Id && u.EmiratesId == newEmiratesId, cancellationToken))
+        {
+            return (ProblemHttpResult)ApiProblem.Create(StatusCodes.Status409Conflict, "emirates-id-in-use",
+                "Another user of this tenant has this Emirates ID.");
+        }
+
+        if (emiratesIdChanged)
+        {
+            account.EmiratesId = newEmiratesId;
+        }
+
         account.UpdatedAt = DateTimeOffset.UtcNow;
+
+        // Saved and copied to Keycloak together: if Keycloak refuses, nothing changes.
+        await using var transaction = await db.Database.BeginTransactionAsync(cancellationToken);
         await db.SaveChangesAsync(cancellationToken);
+        if (emiratesIdChanged)
+        {
+            try
+            {
+                await keycloak.SetEmiratesIdAsync(options.Value.RealmFor(tenant.Slug!), account.Subject, newEmiratesId, cancellationToken);
+            }
+            catch (Exception ex) when (ex is KeycloakAdminException or HttpRequestException)
+            {
+                LogKeycloakRefused(loggers.CreateLogger("Zelvo.Identity"), ex);
+                return (ProblemHttpResult)ApiProblem.Create(StatusCodes.Status502BadGateway, "identity-provider-unavailable",
+                    "The sign-in service did not accept the change. Nothing was changed.");
+            }
+        }
+
+        await transaction.CommitAsync(cancellationToken);
         return TypedResults.Ok(FieldFilter.Apply(user, PermissionCatalog.Users, UserResponse.From(account)));
     }
+
+    private static bool IsEmiratesId(string value) =>
+        value.Length == UserAccount.EmiratesIdLength && value.StartsWith("784", StringComparison.Ordinal) && value.All(char.IsAsciiDigit);
 
     internal static async Task<Results<Ok<JsonObject>, ValidationProblem, ProblemHttpResult>> SetRolesAsync(
         Guid id, SetUserRolesRequest request, ZelvoDbContext db, CurrentUser user, CancellationToken cancellationToken)
@@ -175,7 +227,8 @@ internal static class UserEndpoints
     /// <summary>Viewing personal data is audited ("every view of sensitive data").</summary>
     private static Task RecordSensitiveViewAsync(CurrentUser user, IAuditLog audit, List<UserAccount> accounts, CancellationToken cancellationToken)
     {
-        if (accounts.Count == 0 || !FieldFilter.IsVisible(user, PermissionCatalog.Users, "email"))
+        var visible = SensitiveFields.Where(f => FieldFilter.IsVisible(user, PermissionCatalog.Users, f)).ToArray();
+        if (accounts.Count == 0 || visible.Length == 0)
         {
             return Task.CompletedTask;
         }
@@ -183,7 +236,7 @@ internal static class UserEndpoints
         return audit.RecordAsync(AuditCategory.View, "users.personal-data.viewed", "user_account", null,
             new Dictionary<string, object?>(StringComparer.Ordinal)
             {
-                ["fields"] = SensitiveFields,
+                ["fields"] = visible,
                 ["userIds"] = accounts.Select(a => a.Id.ToString()).ToArray(),
             }, cancellationToken);
     }
@@ -216,15 +269,17 @@ internal static class UserEndpoints
 /// <param name="Id">Zelvo user id.</param>
 /// <param name="DisplayName">Display name.</param>
 /// <param name="Email">Email address (personal data: hidden unless a role is given access).</param>
+/// <param name="EmiratesId">Emirates ID number, for matching UAE PASS sign-ins (personal data: hidden unless a role is given access).</param>
 /// <param name="Status">Whether the user may use Zelvo.</param>
 /// <param name="Roles">Role keys.</param>
 /// <param name="LastSeenAt">When the user last used Zelvo (hourly).</param>
 /// <param name="CreatedAt">First sign-in.</param>
 internal sealed record UserResponse(
-    Guid Id, string? DisplayName, string? Email, UserStatus Status, IReadOnlyList<string> Roles, DateTimeOffset? LastSeenAt, DateTimeOffset CreatedAt)
+    Guid Id, string? DisplayName, string? Email, string? EmiratesId, UserStatus Status, IReadOnlyList<string> Roles,
+    DateTimeOffset? LastSeenAt, DateTimeOffset CreatedAt)
 {
     public static UserResponse From(UserAccount account) => new(
-        account.Id, account.DisplayName, account.Email, account.Status,
+        account.Id, account.DisplayName, account.Email, account.EmiratesId, account.Status,
         [.. account.Roles.Select(r => r.Role!.Key).Order(StringComparer.Ordinal)],
         account.LastSeenAt, account.CreatedAt);
 }
@@ -238,6 +293,10 @@ public sealed class UpdateUserRequest
 
     /// <summary>Active or Disabled.</summary>
     public UserStatus? Status { get; init; }
+
+    /// <summary>Emirates ID number (15 digits starting with 784; dashes allowed). Empty string removes it.</summary>
+    [MaxLength(20)]
+    public string? EmiratesId { get; init; }
 }
 
 /// <summary>The complete list of a user's roles.</summary>
