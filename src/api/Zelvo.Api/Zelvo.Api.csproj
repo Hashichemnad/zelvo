@@ -19,6 +19,7 @@
   <ItemGroup>
     <ProjectReference Include="..\Zelvo.Licensing.Abstractions\Zelvo.Licensing.Abstractions.csproj" />
     <ProjectReference Include="..\Zelvo.Data\Zelvo.Data.csproj" />
+    <ProjectReference Include="..\Zelvo.Search\Zelvo.Search.csproj" />
   </ItemGroup>
   <!-- Development builds use the stub; release builds pass -p:ZelvoLicensingProject=<private project>. -->
   <ItemGroup Condition="'$(ZelvoLicensingProject)' == ''">
