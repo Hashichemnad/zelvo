@@ -110,6 +110,42 @@ public sealed class SearchPipelineTests(DatabaseFixture database, SearchFixture 
     }
 
     [Fact]
+    public async Task When_OpenSearch_refuses_the_index_the_reason_is_recorded_and_indexing_resumes_later()
+    {
+        var tenant = await database.CreateTenantAsync("blocked");
+        using var http = new HttpClient { BaseAddress = search.OpenSearchUrl };
+        async Task BlockIndexCreation(bool blocked) => (await http.PutAsync(new Uri("_cluster/settings", UriKind.Relative),
+            new StringContent(
+                new JsonObject { ["transient"] = new JsonObject { ["cluster.blocks.create_index"] = blocked ? true : null } }.ToJsonString(),
+                Encoding.UTF8, "application/json"), Ct))
+            .EnsureSuccessStatusCode();
+
+        await BlockIndexCreation(true);
+        try
+        {
+            await search.IndexAsync(tenant, TestDocuments.Article("waiting", "Waiting for the index", null));
+            await using var db = TestData.AppContext(database, tenant);
+            var deadline = DateTime.UtcNow.AddSeconds(30);
+            string? error = null;
+            while (error is null && DateTime.UtcNow < deadline)
+            {
+                await Task.Delay(200, Ct);
+                error = (await db.SearchIndexStates.AsNoTracking().SingleOrDefaultAsync(Ct))?.LastError;
+            }
+
+            Assert.Contains("create-index blocked", error, StringComparison.Ordinal);
+            Assert.True(await db.SearchOutbox.AnyAsync(e => e.FailedAt == null, Ct));
+        }
+        finally
+        {
+            await BlockIndexCreation(false);
+        }
+
+        await search.WaitUntilIndexedAsync(tenant);
+        Assert.Single((await search.SearchAsync(tenant, "waiting")).Items);
+    }
+
+    [Fact]
     public async Task Messages_that_cannot_be_read_go_to_the_dead_letter_queue()
     {
         var factory = new ConnectionFactory { Uri = search.RabbitUrl };

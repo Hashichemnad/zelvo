@@ -35,6 +35,9 @@ public sealed class SearchFixture(DatabaseFixture database) : IAsyncLifetime
         .WithEnvironment("DISABLE_SECURITY_PLUGIN", "true")
         .WithEnvironment("DISABLE_INSTALL_DEMO_CONFIG", "true")
         .WithEnvironment("OPENSEARCH_JAVA_OPTS", "-Xms512m -Xmx512m")
+        .WithEnvironment("cluster.routing.allocation.disk.watermark.low", "2gb")
+        .WithEnvironment("cluster.routing.allocation.disk.watermark.high", "1gb")
+        .WithEnvironment("cluster.routing.allocation.disk.watermark.flood_stage", "500mb")
         .WithPortBinding(9200, true)
         .WithWaitStrategy(Wait.ForUnixContainer().UntilHttpRequestIsSucceeded(r => r.ForPort(9200).ForPath("/_cluster/health")))
         .Build();

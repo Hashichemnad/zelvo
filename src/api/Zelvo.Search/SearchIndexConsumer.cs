@@ -70,8 +70,10 @@ public sealed partial class SearchIndexConsumer(
 
             await FlushAsync(pending, done, failed, cancellationToken).ConfigureAwait(false);
         }
-        catch (OpenSearchException exception) when (exception.IsTransient)
+        catch (OpenSearchException exception)
         {
+            // Unavailable, overloaded or refusing the index itself (for example a full disk):
+            // record why, so Settings → Search shows it, and retry the whole message later.
             await RecordStateAsync(db, null, exception.Message, rebuilt: false, cancellationToken).ConfigureAwait(false);
             throw;
         }
