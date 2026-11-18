@@ -105,6 +105,7 @@ Zelvo is running:
   Development users   requester@zelvo.test, agent@, lead@, approver@, admin@, executive@
                       password: ZELVO_DEV_USERS_PASSWORD in deploy/compose/.env
   RabbitMQ admin      http://localhost:${RABBITMQ_MANAGEMENT_PORT:-15672}
+  Grafana             http://localhost:${GRAFANA_PORT:-3001}  (dashboards, traces, logs; GRAFANA_ADMIN_* in deploy/compose/.env)
 
 Stop it with: make down
 MSG

@@ -1,4 +1,4 @@
-import type { ReadableSpan, SpanProcessor } from "@opentelemetry/sdk-trace-base";
+import { SamplingDecision, type ReadableSpan, type Sampler, type SamplingResult, type SpanProcessor } from "@opentelemetry/sdk-trace-base";
 
 /** Attributes that are dropped from every span: they identify the person. */
 const dropped = new Set(["http.client_ip", "client.address", "http.referer", "enduser.id", "user.id", "user.email"]);
@@ -40,5 +40,21 @@ export class RedactingSpanProcessor implements SpanProcessor {
 
   shutdown(): Promise<void> {
     return Promise.resolve();
+  }
+}
+
+/** Whether a span name is a health probe (`GET /healthz`), polled every few seconds by Compose or Kubernetes. */
+export function isProbe(spanName: string): boolean {
+  return /\s\/(healthz|health\/\w+)$/.test(spanName);
+}
+
+/** Records every trace except health probes, which would otherwise fill the trace store. */
+export class SkipProbesSampler implements Sampler {
+  shouldSample(_context: unknown, _traceId: string, spanName: string): SamplingResult {
+    return { decision: isProbe(spanName) ? SamplingDecision.NOT_RECORD : SamplingDecision.RECORD_AND_SAMPLED };
+  }
+
+  toString(): string {
+    return "SkipProbesSampler";
   }
 }

@@ -8,6 +8,9 @@ datasources:
     url: http://prometheus:9090
     isDefault: true
     editable: false
+    jsonData:
+      # Scrape and OTLP export interval, so rate() windows always hold enough samples.
+      timeInterval: 15s
   - name: Tempo
     uid: tempo
     type: tempo

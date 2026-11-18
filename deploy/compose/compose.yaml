@@ -13,6 +13,8 @@ x-restart: &restart
 x-telemetry-env: &telemetry-env
   OTEL_EXPORTER_OTLP_ENDPOINT: http://otel-collector:4317
   OTEL_EXPORTER_OTLP_PROTOCOL: grpc
+  # Metrics every 15 seconds, like Prometheus's scrape interval (the .NET default is 60).
+  OTEL_METRIC_EXPORT_INTERVAL: "15000"
 
 # Clients of OpenSearch and RabbitMQ trust the development CA (certs volume, ca/ folder).
 x-ca-volume: &ca-volume

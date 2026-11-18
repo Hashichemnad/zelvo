@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { redactAttributes, withoutQuery } from "./telemetry-redaction";
+import { isProbe, redactAttributes, withoutQuery } from "./telemetry-redaction";
 
 describe("telemetry redaction", () => {
   it("removes query strings and fragments from addresses", () => {
@@ -21,5 +21,11 @@ describe("telemetry redaction", () => {
     redactAttributes(attributes);
 
     expect(attributes).toEqual({ "http.url": "http://api:8080/api/v1/search", "http.method": "GET", "http.status_code": 200 });
+  });
+
+  it("recognises health probes", () => {
+    expect(isProbe("GET /healthz")).toBe(true);
+    expect(isProbe("GET /health/ready")).toBe(true);
+    expect(isProbe("GET /[locale]")).toBe(false);
   });
 });
