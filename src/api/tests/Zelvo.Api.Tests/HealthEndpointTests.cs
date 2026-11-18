@@ -33,7 +33,7 @@ public sealed class HealthEndpointTests : IClassFixture<ApiFactory>
         Assert.Equal(HttpStatusCode.ServiceUnavailable, response.StatusCode);
         var body = await response.Content.ReadFromJsonAsync<HealthBody>(TestContext.Current.CancellationToken);
         Assert.Equal(
-            ["keycloak", "opensearch", "postgres", "rabbitmq", "redis"],
+            ["keyVault", "keycloak", "opensearch", "postgres", "rabbitmq", "redis"],
             body!.Checks.Select(c => c.Name));
         Assert.All(body.Checks, c => Assert.Equal("Unhealthy", c.Status));
         Assert.DoesNotContain("Password", raw, StringComparison.OrdinalIgnoreCase);

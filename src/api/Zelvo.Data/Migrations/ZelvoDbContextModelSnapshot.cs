@@ -548,6 +548,53 @@ namespace Zelvo.Data.Migrations
                         });
                 });
 
+            modelBuilder.Entity("Zelvo.Data.Secrets.TenantDataKey", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<DateTimeOffset>("CreatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("created_at");
+
+                    b.Property<string>("KekId")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)")
+                        .HasColumnName("kek_id");
+
+                    b.Property<DateTimeOffset?>("RetiredAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("retired_at");
+
+                    b.Property<DateTimeOffset?>("RewrappedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("rewrapped_at");
+
+                    b.Property<Guid>("TenantId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("tenant_id");
+
+                    b.Property<byte[]>("WrappedKey")
+                        .IsRequired()
+                        .HasColumnType("bytea")
+                        .HasColumnName("wrapped_key");
+
+                    b.HasKey("Id")
+                        .HasName("pk_tenant_data_keys");
+
+                    b.HasIndex("TenantId")
+                        .IsUnique()
+                        .HasDatabaseName("ux_tenant_data_keys_active")
+                        .HasFilter("retired_at IS NULL");
+
+                    b.ToTable("tenant_data_keys", null, t =>
+                        {
+                            t.HasCheckConstraint("ck_tenant_data_keys_kek_id", "kek_id ~ '^[a-z]+:[A-Za-z0-9._/-]+$'");
+                        });
+                });
+
             modelBuilder.Entity("Zelvo.Data.Settings.TenantSetting", b =>
                 {
                     b.Property<Guid>("TenantId")
@@ -752,6 +799,16 @@ namespace Zelvo.Data.Migrations
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired()
                         .HasConstraintName("fk_search_outbox_tenants_tenant_id");
+                });
+
+            modelBuilder.Entity("Zelvo.Data.Secrets.TenantDataKey", b =>
+                {
+                    b.HasOne("Zelvo.Data.Tenancy.Tenant", null)
+                        .WithMany()
+                        .HasForeignKey("TenantId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired()
+                        .HasConstraintName("fk_tenant_data_keys_tenants_tenant_id");
                 });
 
             modelBuilder.Entity("Zelvo.Data.Settings.TenantSetting", b =>

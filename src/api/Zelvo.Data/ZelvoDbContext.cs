@@ -4,6 +4,7 @@ using Zelvo.Data.Auditing;
 using Zelvo.Data.Identity;
 using Zelvo.Data.Localization;
 using Zelvo.Data.Search;
+using Zelvo.Data.Secrets;
 using Zelvo.Data.Settings;
 using Zelvo.Data.Tenancy;
 
@@ -51,6 +52,9 @@ public sealed class ZelvoDbContext(DbContextOptions<ZelvoDbContext> options) : D
 
     /// <summary>Indexing state of each tenant's search index.</summary>
     public DbSet<SearchIndexState> SearchIndexStates => Set<SearchIndexState>();
+
+    /// <summary>Tenants' data keys for secrets stored in the database (wrapped, never in clear).</summary>
+    public DbSet<TenantDataKey> TenantDataKeys => Set<TenantDataKey>();
 
     /// <inheritdoc />
     protected override void OnModelCreating(ModelBuilder modelBuilder)
@@ -118,6 +122,19 @@ public sealed class ZelvoDbContext(DbContextOptions<ZelvoDbContext> options) : D
         });
 
         ConfigureSearch(modelBuilder);
+
+        modelBuilder.Entity<TenantDataKey>(key =>
+        {
+            key.ToTable("tenant_data_keys", table =>
+                table.HasCheckConstraint("ck_tenant_data_keys_kek_id", "kek_id ~ '^[a-z]+:[A-Za-z0-9._/-]+$'"));
+            key.HasKey(k => k.Id);
+            key.Property(k => k.Id).ValueGeneratedNever();
+            key.HasOne<Tenant>().WithMany().HasForeignKey(k => k.TenantId).OnDelete(DeleteBehavior.Restrict);
+            key.Property(k => k.KekId).HasMaxLength(TenantDataKey.KekIdMaxLength);
+
+            // One active key per tenant.
+            key.HasIndex(k => k.TenantId).IsUnique().HasFilter("retired_at IS NULL").HasDatabaseName("ux_tenant_data_keys_active");
+        });
     }
 
     private static void ConfigureSearch(ModelBuilder modelBuilder)

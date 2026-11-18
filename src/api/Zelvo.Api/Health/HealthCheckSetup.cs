@@ -16,6 +16,7 @@ internal static class HealthCheckSetup
     internal const string RabbitMq = "rabbitmq";
     internal const string OpenSearch = "opensearch";
     internal const string Keycloak = "keycloak";
+    internal const string KeyVault = "keyVault";
 
     private static readonly TimeSpan CheckTimeout = TimeSpan.FromSeconds(3);
 
@@ -36,7 +37,8 @@ internal static class HealthCheckSetup
             .AddRedis(redis, name: Redis, tags: [ReadyTag], timeout: CheckTimeout)
             .AddRabbitMQ(name: RabbitMq, tags: [ReadyTag], timeout: CheckTimeout)
             .AddUrlGroup(new Uri(openSearch, "_cluster/health"), name: OpenSearch, tags: [ReadyTag], timeout: CheckTimeout)
-            .AddUrlGroup(keycloak, name: Keycloak, tags: [ReadyTag], timeout: CheckTimeout);
+            .AddUrlGroup(keycloak, name: Keycloak, tags: [ReadyTag], timeout: CheckTimeout)
+            .AddCheck<Secrets.KeyEncryptionKeyHealthCheck>(KeyVault, tags: [ReadyTag], timeout: CheckTimeout);
 
         return services;
     }

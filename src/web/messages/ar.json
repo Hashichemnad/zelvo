@@ -39,7 +39,8 @@
       "redis": "الذاكرة المؤقتة (Valkey)",
       "rabbitmq": "قائمة الرسائل (RabbitMQ)",
       "opensearch": "البحث (OpenSearch)",
-      "keycloak": "الهوية (Keycloak)"
+      "keycloak": "الهوية (Keycloak)",
+      "keyVault": "مخزن المفاتيح (مفاتيح التشفير)"
     },
     "installationHeading": "التثبيت",
     "version": "الإصدار",

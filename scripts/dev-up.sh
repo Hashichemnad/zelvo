@@ -46,6 +46,24 @@ while IFS= read -r line || [[ -n "$line" ]]; do
   fi
 done < "$compose_dir/.env.example"
 
+# Files the containers read as Compose secrets (git-ignored, created once).
+secrets_dir="$compose_dir/secrets"
+mkdir -p "$secrets_dir"
+
+# Master key that protects secrets stored in the database (A5, docs/architecture/secrets-encryption.md).
+# Development only: readable by the containers' non-root users. Deleting it makes stored secrets
+# unreadable; `make reset` keeps it.
+master_key="$secrets_dir/master.key"
+if [[ ! -f "$master_key" ]]; then
+  echo "Creating deploy/compose/secrets/master.key (development master key)"
+  if command -v openssl >/dev/null 2>&1; then
+    openssl rand -base64 32 > "$master_key"
+  else
+    head -c 32 /dev/urandom | base64 > "$master_key"
+  fi
+  chmod 644 "$master_key"
+fi
+
 # Run from the compose directory so a local compose.override.yaml (git-ignored) is picked up.
 cd "$compose_dir"
 docker compose up --build --detach --wait --wait-timeout "${ZELVO_WAIT_TIMEOUT:-900}" "$@"

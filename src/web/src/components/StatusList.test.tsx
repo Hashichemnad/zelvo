@@ -17,7 +17,7 @@ function withIntl(locale: "en" | "ar", node: ReactNode) {
 
 const healthy = {
   status: "Healthy" as const,
-  checks: ["keycloak", "opensearch", "postgres", "rabbitmq", "redis"].map((name) => ({
+  checks: ["keycloak", "keyVault", "opensearch", "postgres", "rabbitmq", "redis"].map((name) => ({
     name,
     status: "Healthy" as const,
   })),
@@ -29,7 +29,7 @@ describe("StatusList", () => {
 
     expect(screen.getByRole("status")).toHaveTextContent("All services are running.");
     const items = screen.getAllByRole("listitem");
-    expect(items).toHaveLength(6);
+    expect(items).toHaveLength(7);
     for (const item of items) {
       expect(within(item).getByText("Running")).toBeInTheDocument();
     }

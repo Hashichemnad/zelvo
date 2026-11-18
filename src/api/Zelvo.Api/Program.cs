@@ -17,10 +17,16 @@ using Zelvo.Data.Localization;
 using Zelvo.Data.Tenancy;
 using Zelvo.Licensing;
 using Zelvo.Search;
+using Zelvo.Secrets;
 
 if (args is ["migrate", ..])
 {
     return await MigrateCommand.RunAsync(args[1..]);
+}
+
+if (args is ["rewrap-keys", ..])
+{
+    return await RewrapKeysCommand.RunAsync(args[1..]);
 }
 
 var builder = WebApplication.CreateBuilder(args);
@@ -43,6 +49,7 @@ builder.Services.AddScoped<TenantResolver>();
 builder.Services.AddScoped<TenantSettingsStore>();
 builder.Services.AddSingleton<IMissingTranslationSource, TenantMissingTranslations>();
 builder.Services.AddZelvoSearch(builder.Configuration);
+builder.Services.AddZelvoSecrets(builder.Configuration);
 
 var app = builder.Build();
 

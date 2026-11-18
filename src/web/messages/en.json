@@ -39,7 +39,8 @@
       "redis": "Cache (Valkey)",
       "rabbitmq": "Message queue (RabbitMQ)",
       "opensearch": "Search (OpenSearch)",
-      "keycloak": "Identity (Keycloak)"
+      "keycloak": "Identity (Keycloak)",
+      "keyVault": "Key store (encryption keys)"
     },
     "installationHeading": "Installation",
     "version": "Version",

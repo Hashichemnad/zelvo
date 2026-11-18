@@ -2,7 +2,7 @@ import { useTranslations } from "next-intl";
 import type { HealthReport, HealthStatus } from "@/lib/api";
 
 /** Display order and translation keys of the services shown on the welcome page. */
-export const serviceKeys = ["api", "postgres", "redis", "rabbitmq", "opensearch", "keycloak"] as const;
+export const serviceKeys = ["api", "postgres", "redis", "rabbitmq", "opensearch", "keycloak", "keyVault"] as const;
 type ServiceKey = (typeof serviceKeys)[number];
 
 const statusKey: Record<HealthStatus, "healthy" | "degraded" | "unhealthy"> = {

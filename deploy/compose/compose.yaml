@@ -7,6 +7,12 @@ name: ${COMPOSE_PROJECT_NAME:-zelvo}
 x-restart: &restart
   restart: unless-stopped
 
+# Encryption at rest for stored secrets (A5): the master key file from deploy/compose/secrets,
+# created by scripts/dev-up.sh. Installs can use Vault or OpenBao instead (Secrets__Provider: Vault).
+x-secrets-env: &secrets-env
+  Secrets__Provider: File
+  Secrets__File__Path: /run/secrets/zelvo-master-key
+
 services:
   postgres:
     <<: *restart
@@ -221,7 +227,8 @@ services:
       ConnectionStrings__RabbitMq: amqp://${RABBITMQ_USER}:${RABBITMQ_PASSWORD}@rabbitmq:5672/
       Services__OpenSearch: http://opensearch:9200/
       Services__KeycloakHealth: http://keycloak:9000/health/ready
-      <<: *identity
+      <<: [*identity, *secrets-env]
+    secrets: [zelvo-master-key]
     ports:
       - "127.0.0.1:${API_PORT:-8080}:8080"
     depends_on:
@@ -259,6 +266,8 @@ services:
       ConnectionStrings__Postgres: Host=postgres;Database=${POSTGRES_DB};Username=${ZELVO_APP_DB_USER};Password=${ZELVO_APP_DB_PASSWORD}
       ConnectionStrings__RabbitMq: amqp://${RABBITMQ_USER}:${RABBITMQ_PASSWORD}@rabbitmq:5672/
       Services__OpenSearch: http://opensearch:9200/
+      <<: *secrets-env
+    secrets: [zelvo-master-key]
     depends_on:
       migrate: { condition: service_completed_successfully }
       postgres: { condition: service_healthy }
@@ -301,3 +310,7 @@ volumes:
   redis-data:
   rabbitmq-data:
   opensearch-data:
+
+secrets:
+  zelvo-master-key:
+    file: ./secrets/master.key
