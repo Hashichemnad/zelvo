@@ -3,7 +3,7 @@ import { getTranslations, setRequestLocale } from "next-intl/server";
 import { getDirection, otherLocale, type Locale } from "@/i18n/routing";
 import { PreferencesForm } from "@/components/PreferencesForm";
 import { getCurrentUser, getLocalizationSettings, type LocalizedText } from "@/lib/api";
-import { getAuthConfig } from "@/lib/auth/config";
+import { getRequestAuthConfig } from "@/lib/auth/config";
 import { getSession } from "@/lib/auth/session";
 
 export async function generateMetadata({ params }: PageProps<"/[locale]/account">) {
@@ -31,7 +31,7 @@ export default async function AccountPage({ params }: PageProps<"/[locale]/accou
   if (!session) {
     redirect(`/auth/login?${new URLSearchParams({ locale, returnTo: `/${locale}/account` })}`);
   }
-  const tenant = getAuthConfig().tenant;
+  const tenant = (await getRequestAuthConfig()).tenant;
   const [user, tenantSettings, t, tPreferences] = await Promise.all([
     getCurrentUser(session.data.accessToken, tenant),
     getLocalizationSettings(tenant),

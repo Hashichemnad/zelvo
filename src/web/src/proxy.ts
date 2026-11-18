@@ -2,7 +2,7 @@ import createMiddleware from "next-intl/middleware";
 import { NextResponse, type NextRequest } from "next/server";
 import { routing } from "./i18n/routing";
 import { getLocalizationSettings } from "./lib/api";
-import { getAuthConfig } from "./lib/auth/config";
+import { authConfigFor } from "./lib/auth/config";
 import { sessionCookieName } from "./lib/auth/session";
 import { hasLanguagePrefix, languageCookieName, resolveLanguage, withLanguage } from "./lib/localization";
 
@@ -19,7 +19,7 @@ export default async function proxy(request: NextRequest) {
     return intl(request);
   }
 
-  const config = getAuthConfig();
+  const config = authConfigFor(request);
   const deviceLanguage = request.cookies.get(languageCookieName)?.value;
   const signedIn = request.cookies.has(sessionCookieName(config));
   // Only first visits (no language cookie yet) need the tenant default; ask the API directly.

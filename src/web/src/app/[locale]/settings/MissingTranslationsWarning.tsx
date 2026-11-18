@@ -1,12 +1,12 @@
 import { getTranslations } from "next-intl/server";
 import { Link } from "@/i18n/navigation";
 import { getJsonAs } from "@/lib/api";
-import { getAuthConfig } from "@/lib/auth/config";
+import { getRequestAuthConfig } from "@/lib/auth/config";
 import { getSession } from "@/lib/auth/session";
 
 /** Warns administrators while bilingual texts still miss a language (LANG-5). */
 export async function MissingTranslationsWarning() {
-  const config = getAuthConfig();
+  const config = await getRequestAuthConfig();
   const session = await getSession(config);
   if (!session) {
     return null;

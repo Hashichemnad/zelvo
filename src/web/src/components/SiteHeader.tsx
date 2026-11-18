@@ -1,29 +1,51 @@
-import { getTranslations } from "next-intl/server";
-import { getCurrentUser } from "@/lib/api";
-import { getAuthConfig } from "@/lib/auth/config";
+import { getLocale, getTranslations } from "next-intl/server";
+import { getCurrentUser, getDemo } from "@/lib/api";
+import { getRequestAuthConfig } from "@/lib/auth/config";
 import { getSession } from "@/lib/auth/session";
+import { getDisplayFormat } from "@/lib/display";
+import { formatDateTime } from "@/lib/format";
 import { sectionsFor } from "@/lib/settings-sections";
 import { AccountMenu } from "./AccountMenu";
+import { DemoPanel } from "./DemoPanel";
 import { LanguageSwitcher } from "./LanguageSwitcher";
 
 export async function SiteHeader() {
   const t = await getTranslations("common");
-  const session = await getSession().catch(() => null);
-  const user = session ? await getCurrentUser(session.data.accessToken, getAuthConfig().tenant) : null;
+  const config = await getRequestAuthConfig();
+  const session = await getSession(config).catch(() => null);
+  const user = session ? await getCurrentUser(session.data.accessToken, config.tenant) : null;
+  // Demo installations only: the API says whether this is one.
+  const demo = config.demoTenants.length > 0 ? await getDemo(config.tenant) : null;
+  let lastReset: string | null = null;
+  if (demo?.lastResetAt) {
+    const format = await getDisplayFormat();
+    lastReset = formatDateTime(new Date(demo.lastResetAt), { locale: await getLocale(), ...format });
+  }
 
   return (
-    <header className="border-b border-line bg-surface">
-      <div className="mx-auto flex max-w-5xl flex-wrap items-center justify-between gap-4 px-4 py-3">
-        <span className="text-lg font-bold text-brand">{t("productName")}</span>
-        <div className="flex flex-wrap items-center gap-3">
-          <AccountMenu
-            userName={session ? (session.data.name ?? session.data.email ?? session.data.subject) : null}
-            csrfToken={session?.data.csrfToken ?? null}
-            showSettings={sectionsFor(user?.permissions ?? []).length > 0}
-          />
-          <LanguageSwitcher />
+    <>
+      <header className="border-b border-line bg-surface">
+        <div className="mx-auto flex max-w-5xl flex-wrap items-center justify-between gap-4 px-4 py-3">
+          <span className="text-lg font-bold text-brand">{t("productName")}</span>
+          <div className="flex flex-wrap items-center gap-3">
+            <AccountMenu
+              userName={session ? (session.data.name ?? session.data.email ?? session.data.subject) : null}
+              csrfToken={session?.data.csrfToken ?? null}
+              showSettings={sectionsFor(user?.permissions ?? []).length > 0}
+            />
+            <LanguageSwitcher />
+          </div>
         </div>
-      </div>
-    </header>
+      </header>
+      {demo && (
+        <DemoPanel
+          demo={demo}
+          currentUsername={session?.data.email ?? null}
+          csrfToken={session?.data.csrfToken ?? null}
+          canReset={user?.permissions.includes("demo.reset") ?? false}
+          lastReset={lastReset}
+        />
+      )}
+    </>
   );
 }

@@ -1,6 +1,6 @@
 import "server-only";
 import { cookies } from "next/headers";
-import { getAuthConfig, type AuthConfig } from "./config";
+import { getAuthConfig, getRequestAuthConfig, type AuthConfig } from "./config";
 import { getOidcConfiguration, oidc } from "./oidc";
 import { randomSecret, sessionKey } from "./security";
 import { getSessionStore } from "./store";
@@ -82,7 +82,8 @@ export async function createSession(
  * The current session, or null. Ends sessions past the idle or absolute time-out, and refreshes
  * the access token when it is about to expire (the refresh token never leaves the server).
  */
-export async function getSession(config: AuthConfig = getAuthConfig()): Promise<Session | null> {
+export async function getSession(requestConfig?: AuthConfig): Promise<Session | null> {
+  const config = requestConfig ?? (await getRequestAuthConfig());
   const id = (await cookies()).get(sessionCookieName(config))?.value;
   if (!id) {
     return null;

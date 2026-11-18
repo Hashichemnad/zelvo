@@ -1,5 +1,5 @@
 import { NextResponse, type NextRequest } from "next/server";
-import { getAuthConfig } from "@/lib/auth/config";
+import { authConfigFor } from "@/lib/auth/config";
 import { getOidcConfiguration, oidc } from "@/lib/auth/oidc";
 import { isSameOriginRequest, localeOf, secretsMatch } from "@/lib/auth/security";
 import { deleteSession, getSession, sessionCookieName } from "@/lib/auth/session";
@@ -11,7 +11,7 @@ import { deleteSession, getSession, sessionCookieName } from "@/lib/auth/session
  * as UAE PASS requires of service providers.
  */
 export async function POST(request: NextRequest) {
-  const config = getAuthConfig();
+  const config = authConfigFor(request);
   const form = await request.formData();
   const locale = localeOf(String(form.get("locale") ?? ""));
   const home = new URL(`/${locale}`, config.appUrl);

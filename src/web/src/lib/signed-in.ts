@@ -1,7 +1,7 @@
 import "server-only";
 import { redirect } from "next/navigation";
 import { getCurrentUser, type CurrentUser } from "./api";
-import { getAuthConfig } from "./auth/config";
+import { getRequestAuthConfig } from "./auth/config";
 import { getSession, type Session } from "./auth/session";
 
 export interface SignedIn {
@@ -13,7 +13,7 @@ export interface SignedIn {
 
 /** The signed-in user of a page; sends visitors to sign in and back to `returnTo`. */
 export async function requireSignedIn(locale: string, returnTo: string): Promise<SignedIn> {
-  const config = getAuthConfig();
+  const config = await getRequestAuthConfig();
   const session = await getSession(config);
   if (!session) {
     redirect(`/auth/login?${new URLSearchParams({ locale, returnTo })}`);

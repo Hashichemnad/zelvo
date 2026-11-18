@@ -223,3 +223,41 @@ export async function getSignInRefusal(accessToken: string, tenant: string): Pro
     return null;
   }
 }
+
+/** A sample organisation of a demo installation. */
+export interface DemoOrganisation {
+  slug: string;
+  kind: "Government" | "Company";
+  name: LocalizedText;
+}
+
+/** A ready-made demo user: one per persona. */
+export interface DemoUser {
+  persona: string;
+  roleKey: string;
+  roleName: LocalizedText;
+  displayName: string;
+  username: string;
+}
+
+/** Demo mode for the request's sample organisation (GET /api/v1/demo). */
+export interface DemoInfo {
+  organisation: string;
+  organisations: DemoOrganisation[];
+  users: DemoUser[];
+  lastResetAt: string | null;
+}
+
+/** Demo mode of `tenant`; null when this is not a demo installation (or the API cannot be reached). */
+export async function getDemo(tenant: string): Promise<DemoInfo | null> {
+  try {
+    const response = await fetch(new URL("/api/v1/demo", apiBaseUrl), {
+      cache: "no-store",
+      signal: AbortSignal.timeout(timeoutMs),
+      headers: { Accept: "application/json", "X-Zelvo-Tenant": tenant },
+    });
+    return response.ok ? ((await response.json()) as DemoInfo) : null;
+  } catch {
+    return null;
+  }
+}
