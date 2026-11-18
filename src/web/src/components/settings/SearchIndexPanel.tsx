@@ -75,8 +75,16 @@ export function SearchIndexPanel({
     <div className="space-y-6" data-testid="search-index-panel">
       <dl className="grid max-w-2xl gap-x-6 gap-y-3 sm:grid-cols-[max-content_1fr]">
         <dt className="font-semibold">{t("state")}</dt>
-        <dd data-testid="search-state" className={status.available ? "text-ok" : "text-bad"}>
-          {!status.available ? t("unavailable") : status.rebuildInProgress ? t("rebuilding") : busy ? t("indexing") : t("upToDate")}
+        <dd data-testid="search-state" className={status.available && status.failedUpdates === 0 ? "text-ok" : "text-bad"}>
+          {!status.available
+            ? t("unavailable")
+            : status.rebuildInProgress
+              ? t("rebuilding")
+              : busy
+                ? t("indexing")
+                : status.failedUpdates > 0
+                  ? t("needsAttention")
+                  : t("upToDate")}
         </dd>
 
         <dt className="font-semibold">{t("documents")}</dt>

@@ -167,6 +167,7 @@
       "intro": "Search lets people find records in English and Arabic. Changes are added to the search index a few seconds after they are saved.",
       "state": "Status",
       "upToDate": "Up to date",
+      "needsAttention": "Needs attention: some updates could not be indexed",
       "indexing": "Indexing changes",
       "rebuilding": "Rebuilding",
       "unavailable": "The search engine is not reachable",

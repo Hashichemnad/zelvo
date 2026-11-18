@@ -36,7 +36,7 @@ describe("SearchIndexPanel", () => {
   it("shows documents, waiting updates and the last error", () => {
     renderPanel({ ...idle, failedUpdates: 2, lastError: "article/42: mapper_parsing_exception", lastErrorAt: "2026-11-18T09:00:00Z" });
 
-    expect(screen.getByTestId("search-state")).toHaveTextContent("Up to date");
+    expect(screen.getByTestId("search-state")).toHaveTextContent("Needs attention: some updates could not be indexed");
     expect(screen.getByTestId("search-documents")).toHaveTextContent("1,250");
     expect(screen.getByTestId("search-pending")).toHaveTextContent("0");
     expect(screen.getByTestId("search-failed")).toHaveTextContent("2");
@@ -51,6 +51,12 @@ describe("SearchIndexPanel", () => {
     expect(screen.getByTestId("search-pending")).toHaveTextContent("٣");
     expect(screen.getByTestId("search-state")).toHaveTextContent("جارٍ فهرسة التغييرات");
     expect(screen.getByTestId("search-last-error")).toHaveTextContent("لا يوجد");
+  });
+
+  it("is up to date when nothing waits or failed", () => {
+    renderPanel(idle);
+
+    expect(screen.getByTestId("search-state")).toHaveTextContent("Up to date");
   });
 
   it("says when the search engine cannot be reached", () => {

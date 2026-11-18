@@ -133,7 +133,7 @@ test.describe("settings and localization", () => {
 
     await page.goto("/en/settings/search");
     await expect(page.getByRole("heading", { name: "Search", level: 2 })).toBeVisible();
-    await expect(page.getByTestId("search-state")).toHaveText(/Up to date|Indexing changes|Rebuilding/);
+    await expect(page.getByTestId("search-state")).toHaveText(/Up to date|Indexing changes|Rebuilding|Needs attention/);
     await expect(page.getByTestId("search-documents")).toHaveText(/^\d[\d,]*$/);
     await expectAccessible(page);
 
