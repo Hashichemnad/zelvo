@@ -19,6 +19,9 @@ public sealed class UserAccount : ITenantOwned, IAuditedEntity
     /// <summary>Maximum length of <see cref="DisplayName"/>.</summary>
     public const int DisplayNameMaxLength = 200;
 
+    /// <summary>Length of <see cref="EmiratesId"/>: 15 digits.</summary>
+    public const int EmiratesIdLength = 15;
+
     /// <summary>Unique id (UUID version 7).</summary>
     public Guid Id { get; init; } = Guid.CreateVersion7();
 
@@ -34,6 +37,14 @@ public sealed class UserAccount : ITenantOwned, IAuditedEntity
 
     /// <summary>Name shown to other users.</summary>
     public string? DisplayName { get; set; }
+
+    /// <summary>
+    /// Emirates ID number (15 digits starting with 784), recorded by an administrator so that a
+    /// verified UAE PASS sign-in finds this account (GOV-1; how staff accounts are matched).
+    /// Unique within the tenant. Copied to the user in Keycloak.
+    /// </summary>
+    [SensitiveData]
+    public string? EmiratesId { get; set; }
 
     /// <summary>Whether the user may use Zelvo.</summary>
     public UserStatus Status { get; set; } = UserStatus.Active;

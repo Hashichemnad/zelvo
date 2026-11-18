@@ -165,6 +165,7 @@ public sealed class ZelvoDbContext(DbContextOptions<ZelvoDbContext> options) : D
                 table.HasCheckConstraint("ck_users_preferred_language", EnumCheck("preferred_language", LocalizedText.Languages));
                 table.HasCheckConstraint("ck_users_calendar", EnumCheck("calendar", Enum.GetNames<CalendarSystem>()));
                 table.HasCheckConstraint("ck_users_digits", EnumCheck("digits", Enum.GetNames<DigitSystem>()));
+                table.HasCheckConstraint("ck_users_emirates_id", "emirates_id ~ '^784[0-9]{12}$'");
             });
             user.HasKey(u => u.Id);
             user.Property(u => u.Id).ValueGeneratedNever();
@@ -172,6 +173,7 @@ public sealed class ZelvoDbContext(DbContextOptions<ZelvoDbContext> options) : D
             user.Property(u => u.Subject).HasMaxLength(UserAccount.SubjectMaxLength);
             user.Property(u => u.Email).HasMaxLength(UserAccount.EmailMaxLength);
             user.Property(u => u.DisplayName).HasMaxLength(UserAccount.DisplayNameMaxLength);
+            user.Property(u => u.EmiratesId).HasMaxLength(UserAccount.EmiratesIdLength);
             user.Property(u => u.Status).HasConversion<string>().HasMaxLength(20);
             user.Property(u => u.PreferredLanguage).HasMaxLength(2);
             user.Property(u => u.Calendar).HasConversion<string>().HasMaxLength(20);
@@ -179,6 +181,7 @@ public sealed class ZelvoDbContext(DbContextOptions<ZelvoDbContext> options) : D
             user.Property(u => u.Version).IsRowVersion();
             user.HasIndex(u => new { u.TenantId, u.Subject }).IsUnique();
             user.HasIndex(u => new { u.TenantId, u.Email });
+            user.HasIndex(u => new { u.TenantId, u.EmiratesId }).IsUnique().HasFilter("emirates_id IS NOT NULL");
             user.HasMany(u => u.Roles).WithOne().HasForeignKey(r => r.UserId).OnDelete(DeleteBehavior.Cascade);
         });
 

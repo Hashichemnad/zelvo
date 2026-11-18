@@ -104,6 +104,12 @@ internal static class ZelvoClaimTypes
     /// <summary>Id of the tenant whose realm issued the token (a hard-coded claim per realm).</summary>
     public const string TenantId = "zelvo_tenant_id";
 
+    /// <summary>In ID tokens: the identity provider the session came from, for example <c>uaepass</c>.</summary>
+    public const string IdentityProvider = "zelvo_idp";
+
+    /// <summary>The UAE PASS account level of this session (SOP1, SOP2 or SOP3), after a UAE PASS sign-in.</summary>
+    public const string UaePassLevel = "zelvo_uaepass_level";
+
     /// <summary>Keycloak user id.</summary>
     public const string Subject = "sub";
 

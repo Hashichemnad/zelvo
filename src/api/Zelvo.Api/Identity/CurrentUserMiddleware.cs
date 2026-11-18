@@ -12,7 +12,9 @@ namespace Zelvo.Api.Identity;
 /// <summary>
 /// For signed-in requests: finds the user's Zelvo record (creating it, as a requester, at the
 /// first sign-in), keeps email and name in step with Keycloak, refuses disabled users and works
-/// out the permissions that apply.
+/// out the permissions that apply. After a UAE PASS sign-in it also applies the GOV-1 rules:
+/// staff need a verified account (SOP2+), requesters the tenant's minimum level, and a verified
+/// UAE PASS sign-in counts as the second factor for staff when the tenant allows it.
 /// </summary>
 internal sealed class CurrentUserMiddleware(RequestDelegate next)
 {
@@ -20,7 +22,7 @@ internal sealed class CurrentUserMiddleware(RequestDelegate next)
 
     public async Task InvokeAsync(
         HttpContext context, ZelvoDbContext db, CurrentUser currentUser, AuditContext auditContext,
-        IOptions<IdentityOptions> options)
+        IOptions<IdentityOptions> options, Settings.TenantSettingsStore settings)
     {
         var principal = context.User;
         if (principal.Identity?.IsAuthenticated == true
@@ -34,9 +36,31 @@ internal sealed class CurrentUserMiddleware(RequestDelegate next)
                 return;
             }
 
+            var roles = account.Roles.Select(r => r.Role!).ToList();
             var hasMfa = principal.FindFirstValue(ZelvoClaimTypes.Acr) is { } acr
                 && options.Value.MfaAcrValues.Contains(acr, StringComparer.Ordinal);
-            currentUser.Set(account, [.. account.Roles.Select(r => r.Role!)], hasMfa);
+            if (principal.FindFirstValue(ZelvoClaimTypes.IdentityProvider) == UaePassProvider.Alias)
+            {
+                var level = UaePassSettings.ParseLevel(principal.FindFirstValue(ZelvoClaimTypes.UaePassLevel));
+                var staff = roles.Any(r => r.RequiresMfa);
+                var minimum = staff
+                    ? UaePassSettings.StaffMinimumLevel
+                    : await settings.GetAsync(UaePassSettings.RequesterMinimumLevel, context.RequestAborted).ConfigureAwait(false);
+                if (level < minimum)
+                {
+                    await ApiProblem.WriteAsync(context, StatusCodes.Status403Forbidden, "uae-pass-level-too-low",
+                        $"This account needs a UAE PASS account of level {minimum} or higher; this sign-in was {level}.").ConfigureAwait(false);
+                    return;
+                }
+
+                if (!hasMfa && level >= UaePassLevel.SOP2
+                    && await settings.GetAsync(UaePassSettings.AcceptAsSecondFactor, context.RequestAborted).ConfigureAwait(false))
+                {
+                    hasMfa = true;
+                }
+            }
+
+            currentUser.Set(account, roles, hasMfa);
         }
 
         await next(context).ConfigureAwait(false);

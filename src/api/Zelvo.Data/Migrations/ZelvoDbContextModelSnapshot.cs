@@ -341,6 +341,11 @@ namespace Zelvo.Data.Migrations
                         .HasColumnType("character varying(254)")
                         .HasColumnName("email");
 
+                    b.Property<string>("EmiratesId")
+                        .HasMaxLength(15)
+                        .HasColumnType("character varying(15)")
+                        .HasColumnName("emirates_id");
+
                     b.Property<DateTimeOffset?>("LastSeenAt")
                         .HasColumnType("timestamp with time zone")
                         .HasColumnName("last_seen_at");
@@ -382,6 +387,11 @@ namespace Zelvo.Data.Migrations
                     b.HasIndex("TenantId", "Email")
                         .HasDatabaseName("ix_users_tenant_id_email");
 
+                    b.HasIndex("TenantId", "EmiratesId")
+                        .IsUnique()
+                        .HasDatabaseName("ix_users_tenant_id_emirates_id")
+                        .HasFilter("emirates_id IS NOT NULL");
+
                     b.HasIndex("TenantId", "Subject")
                         .IsUnique()
                         .HasDatabaseName("ix_users_tenant_id_subject");
@@ -391,6 +401,8 @@ namespace Zelvo.Data.Migrations
                             t.HasCheckConstraint("ck_users_calendar", "calendar IN ('Gregorian', 'Hijri')");
 
                             t.HasCheckConstraint("ck_users_digits", "digits IN ('Western', 'ArabicIndic')");
+
+                            t.HasCheckConstraint("ck_users_emirates_id", "emirates_id ~ '^784[0-9]{12}$'");
 
                             t.HasCheckConstraint("ck_users_preferred_language", "preferred_language IN ('en', 'ar')");
 

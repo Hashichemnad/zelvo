@@ -30,7 +30,8 @@ internal static class TestTokens
         DateTime? expires = null,
         string? email = null,
         string? name = null,
-        SecurityKey? key = null)
+        SecurityKey? key = null,
+        IReadOnlyDictionary<string, object>? extraClaims = null)
     {
         var claims = new Dictionary<string, object>(StringComparer.Ordinal)
         {
@@ -46,6 +47,11 @@ internal static class TestTokens
         if (name is not null)
         {
             claims["name"] = name;
+        }
+
+        foreach (var (type, value) in extraClaims ?? new Dictionary<string, object>())
+        {
+            claims[type] = value;
         }
 
         var now = DateTime.UtcNow;
@@ -84,6 +90,32 @@ internal sealed class FakeKeycloakAdmin : IKeycloakAdmin
         }
 
         Calls.Add((realm, mode, allowedDomains));
+        return Task.CompletedTask;
+    }
+
+    public List<(string Realm, UaePassProvider Provider)> UaePassCalls { get; } = [];
+
+    public Task ApplyUaePassAsync(string realm, UaePassProvider provider, CancellationToken cancellationToken)
+    {
+        if (Fail)
+        {
+            throw new KeycloakAdminException("Keycloak is down (test).");
+        }
+
+        UaePassCalls.Add((realm, provider));
+        return Task.CompletedTask;
+    }
+
+    public List<(string Realm, string Subject, string? EmiratesId)> EmiratesIdCalls { get; } = [];
+
+    public Task SetEmiratesIdAsync(string realm, string subject, string? emiratesId, CancellationToken cancellationToken)
+    {
+        if (Fail)
+        {
+            throw new KeycloakAdminException("Keycloak is down (test).");
+        }
+
+        EmiratesIdCalls.Add((realm, subject, emiratesId));
         return Task.CompletedTask;
     }
 }

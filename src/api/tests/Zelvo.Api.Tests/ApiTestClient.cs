@@ -39,6 +39,20 @@ internal static class ApiTestClient
         return client;
     }
 
+    /// <summary>Signs the client in as <paramref name="user"/> after a UAE PASS sign-in at <paramref name="level"/> (no second factor by default).</summary>
+    public static HttpClient AsUaePass(this HttpClient client, TestUser user, string? level, bool mfa = false)
+    {
+        var claims = new Dictionary<string, object>(StringComparer.Ordinal) { [ZelvoClaimTypes.IdentityProvider] = UaePassProvider.Alias };
+        if (level is not null)
+        {
+            claims[ZelvoClaimTypes.UaePassLevel] = level;
+        }
+
+        client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue(
+            "Bearer", TestTokens.Issue(user.Tenant, user.Subject, mfa, email: user.Email, extraClaims: claims));
+        return client;
+    }
+
     /// <summary>Creates a user of <paramref name="memberOf"/> with <paramref name="roles"/> and signs in as it.</summary>
     public static async Task<HttpClient> SignedInAsync(this HttpClient client, DatabaseFixture database, Tenant memberOf, params string[] roles) =>
         client.As(await database.CreateUserAsync(memberOf, roles));
