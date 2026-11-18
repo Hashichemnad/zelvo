@@ -30,7 +30,9 @@ jobs:
         run: dotnet restore Zelvo.slnx
       - name: Build (warnings are errors)
         run: dotnet build Zelvo.slnx -c Release --no-restore
-      - name: Unit and integration tests (PostgreSQL in Docker)
+      - name: OpenSearch image with the ICU plugin (search integration tests use it)
+        run: docker build -t zelvo/opensearch:dev deploy/opensearch
+      - name: Unit and integration tests (PostgreSQL, RabbitMQ and OpenSearch in Docker)
         run: dotnet test --solution Zelvo.slnx -c Release --no-build
       - name: Fail on vulnerable NuGet packages
         run: |
@@ -121,6 +123,7 @@ jobs:
           - { name: worker, context: ., dockerfile: src/worker/Zelvo.Worker/Dockerfile }
           - { name: web, context: src/web, dockerfile: src/web/Dockerfile }
           - { name: keycloak, context: src/keycloak, dockerfile: src/keycloak/Dockerfile }
+          - { name: opensearch, context: deploy/opensearch, dockerfile: deploy/opensearch/Dockerfile }
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - name: Build image

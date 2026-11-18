@@ -51,3 +51,6 @@ next-env.d.ts
 
 # Maven build output (src/keycloak)
 src/keycloak/target/
+
+# OpenSearch plugins supplied locally for offline image builds
+deploy/opensearch/plugins/*.zip
