@@ -5,6 +5,7 @@ import { completeSecondFactor, devUser, signInWithPassword } from "../support/id
 /**
  * Settings and localization (task A3): the Settings shell, tenant defaults for language, calendar
  * and digits (LANG-1, LANG-8), personal preferences (LANG-2) and the display language order.
+ * Settings → Search (task A4, module 10): index status and rebuild, for administrators only.
  * Runs in its own Playwright project after all other tests, because it changes tenant-wide
  * defaults; every test puts back what it changed.
  */
@@ -49,7 +50,7 @@ test.describe("settings and localization", () => {
       await page.getByRole("link", { name: "Settings" }).click();
       await expect(page).toHaveURL(/\/en\/settings$/);
       const menu = page.getByRole("navigation", { name: "Settings sections" });
-      await expect(menu.getByRole("link")).toHaveText(["Language and region", "Missing translations"]);
+      await expect(menu.getByRole("link")).toHaveText(["Language and region", "Search", "Missing translations"]);
       await expectAccessible(page);
 
       await menu.getByRole("link", { name: "Language and region" }).click();
@@ -125,6 +126,32 @@ test.describe("settings and localization", () => {
     }
   });
 
+  test("an admin sees the search index status and rebuilds the index, in English and Arabic (module 10)", async ({ page }) => {
+    await signInWithPassword(page, devUser("admin"));
+    await completeSecondFactor(page, devUser("admin"));
+    await expect(page).toHaveURL(/\/(en|ar)\/account$/);
+
+    await page.goto("/en/settings/search");
+    await expect(page.getByRole("heading", { name: "Search", level: 2 })).toBeVisible();
+    await expect(page.getByTestId("search-state")).toHaveText(/Up to date|Indexing changes|Rebuilding/);
+    await expect(page.getByTestId("search-documents")).toHaveText(/^\d[\d,]*$/);
+    await expectAccessible(page);
+
+    await page.getByRole("button", { name: "Rebuild index" }).click();
+    await page.getByRole("button", { name: "Yes, rebuild the index" }).click();
+    await expect(page.getByRole("status")).toContainText("Rebuild started");
+    // The worker finishes the rebuild within seconds; the page refreshes itself until then.
+    await expect(page.getByTestId("search-state")).toHaveText("Up to date", { timeout: 30_000 });
+    await expect(page.getByTestId("search-pending")).toHaveText("0");
+
+    await page.goto("/ar/settings/search");
+    await expect(page.locator("html")).toHaveAttribute("dir", "rtl");
+    await expect(page.getByRole("heading", { name: "البحث", level: 2 })).toBeVisible();
+    await expect(page.getByTestId("search-state")).toHaveText("محدَّث");
+    await expect(page.getByRole("button", { name: "إعادة بناء الفهرس" })).toBeVisible();
+    await expectAccessible(page);
+  });
+
   test("people without settings permissions are told so", async ({ page }) => {
     await signInWithPassword(page, devUser("requester"));
     await expect(page).toHaveURL(/\/en\/account$/);
@@ -133,6 +160,9 @@ test.describe("settings and localization", () => {
 
     await expect(page.getByTestId("settings-no-access")).toBeVisible();
     await expectAccessible(page);
+
+    await page.goto("/en/settings/search");
+    await expect(page.getByTestId("settings-no-access")).toBeVisible();
   });
 
   test("visitors are asked to sign in before Settings", async ({ page }) => {

@@ -13,3 +13,25 @@ export async function putJson<T>(path: string, body: unknown, csrfToken: string)
   }
   return (await response.json()) as T;
 }
+
+/** GET through the proxy. */
+export async function getJson<T>(path: string): Promise<T> {
+  const response = await fetch(`/bff/api${path}`, { headers: { Accept: "application/json" }, cache: "no-store" });
+  if (!response.ok) {
+    throw new Error(`GET ${path} failed with ${response.status}`);
+  }
+  return (await response.json()) as T;
+}
+
+/** POST through the proxy, with the CSRF token. */
+export async function postJson<T>(path: string, body: unknown, csrfToken: string): Promise<T> {
+  const response = await fetch(`/bff/api${path}`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json", Accept: "application/json", "X-CSRF-Token": csrfToken },
+    body: body === undefined ? undefined : JSON.stringify(body),
+  });
+  if (!response.ok) {
+    throw new Error(`POST ${path} failed with ${response.status}`);
+  }
+  return (await response.json()) as T;
+}

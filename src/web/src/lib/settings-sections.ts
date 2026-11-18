@@ -4,7 +4,7 @@
  */
 export interface SettingsSection {
   /** Key under `settings.sections` in the translation files. */
-  key: "language" | "translations";
+  key: "language" | "search" | "translations";
   /** Path below /[locale]. */
   href: string;
   /** Permission needed to open the section. */
@@ -13,6 +13,7 @@ export interface SettingsSection {
 
 export const settingsSections: readonly SettingsSection[] = [
   { key: "language", href: "/settings/language", permission: "settings.manage" },
+  { key: "search", href: "/settings/search", permission: "search.manage" },
   { key: "translations", href: "/settings/translations", permission: "translations.read" },
 ];
 

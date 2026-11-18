@@ -80,6 +80,22 @@ export interface LocalizationSettings {
 }
 
 /** The signed-in user (GET /api/v1/me). */
+/** Settings → Search: the tenant's search index (GET /api/v1/search/status). */
+export interface SearchStatus {
+  available: boolean;
+  documents: number | null;
+  pendingUpdates: number;
+  failedUpdates: number;
+  lastError: string | null;
+  lastErrorAt: string | null;
+  lastIndexedAt: string | null;
+  schemaVersion: number | null;
+  currentSchemaVersion: number;
+  rebuildRequestedAt: string | null;
+  rebuildCompletedAt: string | null;
+  rebuildInProgress: boolean;
+}
+
 export interface CurrentUser {
   id: string;
   email: string | null;
