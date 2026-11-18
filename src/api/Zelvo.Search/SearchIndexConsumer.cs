@@ -1,3 +1,4 @@
+using System.Diagnostics;
 using System.Net;
 using System.Text.Json;
 using System.Text.Json.Nodes;
@@ -81,6 +82,7 @@ public sealed partial class SearchIndexConsumer(
         if (done.Count > 0)
         {
             await db.SearchOutbox.Where(e => done.Contains(e.Id)).ExecuteDeleteAsync(cancellationToken).ConfigureAwait(false);
+            SearchTelemetry.Indexed.Add(done.Count);
         }
 
         if (failed.Count > 0)
@@ -97,6 +99,7 @@ public sealed partial class SearchIndexConsumer(
 
             await db.SaveChangesAsync(cancellationToken).ConfigureAwait(false);
             LogRefused(logger, failed.Count, message.TenantId);
+            SearchTelemetry.Refused.Add(failed.Count);
         }
 
         var lastError = failed.Count > 0 ? failed.Values.Last() : null;
@@ -168,6 +171,9 @@ public sealed partial class SearchIndexConsumer(
             return;
         }
 
+        using var activity = SearchTelemetry.Source.StartActivity("search.index");
+        activity?.SetTag("zelvo.tenant", message.TenantSlug);
+        activity?.SetTag("zelvo.search.entries", message.Entries.Count);
         try
         {
             await ProcessAsync(message, stoppingToken).ConfigureAwait(false);
@@ -178,6 +184,8 @@ public sealed partial class SearchIndexConsumer(
             // OpenSearch or PostgreSQL unavailable: wait, then let RabbitMQ deliver it again. After
             // the delivery limit it is dead-lettered and the relay publishes its entries again.
             LogRetrying(logger, exception, message.TenantId);
+            activity?.SetStatus(ActivityStatusCode.Error, exception.GetType().Name);
+            SearchTelemetry.Retried.Add(1);
             await Task.Delay(options.Value.RetryDelay, stoppingToken).ConfigureAwait(false);
             await channel.BasicNackAsync(delivery.DeliveryTag, multiple: false, requeue: true, stoppingToken).ConfigureAwait(false);
         }

@@ -2,7 +2,7 @@
 
 import { useId, useState } from "react";
 import { useTranslations } from "next-intl";
-import { putJson } from "@/lib/client-api";
+import { ApiError, putJson } from "@/lib/client-api";
 import type { ApiCalendar, ApiDigits } from "@/lib/format";
 
 export interface LocalizationValues {
@@ -21,9 +21,10 @@ const selectClass =
 /** Settings → Language and region: the tenant's default language (LANG-1), calendar and digits (LANG-8). */
 export function LocalizationSettingsForm({ initial, csrfToken }: { initial: LocalizationValues; csrfToken: string }) {
   const t = useTranslations("settings.language");
+  const tCommon = useTranslations("common");
   const tDisplay = useTranslations("display");
   const [values, setValues] = useState(initial);
-  const [status, setStatus] = useState<"idle" | "saving" | "saved" | "failed">("idle");
+  const [status, setStatus] = useState<"idle" | "saving" | "saved" | "failed" | "rateLimited">("idle");
   const id = useId();
 
   async function save(event: React.FormEvent) {
@@ -32,8 +33,8 @@ export function LocalizationSettingsForm({ initial, csrfToken }: { initial: Loca
     try {
       setValues(await putJson<LocalizationValues>("/v1/settings/localization", values, csrfToken));
       setStatus("saved");
-    } catch {
-      setStatus("failed");
+    } catch (error) {
+      setStatus(error instanceof ApiError && error.rateLimited ? "rateLimited" : "failed");
     }
   }
 
@@ -88,8 +89,8 @@ export function LocalizationSettingsForm({ initial, csrfToken }: { initial: Loca
         >
           {status === "saving" ? t("saving") : t("save")}
         </button>
-        <p role="status" aria-live="polite" className={status === "failed" ? "text-bad" : "text-ok"}>
-          {status === "saved" ? t("saved") : status === "failed" ? t("failed") : ""}
+        <p role="status" aria-live="polite" className={status === "failed" || status === "rateLimited" ? "text-bad" : "text-ok"}>
+          {status === "saved" ? t("saved") : status === "failed" ? t("failed") : status === "rateLimited" ? tCommon("rateLimited") : ""}
         </p>
       </div>
     </form>

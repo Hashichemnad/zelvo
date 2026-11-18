@@ -4,7 +4,7 @@ import { useId, useState } from "react";
 import { useLocale, useTranslations } from "next-intl";
 import { usePathname, useRouter } from "@/i18n/navigation";
 import type { Preferences } from "@/lib/api";
-import { putJson } from "@/lib/client-api";
+import { ApiError, putJson } from "@/lib/client-api";
 import { formatLongDate, formatNumber, toCalendarSystem, toDigitSystem, type ApiCalendar, type ApiDigits } from "@/lib/format";
 
 export interface PreferencesFormProps {
@@ -25,6 +25,7 @@ const selectClass =
  */
 export function PreferencesForm({ initial, defaults, csrfToken }: PreferencesFormProps) {
   const t = useTranslations("preferences");
+  const tCommon = useTranslations("common");
   const tDisplay = useTranslations("display");
   const locale = useLocale();
   const router = useRouter();
@@ -33,7 +34,7 @@ export function PreferencesForm({ initial, defaults, csrfToken }: PreferencesFor
   const [language, setLanguage] = useState<Choice<"en" | "ar">>(initial.language ?? "default");
   const [calendar, setCalendar] = useState<Choice<ApiCalendar>>(initial.calendar ?? "default");
   const [digits, setDigits] = useState<Choice<ApiDigits>>(initial.digits ?? "default");
-  const [status, setStatus] = useState<"idle" | "saving" | "saved" | "failed">("idle");
+  const [status, setStatus] = useState<"idle" | "saving" | "saved" | "failed" | "rateLimited">("idle");
 
   const effectiveCalendar = calendar === "default" ? defaults.calendar : calendar;
   const effectiveDigits = digits === "default" ? defaults.digits : digits;
@@ -58,8 +59,8 @@ export function PreferencesForm({ initial, defaults, csrfToken }: PreferencesFor
       } else {
         router.refresh();
       }
-    } catch {
-      setStatus("failed");
+    } catch (error) {
+      setStatus(error instanceof ApiError && error.rateLimited ? "rateLimited" : "failed");
     }
   }
 
@@ -136,8 +137,8 @@ export function PreferencesForm({ initial, defaults, csrfToken }: PreferencesFor
         >
           {status === "saving" ? t("saving") : t("save")}
         </button>
-        <p role="status" aria-live="polite" className={status === "failed" ? "text-bad" : "text-ok"}>
-          {status === "saved" ? t("saved") : status === "failed" ? t("failed") : ""}
+        <p role="status" aria-live="polite" className={status === "failed" || status === "rateLimited" ? "text-bad" : "text-ok"}>
+          {status === "saved" ? t("saved") : status === "failed" ? t("failed") : status === "rateLimited" ? tCommon("rateLimited") : ""}
         </p>
       </div>
     </form>

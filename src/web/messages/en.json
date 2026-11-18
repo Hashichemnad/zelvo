@@ -6,7 +6,8 @@
   "common": {
     "productName": "Zelvo",
     "skipToContent": "Skip to main content",
-    "poweredBy": "Powered by Zelvo"
+    "poweredBy": "Powered by Zelvo",
+    "rateLimited": "Too many requests in a short time. Please wait a minute, then try again."
   },
   "language": {
     "name": "English",

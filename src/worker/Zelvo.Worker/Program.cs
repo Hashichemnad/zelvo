@@ -1,5 +1,6 @@
 using Zelvo.Data;
 using Zelvo.Licensing;
+using Zelvo.Observability;
 using Zelvo.Search;
 using Zelvo.Secrets;
 using Zelvo.Worker;
@@ -8,6 +9,9 @@ using Zelvo.Worker;
 // writes tenants' OpenSearch indices. SLA timers, notifications, integrations and AI jobs arrive
 // with their modules.
 var builder = Host.CreateApplicationBuilder(args);
+
+// Traces, metrics and logs over OTLP when OTEL_EXPORTER_OTLP_ENDPOINT is set (A5).
+builder.AddZelvoTelemetry("zelvo-worker");
 
 builder.Services.AddZelvoLicensing();
 builder.Services.AddHostedService<HeartbeatService>();

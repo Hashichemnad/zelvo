@@ -5,6 +5,7 @@
     <Project Path="src/api/Zelvo.Data/Zelvo.Data.csproj" />
     <Project Path="src/api/Zelvo.Licensing.Abstractions/Zelvo.Licensing.Abstractions.csproj" />
     <Project Path="src/api/Zelvo.Licensing.Development/Zelvo.Licensing.Development.csproj" />
+    <Project Path="src/api/Zelvo.Observability/Zelvo.Observability.csproj" />
     <Project Path="src/api/Zelvo.Search/Zelvo.Search.csproj" />
     <Project Path="src/api/Zelvo.Secrets/Zelvo.Secrets.csproj" />
   </Folder>

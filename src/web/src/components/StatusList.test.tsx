@@ -52,6 +52,6 @@ describe("StatusList", () => {
     const { container } = render(withIntl("en", <StatusList report={null} />));
 
     expect(screen.getByRole("status")).toHaveTextContent("The API is not reachable yet.");
-    expect(container.querySelectorAll('[data-status="Unhealthy"]')).toHaveLength(6);
+    expect(container.querySelectorAll('[data-status="Unhealthy"]')).toHaveLength(7);
   });
 });
