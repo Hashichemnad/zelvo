@@ -14,7 +14,7 @@ FROM keycloak/keycloak:26.7 AS keycloak
 # Operating system security updates. The upstream image (Red Hat UBI 9 micro) has no package
 # manager and can lag behind fixes, so its file system is upgraded from a full UBI 9 image using
 # the image's own package database (the image scan then sees the real, updated versions).
-FROM redhat/ubi9:9.8 AS os-updates
+FROM redhat/ubi9:9.9 AS os-updates
 COPY --from=keycloak / /mnt/rootfs
 RUN dnf upgrade --installroot /mnt/rootfs --releasever 9 --setopt install_weak_deps=false --nodocs -y \
  && dnf clean all --installroot /mnt/rootfs
