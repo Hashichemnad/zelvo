@@ -140,6 +140,50 @@ internal sealed class KeycloakRealmProvisioner(KeycloakAdminClient admin, Identi
         await GrantProvisionerAsync(realm, cancellationToken).ConfigureAwait(false);
     }
 
+    /// <summary>Provider id of the Zelvo extension's demo sign-in step (demo installations only).</summary>
+    public const string DemoSignInStep = "zelvo-demo-sign-in";
+
+    /// <summary>
+    /// Demo installations only: puts the Zelvo extension's demo sign-in step first in the realm's
+    /// browser flow and lists the demo users it may sign in. A sign-in request with
+    /// <c>login_hint=zelvo-demo:&lt;username&gt;</c> for one of them then signs that user in at
+    /// level 2 (<c>acr=mfa</c>) without a form; every other sign-in passes on to the usual steps.
+    /// Never called for other installations, so their realms do not have the step.
+    /// </summary>
+    public async Task EnsureDemoSignInAsync(string realm, IReadOnlyList<string> usernames, CancellationToken cancellationToken)
+    {
+        const string top = KeycloakAdminClient.BrowserFlow;
+        var path = $"realms/{E(realm)}/authentication/flows/{E(top)}/executions";
+        JsonNode? Find(IReadOnlyList<JsonNode?> executions) =>
+            executions.FirstOrDefault(e => (string?)e?["providerId"] == DemoSignInStep && (int?)e?["level"] == 0);
+
+        var step = Find(await admin.GetArrayAsync(path, cancellationToken).ConfigureAwait(false));
+        if (step is null)
+        {
+            await AddExecutionAsync(realm, top, DemoSignInStep, "ALTERNATIVE", cancellationToken).ConfigureAwait(false);
+            step = Find(await admin.GetArrayAsync(path, cancellationToken).ConfigureAwait(false));
+        }
+
+        // First in the flow, before the session cookie: switching users always signs in the chosen one.
+        for (var moves = 0; step is not null && (int?)step["index"] > 0 && moves < 10; moves++)
+        {
+            using (var _ = await admin.SendAsync(HttpMethod.Post,
+                $"realms/{E(realm)}/authentication/executions/{E((string)step["id"]!)}/raise-priority", null, cancellationToken).ConfigureAwait(false))
+            {
+            }
+
+            step = Find(await admin.GetArrayAsync(path, cancellationToken).ConfigureAwait(false));
+        }
+
+        if (step is null)
+        {
+            throw new KeycloakAdminException($"The demo sign-in step could not be added to realm {realm}.");
+        }
+
+        await admin.SetExecutionConfigAsync(realm, step, DemoSignInStep,
+            new Dictionary<string, string>(StringComparer.Ordinal) { ["demoUsers"] = string.Join("##", usernames) }, cancellationToken).ConfigureAwait(false);
+    }
+
     /// <summary>Creates or updates a user with a password; returns its Keycloak id.</summary>
     public async Task<string> EnsureUserAsync(Tenant tenant, string email, string firstName, string lastName, string password, CancellationToken cancellationToken)
     {

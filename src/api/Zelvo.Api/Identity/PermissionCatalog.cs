@@ -32,6 +32,9 @@ internal static class Permissions
 
     /// <summary>See the search index status and rebuild the index (Settings → Search).</summary>
     public const string SearchManage = "search.manage";
+
+    /// <summary>Demo installations only: "Reset demo" (task D). Has no effect elsewhere.</summary>
+    public const string DemoReset = "demo.reset";
 }
 
 /// <summary>A field of a resource that field rules can hide or make read-only.</summary>
@@ -76,6 +79,7 @@ internal static class PermissionCatalog
         Permissions.IdentityManage,
         Permissions.SettingsManage,
         Permissions.SearchManage,
+        Permissions.DemoReset,
     ];
 
     public static ResourceDefinition Users { get; } = new(

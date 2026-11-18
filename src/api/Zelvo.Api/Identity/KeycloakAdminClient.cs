@@ -22,6 +22,16 @@ internal interface IKeycloakAdmin
 
     /// <summary>Records (or with <see langword="null"/> removes) the Emirates ID on a Keycloak user, for UAE PASS matching.</summary>
     Task SetEmiratesIdAsync(string realm, string subject, string? emiratesId, CancellationToken cancellationToken);
+
+    /// <summary>
+    /// Demo mode: creates or restores a user without a password (demo users sign in through the
+    /// demo sign-in step only): enabled, verified email, the given names and no attributes. Returns
+    /// its Keycloak id.
+    /// </summary>
+    Task<string> EnsureDemoUserAsync(string realm, string email, string firstName, string lastName, CancellationToken cancellationToken);
+
+    /// <summary>Demo mode: deletes every user of the realm whose username is not in <paramref name="keep"/>; returns how many.</summary>
+    Task<int> DeleteUsersExceptAsync(string realm, IReadOnlySet<string> keep, CancellationToken cancellationToken);
 }
 
 /// <summary>Keycloak refused or failed an admin request.</summary>
@@ -168,6 +178,72 @@ internal sealed class KeycloakAdminClient : IKeycloakAdmin
         // Send back the whole representation so that the user's other details are kept.
         user["attributes"] = attributes.DeepClone();
         using var _ = await SendAsync(HttpMethod.Put, path, user, cancellationToken).ConfigureAwait(false);
+    }
+
+    public async Task<string> EnsureDemoUserAsync(string realm, string email, string firstName, string lastName, CancellationToken cancellationToken)
+    {
+        var found = await GetArrayAsync($"realms/{E(realm)}/users?email={E(email)}&exact=true", cancellationToken).ConfigureAwait(false);
+        var user = new JsonObject
+        {
+            ["username"] = email,
+            ["email"] = email,
+            ["emailVerified"] = true,
+            ["enabled"] = true,
+            ["firstName"] = firstName,
+            ["lastName"] = lastName,
+            ["attributes"] = new JsonObject(),
+            ["requiredActions"] = new JsonArray(),
+        };
+
+        if (found.Count == 0)
+        {
+            using var _ = await SendAsync(HttpMethod.Post, $"realms/{E(realm)}/users", user, cancellationToken).ConfigureAwait(false);
+            found = await GetArrayAsync($"realms/{E(realm)}/users?email={E(email)}&exact=true", cancellationToken).ConfigureAwait(false);
+            return (string)found.Single()!["id"]!;
+        }
+
+        var id = (string)found[0]!["id"]!;
+        user["id"] = id;
+        using (var _ = await SendAsync(HttpMethod.Put, $"realms/{E(realm)}/users/{E(id)}", user, cancellationToken).ConfigureAwait(false))
+        {
+        }
+
+        // Back to the sample state: no authenticator app or password a visitor may have added, and
+        // no UAE PASS link.
+        foreach (var credential in await GetArrayAsync($"realms/{E(realm)}/users/{E(id)}/credentials", cancellationToken).ConfigureAwait(false))
+        {
+            using var _ = await SendAsync(HttpMethod.Delete, $"realms/{E(realm)}/users/{E(id)}/credentials/{E((string)credential!["id"]!)}",
+                null, cancellationToken, allowNotFound: true).ConfigureAwait(false);
+        }
+
+        foreach (var link in await GetArrayAsync($"realms/{E(realm)}/users/{E(id)}/federated-identity", cancellationToken).ConfigureAwait(false))
+        {
+            using var _ = await SendAsync(HttpMethod.Delete, $"realms/{E(realm)}/users/{E(id)}/federated-identity/{E((string)link!["identityProvider"]!)}",
+                null, cancellationToken, allowNotFound: true).ConfigureAwait(false);
+        }
+
+        return id;
+    }
+
+    public async Task<int> DeleteUsersExceptAsync(string realm, IReadOnlySet<string> keep, CancellationToken cancellationToken)
+    {
+        var deleted = 0;
+        while (true)
+        {
+            var users = await GetArrayAsync($"realms/{E(realm)}/users?briefRepresentation=true&first=0&max=500", cancellationToken).ConfigureAwait(false);
+            var others = users.Where(u => u is not null && !keep.Contains((string?)u["username"] ?? string.Empty)).ToList();
+            foreach (var user in others)
+            {
+                using var _ = await SendAsync(HttpMethod.Delete, $"realms/{E(realm)}/users/{E((string)user!["id"]!)}",
+                    null, cancellationToken, allowNotFound: true).ConfigureAwait(false);
+                deleted++;
+            }
+
+            if (others.Count == 0 || users.Count < 500)
+            {
+                return deleted;
+            }
+        }
     }
 
     /// <summary>
