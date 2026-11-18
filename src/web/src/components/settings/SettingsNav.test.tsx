@@ -16,6 +16,7 @@ describe("Settings sections", () => {
     expect(sectionsFor([]).map((s) => s.key)).toEqual([]);
     expect(sectionsFor(["translations.read"]).map((s) => s.key)).toEqual(["translations"]);
     expect(sectionsFor(["settings.manage", "translations.read", "users.read"]).map((s) => s.key)).toEqual(["language", "translations"]);
+    expect(sectionsFor(["search.manage", "translations.read", "settings.manage"]).map((s) => s.key)).toEqual(["language", "search", "translations"]);
   });
 });
 

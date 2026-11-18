@@ -8,6 +8,7 @@ using Zelvo.Api.Identity;
 using Zelvo.Api.Localization;
 using Zelvo.Api.OpenApi;
 using Zelvo.Api.Platform;
+using Zelvo.Api.Search;
 using Zelvo.Api.Security;
 using Zelvo.Api.Settings;
 using Zelvo.Api.Tenancy;
@@ -15,6 +16,7 @@ using Zelvo.Data;
 using Zelvo.Data.Localization;
 using Zelvo.Data.Tenancy;
 using Zelvo.Licensing;
+using Zelvo.Search;
 
 if (args is ["migrate", ..])
 {
@@ -40,6 +42,7 @@ builder.Services.AddMemoryCache();
 builder.Services.AddScoped<TenantResolver>();
 builder.Services.AddScoped<TenantSettingsStore>();
 builder.Services.AddSingleton<IMissingTranslationSource, TenantMissingTranslations>();
+builder.Services.AddZelvoSearch(builder.Configuration);
 
 var app = builder.Build();
 
@@ -68,6 +71,7 @@ v1.MapRoleEndpoints();
 v1.MapIdentitySettingsEndpoints();
 v1.MapPreferenceEndpoints();
 v1.MapSettingsEndpoints();
+v1.MapSearchEndpoints();
 
 await app.RunAsync();
 return 0;

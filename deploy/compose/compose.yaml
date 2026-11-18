@@ -66,9 +66,12 @@ services:
       timeout: 10s
       retries: 20
 
+  # OpenSearch with the ICU analysis plugin (Arabic and English analysers): deploy/opensearch.
   opensearch:
     <<: *restart
-    image: opensearchproject/opensearch:3.9.0
+    build:
+      context: ../opensearch
+    image: zelvo/opensearch:dev
     environment:
       discovery.type: single-node
       # Development only: the security plugin is off and the port is bound to 127.0.0.1.
@@ -76,6 +79,11 @@ services:
       DISABLE_SECURITY_PLUGIN: "true"
       DISABLE_INSTALL_DEMO_CONFIG: "true"
       OPENSEARCH_JAVA_OPTS: -Xms512m -Xmx512m
+      # Development only: disk limits in free space rather than percent used, so a large but
+      # nearly full disk does not stop OpenSearch from creating tenants' indices.
+      cluster.routing.allocation.disk.watermark.low: 2gb
+      cluster.routing.allocation.disk.watermark.high: 1gb
+      cluster.routing.allocation.disk.watermark.flood_stage: 500mb
     volumes:
       - opensearch-data:/usr/share/opensearch/data
     ports:
@@ -219,8 +227,16 @@ services:
     environment:
       DOTNET_ENVIRONMENT: Development
       Worker__HeartbeatFile: /tmp/zelvo-worker.heartbeat
+      # Search indexing (A4): reads the search outbox as the application role (row-level
+      # security applies), relays it through RabbitMQ and writes to OpenSearch.
+      ConnectionStrings__Postgres: Host=postgres;Database=${POSTGRES_DB};Username=${ZELVO_APP_DB_USER};Password=${ZELVO_APP_DB_PASSWORD}
+      ConnectionStrings__RabbitMq: amqp://${RABBITMQ_USER}:${RABBITMQ_PASSWORD}@rabbitmq:5672/
+      Services__OpenSearch: http://opensearch:9200/
     depends_on:
+      migrate: { condition: service_completed_successfully }
+      postgres: { condition: service_healthy }
       rabbitmq: { condition: service_healthy }
+      opensearch: { condition: service_healthy }
     healthcheck:
       test: ["CMD-SHELL", "find /tmp/zelvo-worker.heartbeat -mmin -1 | grep -q ."]
       interval: 10s

@@ -6,11 +6,13 @@ WORKDIR /src
 COPY global.json Directory.Build.props Directory.Packages.props .editorconfig ./
 COPY src/api/Zelvo.Api/Zelvo.Api.csproj src/api/Zelvo.Api/
 COPY src/api/Zelvo.Data/Zelvo.Data.csproj src/api/Zelvo.Data/
+COPY src/api/Zelvo.Search/Zelvo.Search.csproj src/api/Zelvo.Search/
 COPY src/api/Zelvo.Licensing.Abstractions/Zelvo.Licensing.Abstractions.csproj src/api/Zelvo.Licensing.Abstractions/
 COPY src/api/Zelvo.Licensing.Development/Zelvo.Licensing.Development.csproj src/api/Zelvo.Licensing.Development/
 RUN dotnet restore src/api/Zelvo.Api/Zelvo.Api.csproj
 COPY src/api/Zelvo.Api/ src/api/Zelvo.Api/
 COPY src/api/Zelvo.Data/ src/api/Zelvo.Data/
+COPY src/api/Zelvo.Search/ src/api/Zelvo.Search/
 COPY src/api/Zelvo.Licensing.Abstractions/ src/api/Zelvo.Licensing.Abstractions/
 COPY src/api/Zelvo.Licensing.Development/ src/api/Zelvo.Licensing.Development/
 RUN dotnet publish src/api/Zelvo.Api/Zelvo.Api.csproj -c Release -o /app --no-restore -p:UseAppHost=false

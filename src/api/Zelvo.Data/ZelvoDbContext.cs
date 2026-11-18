@@ -3,6 +3,7 @@ using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 using Zelvo.Data.Auditing;
 using Zelvo.Data.Identity;
 using Zelvo.Data.Localization;
+using Zelvo.Data.Search;
 using Zelvo.Data.Settings;
 using Zelvo.Data.Tenancy;
 
@@ -44,6 +45,12 @@ public sealed class ZelvoDbContext(DbContextOptions<ZelvoDbContext> options) : D
 
     /// <summary>Tenant settings (one row per changed key).</summary>
     public DbSet<TenantSetting> TenantSettings => Set<TenantSetting>();
+
+    /// <summary>Pending changes to tenants' search indices (transactional outbox).</summary>
+    public DbSet<SearchOutboxEntry> SearchOutbox => Set<SearchOutboxEntry>();
+
+    /// <summary>Indexing state of each tenant's search index.</summary>
+    public DbSet<SearchIndexState> SearchIndexStates => Set<SearchIndexState>();
 
     /// <inheritdoc />
     protected override void OnModelCreating(ModelBuilder modelBuilder)
@@ -108,6 +115,43 @@ public sealed class ZelvoDbContext(DbContextOptions<ZelvoDbContext> options) : D
             setting.Property(s => s.Key).HasMaxLength(TenantSetting.KeyMaxLength);
             setting.Property(s => s.Value).HasColumnType("jsonb");
             setting.Property(s => s.Version).IsRowVersion();
+        });
+
+        ConfigureSearch(modelBuilder);
+    }
+
+    private static void ConfigureSearch(ModelBuilder modelBuilder)
+    {
+        modelBuilder.Entity<SearchOutboxEntry>(entry =>
+        {
+            entry.ToTable("search_outbox", table =>
+            {
+                table.HasCheckConstraint("ck_search_outbox_operation", EnumCheck("operation", Enum.GetNames<SearchOperation>()));
+                table.HasCheckConstraint("ck_search_outbox_shape",
+                    "(operation = 'Purge' AND purge_before IS NOT NULL AND document_type IS NULL AND document_id IS NULL AND document IS NULL)"
+                    + " OR (operation = 'Upsert' AND document_type IS NOT NULL AND document_id IS NOT NULL AND document IS NOT NULL)"
+                    + " OR (operation = 'Delete' AND document_type IS NOT NULL AND document_id IS NOT NULL AND document IS NULL)");
+                table.HasCheckConstraint("ck_search_outbox_document_type", "document_type ~ '^[a-z][a-z0-9-]{0,49}$'");
+            });
+            entry.HasKey(e => e.Id);
+            entry.Property(e => e.Id).UseIdentityAlwaysColumn();
+            entry.HasOne<Tenant>().WithMany().HasForeignKey(e => e.TenantId).OnDelete(DeleteBehavior.Restrict);
+            entry.Property(e => e.Operation).HasConversion<string>().HasMaxLength(20);
+            entry.Property(e => e.DocumentType).HasMaxLength(SearchOutboxEntry.DocumentTypeMaxLength);
+            entry.Property(e => e.DocumentId).HasMaxLength(SearchOutboxEntry.DocumentIdMaxLength);
+            entry.Property(e => e.Document).HasColumnType("jsonb");
+            entry.Property(e => e.LastError).HasMaxLength(SearchOutboxEntry.ErrorMaxLength);
+
+            // The relay looks for entries to publish per tenant, oldest first.
+            entry.HasIndex(e => new { e.TenantId, e.Id }).HasFilter("failed_at IS NULL");
+        });
+
+        modelBuilder.Entity<SearchIndexState>(state =>
+        {
+            state.ToTable("search_index_states");
+            state.HasKey(s => s.TenantId);
+            state.HasOne<Tenant>().WithMany().HasForeignKey(s => s.TenantId).OnDelete(DeleteBehavior.Restrict);
+            state.Property(s => s.LastError).HasMaxLength(SearchIndexState.ErrorMaxLength);
         });
     }
 

@@ -1,0 +1,13 @@
+{
+  "$comment": "Advisories CI accepts in runtime dependencies, each approved by the product owner. scripts/audit.mjs fails on any other high or critical advisory, on an exception past its reviewBy date, and on an exception that no longer matches anything (remove it).",
+  "exceptions": [
+    {
+      "advisory": "GHSA-fc5q-39xc-vjpf",
+      "package": "picomatch",
+      "via": "next-intl → @parcel/watcher",
+      "reason": "ReDoS through attacker-supplied extglob patterns. No fixed picomatch version exists (all versions affected). It is only reached through next-intl's message-extraction file watcher, which Zelvo does not use; @parcel/watcher is not in the built web image, and glob patterns are never taken from users.",
+      "approved": "2026-11-18",
+      "reviewBy": "2026-12-18"
+    }
+  ]
+}

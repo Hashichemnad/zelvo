@@ -29,6 +29,9 @@ internal static class Permissions
 
     /// <summary>Change tenant settings such as the default language, calendar and digits.</summary>
     public const string SettingsManage = "settings.manage";
+
+    /// <summary>See the search index status and rebuild the index (Settings → Search).</summary>
+    public const string SearchManage = "search.manage";
 }
 
 /// <summary>A field of a resource that field rules can hide or make read-only.</summary>
@@ -72,6 +75,7 @@ internal static class PermissionCatalog
         Permissions.RolesManage,
         Permissions.IdentityManage,
         Permissions.SettingsManage,
+        Permissions.SearchManage,
     ];
 
     public static ResourceDefinition Users { get; } = new(

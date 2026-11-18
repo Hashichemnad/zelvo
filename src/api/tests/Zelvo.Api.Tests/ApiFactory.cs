@@ -23,7 +23,16 @@ public class ApiFactory : WebApplicationFactory<Program>
         ["Identity:PublicUrl"] = TestTokens.PublicUrl,
     };
 
+    private readonly List<Action<IServiceCollection>> _services = [];
+
     public string EnvironmentName { get; init; } = "Testing";
+
+    /// <summary>Adds or replaces services of the API under test.</summary>
+    public ApiFactory WithServices(Action<IServiceCollection> configure)
+    {
+        _services.Add(configure);
+        return this;
+    }
 
     public ApiFactory WithSetting(string key, string value)
     {
@@ -53,6 +62,10 @@ public class ApiFactory : WebApplicationFactory<Program>
             services.AddSingleton<IRealmSigningKeys, TestRealmSigningKeys>();
             services.RemoveAll<IKeycloakAdmin>();
             services.AddSingleton<IKeycloakAdmin>(Keycloak);
+            foreach (var configure in _services)
+            {
+                configure(services);
+            }
         });
     }
 }

@@ -44,7 +44,7 @@ updates:
       # Keycloak libraries follow the Keycloak image; upgrade both together by hand.
       - dependency-name: "org.keycloak:*"
   - package-ecosystem: docker
-    directories: [/src/api/Zelvo.Api, /src/worker/Zelvo.Worker, /src/web, /src/keycloak]
+    directories: [/src/api/Zelvo.Api, /src/worker/Zelvo.Worker, /src/web, /src/keycloak, /deploy/opensearch]
     schedule: { interval: weekly }
     ignore:
       - dependency-name: "dotnet/sdk"

@@ -7,10 +7,14 @@ COPY global.json Directory.Build.props Directory.Packages.props .editorconfig ./
 COPY src/worker/Zelvo.Worker/Zelvo.Worker.csproj src/worker/Zelvo.Worker/
 COPY src/api/Zelvo.Licensing.Abstractions/Zelvo.Licensing.Abstractions.csproj src/api/Zelvo.Licensing.Abstractions/
 COPY src/api/Zelvo.Licensing.Development/Zelvo.Licensing.Development.csproj src/api/Zelvo.Licensing.Development/
+COPY src/api/Zelvo.Data/Zelvo.Data.csproj src/api/Zelvo.Data/
+COPY src/api/Zelvo.Search/Zelvo.Search.csproj src/api/Zelvo.Search/
 RUN dotnet restore src/worker/Zelvo.Worker/Zelvo.Worker.csproj
 COPY src/worker/Zelvo.Worker/ src/worker/Zelvo.Worker/
 COPY src/api/Zelvo.Licensing.Abstractions/ src/api/Zelvo.Licensing.Abstractions/
 COPY src/api/Zelvo.Licensing.Development/ src/api/Zelvo.Licensing.Development/
+COPY src/api/Zelvo.Data/ src/api/Zelvo.Data/
+COPY src/api/Zelvo.Search/ src/api/Zelvo.Search/
 RUN dotnet publish src/worker/Zelvo.Worker/Zelvo.Worker.csproj -c Release -o /app --no-restore -p:UseAppHost=false
 
 FROM mcr.microsoft.com/dotnet/runtime:10.0 AS runtime

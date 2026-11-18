@@ -125,6 +125,10 @@
         "title": "Language and region",
         "description": "Default language, calendar and digits for everyone in your organisation."
       },
+      "search": {
+        "title": "Search",
+        "description": "Search index status and rebuild."
+      },
       "translations": {
         "title": "Missing translations",
         "description": "Names and texts that do not yet have both an English and an Arabic version."
@@ -158,6 +162,35 @@
       "fields": {
         "name": "Name"
       }
+    },
+    "search": {
+      "intro": "Search lets people find records in English and Arabic. Changes are added to the search index a few seconds after they are saved.",
+      "state": "Status",
+      "upToDate": "Up to date",
+      "needsAttention": "Needs attention: some updates could not be indexed",
+      "indexing": "Indexing changes",
+      "rebuilding": "Rebuilding",
+      "unavailable": "The search engine is not reachable",
+      "documents": "Documents in the index",
+      "pending": "Updates waiting",
+      "failed": "Updates that could not be indexed",
+      "lastIndexed": "Last indexed",
+      "lastRebuild": "Last rebuild finished",
+      "lastError": "Last error",
+      "noError": "None",
+      "never": "Never",
+      "unknown": "Unknown",
+      "rebuildTitle": "Rebuild index",
+      "rebuildHelp": "Sends every searchable record to the index again and removes entries whose records no longer exist. Search keeps working while it runs. Use it if results look out of date.",
+      "rebuild": "Rebuild index",
+      "rebuildConfirm": "Yes, rebuild the index",
+      "rebuildConfirmText": "Rebuild the search index now? This is recorded in the audit log.",
+      "cancel": "Cancel",
+      "rebuildStarting": "Starting…",
+      "rebuildQueued": "Rebuild started: {count, plural, one {{formatted} record was} other {{formatted} records were}} sent to the index.",
+      "rebuildFailed": "The rebuild could not be started. Please try again.",
+      "refresh": "Refresh",
+      "refreshFailed": "The status could not be refreshed. Please try again."
     }
   }
 }

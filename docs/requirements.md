@@ -265,6 +265,7 @@ Admins build and change the whole service catalog themselves, with a drag-and-dr
 - Dashboards: volumes, backlog, SLA compliance, agent performance, happiness scores; scheduled reports to email.
 - Admin: setup wizard, users and groups, roles and permissions, forms, categories, SLA policies, business hours, branding, language defaults.
 - No-code workflow builder for assignment, approval and notification rules.
+- Settings → Search (administrators only, in English and Arabic): the tenant's search index status (documents in the index, updates waiting to be indexed, the last indexing error) and a "Rebuild index" button. Every rebuild is written to the audit log (product owner decision 2026-11-18).
 - *Story:* As an administrator, I want to set up a new department's service desk from a template, so that it's live the same day.
 
 ### 11. White-label branding

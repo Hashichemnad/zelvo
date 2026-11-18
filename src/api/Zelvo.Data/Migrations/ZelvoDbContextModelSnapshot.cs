@@ -424,6 +424,118 @@ namespace Zelvo.Data.Migrations
                     b.ToTable("user_roles", (string)null);
                 });
 
+            modelBuilder.Entity("Zelvo.Data.Search.SearchIndexState", b =>
+                {
+                    b.Property<Guid>("TenantId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("tenant_id");
+
+                    b.Property<string>("LastError")
+                        .HasMaxLength(2000)
+                        .HasColumnType("character varying(2000)")
+                        .HasColumnName("last_error");
+
+                    b.Property<DateTimeOffset?>("LastErrorAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("last_error_at");
+
+                    b.Property<DateTimeOffset?>("LastIndexedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("last_indexed_at");
+
+                    b.Property<DateTimeOffset?>("RebuildCompletedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("rebuild_completed_at");
+
+                    b.Property<DateTimeOffset?>("RebuildRequestedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("rebuild_requested_at");
+
+                    b.Property<int?>("SchemaVersion")
+                        .HasColumnType("integer")
+                        .HasColumnName("schema_version");
+
+                    b.HasKey("TenantId")
+                        .HasName("pk_search_index_states");
+
+                    b.ToTable("search_index_states", (string)null);
+                });
+
+            modelBuilder.Entity("Zelvo.Data.Search.SearchOutboxEntry", b =>
+                {
+                    b.Property<long>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bigint")
+                        .HasColumnName("id");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityAlwaysColumn(b.Property<long>("Id"));
+
+                    b.Property<int>("Attempts")
+                        .HasColumnType("integer")
+                        .HasColumnName("attempts");
+
+                    b.Property<string>("Document")
+                        .HasColumnType("jsonb")
+                        .HasColumnName("document");
+
+                    b.Property<string>("DocumentId")
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)")
+                        .HasColumnName("document_id");
+
+                    b.Property<string>("DocumentType")
+                        .HasMaxLength(50)
+                        .HasColumnType("character varying(50)")
+                        .HasColumnName("document_type");
+
+                    b.Property<DateTimeOffset>("EnqueuedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("enqueued_at");
+
+                    b.Property<DateTimeOffset?>("FailedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("failed_at");
+
+                    b.Property<string>("LastError")
+                        .HasMaxLength(2000)
+                        .HasColumnType("character varying(2000)")
+                        .HasColumnName("last_error");
+
+                    b.Property<string>("Operation")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("character varying(20)")
+                        .HasColumnName("operation");
+
+                    b.Property<DateTimeOffset?>("PublishedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("published_at");
+
+                    b.Property<long?>("PurgeBefore")
+                        .HasColumnType("bigint")
+                        .HasColumnName("purge_before");
+
+                    b.Property<Guid>("TenantId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("tenant_id");
+
+                    b.HasKey("Id")
+                        .HasName("pk_search_outbox");
+
+                    b.HasIndex("TenantId", "Id")
+                        .HasDatabaseName("ix_search_outbox_tenant_id_id")
+                        .HasFilter("failed_at IS NULL");
+
+                    b.ToTable("search_outbox", null, t =>
+                        {
+                            t.HasCheckConstraint("ck_search_outbox_document_type", "document_type ~ '^[a-z][a-z0-9-]{0,49}$'");
+
+                            t.HasCheckConstraint("ck_search_outbox_operation", "operation IN ('Upsert', 'Delete', 'Purge')");
+
+                            t.HasCheckConstraint("ck_search_outbox_shape", "(operation = 'Purge' AND purge_before IS NOT NULL AND document_type IS NULL AND document_id IS NULL AND document IS NULL) OR (operation = 'Upsert' AND document_type IS NOT NULL AND document_id IS NOT NULL AND document IS NOT NULL) OR (operation = 'Delete' AND document_type IS NOT NULL AND document_id IS NOT NULL AND document IS NULL)");
+                        });
+                });
+
             modelBuilder.Entity("Zelvo.Data.Settings.TenantSetting", b =>
                 {
                     b.Property<Guid>("TenantId")
@@ -608,6 +720,26 @@ namespace Zelvo.Data.Migrations
                         .HasConstraintName("fk_user_roles_users_user_id");
 
                     b.Navigation("Role");
+                });
+
+            modelBuilder.Entity("Zelvo.Data.Search.SearchIndexState", b =>
+                {
+                    b.HasOne("Zelvo.Data.Tenancy.Tenant", null)
+                        .WithMany()
+                        .HasForeignKey("TenantId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired()
+                        .HasConstraintName("fk_search_index_states_tenants_tenant_id");
+                });
+
+            modelBuilder.Entity("Zelvo.Data.Search.SearchOutboxEntry", b =>
+                {
+                    b.HasOne("Zelvo.Data.Tenancy.Tenant", null)
+                        .WithMany()
+                        .HasForeignKey("TenantId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired()
+                        .HasConstraintName("fk_search_outbox_tenants_tenant_id");
                 });
 
             modelBuilder.Entity("Zelvo.Data.Settings.TenantSetting", b =>
