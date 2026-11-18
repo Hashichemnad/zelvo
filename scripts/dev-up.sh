@@ -60,6 +60,8 @@ Zelvo is running:
   OpenAPI document    http://localhost:${API_PORT:-8080}/openapi/v1.json
   Keycloak admin      http://localhost:${KEYCLOAK_PORT:-8180}  (credentials in deploy/compose/.env)
   Sign-in emails      http://localhost:${MAILPIT_PORT:-8025}  (development mail catcher)
+  UAE PASS mock       http://localhost:${UAEPASS_MOCK_PORT:-8095}  (Settings → Sign-in → UAE PASS: Development mock,
+                      client ID zelvo-mock, secret UAEPASS_MOCK_CLIENT_SECRET in deploy/compose/.env)
   Development users   requester@zelvo.test, agent@, lead@, approver@, admin@, executive@
                       password: ZELVO_DEV_USERS_PASSWORD in deploy/compose/.env
   RabbitMQ admin      http://localhost:${RABBITMQ_MANAGEMENT_PORT:-15672}

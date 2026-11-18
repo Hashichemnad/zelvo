@@ -539,7 +539,7 @@ These requirements make the platform ready for UAE government tenders; they are 
 
 | ID | Requirement | Notes |
 | --- | --- | --- |
-| GOV-1 | Login with UAE PASS for portal users and staff | Integration terms to confirm with the UAE PASS programme |
+| GOV-1 | Login with UAE PASS for portal users and staff | Integration terms to confirm with the UAE PASS programme. Tenant settings under Settings → Sign-in → UAE PASS; see GOV-1 settings below |
 | GOV-2 | Happiness meter on ticket closure and in the portal | Rating scale and wording configurable to the entity's customer-happiness charter |
 | GOV-3 | Happiness and customer-voice reporting | Complaints, inquiries, suggestions and happiness trends per service and channel |
 | GOV-4 | Data hosted in the UAE | Each customer hosts Zelvo on its own servers or its own UAE cloud account |
@@ -549,6 +549,17 @@ These requirements make the platform ready for UAE government tenders; they are 
 | GOV-8 | Arabic official correspondence | Arabic email and notification templates with formal tone, entity letterhead |
 | GOV-9 | Accessibility | WCAG 2.2 AA in both languages |
 | GOV-10 | Integration with government channels | Entity websites, call centres and existing case systems via API |
+
+**GOV-1 settings** (Settings → Sign-in → UAE PASS; product owner decision 2026-11-18). "Staff" means people with a role that needs a second factor (agents, team leads and administrators, and any role the administrator sets to need one).
+
+1. **Accept UAE PASS as the second factor for staff.** Off by default. When on, it applies only to verified UAE PASS accounts (SOP2 or higher); staff signing in with an SOP1 account still use their authenticator app.
+2. **Minimum UAE PASS account level.**
+   - Staff always need SOP2 or higher. This is not configurable.
+   - For requesters, the minimum is a setting: SOP1 (default), SOP2 or SOP3.
+3. **Create requester accounts automatically on first UAE PASS sign-in.**
+   - On by default. When off, only people who already have an account can sign in with UAE PASS.
+   - Staff accounts are never created automatically. They must already exist, and are matched by Emirates ID or by email.
+   - Matching by email needs the account owner to prove the account is theirs, with a link sent to that email or the account's password.
 
 Open point: confirm with prospective government customers which reporting formats they submit to their regulator, so that GOV-3 produces them directly.
 
