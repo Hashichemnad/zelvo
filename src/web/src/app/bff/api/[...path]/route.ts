@@ -72,7 +72,7 @@ async function forward(request: NextRequest, { params }: { params: Promise<{ pat
 }
 
 function copyHeaders(from: Response, to: NextResponse) {
-  for (const name of ["content-type", "www-authenticate"]) {
+  for (const name of ["content-type", "www-authenticate", "retry-after", "ratelimit-limit", "ratelimit-remaining", "ratelimit-reset"]) {
     const value = from.headers.get(name);
     if (value) {
       to.headers.set(name, value);

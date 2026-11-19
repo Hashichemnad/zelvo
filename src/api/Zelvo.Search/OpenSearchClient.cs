@@ -50,19 +50,66 @@ public sealed class OpenSearchClient : IDisposable
 
     /// <summary>Creates a client for <see cref="SearchOptions.OpenSearch"/>.</summary>
     public OpenSearchClient(IOptions<SearchOptions> options)
+        : this(options, null)
     {
-        ArgumentNullException.ThrowIfNull(options);
-        _http = new HttpClient(new SocketsHttpHandler { PooledConnectionLifetime = TimeSpan.FromMinutes(5) })
-        {
-            BaseAddress = options.Value.OpenSearch,
-            Timeout = options.Value.RequestTimeout,
-        };
     }
 
-    /// <summary>Indices an alias points at; empty when the alias does not exist.</summary>
+    /// <summary>Creates a client; <paramref name="handler"/> replaces the HTTP handler (tests).</summary>
+    internal OpenSearchClient(IOptions<SearchOptions> options, HttpMessageHandler? handler)
+    {
+        ArgumentNullException.ThrowIfNull(options);
+        var settings = options.Value;
+        _http = new HttpClient(handler ?? CreateHandler(settings))
+        {
+            BaseAddress = settings.OpenSearch,
+            Timeout = settings.RequestTimeout,
+        };
+
+        // Security plugin: HTTP basic authentication with the service's own user, over TLS.
+        if (!string.IsNullOrEmpty(settings.Username))
+        {
+            if (settings.OpenSearch.Scheme != Uri.UriSchemeHttps && !settings.OpenSearch.IsLoopback)
+            {
+                throw new InvalidOperationException("OpenSearch credentials are sent only over HTTPS: set Services:OpenSearch to an https:// address.");
+            }
+
+            _http.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue(
+                "Basic", Convert.ToBase64String(Encoding.UTF8.GetBytes($"{settings.Username}:{settings.Password}")));
+        }
+    }
+
+    private static SocketsHttpHandler CreateHandler(SearchOptions settings)
+    {
+        var handler = new SocketsHttpHandler { PooledConnectionLifetime = TimeSpan.FromMinutes(5) };
+        if (settings.CaFile is { Length: > 0 } caFile)
+        {
+            handler.SslOptions.CertificateChainPolicy = new System.Security.Cryptography.X509Certificates.X509ChainPolicy
+            {
+                TrustMode = System.Security.Cryptography.X509Certificates.X509ChainTrustMode.CustomRootTrust,
+                // A private CA usually publishes no revocation list.
+                RevocationMode = System.Security.Cryptography.X509Certificates.X509RevocationMode.NoCheck,
+                CustomTrustStore = { System.Security.Cryptography.X509Certificates.X509CertificateLoader.LoadCertificateFromFile(caFile) },
+            };
+        }
+
+        return handler;
+    }
+
+    /// <summary>The cluster's health status (<c>green</c>, <c>yellow</c> or <c>red</c>); throws <see cref="OpenSearchException"/> when it cannot be asked.</summary>
+    public async Task<string?> ClusterStatusAsync(CancellationToken cancellationToken)
+    {
+        var (_, body) = await SendAsync(HttpMethod.Get, "_cluster/health", null, cancellationToken).ConfigureAwait(false);
+        return (string?)body?["status"];
+    }
+
+    /// <summary>
+    /// Indices an alias points at; empty when the alias does not exist. Only the alias's own indices
+    /// (<c>{alias}-v{n}</c>, see <see cref="SearchIndexDefinition"/>) are asked, so a user limited to
+    /// Zelvo's indices by the security plugin may ask.
+    /// </summary>
     public async Task<IReadOnlyList<string>> GetAliasTargetsAsync(string alias, CancellationToken cancellationToken)
     {
-        var (status, body) = await SendAsync(HttpMethod.Get, $"_alias/{alias}", null, cancellationToken, HttpStatusCode.NotFound).ConfigureAwait(false);
+        var (status, body) = await SendAsync(HttpMethod.Get, $"{alias}-*/_alias/{alias}", null, cancellationToken, HttpStatusCode.NotFound).ConfigureAwait(false);
         return status == HttpStatusCode.NotFound || body is not JsonObject indices ? [] : [.. indices.Select(i => i.Key)];
     }
 

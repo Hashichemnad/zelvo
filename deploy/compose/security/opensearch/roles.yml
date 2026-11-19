@@ -1,0 +1,27 @@
+# Least privilege for Zelvo's services (A5). Index names start with Search:IndexPrefix ("zelvo").
+_meta:
+  type: roles
+  config_version: 2
+
+zelvo_search_reader:
+  description: Zelvo API - searches tenants' indices and reads their status
+  cluster_permissions:
+    - cluster_monitor
+    - cluster_composite_ops_ro
+  index_permissions:
+    - index_patterns: ["zelvo-*"]
+      allowed_actions:
+        - read
+        - indices_monitor
+        - indices:admin/aliases/get
+
+zelvo_search_indexer:
+  description: Zelvo worker - creates, writes, reindexes and removes tenants' indices
+  cluster_permissions:
+    - cluster_monitor
+    - cluster_composite_ops
+    - indices:data/write/reindex
+  index_permissions:
+    - index_patterns: ["zelvo-*"]
+      allowed_actions:
+        - indices_all

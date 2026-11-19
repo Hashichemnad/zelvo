@@ -1,0 +1,7 @@
+# False positives accepted for secret scanning (gitleaks). Each line is a finding's fingerprint
+# (commit:file:rule:line). Add a line only for a value that is not a secret, with the reason above it.
+
+# A5: made-up test value "sk-test-1234567890" in the encryption-at-rest tests (later changed to
+# "example-secret-value"); it was never a real key.
+4e12c4b100ef48ecf36d2677ca7096435cd4b221:src/api/tests/Zelvo.Api.Tests/SecretsTests.cs:generic-api-key:62
+4e12c4b100ef48ecf36d2677ca7096435cd4b221:src/api/tests/Zelvo.Api.Tests/SecretsTests.cs:generic-api-key:67

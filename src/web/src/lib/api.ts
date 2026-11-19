@@ -1,6 +1,8 @@
 import "server-only";
 import { revalidateTag } from "next/cache";
+import { headers as requestHeaders } from "next/headers";
 import { cache } from "react";
+import { clientAddress, trustedProxyHops } from "./client-address";
 import type { ApiCalendar, ApiDigits } from "./format";
 
 /**
@@ -23,13 +25,24 @@ export interface SystemInfo {
 
 const apiBaseUrl = process.env.API_INTERNAL_URL ?? "http://localhost:8080";
 const timeoutMs = 3000;
+const proxyHops = trustedProxyHops(process.env.TRUSTED_PROXY_HOPS);
+
+/** `X-Forwarded-For` with the browser's address, for the API's rate limits and audit log; empty outside a request. */
+async function forwardedFor(): Promise<Record<string, string>> {
+  try {
+    const address = clientAddress((await requestHeaders()).get("x-forwarded-for"), proxyHops);
+    return address ? { "X-Forwarded-For": address } : {};
+  } catch {
+    return {};
+  }
+}
 
 async function getJson<T>(path: string): Promise<T | null> {
   try {
     const response = await fetch(new URL(path, apiBaseUrl), {
       cache: "no-store",
       signal: AbortSignal.timeout(timeoutMs),
-      headers: { Accept: "application/json" },
+      headers: { Accept: "application/json", ...(await forwardedFor()) },
     });
     // Readiness answers 503 with a body when a dependency is down; that body is still useful.
     if (!response.ok && response.status !== 503) {
@@ -115,6 +128,9 @@ export async function apiFetch(path: string, accessToken: string, tenant: string
   if (!headers.has("Accept")) {
     headers.set("Accept", "application/json");
   }
+  for (const [name, value] of Object.entries(await forwardedFor())) {
+    headers.set(name, value);
+  }
   return fetch(new URL(path, apiBaseUrl), {
     ...init,
     headers,
@@ -186,7 +202,7 @@ export async function getSignInMethods(tenant: string): Promise<SignInMethods | 
     const response = await fetch(new URL("/api/v1/identity/sign-in-methods", apiBaseUrl), {
       cache: "no-store",
       signal: AbortSignal.timeout(timeoutMs),
-      headers: { Accept: "application/json", "X-Zelvo-Tenant": tenant },
+      headers: { Accept: "application/json", "X-Zelvo-Tenant": tenant, ...(await forwardedFor()) },
     });
     return response.ok ? ((await response.json()) as SignInMethods) : null;
   } catch {

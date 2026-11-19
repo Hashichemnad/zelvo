@@ -6,7 +6,8 @@
   "common": {
     "productName": "زيلفو",
     "skipToContent": "الانتقال إلى المحتوى الرئيسي",
-    "poweredBy": "بتقنية زيلفو"
+    "poweredBy": "بتقنية زيلفو",
+    "rateLimited": "تم إرسال طلبات كثيرة خلال وقت قصير. يُرجى الانتظار دقيقة ثم المحاولة مرة أخرى."
   },
   "language": {
     "name": "العربية",
@@ -39,7 +40,8 @@
       "redis": "الذاكرة المؤقتة (Valkey)",
       "rabbitmq": "قائمة الرسائل (RabbitMQ)",
       "opensearch": "البحث (OpenSearch)",
-      "keycloak": "الهوية (Keycloak)"
+      "keycloak": "الهوية (Keycloak)",
+      "keyVault": "مخزن المفاتيح (مفاتيح التشفير)"
     },
     "installationHeading": "التثبيت",
     "version": "الإصدار",

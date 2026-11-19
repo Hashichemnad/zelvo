@@ -39,6 +39,7 @@ public sealed partial class SearchOutboxRelay(
             {
                 count = await PublishBatchAsync(channel, tenantId, slug, cancellationToken).ConfigureAwait(false);
                 published += count;
+                SearchTelemetry.Published.Add(count);
             }
             while (count == options.Value.BatchSize);
         }

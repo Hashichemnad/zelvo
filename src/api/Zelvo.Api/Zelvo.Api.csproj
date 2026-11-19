@@ -15,11 +15,14 @@
     <PackageReference Include="Microsoft.IdentityModel.Protocols.OpenIdConnect" />
     <PackageReference Include="StackExchange.Redis" />
     <PackageReference Include="RabbitMQ.Client" />
+    <PackageReference Include="OpenTelemetry.Instrumentation.AspNetCore" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\Zelvo.Licensing.Abstractions\Zelvo.Licensing.Abstractions.csproj" />
     <ProjectReference Include="..\Zelvo.Data\Zelvo.Data.csproj" />
     <ProjectReference Include="..\Zelvo.Search\Zelvo.Search.csproj" />
+    <ProjectReference Include="..\Zelvo.Secrets\Zelvo.Secrets.csproj" />
+    <ProjectReference Include="..\Zelvo.Observability\Zelvo.Observability.csproj" />
   </ItemGroup>
   <!-- Development builds use the stub; release builds pass -p:ZelvoLicensingProject=<private project>. -->
   <ItemGroup Condition="'$(ZelvoLicensingProject)' == ''">

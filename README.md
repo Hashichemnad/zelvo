@@ -10,7 +10,7 @@ Bilingual (English/Arabic) IT service management platform for the UAE market, de
 
 ## Run it
 
-You need Docker with the Compose plugin and about 4 GB of free memory. From the repository root:
+You need Docker with the Compose plugin and about 5 GB of free memory. From the repository root:
 
 ```bash
 make up
@@ -27,23 +27,26 @@ make up
 | Keycloak admin (credentials in `deploy/compose/.env`) | http://localhost:8180 |
 | Sign-in emails (Mailpit, development only) | http://localhost:8025 |
 | UAE PASS mock (development only) | http://localhost:8095 |
-| RabbitMQ admin | http://localhost:15672 |
+| RabbitMQ admin (`RABBITMQ_USER` / `RABBITMQ_PASSWORD`) | http://localhost:15672 |
+| Monitoring: Grafana dashboards, traces and logs (`GRAFANA_ADMIN_USER` / `GRAFANA_ADMIN_PASSWORD`) | http://localhost:3001 |
 
 **Sign in** from the header. Development users: `requester@zelvo.test`, `agent@zelvo.test`, `lead@zelvo.test`, `approver@zelvo.test`, `admin@zelvo.test` and `executive@zelvo.test`, all with the password `ZELVO_DEV_USERS_PASSWORD` from `deploy/compose/.env`. Agents, team leads and admins are asked to set up an authenticator app at their first sign-in. To try the email one-time code, choose "Try Another Way" on the sign-in page; the code arrives in Mailpit. See `docs/architecture/identity-access.md`.
 
 **UAE PASS:** as `admin@zelvo.test`, open Settings → Sign-in → UAE PASS, choose "Development mock", client ID `zelvo-mock` and the secret `UAEPASS_MOCK_CLIENT_SECRET` from `deploy/compose/.env`, and save. The sign-in page then offers UAE PASS. See `docs/architecture/uae-pass.md`.
+
+**Security in development (A5):** OpenSearch and RabbitMQ use TLS with a development CA (made by the one-off `certs` service) and one user per service; the master key that encrypts stored secrets is `deploy/compose/secrets/master.key` (created once, git-ignored, keep it: without it stored secrets cannot be decrypted). See `docs/architecture/security-baseline.md` and `docs/architecture/secrets-encryption.md`.
 
 `make down` stops the stack, `make reset` also deletes its data, `make logs` follows the logs. Local Compose changes go in `deploy/compose/compose.override.yaml`, which is git-ignored.
 
 ## Repository layout
 
 ```
-docs/            requirements, build plan, architecture notes (tenancy and audit, identity and access, API conventions, licensing)
+docs/            requirements, build plan, architecture notes, security (ASVS L2 checklist)
 src/api/         ASP.NET Core API, data layer and migrations (Zelvo.Data), licensing contract and stub, backend tests
 src/web/         Next.js frontend (portal, agent workspace, admin)
 src/worker/      background jobs
 src/keycloak/    Keycloak extension (email one-time code sign-in) and login/email theme, built into Zelvo's Keycloak image
-deploy/compose/  Docker Compose for development
+deploy/compose/  Docker Compose for development (observability and security configuration in observability/ and security/)
 deploy/helm/     Helm charts for Kubernetes installs (later Phase 1 task)
 tests/e2e/       Playwright end-to-end tests
 scripts/         start and stop scripts

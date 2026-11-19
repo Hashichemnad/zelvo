@@ -48,7 +48,7 @@ test.describe("welcome page", () => {
   test("shows every service running", async ({ page }) => {
     await page.goto("/en");
 
-    for (const service of ["api", "postgres", "redis", "rabbitmq", "opensearch", "keycloak"]) {
+    for (const service of ["api", "postgres", "redis", "rabbitmq", "opensearch", "keycloak", "keyVault"]) {
       await expect(page.locator(`[data-service="${service}"]`)).toHaveAttribute("data-status", "Healthy");
     }
     await expect(page.getByText("All services are running.")).toBeVisible();

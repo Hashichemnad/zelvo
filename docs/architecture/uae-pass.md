@@ -12,7 +12,7 @@ Browser ── Zelvo web ── Keycloak realm zelvo-<tenant> ── identity pr
 ```
 
 - **Through Keycloak.** UAE PASS is an identity provider (alias `uaepass`) in each tenant's realm. The API and web app only ever see Keycloak tokens, so every A2 rule still applies: the token must come from the tenant's own realm, users are created as requesters, roles and permissions are Zelvo data, and staff need a second factor.
-- **Keycloak's generic OAuth 2.0 broker (`oauth2`).** UAE PASS issues an opaque access token and no ID token, so Keycloak's OpenID Connect broker cannot be used. Keycloak 26.7.5 has a generic OAuth 2.0 broker (checked in the running image).
+- **Keycloak's generic OAuth 2.0 broker (`oauth2`).** UAE PASS issues an opaque access token and no ID token, so Keycloak's OpenID Connect broker cannot be used. Keycloak has a generic OAuth 2.0 broker (checked in the running image, 26.7.5 and 26.8.2).
 - **Zelvo Keycloak extension (product owner decision 2026-11-18).** Keycloak's own attribute mappers do not work with that broker, and nothing built in finds an account by Emirates ID, so `src/keycloak` (package `zelvo.keycloak.uaepass`, with unit tests) adds two pieces:
   - **`zelvo-uaepass-profile`**, an identity provider mapper. At every UAE PASS sign-in it reads the account level (`userType`: SOP1, SOP2 or SOP3) and, for verified accounts, the Emirates ID (`idn`).
     - The level goes into a user session note, which becomes the `zelvo_uaepass_level` claim in tokens of that session.

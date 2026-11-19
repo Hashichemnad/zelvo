@@ -16,6 +16,7 @@ internal static class HealthCheckSetup
     internal const string RabbitMq = "rabbitmq";
     internal const string OpenSearch = "opensearch";
     internal const string Keycloak = "keycloak";
+    internal const string KeyVault = "keyVault";
 
     private static readonly TimeSpan CheckTimeout = TimeSpan.FromSeconds(3);
 
@@ -24,19 +25,20 @@ internal static class HealthCheckSetup
         var postgres = Required(configuration, "ConnectionStrings:Postgres");
         var redis = Required(configuration, "ConnectionStrings:Redis");
         var rabbitMq = new Uri(Required(configuration, "ConnectionStrings:RabbitMq"));
-        var openSearch = new Uri(Required(configuration, "Services:OpenSearch"));
+        _ = new Uri(Required(configuration, "Services:OpenSearch"));
         var keycloak = new Uri(Required(configuration, "Services:KeycloakHealth"));
 
         services.AddSingleton<IConnection>(_ =>
-            new ConnectionFactory { Uri = rabbitMq, ClientProvidedName = "zelvo-api" }
+            Zelvo.Search.RabbitMqConnections.CreateFactory(rabbitMq, "zelvo-api", configuration["RabbitMq:CaFile"])
                 .CreateConnectionAsync().GetAwaiter().GetResult());
 
         services.AddHealthChecks()
             .AddNpgSql(postgres, name: Postgres, tags: [ReadyTag], timeout: CheckTimeout)
             .AddRedis(redis, name: Redis, tags: [ReadyTag], timeout: CheckTimeout)
             .AddRabbitMQ(name: RabbitMq, tags: [ReadyTag], timeout: CheckTimeout)
-            .AddUrlGroup(new Uri(openSearch, "_cluster/health"), name: OpenSearch, tags: [ReadyTag], timeout: CheckTimeout)
-            .AddUrlGroup(keycloak, name: Keycloak, tags: [ReadyTag], timeout: CheckTimeout);
+            .AddCheck<OpenSearchHealthCheck>(OpenSearch, tags: [ReadyTag], timeout: CheckTimeout)
+            .AddUrlGroup(keycloak, name: Keycloak, tags: [ReadyTag], timeout: CheckTimeout)
+            .AddCheck<Secrets.KeyEncryptionKeyHealthCheck>(KeyVault, tags: [ReadyTag], timeout: CheckTimeout);
 
         return services;
     }
@@ -80,6 +82,24 @@ internal static class HealthCheckSetup
         configuration[key] is { Length: > 0 } value
             ? value
             : throw new InvalidOperationException($"Configuration value '{key}' is required.");
+}
+
+/// <summary>OpenSearch answers with the API's own credentials and the cluster is at least yellow.</summary>
+internal sealed class OpenSearchHealthCheck(Zelvo.Search.OpenSearchClient client) : IHealthCheck
+{
+    public async Task<HealthCheckResult> CheckHealthAsync(HealthCheckContext context, CancellationToken cancellationToken = default)
+    {
+        try
+        {
+            var status = await client.ClusterStatusAsync(cancellationToken);
+            return status is "green" or "yellow" ? HealthCheckResult.Healthy() : HealthCheckResult.Unhealthy($"Cluster status {status}.");
+        }
+        catch (Zelvo.Search.OpenSearchException ex)
+        {
+            // Logged by the health check service; the readiness response shows only the status.
+            return HealthCheckResult.Unhealthy(ex.InnerException?.Message ?? ex.Message);
+        }
+    }
 }
 
 internal sealed record HealthResponse(string Status, IReadOnlyList<HealthEntry> Checks);

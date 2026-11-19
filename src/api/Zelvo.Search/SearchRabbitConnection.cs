@@ -3,7 +3,7 @@ using RabbitMQ.Client;
 namespace Zelvo.Search;
 
 /// <summary>One RabbitMQ connection for the worker's search jobs, opened on first use and reopened after it closes.</summary>
-public sealed class SearchRabbitConnection(Uri address, string clientName) : IAsyncDisposable
+public sealed class SearchRabbitConnection(Uri address, string clientName, string? caFile = null) : IAsyncDisposable
 {
     private readonly SemaphoreSlim _gate = new(1, 1);
     private IConnection? _connection;
@@ -29,7 +29,8 @@ public sealed class SearchRabbitConnection(Uri address, string clientName) : IAs
                 await _connection.DisposeAsync().ConfigureAwait(false);
             }
 
-            var factory = new ConnectionFactory { Uri = address, ClientProvidedName = clientName, AutomaticRecoveryEnabled = false };
+            var factory = RabbitMqConnections.CreateFactory(address, clientName, caFile);
+            factory.AutomaticRecoveryEnabled = false;
             _connection = await factory.CreateConnectionAsync(cancellationToken).ConfigureAwait(false);
             return _connection;
         }

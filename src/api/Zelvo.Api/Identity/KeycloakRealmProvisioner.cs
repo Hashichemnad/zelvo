@@ -93,7 +93,20 @@ internal sealed class KeycloakRealmProvisioner(KeycloakAdminClient admin, Identi
         {
             using var _ = await admin.SendAsync(HttpMethod.Put, $"realms/master/clients/{(string)client["id"]!}", body, cancellationToken).ConfigureAwait(false);
         }
+
+        // Since Keycloak 26.8 the admin API accepts only tokens with the admin API audience, which
+        // the built-in "kc-admin-api" client scope adds (admin-cli has it by default).
+        client = await FindClientAsync("master", identity.ProvisionerClientId, cancellationToken).ConfigureAwait(false)
+            ?? throw new KeycloakAdminException("The zelvo-provisioner client is missing in the master realm.");
+        var scopes = await admin.GetArrayAsync("realms/master/client-scopes", cancellationToken).ConfigureAwait(false);
+        var adminApiScope = scopes.FirstOrDefault(s => (string?)s?["name"] == AdminApiScope)
+            ?? throw new KeycloakAdminException($"The Keycloak client scope '{AdminApiScope}' is missing; Keycloak 26.8 or later is required.");
+        using var __ = await admin.SendAsync(HttpMethod.Put,
+            $"realms/master/clients/{E((string)client["id"]!)}/default-client-scopes/{E((string)adminApiScope["id"]!)}", null, cancellationToken).ConfigureAwait(false);
     }
+
+    /// <summary>Keycloak's client scope that gives tokens the admin API audience.</summary>
+    internal const string AdminApiScope = "kc-admin-api";
 
     public async Task EnsureRealmAsync(Tenant tenant, IdentitySettings settings, CancellationToken cancellationToken)
     {

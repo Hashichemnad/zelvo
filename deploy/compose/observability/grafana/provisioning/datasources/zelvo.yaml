@@ -1,0 +1,41 @@
+# Grafana data sources (A5). Traces link to their logs and logs to their traces.
+apiVersion: 1
+datasources:
+  - name: Prometheus
+    uid: prometheus
+    type: prometheus
+    access: proxy
+    url: http://prometheus:9090
+    isDefault: true
+    editable: false
+    jsonData:
+      # Scrape and OTLP export interval, so rate() windows always hold enough samples.
+      timeInterval: 15s
+  - name: Tempo
+    uid: tempo
+    type: tempo
+    access: proxy
+    url: http://tempo:3200
+    editable: false
+    jsonData:
+      tracesToLogsV2:
+        datasourceUid: loki
+        filterByTraceID: true
+        spanStartTimeShift: -5m
+        spanEndTimeShift: 5m
+      serviceMap: { datasourceUid: prometheus }
+      nodeGraph: { enabled: true }
+  - name: Loki
+    uid: loki
+    type: loki
+    access: proxy
+    url: http://loki:3100
+    editable: false
+    jsonData:
+      # Log lines carry the trace id as structured metadata (OTLP); open it in Tempo.
+      derivedFields:
+        - name: Trace
+          datasourceUid: tempo
+          matcherType: label
+          matcherRegex: trace_id
+          url: "$${__value.raw}"

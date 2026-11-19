@@ -17,6 +17,15 @@ public sealed class SearchOptions
 
     /// <summary>How long a request to OpenSearch may take.</summary>
     public TimeSpan RequestTimeout { get; set; } = TimeSpan.FromSeconds(30);
+
+    /// <summary>OpenSearch user (security plugin); null to send no credentials (security off, tests only).</summary>
+    public string? Username { get; set; }
+
+    /// <summary>Password of <see cref="Username"/>.</summary>
+    public string? Password { get; set; }
+
+    /// <summary>PEM file of the CA that signed OpenSearch's certificate, when it is not publicly trusted.</summary>
+    public string? CaFile { get; set; }
 }
 
 /// <summary>Settings of the indexing pipeline in the worker (configuration section <c>Search:Pipeline</c>).</summary>

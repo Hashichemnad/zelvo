@@ -23,11 +23,11 @@ Covers the non-functional requirements **Authentication** (SSO, mandatory MFA fo
   - level 1: password **or** email one-time code ("Try Another Way"), then
   - level 2, only when the client asks for `acr_values=mfa`: a code from an authenticator app (TOTP). Staff without one are asked to set it up.
   - `acr` in tokens: `pwd` after level 1, `mfa` after level 2 (`acr.loa.map`).
-- The master-realm service account `zelvo-provisioner` gets `view/manage-realm`, `view/manage-users` and (from D3) `view/manage-identity-providers` on this realm only. The API uses it at run time to apply sign-in settings; `migrate` uses the bootstrap administrator once to set it up.
+- The master-realm service account `zelvo-provisioner` gets `view/manage-realm`, `view/manage-users` and (from D3) `view/manage-identity-providers` on this realm only. The API uses it at run time to apply sign-in settings; `migrate` uses the bootstrap administrator once to set it up. Since Keycloak 26.8 the admin API accepts only tokens with the admin API audience, so the client also gets Keycloak's built-in `kc-admin-api` client scope (as `admin-cli` has by default).
 
 ## Email one-time code (product owner decision 2026-11-13: Keycloak extension)
 
-Keycloak 26.7.5 has no built-in authenticator that emails a sign-in code (checked against the running server before building), so `src/keycloak` adds one, limited to that step. Its rules:
+Keycloak has no built-in authenticator that emails a sign-in code (checked against the running server: 26.7.5 before building, again on 26.8.2), so `src/keycloak` adds one, limited to that step. Its rules:
 
 - Step 1 asks for the address; step 2 asks for the 6-digit code. Step 2 looks the same whether or not a code was sent, so the page does not reveal who has an account.
 - Codes are random (`SecureRandom`), stored only as a salted SHA-256 hash in the Keycloak authentication session (server side), valid for 10 minutes, at most 5 tries, compared in constant time; a new code at most once a minute.

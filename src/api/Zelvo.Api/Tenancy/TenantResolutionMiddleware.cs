@@ -49,6 +49,7 @@ internal sealed class TenantResolutionMiddleware(RequestDelegate next, IConfigur
             }
 
             tenantContext.SetTenant(tenant.Id, tenant.Slug);
+            System.Diagnostics.Activity.Current?.SetTag(Zelvo.Observability.ZelvoTelemetry.TenantTag, tenant.Slug);
         }
 
         await next(context).ConfigureAwait(false);
