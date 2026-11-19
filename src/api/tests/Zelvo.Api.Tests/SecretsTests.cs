@@ -59,19 +59,19 @@ public sealed class SecretsTests(DatabaseFixture database) : IDisposable
         await using (var scope = ScopeFor(services, tenant))
         {
             var protector = scope.ServiceProvider.GetRequiredService<ISecretProtector>();
-            stored = await protector.ProtectAsync("ai.provider.apiKey", "sk-test-1234567890", TestContext.Current.CancellationToken);
+            stored = await protector.ProtectAsync("ai.provider.apiKey", "example-secret-value", TestContext.Current.CancellationToken);
             await scope.ServiceProvider.GetRequiredService<ZelvoDbContext>().SaveChangesAsync(TestContext.Current.CancellationToken);
 
             Assert.StartsWith(SecretProtector.Prefix, stored, StringComparison.Ordinal);
-            Assert.DoesNotContain("sk-test", stored, StringComparison.Ordinal);
-            Assert.NotEqual(stored, await protector.ProtectAsync("ai.provider.apiKey", "sk-test-1234567890", TestContext.Current.CancellationToken));
+            Assert.DoesNotContain("example-secret", stored, StringComparison.Ordinal);
+            Assert.NotEqual(stored, await protector.ProtectAsync("ai.provider.apiKey", "example-secret-value", TestContext.Current.CancellationToken));
         }
 
         // A new scope (and a cold cache in a new process would be the same) decrypts it.
         await using (var scope = ScopeFor(services, tenant))
         {
             var protector = scope.ServiceProvider.GetRequiredService<ISecretProtector>();
-            Assert.Equal("sk-test-1234567890", await protector.UnprotectAsync("ai.provider.apiKey", stored, TestContext.Current.CancellationToken));
+            Assert.Equal("example-secret-value", await protector.UnprotectAsync("ai.provider.apiKey", stored, TestContext.Current.CancellationToken));
 
             var db = scope.ServiceProvider.GetRequiredService<ZelvoDbContext>();
             var key = await db.TenantDataKeys.SingleAsync(TestContext.Current.CancellationToken);
