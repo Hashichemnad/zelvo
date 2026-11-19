@@ -1,12 +1,19 @@
 import "server-only";
+import { cookies } from "next/headers";
+import type { NextRequest } from "next/server";
+import { pickTenant, tenantCookieName } from "../tenant";
 
 /**
  * Sign-in settings from the environment. Each tenant has its own Keycloak realm
  * (`zelvo-<tenant>`); this web app serves one tenant (ZELVO_TENANT) until custom domains arrive.
+ * A demo installation also lists its sample organisations in ZELVO_DEMO_TENANTS; visitors switch
+ * between them with the demo panel, which remembers the choice in the `zelvo-tenant` cookie.
  */
 export interface AuthConfig {
   appUrl: URL;
   tenant: string;
+  /** Demo installations: the sample organisations' tenants (empty otherwise). */
+  demoTenants: string[];
   issuer: URL;
   keycloakPublicUrl: string;
   keycloakInternalUrl: string;
@@ -23,9 +30,18 @@ function isLocalhost(url: URL): boolean {
   return url.hostname === "localhost" || url.hostname === "127.0.0.1" || url.hostname === "[::1]";
 }
 
-export function getAuthConfig(env: NodeJS.ProcessEnv = process.env): AuthConfig {
+/**
+ * The settings for `requestedTenant` (from the tenant cookie): one of the demo tenants in a demo
+ * installation, otherwise always ZELVO_TENANT.
+ */
+export function getAuthConfig(env: NodeJS.ProcessEnv = process.env, requestedTenant?: string | null): AuthConfig {
   const appUrl = new URL(env.APP_URL ?? "http://localhost:3000");
-  const tenant = env.ZELVO_TENANT ?? "default";
+  const defaultTenant = env.ZELVO_TENANT ?? "default";
+  const demoTenants = (env.ZELVO_DEMO_TENANTS ?? "")
+    .split(",")
+    .map((slug) => slug.trim())
+    .filter((slug) => slug.length > 0);
+  const tenant = pickTenant(requestedTenant, defaultTenant, demoTenants);
   const keycloakPublicUrl = (env.KEYCLOAK_PUBLIC_URL ?? "http://localhost:8180").replace(/\/+$/, "");
   const keycloakInternalUrl = (env.KEYCLOAK_INTERNAL_URL ?? keycloakPublicUrl).replace(/\/+$/, "");
   const issuer = new URL(`${keycloakPublicUrl}/realms/zelvo-${tenant}`);
@@ -33,6 +49,7 @@ export function getAuthConfig(env: NodeJS.ProcessEnv = process.env): AuthConfig 
   return {
     appUrl,
     tenant,
+    demoTenants,
     issuer,
     keycloakPublicUrl,
     keycloakInternalUrl,
@@ -46,4 +63,14 @@ export function getAuthConfig(env: NodeJS.ProcessEnv = process.env): AuthConfig 
     idleTimeoutSeconds: Number(env.SESSION_IDLE_TIMEOUT_SECONDS ?? 1800),
     absoluteTimeoutSeconds: Number(env.SESSION_ABSOLUTE_TIMEOUT_SECONDS ?? 43200),
   };
+}
+
+/** The settings for this request's tenant, in server components and server actions. */
+export async function getRequestAuthConfig(): Promise<AuthConfig> {
+  return getAuthConfig(process.env, (await cookies()).get(tenantCookieName)?.value);
+}
+
+/** The settings for this request's tenant, in route handlers and the proxy. */
+export function authConfigFor(request: NextRequest): AuthConfig {
+  return getAuthConfig(process.env, request.cookies.get(tenantCookieName)?.value);
 }

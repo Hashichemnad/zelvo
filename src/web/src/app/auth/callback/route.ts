@@ -1,12 +1,12 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { getCurrentUser, getSignInRefusal } from "@/lib/api";
-import { getAuthConfig } from "@/lib/auth/config";
+import { authConfigFor, getAuthConfig } from "@/lib/auth/config";
 import { getOidcConfiguration, oidc } from "@/lib/auth/oidc";
 import { pendingSignInKey, secretsMatch } from "@/lib/auth/security";
 import { cookieOptions, createSession, sessionCookieName, signInCookieName } from "@/lib/auth/session";
 import { getSessionStore } from "@/lib/auth/store";
 import { hasLanguagePrefix, languageCookieMaxAgeSeconds, languageCookieName, withLanguage } from "@/lib/localization";
-import type { PendingSignIn } from "../login/route";
+import type { PendingSignIn } from "@/lib/auth/sign-in";
 
 /**
  * Keycloak sends the browser back here. Checks state (bound to this browser by a cookie), PKCE
@@ -15,12 +15,14 @@ import type { PendingSignIn } from "../login/route";
  * Signed-in users then see their profile language, or else the tenant default (LANG-2).
  */
 export async function GET(request: NextRequest) {
-  const config = getAuthConfig();
+  const requestConfig = authConfigFor(request);
   const params = request.nextUrl.searchParams;
   const state = params.get("state");
-  const cookieState = request.cookies.get(signInCookieName(config))?.value;
-  const pendingRaw = state ? await getSessionStore(config.sessionStoreUrl).take(pendingSignInKey(state)) : null;
+  const cookieState = request.cookies.get(signInCookieName(requestConfig))?.value;
+  const pendingRaw = state ? await getSessionStore(requestConfig.sessionStoreUrl).take(pendingSignInKey(state)) : null;
   const pending = pendingRaw ? (JSON.parse(pendingRaw) as PendingSignIn) : null;
+  // Finish at the realm the sign-in started at (a demo installation serves several).
+  const config = pending?.tenant ? getAuthConfig(process.env, pending.tenant) : requestConfig;
   const locale = pending?.locale ?? "en";
 
   const problem = (reason: string) => {

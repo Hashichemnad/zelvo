@@ -1,6 +1,6 @@
 import "server-only";
 import { getCurrentUser, getLocalizationSettings, type DisplaySettings } from "./api";
-import { getAuthConfig } from "./auth/config";
+import { getRequestAuthConfig } from "./auth/config";
 import { getSession } from "./auth/session";
 import { toCalendarSystem, toDigitSystem, type CalendarSystem, type DigitSystem } from "./format";
 
@@ -17,7 +17,7 @@ const fallback: Omit<DisplaySettings, "language"> = { calendar: "Gregorian", dig
  * defaults, or the tenant defaults for visitors; Gregorian and Western digits if neither can be read.
  */
 export async function getDisplayFormat(): Promise<DisplayFormat> {
-  const config = getAuthConfig();
+  const config = await getRequestAuthConfig();
   const session = await getSession(config).catch(() => null);
   let settings: Omit<DisplaySettings, "language"> | null = null;
   if (session) {

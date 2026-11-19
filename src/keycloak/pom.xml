@@ -1,7 +1,8 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!--
   Zelvo Keycloak extensions. Only what Keycloak cannot do on its own: signing in with a one-time
-  code sent by email (product owner decision 2026-11-13). Built into the zelvo/keycloak image by
+  code sent by email (product owner decision 2026-11-13), UAE PASS sign-in steps (2026-11-18) and,
+  in demo installations only, one-click demo sign-in (2026-11-18). Built into the zelvo/keycloak image by
   the Dockerfile next to this file; `mvn verify` runs the tests.
 -->
 <project xmlns="http://maven.apache.org/POM/4.0.0"

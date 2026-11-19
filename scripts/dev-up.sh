@@ -1,6 +1,8 @@
 #!/usr/bin/env bash
 # Starts the whole Zelvo development stack with one command.
 # First run: creates deploy/compose/.env from .env.example with random passwords.
+# ZELVO_PROFILE=demo (make demo) starts the demo installation instead: its own Compose project
+# (zelvo-demo) with deploy/compose/compose.demo.yaml, so its data never mixes with development data.
 set -euo pipefail
 
 root="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
@@ -88,10 +90,27 @@ JSON
 
 # Run from the compose directory so a local compose.override.yaml (git-ignored) is picked up.
 cd "$compose_dir"
+if [[ "${ZELVO_PROFILE:-}" == "demo" ]]; then
+  export COMPOSE_PROJECT_NAME=zelvo-demo COMPOSE_FILE=compose.yaml:compose.demo.yaml
+fi
 docker compose up --build --detach --wait --wait-timeout "${ZELVO_WAIT_TIMEOUT:-900}" "$@"
 
 # shellcheck disable=SC1090
 set -a; source "$env_file"; set +a
+if [[ "${ZELVO_PROFILE:-}" == "demo" ]]; then
+  cat <<MSG
+
+The Zelvo demo is running:
+  Demo                http://localhost:${WEB_PORT:-3000}  (open "Demo" under the header to sign in
+                      as a demo user, switch organisation or reset the demo)
+  Sample organisations demo-municipality (government entity), demo-company (private company)
+  API readiness       http://localhost:${API_PORT:-8080}/health/ready
+
+Stop it with: make demo-down   (make demo-wipe also deletes its data)
+MSG
+  exit 0
+fi
+
 cat <<MSG
 
 Zelvo is running:

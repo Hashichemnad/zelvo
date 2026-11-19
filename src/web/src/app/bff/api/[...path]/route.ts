@@ -1,6 +1,6 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { apiFetch, forgetLocalizationSettings } from "@/lib/api";
-import { getAuthConfig } from "@/lib/auth/config";
+import { authConfigFor } from "@/lib/auth/config";
 import { isSameOriginRequest, secretsMatch } from "@/lib/auth/security";
 import { getSession } from "@/lib/auth/session";
 import { isLocale, languageCookieMaxAgeSeconds, languageCookieName } from "@/lib/localization";
@@ -11,7 +11,7 @@ import { isLocale, languageCookieMaxAgeSeconds, languageCookieName } from "@/lib
  * session's CSRF token in the `X-CSRF-Token` header.
  */
 async function forward(request: NextRequest, { params }: { params: Promise<{ path: string[] }> }) {
-  const config = getAuthConfig();
+  const config = authConfigFor(request);
   const { path } = await params;
   if (path[0] !== "v1" || path.some((part) => part === ".." || part === ".")) {
     return problem(404, "not-found");

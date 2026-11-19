@@ -7,7 +7,7 @@ import { getAuthConfig, type AuthConfig } from "./config";
  * this server reaches the same realm over the internal address, so requests to the public
  * address are sent to the internal one (the issuer stays the public address).
  */
-let cached: { key: string; configuration: Promise<oidc.Configuration> } | undefined;
+const cached = new Map<string, Promise<oidc.Configuration>>();
 
 function backchannelFetch(config: AuthConfig): oidc.CustomFetch {
   return (url, options) => {
@@ -19,10 +19,12 @@ function backchannelFetch(config: AuthConfig): oidc.CustomFetch {
 }
 
 export function getOidcConfiguration(config: AuthConfig = getAuthConfig()): Promise<oidc.Configuration> {
+  // One entry per realm: a demo installation serves a realm per sample organisation.
   const key = `${config.issuer.href}|${config.clientId}`;
-  if (cached?.key !== key) {
+  let configuration = cached.get(key);
+  if (!configuration) {
     const customFetch = backchannelFetch(config);
-    const configuration = oidc
+    configuration = oidc
       .discovery(config.issuer, config.clientId, undefined, oidc.ClientSecretPost(config.clientSecret), {
         execute: config.allowHttpIdentityProvider && config.issuer.protocol === "http:" ? [oidc.allowInsecureRequests] : [],
         [oidc.customFetch]: customFetch,
@@ -33,11 +35,11 @@ export function getOidcConfiguration(config: AuthConfig = getAuthConfig()): Prom
       });
     // Try again on the next request when discovery fails (for example Keycloak still starting).
     configuration.catch(() => {
-      cached = undefined;
+      cached.delete(key);
     });
-    cached = { key, configuration };
+    cached.set(key, configuration);
   }
-  return cached.configuration;
+  return configuration;
 }
 
 export { oidc };

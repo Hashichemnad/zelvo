@@ -1,6 +1,6 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { getSignInMethods } from "@/lib/api";
-import { getAuthConfig } from "@/lib/auth/config";
+import { authConfigFor } from "@/lib/auth/config";
 import { localeOf } from "@/lib/auth/security";
 
 /**
@@ -10,7 +10,7 @@ import { localeOf } from "@/lib/auth/security";
  * so this cannot redirect anywhere else.
  */
 export async function GET(request: NextRequest) {
-  const config = getAuthConfig();
+  const config = authConfigFor(request);
   const locale = localeOf(request.nextUrl.searchParams.get("locale"));
   const home = new URL(`/${locale}`, config.appUrl);
   const methods = await getSignInMethods(config.tenant);

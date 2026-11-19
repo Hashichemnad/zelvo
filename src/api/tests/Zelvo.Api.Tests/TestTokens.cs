@@ -118,4 +118,42 @@ internal sealed class FakeKeycloakAdmin : IKeycloakAdmin
         EmiratesIdCalls.Add((realm, subject, emiratesId));
         return Task.CompletedTask;
     }
+
+    /// <summary>Demo users by realm and username (email), with their Keycloak id.</summary>
+    public Dictionary<(string Realm, string Username), string> DemoUsers { get; } = [];
+
+    public List<(string Realm, IReadOnlySet<string> Keep)> DeleteCalls { get; } = [];
+
+    /// <summary>Keycloak keeps a user's id, so the fake gives the same id for the same realm and username.</summary>
+    public static string IdFor(string realm, string username) =>
+        new Guid(SHA256.HashData(System.Text.Encoding.UTF8.GetBytes($"{realm}|{username}"))[..16]).ToString();
+
+    public Task<string> EnsureDemoUserAsync(string realm, string email, string firstName, string lastName, CancellationToken cancellationToken)
+    {
+        if (Fail)
+        {
+            throw new KeycloakAdminException("Keycloak is down (test).");
+        }
+
+        lock (DemoUsers)
+        {
+            var id = IdFor(realm, email);
+            DemoUsers[(realm, email)] = id;
+            return Task.FromResult(id);
+        }
+    }
+
+    public Task<int> DeleteUsersExceptAsync(string realm, IReadOnlySet<string> keep, CancellationToken cancellationToken)
+    {
+        if (Fail)
+        {
+            throw new KeycloakAdminException("Keycloak is down (test).");
+        }
+
+        lock (DemoUsers)
+        {
+            DeleteCalls.Add((realm, keep));
+            return Task.FromResult(0);
+        }
+    }
 }

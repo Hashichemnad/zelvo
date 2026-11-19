@@ -245,5 +245,21 @@
       "uaePass": "UAE PASS",
       "uaePassDescription": "Sign-in with the UAE national digital identity: environment, client credentials and rules for staff and requesters."
     }
+  },
+  "demo": {
+    "title": "Demo",
+    "switchUser": "Sign in as a demo user",
+    "switchOrganisation": "Open another sample organisation",
+    "current": "signed in",
+    "kindGovernment": "Sample government entity",
+    "kindCompany": "Sample private company",
+    "lastReset": "Last reset: {date}",
+    "reset": "Reset demo",
+    "resetWarning": "This removes every change made in the demo, in all sample organisations, and restores the sample data. The audit log is kept.",
+    "resetConfirm": "Reset now",
+    "resetCancel": "Cancel",
+    "resetting": "Resetting…",
+    "resetDone": "The demo was reset.",
+    "resetFailed": "The demo could not be reset. Try again."
   }
 }

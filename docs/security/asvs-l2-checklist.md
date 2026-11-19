@@ -19,7 +19,7 @@ Main gaps found so far: web app without Content-Security-Policy and HSTS (V3.4);
 | V1.2.1 | 1 | V1.2 Injection Prevention | Not assessed |  |
 | V1.2.2 | 1 | V1.2 Injection Prevention | Not assessed |  |
 | V1.2.3 | 1 | V1.2 Injection Prevention | Not assessed |  |
-| V1.2.4 | 1 | V1.2 Injection Prevention | Met | EF Core and parameterised SQL only (`ExecuteSqlInterpolated` binds parameters); no string-built SQL. A1. |
+| V1.2.4 | 1 | V1.2 Injection Prevention | Met | EF Core and parameterised SQL only (`ExecuteSqlInterpolated` binds parameters); no SQL built from input. The one statement with a variable identifier, "Reset demo"'s `DELETE` (`DemoReset.DeleteStatement`), takes table names from the EF model only, checks them against `^[a-z_][a-z0-9_]*$` and binds the tenant id. A1, D. |
 | V1.2.5 | 1 | V1.2 Injection Prevention | Not applicable | No operating system commands are run with user input. |
 | V1.2.6 | 2 | V1.2 Injection Prevention | Open | LDAP: none yet; AD/LDAP connector in E7. |
 | V1.2.7 | 2 | V1.2 Injection Prevention | Not applicable | No XPath or LaTeX processing. |
@@ -67,14 +67,14 @@ Main gaps found so far: web app without Content-Security-Policy and HSTS (V3.4);
 | V3.3.1 | 1 | V3.3 Cookie Setup | Met | `__Host-` session and sign-in cookies, Secure outside local development (`src/web/src/lib/auth/session.ts`). A2. |
 | V3.3.2 | 2 | V3.3 Cookie Setup | Met | Session cookies `SameSite=Lax` (needed for the sign-in redirect); changes also need the CSRF token. A2. |
 | V3.3.3 | 2 | V3.3 Cookie Setup | Met | `__Host-` prefix on the session and sign-in cookies. A2. |
-| V3.3.4 | 2 | V3.3 Cookie Setup | Met | Session cookie is HttpOnly; tokens stay on the server (backend for frontend). A2. |
+| V3.3.4 | 2 | V3.3 Cookie Setup | Met | Session cookie is HttpOnly; tokens stay on the server (backend for frontend). The demo organisation cookie (`zelvo-tenant`) is HttpOnly too and only selects tenants listed in `ZELVO_DEMO_TENANTS`. A2, D. |
 | V3.4.1 | 1 | V3.4 Browser Security Mechanism Headers | Open | No HSTS yet: TLS is terminated by the proxy of the hardened install (F6), which adds it; the web app should also send it. |
 | V3.4.2 | 1 | V3.4 Browser Security Mechanism Headers | Not assessed |  |
 | V3.4.3 | 2 | V3.4 Browser Security Mechanism Headers | Partly met | The API sends a restrictive CSP (`SecurityHeadersMiddleware`); the web app has none yet (follow-up with F1 branding, which sets allowed sources). |
 | V3.4.4 | 2 | V3.4 Browser Security Mechanism Headers | Met | `X-Content-Type-Options: nosniff` on API and web responses. |
 | V3.4.5 | 2 | V3.4 Browser Security Mechanism Headers | Met | `Referrer-Policy: no-referrer` (API) and `strict-origin-when-cross-origin` (web). |
 | V3.4.6 | 2 | V3.4 Browser Security Mechanism Headers | Partly met | API: `frame-ancestors 'none'`; web: `X-Frame-Options: DENY` but no CSP yet (see V3.4.3). |
-| V3.5.1 | 1 | V3.5 Browser Origin Separation | Met | Changes through the web proxy need same origin and the session's CSRF token (e2e test). A2. |
+| V3.5.1 | 1 | V3.5 Browser Origin Separation | Met | Changes through the web proxy need same origin and the session's CSRF token (e2e test). The demo switch (`/auth/demo`, demo installations only) needs same origin and, when signed in, the CSRF token. A2, D. |
 | V3.5.2 | 1 | V3.5 Browser Origin Separation | Not assessed |  |
 | V3.5.3 | 1 | V3.5 Browser Origin Separation | Met | Changes use PUT/POST/DELETE; GET has no side effects. |
 | V3.5.4 | 2 | V3.5 Browser Origin Separation | Not assessed |  |
@@ -117,7 +117,7 @@ Main gaps found so far: web app without Content-Security-Policy and HSTS (V3.4);
 | --- | --- | --- | --- | --- |
 | V6.1.1 | 1 | V6.1 Authentication Documentation | Not assessed |  |
 | V6.1.2 | 2 | V6.1 Authentication Documentation | Not assessed |  |
-| V6.1.3 | 2 | V6.1 Authentication Documentation | Met | Sign-in pathways (password, email code, UAE PASS; second factor) documented in `docs/architecture/identity-access.md` and `uae-pass.md`. A2, D3. |
+| V6.1.3 | 2 | V6.1 Authentication Documentation | Met | Sign-in pathways (password, email code, UAE PASS; second factor) documented in `docs/architecture/identity-access.md` and `uae-pass.md`; the demo-only one-click sign-in in `demo-mode.md`. A2, D3, D. |
 | V6.2.1 | 1 | V6.2 Password Security | Met | Keycloak password policy on every tenant realm: at least 12 characters, not the username or email, not the last 3. A2. |
 | V6.2.2 | 1 | V6.2 Password Security | Not assessed |  |
 | V6.2.3 | 1 | V6.2 Password Security | Not assessed |  |
@@ -132,7 +132,7 @@ Main gaps found so far: web app without Content-Security-Policy and HSTS (V3.4);
 | V6.2.12 | 2 | V6.2 Password Security | Not assessed |  |
 | V6.3.1 | 1 | V6.3 General Authentication Security | Met | Keycloak brute-force protection on every tenant realm; A5 API rate limits. A2. |
 | V6.3.2 | 1 | V6.3 General Authentication Security | Partly met | No default accounts in Zelvo or tenant realms; Keycloak's bootstrap administrator in the master realm is temporary and must be replaced at install (F6). |
-| V6.3.3 | 2 | V6.3 General Authentication Security | Met | Second factor (authenticator app, or UAE PASS SOP2+ when the tenant allows) mandatory for staff roles, checked by the API from `acr`. A2, D3. |
+| V6.3.3 | 2 | V6.3 General Authentication Security | Met | Second factor (authenticator app, or UAE PASS SOP2+ when the tenant allows) mandatory for staff roles, checked by the API from `acr`. Exception by design: the demo sign-in step (`zelvo-demo-sign-in`) signs listed demo users in at `acr=mfa` without credentials; `migrate` adds it only to the realms of a demo installation (demo license, own database, sample organisations only), never to other installations. A2, D3, D. |
 | V6.3.4 | 2 | V6.3 General Authentication Security | Met | Sign-in pathways (password, email code, UAE PASS; second factor) documented in `docs/architecture/identity-access.md` and `uae-pass.md`. A2, D3. |
 | V6.4.1 | 1 | V6.4 Authentication Factor Lifecycle and Recovery | Not assessed |  |
 | V6.4.2 | 1 | V6.4 Authentication Factor Lifecycle and Recovery | Met | No password hints or secret questions. |
@@ -295,7 +295,7 @@ Main gaps found so far: web app without Content-Security-Policy and HSTS (V3.4);
 | V14.2.4 | 2 | V14.2 General Data Protection | Not assessed |  |
 | V14.3.1 | 1 | V14.3 Client-side Data Protection | Not assessed |  |
 | V14.3.2 | 2 | V14.3 Client-side Data Protection | Not assessed |  |
-| V14.3.3 | 2 | V14.3 Client-side Data Protection | Met | The browser stores only the session cookie and the language cookie. A2, A3. |
+| V14.3.3 | 2 | V14.3 Client-side Data Protection | Met | The browser stores only the session cookie and the language cookie, and in demo installations the chosen sample organisation. A2, A3, D. |
 
 ## V15 Secure Coding and Architecture
 

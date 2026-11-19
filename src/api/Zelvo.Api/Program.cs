@@ -3,6 +3,7 @@ using Zelvo.Api;
 using Zelvo.Api.Auditing;
 using Zelvo.Api.Commands;
 using Zelvo.Api.Conventions;
+using Zelvo.Api.Demo;
 using Zelvo.Api.Health;
 using Zelvo.Api.Identity;
 using Zelvo.Api.Localization;
@@ -64,6 +65,7 @@ builder.Services.AddSingleton<IMissingTranslationSource, TenantMissingTranslatio
 builder.Services.AddZelvoSearch(builder.Configuration);
 builder.Services.AddZelvoSecrets(builder.Configuration);
 builder.Services.AddZelvoRateLimiting(builder.Configuration);
+builder.Services.AddZelvoDemo();
 
 var app = builder.Build();
 
@@ -97,6 +99,7 @@ v1.MapUaePassEndpoints();
 v1.MapPreferenceEndpoints();
 v1.MapSettingsEndpoints();
 v1.MapSearchEndpoints();
+v1.MapDemoEndpoints();
 
 await app.RunAsync();
 return 0;
