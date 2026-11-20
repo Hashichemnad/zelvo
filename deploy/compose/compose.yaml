@@ -443,7 +443,7 @@ services:
   # Dashboards and alerts: http://localhost:3001 (GRAFANA_ADMIN_USER / GRAFANA_ADMIN_PASSWORD).
   grafana:
     <<: *restart
-    image: grafana/grafana:13.2.6
+    image: grafana/grafana:13.3.1
     environment:
       GF_SECURITY_ADMIN_USER: ${GRAFANA_ADMIN_USER:-admin}
       GF_SECURITY_ADMIN_PASSWORD: ${GRAFANA_ADMIN_PASSWORD:?set in .env}
