@@ -1,5 +1,5 @@
 version: 2
-# Zelvo stays on long-term-support runtimes (.NET 10 LTS, Node 22 LTS).
+# Zelvo stays on long-term-support runtimes (.NET 10 LTS, Node 24 LTS).
 # Major runtime upgrades are a stack change and need product owner approval,
 # so Dependabot only proposes minor and patch updates for them.
 updates:
@@ -18,6 +18,9 @@ updates:
         update-types: ["version-update:semver-major"]
       - dependency-name: "Npgsql.EntityFrameworkCore.PostgreSQL"
         update-types: ["version-update:semver-major"]
+      # OpenTelemetry majors change the telemetry pipeline (A5); upgrade by hand.
+      - dependency-name: "OpenTelemetry*"
+        update-types: ["version-update:semver-major"]
   - package-ecosystem: npm
     directories: [/src/web, /tests/e2e]
     schedule: { interval: weekly }
@@ -25,6 +28,9 @@ updates:
       npm: { patterns: ["*"] }
     ignore:
       - dependency-name: "@types/node"
+        update-types: ["version-update:semver-major"]
+      # OpenTelemetry majors change the telemetry pipeline (A5); upgrade by hand.
+      - dependency-name: "@opentelemetry/*"
         update-types: ["version-update:semver-major"]
       # TypeScript and ESLint majors wait until the Next.js lint toolchain
       # (eslint-config-next, typescript-eslint and its React/import/a11y
@@ -58,6 +64,14 @@ updates:
   - package-ecosystem: docker-compose
     directory: /deploy/compose
     schedule: { interval: weekly }
+    ignore:
+      # The UAE PASS mock runs in the official Node image; it follows the Node LTS line (PR #37
+      # proposed Node 26, which is not LTS).
+      - dependency-name: "node"
+        update-types: ["version-update:semver-major"]
+      # OpenTelemetry majors change the telemetry pipeline (A5); upgrade by hand.
+      - dependency-name: "otel/opentelemetry-collector*"
+        update-types: ["version-update:semver-major"]
   - package-ecosystem: github-actions
     directory: /
     schedule: { interval: weekly }
