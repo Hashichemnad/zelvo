@@ -9,7 +9,7 @@ COPY src ./src
 RUN mvn -B -q verify
 
 # Keep the version in step with keycloak.version in pom.xml (same patch version).
-FROM keycloak/keycloak:26.8.2 AS keycloak
+FROM keycloak/keycloak:26.8.2-2 AS keycloak
 
 # Operating system security updates. The upstream image (Red Hat UBI 9 micro) has no package
 # manager and can lag behind fixes, so its file system is upgraded from a full UBI 9 image using
