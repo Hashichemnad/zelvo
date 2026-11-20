@@ -60,7 +60,7 @@ scripts/         start and stop scripts
 | --- | --- | --- |
 | Backend | .NET 10 SDK, Docker (integration tests start PostgreSQL) | `dotnet build Zelvo.slnx`, `dotnet test --solution Zelvo.slnx`; new migration: `dotnet tool restore`, then `dotnet ef migrations add <Name> -p src/api/Zelvo.Data -s src/api/Zelvo.Data -o Migrations` |
 | Keycloak extension | Java 21, Maven | in `src/keycloak`: `mvn verify` (or `make test-keycloak`) |
-| Frontend | Node.js 22 | in `src/web`: `npm ci`, `npm run dev`, `npm run lint`, `npm run typecheck`, `npm test` |
-| End-to-end | Node.js 22, running stack | `make up`, then `make e2e` |
+| Frontend | Node.js 24 | in `src/web`: `npm ci`, `npm run dev`, `npm run lint`, `npm run typecheck`, `npm test` |
+| End-to-end | Node.js 24, running stack | `make up`, then `make e2e` |
 
 CI (`.github/workflows`) runs the backend, Keycloak extension and frontend builds and tests, starts the stack and runs the end-to-end and accessibility tests, builds the images, scans them with Grype, produces a CycloneDX SBOM per image, scans for secrets with Gitleaks, and runs CodeQL. Dependabot keeps dependencies current.

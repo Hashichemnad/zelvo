@@ -111,7 +111,7 @@ UAE PASS requires service providers to end the UAE PASS session when the user si
 
 ## Development mock
 
-`deploy/compose/uaepass-mock` is plain Node.js with no packages, run in the official `node:22-alpine` image.
+`deploy/compose/uaepass-mock` is plain Node.js with no packages, run in the official `node:24-alpine` image.
 
 - **Port.** It runs at `http://localhost:8095`.
 - **Credentials.** Client ID `zelvo-mock`; the client secret is `UAEPASS_MOCK_CLIENT_SECRET` in `deploy/compose/.env`.
