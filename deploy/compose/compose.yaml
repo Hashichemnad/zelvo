@@ -222,7 +222,7 @@ services:
   # Plain Node.js without packages, so the official image runs it as is.
   uaepass-mock:
     <<: *restart
-    image: node:22-alpine
+    image: node:26-alpine
     command: ["node", "/app/server.mjs"]
     user: node
     working_dir: /app
