@@ -34,6 +34,8 @@ make up
 
 **UAE PASS:** as `admin@zelvo.test`, open Settings → Sign-in → UAE PASS, choose "Development mock", client ID `zelvo-mock` and the secret `UAEPASS_MOCK_CLIENT_SECRET` from `deploy/compose/.env`, and save. The sign-in page then offers UAE PASS. See `docs/architecture/uae-pass.md`.
 
+**Incidents (B1):** requesters report incidents and follow them under "My incidents" (`/en/my-incidents`); staff work them under "Incidents" (`/en/incidents`); administrators set the priority matrix, on-hold reasons, number prefix, auto-close period and attachment rules in Settings. Attachments are scanned for malware by the `clamav` service before anyone can open them; ClamAV takes a minute or two to load its definitions after the first start, and files wait until then. Offline installations import definitions with `scripts/clamav-import-definitions.sh`. See `docs/architecture/tickets.md`.
+
 **Security in development (A5):** OpenSearch and RabbitMQ use TLS with a development CA (made by the one-off `certs` service) and one user per service; the master key that encrypts stored secrets is `deploy/compose/secrets/master.key` (created once, git-ignored, keep it: without it stored secrets cannot be decrypted). See `docs/architecture/security-baseline.md` and `docs/architecture/secrets-encryption.md`.
 
 **Demo installation:** `make demo` starts a separate demo (its own data; stop the development stack first with `make down`) with two sample organisations, a government entity and a private company. Open "Demo" under the header to sign in as any persona with one click, switch organisation, or, as the demo administrator, reset the demo. `make demo-down` stops it, `make demo-wipe` deletes its data. See `docs/architecture/demo-mode.md`.

@@ -6,9 +6,9 @@ Zelvo targets OWASP ASVS **Level 2** for every tenant (non-functional requiremen
 - Status: **Met** (with evidence), **Partly met**, **Open** (with the task expected to close it), **Not applicable**, **Not assessed** (not reviewed yet).
 - Evidence points to code, tests, architecture notes and build plan tasks (A1-F7 in `docs/phase1-build-plan.md`).
 
-**Summary (2026-11-18):** Met: 86 · Partly met: 15 · Open: 17 · Not applicable: 14 · Not assessed: 121.
+**Summary (2026-11-22):** Met: 94 · Partly met: 15 · Open: 8 · Not applicable: 15 · Not assessed: 121.
 
-Main gaps found so far: web app without Content-Security-Policy and HSTS (V3.4); TLS still to add for PostgreSQL, Valkey and internal HTTP (V12.3, F6); service passwords as environment variables rather than a secrets manager (V13.3.1, F6); password policy, breached-password checks and session management settings in Keycloak not yet reviewed (V6.2, V7); file handling (V5) arrives with attachments in B1.
+Main gaps found so far: web app without Content-Security-Policy and HSTS (V3.4); TLS still to add for PostgreSQL, Valkey and internal HTTP (V12.3, F6); service passwords as environment variables rather than a secrets manager (V13.3.1, F6); password policy, breached-password checks and session management settings in Keycloak not yet reviewed (V6.2, V7). File handling (V5) was added with attachments in B1.
 
 ## V1 Encoding and Sanitization
 
@@ -101,15 +101,15 @@ Main gaps found so far: web app without Content-Security-Policy and HSTS (V3.4);
 
 | Requirement | Level | Section | Status | Evidence and notes |
 | --- | --- | --- | --- | --- |
-| V5.1.1 | 2 | V5.1 File Handling Documentation | Open | No file uploads yet; attachments arrive with the ticket core in B1. |
-| V5.2.1 | 1 | V5.2 File Upload and Content | Open | No file uploads yet; attachments arrive with the ticket core in B1. |
-| V5.2.2 | 1 | V5.2 File Upload and Content | Open | No file uploads yet; attachments arrive with the ticket core in B1. |
-| V5.2.3 | 2 | V5.2 File Upload and Content | Open | No file uploads yet; attachments arrive with the ticket core in B1. |
-| V5.3.1 | 1 | V5.3 File Storage | Open | No file uploads yet; attachments arrive with the ticket core in B1. |
-| V5.3.2 | 1 | V5.3 File Storage | Open | No file uploads yet; attachments arrive with the ticket core in B1. |
-| V5.4.1 | 2 | V5.4 File Download | Open | No file uploads yet; attachments arrive with the ticket core in B1. |
-| V5.4.2 | 2 | V5.4 File Download | Open | No file uploads yet; attachments arrive with the ticket core in B1. |
-| V5.4.3 | 2 | V5.4 File Download | Open | No file uploads yet; attachments arrive with the ticket core in B1. |
+| V5.1.1 | 2 | V5.1 File Handling Documentation | Met | Permitted file types (an allowlist of types Zelvo can check, chosen per tenant), maximum size (tenant setting, 25 MB default, 100 MB installation maximum) and the handling of malicious files (scanned by ClamAV before download; infected files rejected, content deleted, audited) are documented in `docs/architecture/tickets.md` (B1). Zelvo never unpacks archives; ClamAV scans inside them within `MaxScanSize`. |
+| V5.2.1 | 1 | V5.2 File Upload and Content | Met | Tenant size limit checked per file and an endpoint request size limit of 101 MB (`IncidentAttachmentEndpoints`); clamd `StreamMaxLength` matches. Tests: `IncidentAttachmentTests.The_tenant_sets_the_largest_file_and_the_accepted_types`. |
+| V5.2.2 | 1 | V5.2 File Upload and Content | Met | Extension must be on the tenant's allowlist and the content must match the type (magic bytes; text must be UTF-8 without NUL) (`FileTypes`); the stored media type comes from the type, never the uploader. Tests: `Files_of_other_types_or_with_content_that_does_not_match_are_refused`, `TicketWorkflowTests.Content_must_match_the_file_type`. |
+| V5.2.3 | 2 | V5.2 File Upload and Content | Not applicable | Zelvo never decompresses uploaded archives; ClamAV scans inside them with its own limits (`MaxScanSize` 400 MB, default file and recursion limits). |
+| V5.3.1 | 1 | V5.3 File Storage | Met | Attachments are stored in PostgreSQL (`ticket_attachment_contents`, row-level security), never in a folder the web server serves or executes (B1, decision 2026-11-22). |
+| V5.3.2 | 1 | V5.3 File Storage | Met | No file system paths are built from user input; file names are cleaned of folders, control and bidirectional-override characters (`FileTypes.CleanFileName`, tested). |
+| V5.4.1 | 2 | V5.4 File Download | Met | Downloads use the stored, cleaned file name in `Content-Disposition: attachment` with RFC 6266 `filename*` encoding (ASP.NET Core `TypedResults.File`), plus `X-Content-Type-Options: nosniff` and `Content-Security-Policy: default-src 'none'; sandbox`. |
+| V5.4.2 | 2 | V5.4 File Download | Met | As V5.4.1: names are cleaned on upload and encoded per RFC 6266 on download. |
+| V5.4.3 | 2 | V5.4 File Download | Met | Every upload is scanned by ClamAV (on by default) before it can be downloaded; while the scanner is unavailable files stay unavailable (`AttachmentScanJob`). Tests: `IncidentAttachmentTests`, `RealClamAvTests` (against a real ClamAV), e2e `incidents.spec.ts` (EICAR rejected). |
 
 ## V6 Authentication
 
