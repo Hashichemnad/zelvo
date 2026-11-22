@@ -1,4 +1,5 @@
 import { getLocale, getTranslations } from "next-intl/server";
+import { Link } from "@/i18n/navigation";
 import { getCurrentUser, getDemo } from "@/lib/api";
 import { getRequestAuthConfig } from "@/lib/auth/config";
 import { getSession } from "@/lib/auth/session";
@@ -11,6 +12,7 @@ import { LanguageSwitcher } from "./LanguageSwitcher";
 
 export async function SiteHeader() {
   const t = await getTranslations("common");
+  const tIncidents = await getTranslations("incidents.nav");
   const config = await getRequestAuthConfig();
   const session = await getSession(config).catch(() => null);
   const user = session ? await getCurrentUser(session.data.accessToken, config.tenant) : null;
@@ -26,7 +28,27 @@ export async function SiteHeader() {
     <>
       <header className="border-b border-line bg-surface">
         <div className="mx-auto flex max-w-5xl flex-wrap items-center justify-between gap-4 px-4 py-3">
-          <span className="text-lg font-bold text-brand">{t("productName")}</span>
+          <div className="flex flex-wrap items-center gap-4">
+            <span className="text-lg font-bold text-brand">{t("productName")}</span>
+            {user && (
+              <nav aria-label={tIncidents("label")}>
+                <ul className="flex flex-wrap gap-3 text-sm font-semibold">
+                  <li>
+                    <Link href="/my-incidents" className="text-brand underline-offset-4 hover:underline">
+                      {tIncidents("myIncidents")}
+                    </Link>
+                  </li>
+                  {user.permissions.includes("incidents.read") && (
+                    <li>
+                      <Link href="/incidents" className="text-brand underline-offset-4 hover:underline">
+                        {tIncidents("incidents")}
+                      </Link>
+                    </li>
+                  )}
+                </ul>
+              </nav>
+            )}
+          </div>
           <div className="flex flex-wrap items-center gap-3">
             <AccountMenu
               userName={session ? (session.data.name ?? session.data.email ?? session.data.subject) : null}

@@ -139,6 +139,14 @@
       "translations": {
         "title": "Missing translations",
         "description": "Names and texts that do not yet have both an English and an Arabic version."
+      },
+      "incidents": {
+        "title": "Incidents",
+        "description": "Priority matrix, on-hold reasons, number prefix and when resolved incidents close."
+      },
+      "attachments": {
+        "title": "Attachments",
+        "description": "Largest file and accepted file types; malware scanning."
       }
     },
     "missingWarning": "{count, plural, one {# text is} other {# texts are}} missing a translation.",
@@ -164,7 +172,8 @@
       "total": "{count, plural, one {# text} other {# texts}}",
       "entityTypes": {
         "tenant": "Organisation",
-        "role": "Role"
+        "role": "Role",
+        "incident_settings": "Incident settings"
       },
       "fields": {
         "name": "Name"
@@ -244,6 +253,49 @@
       "intro": "Choose how people sign in to your organisation's Zelvo.",
       "uaePass": "UAE PASS",
       "uaePassDescription": "Sign-in with the UAE national digital identity: environment, client credentials and rules for staff and requesters."
+    },
+    "incidents": {
+      "intro": "These settings apply to every incident in your organisation. A changed matrix gives new priorities to incidents as they change.",
+      "matrix": "Priority matrix",
+      "matrixIntro": "Name the levels of impact and urgency (level 1 is the highest) and the five priorities, then choose the priority of each combination.",
+      "impacts": "Impact levels",
+      "urgencies": "Urgency levels",
+      "priorities": "Priorities",
+      "levelEn": "Level {level} in English",
+      "levelAr": "Level {level} in Arabic",
+      "matrixTable": "Priority of each combination of impact and urgency",
+      "impactUrgency": "Impact (rows) and urgency (columns)",
+      "cell": "Priority for impact {impact} and urgency {urgency}",
+      "reasons": "On-hold reasons",
+      "reasonsIntro": "Agents choose one of the active reasons when they put an incident on hold. Reasons in use can be made inactive but not removed.",
+      "reasonKey": "Key",
+      "reasonEn": "Name in English",
+      "reasonAr": "Name in Arabic",
+      "reasonActive": "Active",
+      "addReason": "Add a reason",
+      "removeReason": "Remove reason {key}",
+      "numbers": "Numbers and closing",
+      "prefix": "Incident number prefix",
+      "prefixHint": "Capital letters or digits, for example INC gives INC-000123. Numbers are never reused.",
+      "autoClose": "Close resolved incidents after (days)",
+      "autoCloseHint": "Requesters can reopen a resolved incident until it closes.",
+      "save": "Save",
+      "saving": "Saving…",
+      "saved": "The incident settings are saved.",
+      "failed": "The settings could not be saved. Check the values and try again.",
+      "inUse": "Incidents on hold use a reason you removed. Make it inactive instead."
+    },
+    "attachments": {
+      "intro": "Files people attach to incidents. Every file's content must match its type.",
+      "maxSize": "Largest file (MB)",
+      "maxSizeHint": "From 1 to 100 MB.",
+      "types": "Accepted file types",
+      "scanningOn": "Every file is checked for malware before anyone can open it. Files with malware are rejected and recorded in the audit log.",
+      "scanningOff": "Malware scanning is turned off for this installation. Files can be opened without being checked.",
+      "save": "Save",
+      "saving": "Saving…",
+      "saved": "The attachment settings are saved.",
+      "failed": "The settings could not be saved. Choose at least one file type and a size from 1 to 100 MB."
     }
   },
   "demo": {
@@ -261,5 +313,241 @@
     "resetting": "Resetting…",
     "resetDone": "The demo was reset.",
     "resetFailed": "The demo could not be reset. Try again."
+  },
+  "incidents": {
+    "nav": {
+      "label": "Main",
+      "myIncidents": "My incidents",
+      "incidents": "Incidents"
+    },
+    "title": "Incidents",
+    "intro": "Incidents reported by everyone in your organisation, newest first.",
+    "myTitle": "My incidents",
+    "myIntro": "Incidents you reported. Choose one to see how it is going.",
+    "report": "Report an incident",
+    "logIncident": "Log an incident",
+    "logTitle": "Log an incident",
+    "logIntro": "Log an incident for someone who called, wrote or came to the desk.",
+    "reportTitle": "Report an incident",
+    "reportIntro": "Tell us what is not working. You can attach screenshots or files once the incident is saved.",
+    "empty": "No incidents match these filters.",
+    "myEmpty": "You have not reported any incidents.",
+    "unavailable": "Incidents cannot be shown right now. Please try again shortly.",
+    "noAccess": "Your role does not include working on incidents.",
+    "notFound": "This incident does not exist, or you cannot see it.",
+    "backToList": "Back to incidents",
+    "backToMine": "Back to my incidents",
+    "count": "{count, plural, one {# incident} other {# incidents}}",
+    "filters": {
+      "label": "Filter incidents",
+      "state": "State",
+      "anyState": "Any state",
+      "openOnly": "Still open",
+      "priority": "Priority",
+      "anyPriority": "Any priority",
+      "assignee": "Assignee",
+      "anyone": "Anyone",
+      "me": "Me",
+      "nobody": "Nobody",
+      "major": "Major incidents only",
+      "apply": "Show"
+    },
+    "columns": {
+      "number": "Number",
+      "title": "Title",
+      "state": "State",
+      "priority": "Priority",
+      "requester": "Requester",
+      "assignee": "Assignee",
+      "updated": "Last updated"
+    },
+    "pagination": {
+      "label": "Pages",
+      "previous": "Previous page",
+      "next": "Next page",
+      "page": "Page {page} of {pages}"
+    },
+    "states": {
+      "New": "New",
+      "Assigned": "Assigned",
+      "InProgress": "In progress",
+      "OnHold": "On hold",
+      "Resolved": "Resolved",
+      "Closed": "Closed",
+      "Reopened": "Reopened"
+    },
+    "channels": {
+      "Portal": "Portal",
+      "Email": "Email",
+      "Chat": "Chat",
+      "WhatsApp": "WhatsApp",
+      "Phone": "Phone",
+      "Api": "Integration (API)"
+    },
+    "fields": {
+      "number": "Number",
+      "state": "State",
+      "priority": "Priority",
+      "impact": "Impact",
+      "urgency": "Urgency",
+      "requester": "Requester",
+      "assignee": "Assignee",
+      "channel": "Reported by",
+      "created": "Reported",
+      "updated": "Last updated",
+      "resolved": "Resolved",
+      "closed": "Closed",
+      "onHoldReason": "On hold because",
+      "resolutionNotes": "How it was resolved",
+      "description": "Description",
+      "reopenCount": "Times reopened",
+      "parent": "Part of",
+      "children": "Related incidents",
+      "followUpOf": "Follows up",
+      "noDescription": "No description.",
+      "unassigned": "Not assigned yet",
+      "major": "Major incident",
+      "majorSince": "Major incident since {date}"
+    },
+    "form": {
+      "title": "Title",
+      "titleHint": "A short summary, for example: The printer on floor 2 does not print.",
+      "description": "What happened?",
+      "descriptionHint": "What were you doing, what did you expect and what happened instead? Include any error message.",
+      "requester": "Requester",
+      "requesterSelf": "Myself",
+      "channel": "Reported by",
+      "impact": "Impact",
+      "urgency": "Urgency",
+      "assignee": "Assign to",
+      "nobody": "Nobody yet",
+      "priorityPreview": "Priority: {priority}",
+      "submit": "Report incident",
+      "submitStaff": "Log incident",
+      "submitting": "Saving…",
+      "failed": "The incident could not be saved. Please try again.",
+      "titleRequired": "Enter a title of at least 3 characters.",
+      "followUpOf": "Follow-up of {number}"
+    },
+    "work": {
+      "heading": "Work on this incident",
+      "assignee": "Assignee",
+      "assign": "Assign",
+      "state": "Change the state",
+      "moveTo": {
+        "InProgress": "Start work",
+        "OnHold": "Put on hold",
+        "Resolved": "Resolve",
+        "Closed": "Close",
+        "Reopened": "Reopen"
+      },
+      "reason": "On-hold reason",
+      "chooseReason": "Choose a reason",
+      "notes": "How was it resolved?",
+      "details": "Impact and urgency",
+      "saveDetails": "Save impact and urgency",
+      "parentNumber": "Part of incident (number)",
+      "parentHint": "For example INC-000123. Leave empty to remove the link.",
+      "saveParent": "Save link",
+      "parentNotFound": "No incident has that number.",
+      "major": "Major incident",
+      "declare": "Declare a major incident",
+      "standDown": "Stand down the major incident",
+      "saving": "Saving…",
+      "saved": "Saved.",
+      "failed": "The change could not be saved. Please try again.",
+      "errors": {
+        "transition-not-allowed": "The incident cannot move to that state from its current one.",
+        "assignee-required": "Assign the incident before starting work on it.",
+        "ticket-closed": "The incident is closed and can no longer change.",
+        "parent-has-parent": "That incident is itself part of another incident. Link to the main one instead.",
+        "incident-has-children": "This incident has related incidents of its own, so it cannot be part of another one.",
+        "version-mismatch": "Someone else changed this incident. The page now shows the latest version; repeat your change.",
+        "validation-failed": "Check the values you entered.",
+        "forbidden": "You do not have permission to do this."
+      }
+    },
+    "reopen": {
+      "hint": "Not fixed? You can reopen the incident until it closes; resolved incidents close automatically after a few days.",
+      "button": "Reopen incident",
+      "failed": "The incident could not be reopened. Please try again."
+    },
+    "closedNote": "This incident is closed. If the problem comes back, report a follow-up.",
+    "followUp": "Report a follow-up",
+    "attachments": {
+      "heading": "Attachments",
+      "none": "No files attached.",
+      "choose": "File to attach",
+      "limits": "Up to {size} MB. Accepted types: {types}.",
+      "upload": "Attach file",
+      "uploading": "Attaching…",
+      "uploaded": "Attached. The file can be opened once it has been checked for malware.",
+      "download": "Download {name}",
+      "remove": "Remove {name}",
+      "removed": "The file was removed.",
+      "uploadedBy": "{name}, {date}",
+      "status": {
+        "Pending": "Being checked for malware",
+        "Clean": "Checked",
+        "Infected": "Rejected: malware found",
+        "NotScanned": "Not checked (scanning is off)"
+      },
+      "errors": {
+        "attachment-too-large": "The file is too large.",
+        "attachment-type-not-allowed": "This type of file is not accepted.",
+        "attachment-content-mismatch": "The file's content does not match its type.",
+        "ticket-closed": "The incident is closed, so no files can be added or removed.",
+        "failed": "The file could not be attached. Please try again."
+      }
+    },
+    "timeline": {
+      "heading": "Updates on this major incident",
+      "none": "No updates yet.",
+      "english": "Update in English",
+      "arabic": "Update in Arabic",
+      "audience": "Who can read it",
+      "audiences": {
+        "Internal": "Staff only",
+        "Requesters": "Staff and the people affected"
+      },
+      "post": "Post update",
+      "posting": "Posting…",
+      "posted": "Posted.",
+      "failed": "The update could not be posted. Please try again.",
+      "empty": "Write the update in English or Arabic.",
+      "from": "On {number}",
+      "postedBy": "{name}, {date}"
+    },
+    "history": {
+      "heading": "History",
+      "none": "No changes yet.",
+      "system": "Zelvo",
+      "change": "{field}: {old} → {new}",
+      "empty": "(empty)",
+      "actions": {
+        "created": "Reported the incident",
+        "changed": "Changed the incident",
+        "tickets_attachment_added": "Attached {fileName}",
+        "tickets_attachment_removed": "Removed {fileName}",
+        "tickets_attachment_downloaded": "Downloaded {fileName}",
+        "tickets_attachment_infected": "Rejected {fileName}: malware found",
+        "incidents_update_posted": "Posted an update"
+      },
+      "fields": {
+        "title": "Title",
+        "description": "Description",
+        "state": "State",
+        "assigneeId": "Assignee",
+        "requesterId": "Requester",
+        "parentId": "Part of",
+        "impact": "Impact",
+        "urgency": "Urgency",
+        "priority": "Priority",
+        "isMajor": "Major incident",
+        "onHoldReason": "On-hold reason",
+        "resolutionNotes": "Resolution",
+        "reopenCount": "Times reopened"
+      }
+    }
   }
 }
