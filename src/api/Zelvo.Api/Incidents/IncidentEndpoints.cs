@@ -128,6 +128,12 @@ internal static partial class IncidentEndpoints
             tickets = tickets.Where(t => t.RequesterId == me);
         }
 
+        if (query.Number is { Length: > 0 } number)
+        {
+            var wanted = number.Trim().ToUpperInvariant();
+            tickets = tickets.Where(t => t.Number == wanted);
+        }
+
         if (query.State is { } state)
         {
             tickets = tickets.Where(t => t.State == state);
@@ -170,7 +176,7 @@ internal static partial class IncidentEndpoints
         var json = new JsonObject
         {
             ["items"] = new JsonArray([.. page.Select(t => (JsonNode)View(user, t, IncidentResponse.From(t, user, parents.GetValueOrDefault(t.ParentId ?? Guid.Empty), null, [])))]),
-            ["page"] = query.Number,
+            ["page"] = query.PageNumber,
             ["pageSize"] = query.Size,
             ["totalCount"] = total,
         };
@@ -586,7 +592,28 @@ internal static partial class IncidentEndpoints
             .OrderByDescending(e => e.Sequence).Take(1000)
             .ToListAsync(cancellationToken);
         events.Reverse();
-        return TypedResults.Ok(events.Select(e => HistoryEntryResponse.From(e, user)).ToList());
+
+        // People and incidents are shown by name and number rather than by id.
+        var entries = events.Select(e => HistoryEntryResponse.From(e, user)).ToList();
+        var ids = entries.SelectMany(e => e.Changes ?? [])
+            .Where(c => HistoryEntryResponse.ReferenceFields.Contains(c.Key))
+            .SelectMany(c => new[] { c.Value?["old"], c.Value?["new"] })
+            .Select(v => v?.GetValueKind() == JsonValueKind.String && Guid.TryParse(v.GetValue<string>(), out var g) ? g : Guid.Empty)
+            .Where(g => g != Guid.Empty).Distinct().ToList();
+        var people = await Names(db, ids, cancellationToken);
+        var numbers = await db.Tickets.AsNoTracking().Where(t => ids.Contains(t.Id)).ToDictionaryAsync(t => t.Id, t => t.Number, cancellationToken);
+        foreach (var change in entries.SelectMany(e => e.Changes ?? []).Where(c => HistoryEntryResponse.ReferenceFields.Contains(c.Key)).ToList())
+        {
+            foreach (var side in new[] { "old", "new" })
+            {
+                if (change.Value?[side] is JsonValue value && value.GetValueKind() == JsonValueKind.String && Guid.TryParse(value.GetValue<string>(), out var referenced))
+                {
+                    change.Value[side] = people.TryGetValue(referenced, out var name) ? name : numbers.GetValueOrDefault(referenced, referenced.ToString());
+                }
+            }
+        }
+
+        return TypedResults.Ok(entries);
     }
 
     // --- Shared helpers ---
@@ -784,6 +811,9 @@ internal sealed record HistoryEntryResponse(
     long Sequence, DateTimeOffset OccurredAt, AuditCategory Category, string Action, string? EntityType,
     AuditActorType ActorType, string? ActorName, JsonObject? Changes, JsonObject? Details)
 {
+    /// <summary>Fields holding the id of a person or an incident.</summary>
+    internal static readonly HashSet<string> ReferenceFields = new(StringComparer.Ordinal) { "assigneeId", "requesterId", "majorDeclaredById", "parentId", "followUpOfId", "createdById" };
+
     private static readonly Dictionary<string, string> FieldOf = new(StringComparer.Ordinal)
     {
         ["assigneeId"] = "assignee",
@@ -813,6 +843,10 @@ internal sealed record HistoryEntryResponse(
 /// <summary>Filters of the incident list. Requesters' lists are always their own incidents.</summary>
 public sealed class IncidentListQuery
 {
+    /// <summary>Only the incident with this number, for example <c>INC-000123</c>.</summary>
+    [MaxLength(Ticket.NumberMaxLength)]
+    public string? Number { get; init; }
+
     /// <summary>Only this state.</summary>
     public TicketState? State { get; init; }
 
@@ -844,11 +878,11 @@ public sealed class IncidentListQuery
     [Range(1, PageQuery.MaxPageSize)]
     public int? PageSize { get; init; }
 
-    internal int Number => Page ?? 1;
+    internal int PageNumber => Page ?? 1;
 
     internal int Size => PageSize ?? PageQuery.DefaultPageSize;
 
-    internal int Skip => (Number - 1) * Size;
+    internal int Skip => (PageNumber - 1) * Size;
 }
 
 /// <summary>A new incident.</summary>

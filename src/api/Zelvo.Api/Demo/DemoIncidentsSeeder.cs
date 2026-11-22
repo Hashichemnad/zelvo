@@ -50,8 +50,9 @@ internal sealed class DemoIncidentsSeeder : IDemoSeeder
         var indexer = context.Get<ISearchIndexer>();
         var matrix = await settings.GetAsync(IncidentSettings.PriorityMatrix, cancellationToken).ConfigureAwait(false);
         var prefixes = await settings.GetAsync(IncidentSettings.NumberPrefixes, cancellationToken).ConfigureAwait(false);
-        var users = await db.Users.AsNoTracking().ToDictionaryAsync(u => u.Email ?? string.Empty, u => u.Id, StringComparer.OrdinalIgnoreCase, cancellationToken)
-            .ConfigureAwait(false);
+        var users = (await db.Users.AsNoTracking().Where(u => u.Email != null).Select(u => new { u.Email, u.Id }).ToListAsync(cancellationToken).ConfigureAwait(false))
+            .GroupBy(u => u.Email!, StringComparer.OrdinalIgnoreCase)
+            .ToDictionary(g => g.Key, g => g.First().Id, StringComparer.OrdinalIgnoreCase);
         Guid UserId(string persona) => users[context.Organisation.UsernameOf(context.Organisation.User(persona)!)];
 
         var government = context.Organisation.Kind == DemoOrganisationKind.Government;
