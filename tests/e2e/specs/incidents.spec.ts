@@ -106,8 +106,8 @@ test.describe("incidents", () => {
   test("requesters cannot open the staff incident list or other people's incidents", async ({ page }) => {
     await signInWithPassword(page, devUser("requester"));
     await page.goto("/en/incidents");
-    await expect(page.getByRole("alert")).toContainText("Your role does not include working on incidents.");
+    await expect(page.locator("main").getByRole("alert")).toContainText("Your role does not include working on incidents.");
     await page.goto("/en/my-incidents/0195f000-0000-7000-8000-000000000999");
-    await expect(page.getByRole("alert")).toContainText("does not exist, or you cannot see it");
+    await expect(page.locator("main").getByRole("alert")).toContainText("does not exist, or you cannot see it");
   });
 });
