@@ -607,7 +607,7 @@ Operating system: Linux (Ubuntu Server LTS or Red Hat Enterprise Linux). Attachm
 - Attachments are stored in PostgreSQL, behind a storage interface, so they are isolated per tenant by row-level security and included in database backups. S3-compatible object storage is added as an option for medium and large installations in the release packaging task (F6).
 - Every uploaded file is scanned with ClamAV (GPL-2.0, shipped unmodified as its official image). Scanning is on by default. A file cannot be downloaded until it has been scanned clean; infected files are rejected, their content is deleted and the rejection is audited.
 - Installations without internet access update the malware definitions offline by importing definition files; installations with internet access update them automatically.
-- ClamAV needs about 2 GB of memory with the full definitions loaded (up to about 3 GB briefly while new definitions are loaded); the server sizes above include it. Attachment storage grows with use and is planned per customer.
+- ClamAV needs about 1–1.5 GB of memory with the full definitions loaded, and briefly about twice that while it loads new definitions; the server sizes above include it. Attachment storage grows with use and is planned per customer.
 
 ## Differentiators and roadmap
 

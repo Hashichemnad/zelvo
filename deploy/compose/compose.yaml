@@ -304,6 +304,8 @@ services:
       # Development: every local browser reaches the stack from one address (the Docker gateway),
       # so visitors share one limit; installs keep the default of 120 a minute per address.
       RateLimiting__VisitorPermits: ${ZELVO_RATE_LIMIT_VISITORS:-1200}
+      # New attachments wait for the worker's malware scan unless scanning is off (B1).
+      AttachmentScanning__Enabled: ${ZELVO_ATTACHMENT_SCANNING:-true}
     secrets: [zelvo-master-key]
     volumes: [*ca-volume]
     ports:
@@ -347,6 +349,11 @@ services:
       Search__Username: zelvo-worker
       Search__Password: ${OPENSEARCH_WORKER_PASSWORD}
       Search__CaFile: /run/certs/ca.crt
+      # Tickets (B1): malware scanning of attachments with ClamAV (on unless set to false), and
+      # closing resolved tickets after the tenant's auto-close period.
+      AttachmentScanning__Enabled: ${ZELVO_ATTACHMENT_SCANNING:-true}
+      AttachmentScanning__Host: clamav
+      AttachmentScanning__Port: "3310"
       <<: [*secrets-env, *telemetry-env]
     secrets: [zelvo-master-key]
     volumes: [*ca-volume]
@@ -355,12 +362,32 @@ services:
       postgres: { condition: service_healthy }
       rabbitmq: { condition: service_healthy }
       opensearch: { condition: service_healthy }
+      # Not "healthy": ClamAV can take minutes to load its definitions, and files simply wait.
+      clamav: { condition: service_started }
     healthcheck:
       test: ["CMD-SHELL", "find /tmp/zelvo-worker.heartbeat -mmin -1 | grep -q ."]
       interval: 10s
       timeout: 5s
       retries: 12
       start_period: 15s
+
+  # Malware scanning of attachments (B1, product owner decision 2026-11-22): the official ClamAV
+  # image, unmodified (GPL-2.0). It ships with malware definitions and keeps them up to date with
+  # freshclam when it can reach the internet. Offline installations set CLAMAV_NO_FRESHCLAMD=true
+  # and import definition files with scripts/clamav-import-definitions.sh. Needs about 1-1.5 GB
+  # of memory, briefly about twice that while it loads new definitions.
+  clamav:
+    <<: *restart
+    image: clamav/clamav:1.5.3
+    environment:
+      CLAMAV_NO_FRESHCLAMD: ${CLAMAV_NO_FRESHCLAMD:-false}
+      # Room for the largest attachment a tenant can allow (100 MB).
+      CLAMD_CONF_StreamMaxLength: 105M
+      CLAMD_CONF_MaxFileSize: 105M
+      CLAMD_CONF_MaxScanSize: 400M
+    volumes:
+      - clamav-db:/var/lib/clamav
+    # The image's own health check (clamdcheck.sh) applies; only the worker connects, inside the network.
 
   web:
     <<: *restart
@@ -481,6 +508,7 @@ volumes:
   loki-data:
   grafana-data:
   certs:
+  clamav-db:
 
 secrets:
   zelvo-master-key:
