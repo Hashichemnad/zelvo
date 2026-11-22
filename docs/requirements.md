@@ -106,6 +106,11 @@ Phase 1 delivers fifteen modules; each is listed with its key requirements and o
 - Assignment to groups and agents by rules (category, location, language, skill) or round-robin.
 - Parent/child linking, a major-incident flag with a dedicated communication timeline.
 - Full audit history of every field change.
+- Ticket numbers per record type, for example `INC-000123`: the prefix of each record type is a tenant setting, and numbers are never reset or reused (product owner decision 2026-11-22).
+- Priority matrix: 3 impact × 3 urgency levels giving priorities P1–P5 by default; administrators can change the level names and which priority each combination gives (2026-11-22).
+- Reopening: a resolved incident can be reopened by its requester or an agent until it is closed. Resolved incidents close automatically after a period that is a tenant setting (default 5 calendar days). Closed is final; a follow-up becomes a new incident linked to the old one (2026-11-22).
+- Attachments on tickets (2026-11-22): the maximum file size is a tenant setting (default 25 MB) and only file types on an allowlist (also a tenant setting) are accepted. Every file is scanned for malware before anyone can open it; infected files are rejected and audited. See *Attachment storage and malware scanning* under the non-functional requirements.
+- Requesters get simple "My incidents" and "Report an incident" pages in Phase 1, built so the self-service portal (module 4) can reuse them (2026-11-22).
 - *Story:* As an agent, I want related incidents grouped under one parent, so that I resolve and notify them together.
 
 ### 2. Service requests and catalog
@@ -596,6 +601,13 @@ Security and tenant isolation are release blockers: Phase 1 does not go live unt
 | Large | More than 300 | Kubernetes cluster: 5 or more application nodes, database primary + replica, separate search nodes | Sized per customer |
 
 Operating system: Linux (Ubuntu Server LTS or Red Hat Enterprise Linux). Attachment storage grows with use and is planned separately. A customer that hosts its own AI model needs a separate GPU server sized for that model.
+
+**Attachment storage and malware scanning** (product owner decision 2026-11-22)
+
+- Attachments are stored in PostgreSQL, behind a storage interface, so they are isolated per tenant by row-level security and included in database backups. S3-compatible object storage is added as an option for medium and large installations in the release packaging task (F6).
+- Every uploaded file is scanned with ClamAV (GPL-2.0, shipped unmodified as its official image). Scanning is on by default. A file cannot be downloaded until it has been scanned clean; infected files are rejected, their content is deleted and the rejection is audited.
+- Installations without internet access update the malware definitions offline by importing definition files; installations with internet access update them automatically.
+- ClamAV needs about 2 GB of memory with the full definitions loaded (up to about 3 GB briefly while new definitions are loaded); the server sizes above include it. Attachment storage grows with use and is planned per customer.
 
 ## Differentiators and roadmap
 
