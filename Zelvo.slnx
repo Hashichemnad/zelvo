@@ -8,6 +8,7 @@
     <Project Path="src/api/Zelvo.Observability/Zelvo.Observability.csproj" />
     <Project Path="src/api/Zelvo.Search/Zelvo.Search.csproj" />
     <Project Path="src/api/Zelvo.Secrets/Zelvo.Secrets.csproj" />
+    <Project Path="src/api/Zelvo.Tickets/Zelvo.Tickets.csproj" />
   </Folder>
   <Folder Name="/src/worker/">
     <Project Path="src/worker/Zelvo.Worker/Zelvo.Worker.csproj" />
