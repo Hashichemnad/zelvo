@@ -1,5 +1,6 @@
 using Zelvo.Data.Identity;
 using Zelvo.Data.Localization;
+using Zelvo.Tickets;
 
 namespace Zelvo.Api.Identity;
 
@@ -35,6 +36,21 @@ internal static class Permissions
 
     /// <summary>Demo installations only: "Reset demo" (task D). Has no effect elsewhere.</summary>
     public const string DemoReset = "demo.reset";
+
+    /// <summary>See every incident (module 1). Requesters always see their own without it.</summary>
+    public const string IncidentsRead = IncidentPermissions.Read;
+
+    /// <summary>Log incidents on behalf of others, from any channel.</summary>
+    public const string IncidentsCreate = IncidentPermissions.Create;
+
+    /// <summary>Change incidents: details, state, parent and child links.</summary>
+    public const string IncidentsEdit = IncidentPermissions.Edit;
+
+    /// <summary>Assign incidents to agents.</summary>
+    public const string IncidentsAssign = IncidentPermissions.Assign;
+
+    /// <summary>Declare major incidents and post to their communication timeline.</summary>
+    public const string IncidentsMajor = IncidentPermissions.Major;
 }
 
 /// <summary>A field of a resource that field rules can hide or make read-only.</summary>
@@ -80,6 +96,11 @@ internal static class PermissionCatalog
         Permissions.SettingsManage,
         Permissions.SearchManage,
         Permissions.DemoReset,
+        Permissions.IncidentsRead,
+        Permissions.IncidentsCreate,
+        Permissions.IncidentsEdit,
+        Permissions.IncidentsAssign,
+        Permissions.IncidentsMajor,
     ];
 
     public static ResourceDefinition Users { get; } = new(
@@ -96,23 +117,40 @@ internal static class PermissionCatalog
             new FieldDefinition("lastSeenAt"),
         ]);
 
-    public static IReadOnlyList<ResourceDefinition> Resources { get; } = [Users];
+    /// <summary>Incidents (module 1), as staff see them. Requesters see their own through a fixed, smaller view.</summary>
+    public static ResourceDefinition Incidents { get; } = new(
+        "incidents",
+        Permissions.IncidentsRead,
+        Permissions.IncidentsEdit,
+        [
+            new FieldDefinition("title", Writable: true),
+            new FieldDefinition("description", Writable: true),
+            new FieldDefinition("impact", Writable: true),
+            new FieldDefinition("urgency", Writable: true),
+            new FieldDefinition("priority"),
+            new FieldDefinition("requester"),
+            new FieldDefinition("assignee"),
+            new FieldDefinition("channel"),
+            new FieldDefinition("resolutionNotes"),
+        ]);
+
+    public static IReadOnlyList<ResourceDefinition> Resources { get; } = [Users, Incidents];
 
     public static IReadOnlyList<RoleDefaults> Roles { get; } =
     [
         new(BuiltInRoles.Requester, new LocalizedText("Requester", "مقدّم الطلب"), [], new Dictionary<string, FieldAccess>()),
         new(BuiltInRoles.Agent, new LocalizedText("Agent", "موظف الدعم"),
-            [Permissions.UsersRead],
+            [Permissions.UsersRead, Permissions.IncidentsRead, Permissions.IncidentsCreate, Permissions.IncidentsEdit, Permissions.IncidentsAssign],
             new Dictionary<string, FieldAccess> { ["users.email"] = FieldAccess.Read }),
         new(BuiltInRoles.TeamLead, new LocalizedText("Team lead", "قائد الفريق"),
-            [Permissions.UsersRead],
+            [Permissions.UsersRead, Permissions.IncidentsRead, Permissions.IncidentsCreate, Permissions.IncidentsEdit, Permissions.IncidentsAssign, Permissions.IncidentsMajor],
             new Dictionary<string, FieldAccess> { ["users.email"] = FieldAccess.Read }),
         new(BuiltInRoles.Approver, new LocalizedText("Approver", "المعتمِد"), [], new Dictionary<string, FieldAccess>()),
         new(BuiltInRoles.TenantAdmin, new LocalizedText("Tenant administrator", "مسؤول الجهة"),
             All,
             new Dictionary<string, FieldAccess> { ["users.email"] = FieldAccess.Read, ["users.emiratesId"] = FieldAccess.Edit }),
         new(BuiltInRoles.ExecutiveAuditor, new LocalizedText("Executive / auditor", "تنفيذي / مدقق"),
-            [Permissions.AuditRead, Permissions.UsersRead],
+            [Permissions.AuditRead, Permissions.UsersRead, Permissions.IncidentsRead],
             new Dictionary<string, FieldAccess> { ["users.email"] = FieldAccess.Read }),
     ];
 
