@@ -170,4 +170,17 @@ test.describe("settings and localization", () => {
 
     await expect(page).toHaveURL(/\/realms\/zelvo-[a-z0-9-]+\/protocol\/openid-connect\/auth/);
   });
+
+  test("Settings → Incidents and Settings → Attachments are accessible in both languages (module 1)", async ({ page }) => {
+    await signInWithPassword(page, devUser("admin"));
+    await completeSecondFactor(page, devUser("admin"));
+    for (const locale of ["en", "ar"] as const) {
+      await page.goto(`/${locale}/settings/incidents`);
+      await expect(page.getByTestId("incident-settings")).toBeVisible();
+      await expectAccessible(page);
+      await page.goto(`/${locale}/settings/attachments`);
+      await expect(page.getByTestId("attachment-settings")).toBeVisible();
+      await expectAccessible(page);
+    }
+  });
 });
