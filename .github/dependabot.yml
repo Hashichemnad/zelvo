@@ -32,6 +32,18 @@ updates:
       # OpenTelemetry majors change the telemetry pipeline (A5); upgrade by hand.
       - dependency-name: "@opentelemetry/*"
         update-types: ["version-update:semver-major"]
+      # @vercel/otel 2.3 (the web app's OpenTelemetry setup) accepts only @opentelemetry/api < 1.10,
+      # the 0.2xx experimental packages and the 2.x SDK packages; @opentelemetry/api 1.10 and
+      # instrumentation 0.30x need SDK 3.x (PR #50 failed `npm ci`). Hold them until a
+      # @vercel/otel release accepts them, then upgrade the whole set by hand.
+      - dependency-name: "@opentelemetry/api"
+        versions: [">=1.10.0"]
+      - dependency-name: "@opentelemetry/api-logs"
+        versions: [">=0.300.0"]
+      - dependency-name: "@opentelemetry/instrumentation"
+        versions: [">=0.300.0"]
+      - dependency-name: "@opentelemetry/sdk-logs"
+        versions: [">=0.300.0"]
       # TypeScript and ESLint majors wait until the Next.js lint toolchain
       # (eslint-config-next, typescript-eslint and its React/import/a11y
       # plugins) supports them. TypeScript 7 fails `npm run lint` outright
@@ -75,3 +87,7 @@ updates:
   - package-ecosystem: github-actions
     directory: /
     schedule: { interval: weekly }
+    groups:
+      # codeql-action/init and codeql-action/analyze must stay on the same version.
+      codeql-action:
+        patterns: ["github/codeql-action*"]

@@ -43,6 +43,7 @@ Changing any of these needs the product owner's approval.
 - Every create, change, admin action and view of sensitive data writes to the audit log.
 - Mask personal data before any text is sent to an AI provider.
 - **Never commit secrets:** no passwords, API keys, tokens, certificates or private keys. Use environment variables and `.env` files, which are git-ignored. Commit only `.env.example` files with placeholder values.
+- **Tests never contain secret-looking literals** (API keys, tokens, passwords, private keys, connection strings with credentials, values like `sk-...`), even made-up ones: they trip secret scanning and teach readers to ignore it. Tests generate such values at run time (for example `RandomNumberGenerator`, `Guid.NewGuid()`, `crypto.randomUUID()`) or build them from obviously harmless parts. Never add a test value to `.gitleaksignore`; change the test instead.
 
 ### Licensing code stays out of this repository
 - This repository is public during development. The license verification code, license signing tool and signing keys live in a separate **private** repository (`zelvo-licensing`), which is brought into the build only at release time.
@@ -159,3 +160,5 @@ Update this at the end of every task.
 | 2026-11-22 | B1: resolved incidents can be **reopened** by the requester or an agent until closed; they **close automatically** after a tenant-set period (default 5 calendar days; business days come with B3 calendars); **Closed is final** and a follow-up is a new incident linked to the old one. |
 | 2026-11-22 | B1: default **priority matrix 3 impact × 3 urgency → P1–P5**, level names and mapping editable by administrators. |
 | 2026-11-22 | B1: simple **"My incidents" and "Report an incident"** pages for requesters now (bilingual, accessible), built as components the portal (D2) reuses. |
+| 2026-11-23 | CI secret scanning: **pull requests scan only their own commits** (`origin/<base>..HEAD`); pushes to `main` keep the full-history scan. Tests never contain secret-looking literals and generate them at run time (rule under Security). |
+| 2026-11-23 | Dependabot: `github/codeql-action` (init and analyze) updates as one group. The web app's OpenTelemetry packages stay on the set `@vercel/otel` 2.3 accepts (`@opentelemetry/api` < 1.10, experimental packages < 0.300, SDK 2.x); PR #50's other updates (next-intl 4.15.3, openid-client 6.9.1, jest-dom 8, vitest 5.1.1) were taken by hand. |
