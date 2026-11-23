@@ -52,7 +52,8 @@ test.describe("AI settings", () => {
     // A feature with a provider and model.
     const tabs = page.getByRole("navigation", { name: "AI pages" });
     await tabs.getByRole("link", { name: "Features" }).click();
-    const summary = page.getByTestId("ai-feature-summary");
+    await expect(page).toHaveURL(/\/en\/settings\/ai\/features$/);
+    const summary = page.getByTestId("ai-features-panel").getByTestId("ai-feature-summary");
     await summary.getByRole("checkbox", { name: "On" }).check();
     await summary.getByLabel("Provider").selectOption({ label: name });
     await summary.getByLabel("Model").fill("zelvo-mock-strong");
@@ -62,24 +63,29 @@ test.describe("AI settings", () => {
 
     // A price and a monthly limit.
     await tabs.getByRole("link", { name: "Prices" }).click();
-    await page.getByLabel("Provider").selectOption({ label: name });
-    await page.getByLabel("Model").fill("zelvo-mock-fast");
-    await page.getByLabel("Input, USD per million tokens").fill("1");
-    await page.getByLabel("Output, USD per million tokens").fill("5");
-    await page.getByRole("button", { name: "Save price" }).click();
-    await expect(page.getByTestId("ai-price-row").filter({ hasText: "zelvo-mock-fast" }).first()).toBeVisible();
+    await expect(page).toHaveURL(/\/en\/settings\/ai\/prices$/);
+    const prices = page.getByTestId("ai-prices-panel");
+    await prices.getByLabel("Provider").selectOption({ label: name });
+    await prices.getByLabel("Model").fill("zelvo-mock-fast");
+    await prices.getByLabel("Input, USD per million tokens").fill("1");
+    await prices.getByLabel("Output, USD per million tokens").fill("5");
+    await prices.getByRole("button", { name: "Save price" }).click();
+    await expect(prices.getByTestId("ai-price-row").filter({ hasText: "zelvo-mock-fast" }).first()).toBeVisible();
     await expectAccessible(page);
 
     await tabs.getByRole("link", { name: "Usage and cost" }).click();
-    await page.getByLabel("Limit in US dollars").fill("250");
-    await page.getByRole("button", { name: "Save limit" }).click();
+    await expect(page).toHaveURL(/\/en\/settings\/ai\/usage$/);
+    const usage = page.getByTestId("ai-usage-panel");
+    await usage.getByLabel("Limit in US dollars").fill("250");
+    await usage.getByRole("button", { name: "Save limit" }).click();
     await expect(page.getByTestId("ai-budget")).toContainText("$250.00");
     await expect(page.getByTestId("ai-usage-totals")).toBeVisible();
     await expectAccessible(page);
 
     // The test call is in the AI log.
     await tabs.getByRole("link", { name: "AI log" }).click();
-    const row = page.getByTestId("ai-log-row").filter({ hasText: "Connection test" }).first();
+    await expect(page).toHaveURL(/\/en\/settings\/ai\/log$/);
+    const row = page.getByTestId("ai-log").getByTestId("ai-log-row").filter({ hasText: "Connection test" }).first();
     await expect(row).toContainText("Succeeded");
     await row.getByRole("button", { name: "Details" }).click();
     await expect(row).toContainText("Sent (personal data masked)");
