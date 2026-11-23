@@ -80,6 +80,9 @@ public enum AuditCategory
 
     /// <summary>A security event, for example a refused access.</summary>
     Security,
+
+    /// <summary>An AI call (module 9: "every AI action is logged"), whether it was sent or not.</summary>
+    Ai,
 }
 
 /// <summary>Kinds of actors.</summary>

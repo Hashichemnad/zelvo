@@ -23,6 +23,325 @@ namespace Zelvo.Data.Migrations
 
             NpgsqlModelBuilderExtensions.UseIdentityByDefaultColumns(modelBuilder);
 
+            modelBuilder.Entity("Zelvo.Data.Ai.AiCall", b =>
+                {
+                    b.Property<long>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bigint")
+                        .HasColumnName("id");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityAlwaysColumn(b.Property<long>("Id"));
+
+                    b.Property<string>("CorrelationId")
+                        .HasMaxLength(64)
+                        .HasColumnType("character varying(64)")
+                        .HasColumnName("correlation_id");
+
+                    b.Property<decimal?>("CostUsd")
+                        .HasPrecision(18, 8)
+                        .HasColumnType("numeric(18,8)")
+                        .HasColumnName("cost_usd");
+
+                    b.Property<int>("DurationMs")
+                        .HasColumnType("integer")
+                        .HasColumnName("duration_ms");
+
+                    b.Property<string>("EntityId")
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)")
+                        .HasColumnName("entity_id");
+
+                    b.Property<string>("EntityType")
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)")
+                        .HasColumnName("entity_type");
+
+                    b.Property<string>("Error")
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)")
+                        .HasColumnName("error");
+
+                    b.Property<string>("ErrorCode")
+                        .HasMaxLength(60)
+                        .HasColumnType("character varying(60)")
+                        .HasColumnName("error_code");
+
+                    b.Property<string>("Feature")
+                        .IsRequired()
+                        .HasMaxLength(40)
+                        .HasColumnType("character varying(40)")
+                        .HasColumnName("feature");
+
+                    b.Property<bool>("InjectionSuspected")
+                        .HasColumnType("boolean")
+                        .HasColumnName("injection_suspected");
+
+                    b.Property<int>("InputTokens")
+                        .HasColumnType("integer")
+                        .HasColumnName("input_tokens");
+
+                    b.Property<int>("MaskedValues")
+                        .HasColumnType("integer")
+                        .HasColumnName("masked_values");
+
+                    b.Property<string>("Model")
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)")
+                        .HasColumnName("model");
+
+                    b.Property<DateTimeOffset>("OccurredAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("occurred_at");
+
+                    b.Property<string>("Outcome")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("character varying(20)")
+                        .HasColumnName("outcome");
+
+                    b.Property<int>("OutputTokens")
+                        .HasColumnType("integer")
+                        .HasColumnName("output_tokens");
+
+                    b.Property<string>("Prompt")
+                        .HasMaxLength(32768)
+                        .HasColumnType("character varying(32768)")
+                        .HasColumnName("prompt");
+
+                    b.Property<Guid?>("ProviderId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("provider_id");
+
+                    b.Property<string>("ProviderKind")
+                        .HasMaxLength(20)
+                        .HasColumnType("character varying(20)")
+                        .HasColumnName("provider_kind");
+
+                    b.Property<string>("Response")
+                        .HasMaxLength(32768)
+                        .HasColumnType("character varying(32768)")
+                        .HasColumnName("response");
+
+                    b.Property<Guid>("TenantId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("tenant_id");
+
+                    b.Property<Guid?>("UserId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("user_id");
+
+                    b.HasKey("Id")
+                        .HasName("pk_ai_calls");
+
+                    b.HasIndex("OccurredAt")
+                        .HasDatabaseName("ix_ai_calls_text_retention")
+                        .HasFilter("prompt IS NOT NULL OR response IS NOT NULL");
+
+                    b.HasIndex("ProviderId")
+                        .HasDatabaseName("ix_ai_calls_provider_id");
+
+                    b.HasIndex("TenantId", "Id")
+                        .HasDatabaseName("ix_ai_calls_tenant_id_id");
+
+                    b.HasIndex("TenantId", "OccurredAt")
+                        .HasDatabaseName("ix_ai_calls_tenant_id_occurred_at");
+
+                    b.ToTable("ai_calls", null, t =>
+                        {
+                            t.HasCheckConstraint("ck_ai_calls_outcome", "outcome IN ('Succeeded', 'Failed', 'Rejected', 'LimitReached')");
+
+                            t.HasCheckConstraint("ck_ai_calls_provider_kind", "provider_kind IS NULL OR provider_kind IN ('Anthropic', 'OpenAI', 'AzureOpenAI', 'Gemini', 'OpenAICompatible')");
+
+                            t.HasCheckConstraint("ck_ai_calls_tokens", "input_tokens >= 0 AND output_tokens >= 0");
+                        });
+                });
+
+            modelBuilder.Entity("Zelvo.Data.Ai.AiFeatureSetting", b =>
+                {
+                    b.Property<Guid>("TenantId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("tenant_id");
+
+                    b.Property<string>("Feature")
+                        .HasMaxLength(40)
+                        .HasColumnType("character varying(40)")
+                        .HasColumnName("feature");
+
+                    b.Property<bool>("Enabled")
+                        .HasColumnType("boolean")
+                        .HasColumnName("enabled");
+
+                    b.Property<string>("Model")
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)")
+                        .HasColumnName("model");
+
+                    b.Property<Guid?>("ProviderId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("provider_id");
+
+                    b.Property<DateTimeOffset>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("updated_at");
+
+                    b.Property<uint>("Version")
+                        .IsConcurrencyToken()
+                        .ValueGeneratedOnAddOrUpdate()
+                        .HasColumnType("xid")
+                        .HasColumnName("xmin");
+
+                    b.HasKey("TenantId", "Feature")
+                        .HasName("pk_ai_feature_settings");
+
+                    b.HasIndex("ProviderId")
+                        .HasDatabaseName("ix_ai_feature_settings_provider_id");
+
+                    b.ToTable("ai_feature_settings", null, t =>
+                        {
+                            t.HasCheckConstraint("ck_ai_feature_settings_enabled", "NOT enabled OR (provider_id IS NOT NULL AND model IS NOT NULL)");
+
+                            t.HasCheckConstraint("ck_ai_feature_settings_feature", "feature ~ '^[a-z][a-zA-Z]*$'");
+                        });
+                });
+
+            modelBuilder.Entity("Zelvo.Data.Ai.AiModelPrice", b =>
+                {
+                    b.Property<Guid>("TenantId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("tenant_id");
+
+                    b.Property<Guid>("ProviderId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("provider_id");
+
+                    b.Property<string>("Model")
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)")
+                        .HasColumnName("model");
+
+                    b.Property<decimal>("InputPerMillion")
+                        .HasPrecision(12, 6)
+                        .HasColumnType("numeric(12,6)")
+                        .HasColumnName("input_per_million");
+
+                    b.Property<decimal>("OutputPerMillion")
+                        .HasPrecision(12, 6)
+                        .HasColumnType("numeric(12,6)")
+                        .HasColumnName("output_per_million");
+
+                    b.Property<DateTimeOffset>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("updated_at");
+
+                    b.Property<uint>("Version")
+                        .IsConcurrencyToken()
+                        .ValueGeneratedOnAddOrUpdate()
+                        .HasColumnType("xid")
+                        .HasColumnName("xmin");
+
+                    b.HasKey("TenantId", "ProviderId", "Model")
+                        .HasName("pk_ai_model_prices");
+
+                    b.HasIndex("ProviderId")
+                        .HasDatabaseName("ix_ai_model_prices_provider_id");
+
+                    b.ToTable("ai_model_prices", null, t =>
+                        {
+                            t.HasCheckConstraint("ck_ai_model_prices_range", "input_per_million >= 0 AND input_per_million <= 10000 AND output_per_million >= 0 AND output_per_million <= 10000");
+                        });
+                });
+
+            modelBuilder.Entity("Zelvo.Data.Ai.AiProvider", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<DateTimeOffset?>("ApiKeyChangedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("api_key_changed_at");
+
+                    b.Property<string>("ApiKeyCiphertext")
+                        .HasColumnType("text")
+                        .HasColumnName("api_key_ciphertext");
+
+                    b.Property<string>("ApiVersion")
+                        .HasMaxLength(40)
+                        .HasColumnType("character varying(40)")
+                        .HasColumnName("api_version");
+
+                    b.Property<DateTimeOffset>("CreatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("created_at");
+
+                    b.Property<string>("Endpoint")
+                        .HasMaxLength(2000)
+                        .HasColumnType("character varying(2000)")
+                        .HasColumnName("endpoint");
+
+                    b.Property<string>("Kind")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("character varying(20)")
+                        .HasColumnName("kind");
+
+                    b.Property<DateTimeOffset?>("LastTestAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("last_test_at");
+
+                    b.Property<string>("LastTestError")
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)")
+                        .HasColumnName("last_test_error");
+
+                    b.Property<bool?>("LastTestSucceeded")
+                        .HasColumnType("boolean")
+                        .HasColumnName("last_test_succeeded");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)")
+                        .HasColumnName("name");
+
+                    b.Property<string>("Status")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("character varying(20)")
+                        .HasColumnName("status");
+
+                    b.Property<Guid>("TenantId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("tenant_id");
+
+                    b.Property<DateTimeOffset>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("updated_at");
+
+                    b.Property<uint>("Version")
+                        .IsConcurrencyToken()
+                        .ValueGeneratedOnAddOrUpdate()
+                        .HasColumnType("xid")
+                        .HasColumnName("xmin");
+
+                    b.HasKey("Id")
+                        .HasName("pk_ai_providers");
+
+                    b.HasIndex("TenantId", "Status")
+                        .HasDatabaseName("ix_ai_providers_tenant_id_status");
+
+                    b.ToTable("ai_providers", null, t =>
+                        {
+                            t.HasCheckConstraint("ck_ai_providers_endpoint", "endpoint IS NULL OR endpoint ~ '^https?://'");
+
+                            t.HasCheckConstraint("ck_ai_providers_endpoint_required", "kind NOT IN ('AzureOpenAI', 'OpenAICompatible') OR endpoint IS NOT NULL");
+
+                            t.HasCheckConstraint("ck_ai_providers_kind", "kind IN ('Anthropic', 'OpenAI', 'AzureOpenAI', 'Gemini', 'OpenAICompatible')");
+
+                            t.HasCheckConstraint("ck_ai_providers_status", "status IN ('Active', 'Disabled')");
+                        });
+                });
+
             modelBuilder.Entity("Zelvo.Data.Auditing.AuditEvent", b =>
                 {
                     b.Property<long>("Id")
@@ -121,7 +440,7 @@ namespace Zelvo.Data.Migrations
                         {
                             t.HasCheckConstraint("ck_audit_events_actor_type", "actor_type IN ('System', 'User', 'Anonymous', 'ApiClient', 'AiAgent')");
 
-                            t.HasCheckConstraint("ck_audit_events_category", "category IN ('Create', 'Change', 'Delete', 'Admin', 'View', 'Security')");
+                            t.HasCheckConstraint("ck_audit_events_category", "category IN ('Create', 'Change', 'Delete', 'Admin', 'View', 'Security', 'Ai')");
                         });
                 });
 
@@ -1526,6 +1845,65 @@ namespace Zelvo.Data.Migrations
                         {
                             t.HasCheckConstraint("ck_ticket_number_sequences_type", "type IN ('Incident')");
                         });
+                });
+
+            modelBuilder.Entity("Zelvo.Data.Ai.AiCall", b =>
+                {
+                    b.HasOne("Zelvo.Data.Ai.AiProvider", null)
+                        .WithMany()
+                        .HasForeignKey("ProviderId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .HasConstraintName("fk_ai_calls_ai_providers_provider_id");
+
+                    b.HasOne("Zelvo.Data.Tenancy.Tenant", null)
+                        .WithMany()
+                        .HasForeignKey("TenantId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired()
+                        .HasConstraintName("fk_ai_calls_tenants_tenant_id");
+                });
+
+            modelBuilder.Entity("Zelvo.Data.Ai.AiFeatureSetting", b =>
+                {
+                    b.HasOne("Zelvo.Data.Ai.AiProvider", null)
+                        .WithMany()
+                        .HasForeignKey("ProviderId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .HasConstraintName("fk_ai_feature_settings_ai_providers_provider_id");
+
+                    b.HasOne("Zelvo.Data.Tenancy.Tenant", null)
+                        .WithMany()
+                        .HasForeignKey("TenantId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired()
+                        .HasConstraintName("fk_ai_feature_settings_tenants_tenant_id");
+                });
+
+            modelBuilder.Entity("Zelvo.Data.Ai.AiModelPrice", b =>
+                {
+                    b.HasOne("Zelvo.Data.Ai.AiProvider", null)
+                        .WithMany()
+                        .HasForeignKey("ProviderId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired()
+                        .HasConstraintName("fk_ai_model_prices_ai_providers_provider_id");
+
+                    b.HasOne("Zelvo.Data.Tenancy.Tenant", null)
+                        .WithMany()
+                        .HasForeignKey("TenantId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired()
+                        .HasConstraintName("fk_ai_model_prices_tenants_tenant_id");
+                });
+
+            modelBuilder.Entity("Zelvo.Data.Ai.AiProvider", b =>
+                {
+                    b.HasOne("Zelvo.Data.Tenancy.Tenant", null)
+                        .WithMany()
+                        .HasForeignKey("TenantId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired()
+                        .HasConstraintName("fk_ai_providers_tenants_tenant_id");
                 });
 
             modelBuilder.Entity("Zelvo.Data.Auditing.AuditEvent", b =>
