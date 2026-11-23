@@ -51,6 +51,12 @@ internal static class Permissions
 
     /// <summary>Declare major incidents and post to their communication timeline.</summary>
     public const string IncidentsMajor = IncidentPermissions.Major;
+
+    /// <summary>
+    /// Settings → Integrations (module 14): API keys, OAuth clients, webhooks and the integration
+    /// log. Never available to integrations themselves.
+    /// </summary>
+    public const string IntegrationsManage = "integrations.manage";
 }
 
 /// <summary>A field of a resource that field rules can hide or make read-only.</summary>
@@ -101,7 +107,20 @@ internal static class PermissionCatalog
         Permissions.IncidentsEdit,
         Permissions.IncidentsAssign,
         Permissions.IncidentsMajor,
+        Permissions.IntegrationsManage,
     ];
+
+    /// <summary>
+    /// Permissions an API key or OAuth client can never use, whatever its role (product owner
+    /// decision 2026-11-22): a leaked key must not be able to take over the tenant.
+    /// </summary>
+    public static IReadOnlySet<string> NotForIntegrations { get; } = new HashSet<string>(StringComparer.Ordinal)
+    {
+        Permissions.UsersManage, Permissions.RolesManage, Permissions.IdentityManage, Permissions.IntegrationsManage,
+    };
+
+    /// <summary>Permissions an integration may be given as scopes.</summary>
+    public static IReadOnlyList<string> IntegrationScopes { get; } = [.. All.Where(p => !NotForIntegrations.Contains(p))];
 
     public static ResourceDefinition Users { get; } = new(
         "users",

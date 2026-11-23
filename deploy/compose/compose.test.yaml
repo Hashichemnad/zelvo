@@ -1,0 +1,25 @@
+# Test installation profile (module 14: "a separate test installation allowed under every
+# license"): `make test-installation` starts compose.yaml with this file as its own Compose project
+# (zelvo-test), with its own volumes, database and Keycloak realms, so integrations are built and
+# tried away from live data. Stop the development stack first (same ports).
+#
+# The development licensing stub reports a test license when Installation__Profile is Test; a
+# release test installation gets the test license file issued with the customer's license.
+# Every page shows a "Test installation" banner, and every API response and webhook says
+# "test" (Zelvo-Environment header, "environment" in payloads).
+
+x-test: &test
+  Installation__Profile: Test
+
+services:
+  migrate:
+    environment:
+      <<: *test
+
+  api:
+    environment:
+      <<: *test
+
+  worker:
+    environment:
+      <<: *test

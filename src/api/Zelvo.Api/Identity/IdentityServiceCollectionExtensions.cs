@@ -16,8 +16,12 @@ internal static class IdentityServiceCollectionExtensions
         services.AddSingleton<IRealmSigningKeys, OidcRealmSigningKeys>();
         services.AddScoped<IKeycloakAdmin, KeycloakAdminClient>();
 
-        services.AddAuthentication(ZelvoBearerHandler.SchemeName)
-            .AddScheme<AuthenticationSchemeOptions, ZelvoBearerHandler>(ZelvoBearerHandler.SchemeName, null);
+        // People and OAuth clients send Keycloak tokens; integrations may send an API key instead (E1).
+        services.AddScoped<Integrations.ApiClientDirectory>();
+        services.AddAuthentication(Integrations.ZelvoAuthenticationSchemes.Default)
+            .AddPolicyScheme(Integrations.ZelvoAuthenticationSchemes.Default, "Zelvo", o => o.ForwardDefaultSelector = Integrations.ZelvoAuthenticationSchemes.Select)
+            .AddScheme<AuthenticationSchemeOptions, ZelvoBearerHandler>(ZelvoBearerHandler.SchemeName, null)
+            .AddScheme<AuthenticationSchemeOptions, Integrations.ApiKeyAuthenticationHandler>(Integrations.ApiKeyAuthenticationHandler.SchemeName, null);
 
         services.AddScoped<CurrentUser>();
         services.AddScoped<IAuthorizationHandler, PermissionHandler>();

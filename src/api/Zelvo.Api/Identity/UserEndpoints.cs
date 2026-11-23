@@ -122,7 +122,7 @@ internal static partial class UserEndpoints
             return NotFound();
         }
 
-        if (request.Status == UserStatus.Disabled && account.Id == user.Account!.Id)
+        if (request.Status == UserStatus.Disabled && account.Id == user.Account?.Id)
         {
             return (ProblemHttpResult)ApiProblem.Create(StatusCodes.Status409Conflict, "cannot-disable-self", "You cannot disable your own account.");
         }

@@ -6,7 +6,7 @@ Zelvo targets OWASP ASVS **Level 2** for every tenant (non-functional requiremen
 - Status: **Met** (with evidence), **Partly met**, **Open** (with the task expected to close it), **Not applicable**, **Not assessed** (not reviewed yet).
 - Evidence points to code, tests, architecture notes and build plan tasks (A1-F7 in `docs/phase1-build-plan.md`).
 
-**Summary (2026-11-22):** Met: 94 · Partly met: 15 · Open: 8 · Not applicable: 15 · Not assessed: 121.
+**Summary (2026-11-23):** Met: 96 · Partly met: 16 · Open: 8 · Not applicable: 14 · Not assessed: 119.
 
 Main gaps found so far: web app without Content-Security-Policy and HSTS (V3.4); TLS still to add for PostgreSQL, Valkey and internal HTTP (V12.3, F6); service passwords as environment variables rather than a secrets manager (V13.3.1, F6); password policy, breached-password checks and session management settings in Keycloak not yet reviewed (V6.2, V7). File handling (V5) was added with attachments in B1.
 
@@ -30,7 +30,7 @@ Main gaps found so far: web app without Content-Security-Policy and HSTS (V3.4);
 | V1.3.3 | 2 | V1.3 Sanitization | Not assessed |  |
 | V1.3.4 | 2 | V1.3 Sanitization | Not assessed |  |
 | V1.3.5 | 2 | V1.3 Sanitization | Not assessed |  |
-| V1.3.6 | 2 | V1.3 Sanitization | Not assessed |  |
+| V1.3.6 | 2 | V1.3 Sanitization | Met | E1: outgoing webhooks only to `https://` receivers on allowed addresses (`OutboundAddressPolicy`): loopback, link-local and cloud metadata, unspecified, multicast and reserved ranges always refused; private networks only when the operator lists them; checked on the address actually connected to after DNS; no redirects followed; no system proxy. Tests in `IntegrationBuildingBlockTests`, `WebhookApiTests`. Connectors (E7) will use the same policy. |
 | V1.3.7 | 2 | V1.3 Sanitization | Not assessed |  |
 | V1.3.8 | 2 | V1.3 Sanitization | Not assessed |  |
 | V1.3.9 | 2 | V1.3 Sanitization | Not assessed |  |
@@ -56,7 +56,7 @@ Main gaps found so far: web app without Content-Security-Policy and HSTS (V3.4);
 | V2.3.2 | 2 | V2.3 Business Logic Security | Not assessed |  |
 | V2.3.3 | 2 | V2.3 Business Logic Security | Met | Changes and their audit entries and search outbox entries are saved in one transaction. A1, A4. |
 | V2.3.4 | 2 | V2.3 Business Logic Security | Not assessed |  |
-| V2.4.1 | 2 | V2.4 Anti-automation | Partly met | A5: API rate limits per signed-in user and per client address (Valkey, shared by instances); Keycloak brute-force protection for sign-in. Per-key limits for integrations come with E1. |
+| V2.4.1 | 2 | V2.4 Anti-automation | Met | A5: API rate limits per signed-in user and per client address (Valkey, shared by instances); Keycloak brute-force protection for sign-in. E1: a limit per API key and OAuth client, set by the administrator (`ApiClientApiTests`). |
 
 ## V3 Web Frontend Security
 
@@ -102,9 +102,9 @@ Main gaps found so far: web app without Content-Security-Policy and HSTS (V3.4);
 | Requirement | Level | Section | Status | Evidence and notes |
 | --- | --- | --- | --- | --- |
 | V5.1.1 | 2 | V5.1 File Handling Documentation | Met | Permitted file types (an allowlist of types Zelvo can check, chosen per tenant), maximum size (tenant setting, 25 MB default, 100 MB installation maximum) and the handling of malicious files (scanned by ClamAV before download; infected files rejected, content deleted, audited) are documented in `docs/architecture/tickets.md` (B1). Zelvo never unpacks archives; ClamAV scans inside them within `MaxScanSize`. |
-| V5.2.1 | 1 | V5.2 File Upload and Content | Met | Tenant size limit checked per file and an endpoint request size limit of 101 MB (`IncidentAttachmentEndpoints`); clamd `StreamMaxLength` matches. Tests: `IncidentAttachmentTests.The_tenant_sets_the_largest_file_and_the_accepted_types`. |
-| V5.2.2 | 1 | V5.2 File Upload and Content | Met | Extension must be on the tenant's allowlist and the content must match the type (magic bytes; text must be UTF-8 without NUL) (`FileTypes`); the stored media type comes from the type, never the uploader. Tests: `Files_of_other_types_or_with_content_that_does_not_match_are_refused`, `TicketWorkflowTests.Content_must_match_the_file_type`. |
-| V5.2.3 | 2 | V5.2 File Upload and Content | Not applicable | Zelvo never decompresses uploaded archives; ClamAV scans inside them with its own limits (`MaxScanSize` 400 MB, default file and recursion limits). |
+| V5.2.1 | 1 | V5.2 File Upload and Content | Met | Tenant size limit checked per file and an endpoint request size limit of 101 MB (`IncidentAttachmentEndpoints`); clamd `StreamMaxLength` matches. Tests: `IncidentAttachmentTests.The_tenant_sets_the_largest_file_and_the_accepted_types`. E1: bulk imports accept at most 5 MB and 5,000 rows (request size limit on the endpoint). |
+| V5.2.2 | 1 | V5.2 File Upload and Content | Met | Extension must be on the tenant's allowlist and the content must match the type (magic bytes; text must be UTF-8 without NUL) (`FileTypes`); the stored media type comes from the type, never the uploader. Tests: `Files_of_other_types_or_with_content_that_does_not_match_are_refused`, `TicketWorkflowTests.Content_must_match_the_file_type`. E1: bulk imports accept `.csv` and `.xlsx` only, and the content must parse as that format (`TabularFile`), otherwise 400. |
+| V5.2.3 | 2 | V5.2 File Upload and Content | Partly met | Attachments: Zelvo never decompresses uploaded archives; ClamAV scans inside them with its own limits (`MaxScanSize` 400 MB, default file and recursion limits). E1: bulk import does open `.xlsx` (zip) files, read with a limit on the characters per part (`MaxCharactersInPart`) and from a 5 MB upload; a limit on the number of files in the archive is still to add. |
 | V5.3.1 | 1 | V5.3 File Storage | Met | Attachments are stored in PostgreSQL (`ticket_attachment_contents`, row-level security), never in a folder the web server serves or executes (B1, decision 2026-11-22). |
 | V5.3.2 | 1 | V5.3 File Storage | Met | No file system paths are built from user input; file names are cleaned of folders, control and bidirectional-override characters (`FileTypes.CleanFileName`, tested). |
 | V5.4.1 | 2 | V5.4 File Download | Met | Downloads use the stored, cleaned file name in `Content-Disposition: attachment` with RFC 6266 `filename*` encoding (ASP.NET Core `TypedResults.File`), plus `X-Content-Type-Options: nosniff` and `Content-Security-Policy: default-src 'none'; sandbox`. |
@@ -180,9 +180,9 @@ Main gaps found so far: web app without Content-Security-Policy and HSTS (V3.4);
 | --- | --- | --- | --- | --- |
 | V8.1.1 | 1 | V8.1 Authorization Documentation | Met | Permissions and field rules per role are data, documented in `identity-access.md`. A2. |
 | V8.1.2 | 2 | V8.1 Authorization Documentation | Met | Permissions and field rules per role are data, documented in `identity-access.md`. A2. |
-| V8.2.1 | 1 | V8.2 General Authorization Design | Met | Permission checks and field-level filtering in the API (`PermissionAuthorization`, `FieldFilter`); tests in `AccessControlApiTests`. A2. |
+| V8.2.1 | 1 | V8.2 General Authorization Design | Met | Permission checks and field-level filtering in the API (`PermissionAuthorization`, `FieldFilter`); tests in `AccessControlApiTests`. A2. E1: integrations act with one role narrowed by their scopes and never hold `users.manage`, `roles.manage`, `identity.manage` or `integrations.manage` (`CurrentUser.SetClient`, `ApiClientApiTests`). |
 | V8.2.2 | 1 | V8.2 General Authorization Design | Not assessed |  |
-| V8.2.3 | 2 | V8.2 General Authorization Design | Met | Permission checks and field-level filtering in the API (`PermissionAuthorization`, `FieldFilter`); tests in `AccessControlApiTests`. A2. |
+| V8.2.3 | 2 | V8.2 General Authorization Design | Met | Permission checks and field-level filtering in the API (`PermissionAuthorization`, `FieldFilter`); tests in `AccessControlApiTests`. A2. E1: field rules of an integration's role apply to its responses. |
 | V8.3.1 | 1 | V8.3 Operation Level Authorization | Met | Permission checks and field-level filtering in the API (`PermissionAuthorization`, `FieldFilter`); tests in `AccessControlApiTests`. A2. |
 | V8.4.1 | 2 | V8.4 Other Authorization Considerations | Met | PostgreSQL row-level security on every tenant-owned table (guard test), tokens only from the tenant's own realm, one search index per tenant. A1, A2, A4. |
 
@@ -213,7 +213,7 @@ Main gaps found so far: web app without Content-Security-Policy and HSTS (V3.4);
 | V10.4.1 | 1 | V10.4 OAuth Authorization Server | Met | Keycloak clients provisioned with exact redirect URIs, only the code grant for the web client, PKCE, confidential client authentication. A2. |
 | V10.4.2 | 1 | V10.4 OAuth Authorization Server | Not assessed |  |
 | V10.4.3 | 1 | V10.4 OAuth Authorization Server | Not assessed |  |
-| V10.4.4 | 1 | V10.4 OAuth Authorization Server | Met | Keycloak clients provisioned with exact redirect URIs, only the code grant for the web client, PKCE, confidential client authentication. A2. |
+| V10.4.4 | 1 | V10.4 OAuth Authorization Server | Met | Keycloak clients provisioned with exact redirect URIs, only the code grant for the web client, PKCE, confidential client authentication. A2. E1: integration clients may use only the client credentials grant (no browser flows, no redirect URIs, `fullScopeAllowed` off). |
 | V10.4.5 | 1 | V10.4 OAuth Authorization Server | Not assessed |  |
 | V10.4.6 | 2 | V10.4 OAuth Authorization Server | Met | Keycloak clients provisioned with exact redirect URIs, only the code grant for the web client, PKCE, confidential client authentication. A2. |
 | V10.4.7 | 2 | V10.4 OAuth Authorization Server | Not assessed |  |
@@ -273,7 +273,7 @@ Main gaps found so far: web app without Content-Security-Policy and HSTS (V3.4);
 | V13.2.1 | 2 | V13.2 Backend Communication Configuration | Partly met | A5: each service has its own least-privilege user for PostgreSQL (no BYPASSRLS), OpenSearch and RabbitMQ; Valkey still has one shared password. |
 | V13.2.2 | 2 | V13.2 Backend Communication Configuration | Partly met | A5: each service has its own least-privilege user for PostgreSQL (no BYPASSRLS), OpenSearch and RabbitMQ; Valkey still has one shared password. |
 | V13.2.3 | 2 | V13.2 Backend Communication Configuration | Met | No default credentials: `dev-up.sh` generates random passwords; RabbitMQ `guest` is loopback-only and not created. |
-| V13.2.4 | 2 | V13.2 Backend Communication Configuration | Not assessed |  |
+| V13.2.4 | 2 | V13.2 Backend Communication Configuration | Partly met | E1: outgoing webhooks reach only addresses the installation allows (`Integrations:Webhooks:AllowedPrivateNetworks`, HTTPS only, internal networks refused by default). The no-code connector builder (E7) will use the same policy. |
 | V13.2.5 | 2 | V13.2 Backend Communication Configuration | Not assessed |  |
 | V13.3.1 | 2 | V13.3 Secret Management | Partly met | A5: stored secrets encrypted with keys from a master key file or Vault/OpenBao; service passwords are environment variables (`.env`, git-ignored) until the hardened install (F6). |
 | V13.3.2 | 2 | V13.3 Secret Management | Met | A5: the API and worker can read only the CA certificate, not other services' keys; the Vault policy allows only encrypt/decrypt/rewrap with Zelvo's key. |
@@ -324,9 +324,9 @@ Main gaps found so far: web app without Content-Security-Policy and HSTS (V3.4);
 | V16.2.2 | 2 | V16.2 General Logging | Met | Audit and telemetry timestamps in UTC. |
 | V16.2.3 | 2 | V16.2 General Logging | Not assessed |  |
 | V16.2.4 | 2 | V16.2 General Logging | Met | A5: logs as OpenTelemetry records (OTLP) in Loki, correlated with traces. |
-| V16.2.5 | 2 | V16.2 General Logging | Partly met | A5: no tokens, passwords, query strings or SQL values in telemetry; a written log inventory with protection levels is still to do. |
+| V16.2.5 | 2 | V16.2 General Logging | Partly met | A5: no tokens, passwords, query strings or SQL values in telemetry; a written log inventory with protection levels is still to do. E1: the integration log stores request and response bodies with personal data and secrets masked (`PersonalDataMasker`), kept 30 days. |
 | V16.3.1 | 2 | V16.3 Security Events | Not assessed |  |
-| V16.3.2 | 2 | V16.3 Security Events | Partly met | Refused requests (401/403) are logged by ASP.NET Core and visible in Loki; they are not yet written to the audit log as security events. |
+| V16.3.2 | 2 | V16.3 Security Events | Partly met | Refused requests (401/403) are logged by ASP.NET Core and visible in Loki; they are not yet written to the audit log as security events. E1: every call made by an integration, including refused ones, is in the audit log (`integrations.api.called`) and the integration log. |
 | V16.3.3 | 2 | V16.3 Security Events | Not assessed |  |
 | V16.3.4 | 2 | V16.3 Security Events | Met | A5: TLS and dependency failures are logged and shown by readiness checks; rate-limit cache outages logged and counted. |
 | V16.4.1 | 2 | V16.4 Log Protection | Not assessed |  |

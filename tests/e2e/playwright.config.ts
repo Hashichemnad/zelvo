@@ -1,7 +1,7 @@
 import { defineConfig, devices } from "@playwright/test";
 
 /** Specs that change tenant-wide settings; each runs in its own project, one after another. */
-const tenantWide = [/settings\.spec\.ts/, /uae-pass\.spec\.ts/];
+const tenantWide = [/settings\.spec\.ts/, /uae-pass\.spec\.ts/, /integrations\.spec\.ts/];
 
 /** Demo mode needs the demo installation (`make demo`); `make e2e-demo` runs it with E2E_DEMO=1. */
 const demo = /demo\.spec\.ts/;
@@ -42,6 +42,13 @@ export default defineConfig({
           use: { ...devices["Desktop Chrome"] },
           testMatch: /uae-pass\.spec\.ts/,
           dependencies: ["tenant-settings"],
+        },
+        // Integrations (task E1) sign in as the admin too; after UAE PASS, on their own.
+        {
+          name: "tenant-integrations",
+          use: { ...devices["Desktop Chrome"] },
+          testMatch: /integrations\.spec\.ts/,
+          dependencies: ["tenant-uae-pass"],
         },
       ],
 });

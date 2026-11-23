@@ -13,12 +13,14 @@ namespace Zelvo.Licensing;
 /// production installation. Release builds replace this project with the private implementation.
 /// With <c>Installation:Profile</c> set to <c>Demo</c> it reports a demo license
 /// (<see cref="LicenseKind.Demo"/>), standing in for the demo license file a release demo
-/// installation is given.
+/// installation is given; with <c>Test</c>, a test license (<see cref="LicenseKind.Test"/>), as
+/// for the test installation every license includes (module 14).
 /// </remarks>
 internal sealed class DevelopmentLicenseService(IHostEnvironment environment, IConfiguration? configuration = null) : ILicenseService
 {
     internal const string LicensedToName = "Development build - not for production use";
     internal const string DemoLicensedToName = "Demo installation - development build";
+    internal const string TestLicensedToName = "Test installation - development build";
 
     private LicenseStatus _current = LicenseStatus.Invalid("Not verified yet.");
 
@@ -36,18 +38,20 @@ internal sealed class DevelopmentLicenseService(IHostEnvironment environment, IC
         var profile = configuration?[InstallationProfile.ConfigurationKey];
         if (!string.IsNullOrEmpty(profile)
             && !string.Equals(profile, InstallationProfile.Standard, StringComparison.OrdinalIgnoreCase)
-            && !string.Equals(profile, InstallationProfile.Demo, StringComparison.OrdinalIgnoreCase))
+            && !string.Equals(profile, InstallationProfile.Demo, StringComparison.OrdinalIgnoreCase)
+            && !string.Equals(profile, InstallationProfile.Test, StringComparison.OrdinalIgnoreCase))
         {
-            _current = LicenseStatus.Invalid($"Unknown {InstallationProfile.ConfigurationKey} '{profile}': use Standard or Demo.");
+            _current = LicenseStatus.Invalid($"Unknown {InstallationProfile.ConfigurationKey} '{profile}': use Standard, Demo or Test.");
             return Task.FromResult(_current);
         }
 
         var demo = string.Equals(profile, InstallationProfile.Demo, StringComparison.OrdinalIgnoreCase);
+        var test = string.Equals(profile, InstallationProfile.Test, StringComparison.OrdinalIgnoreCase);
         _current = new LicenseStatus(
             IsValid: true,
-            Kind: demo ? LicenseKind.Demo : LicenseKind.Development,
-            LicensedTo: demo ? DemoLicensedToName : LicensedToName,
-            LicenseId: demo ? "dev-demo" : "dev",
+            Kind: demo ? LicenseKind.Demo : test ? LicenseKind.Test : LicenseKind.Development,
+            LicensedTo: demo ? DemoLicensedToName : test ? TestLicensedToName : LicensedToName,
+            LicenseId: demo ? "dev-demo" : test ? "dev-test" : "dev",
             Modules: LicensedModules.Phase1.ToHashSet(StringComparer.Ordinal));
         return Task.FromResult(_current);
     }

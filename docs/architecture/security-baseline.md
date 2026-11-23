@@ -11,7 +11,7 @@ Baseline limits on `/api`, in the API (`Security/RateLimiting`), counted in fixe
 | Signed in | tenant and user (`sub`) | `SignedInPermits` 600 a minute |
 | Visitor | client address | `VisitorPermits` 120 a minute |
 
-- `RateLimiting:Enabled` (true) and `RateLimiting:Window` (1 minute) can be changed per installation. These are installation settings that protect the system as a whole; the admin-configurable limits per API key come with module 14 (task E1).
+- `RateLimiting:Enabled` (true) and `RateLimiting:Window` (1 minute) can be changed per installation. These are installation settings that protect the system as a whole. API keys and OAuth clients are counted per integration with the per-minute limit their administrator set (task E1, `integrations.md`).
 - Every `/api` response carries `RateLimit-Limit`, `RateLimit-Remaining` and `RateLimit-Reset` (seconds). A refused request gets **429** with problem code `rate-limited` and `Retry-After`; the web app shows "Too many requests…" in English or Arabic.
 - Keys in Valkey are SHA-256 hashes (`zelvo:rl:<kind>:<hash>`), so the cache holds no user ids or addresses.
 - When Valkey is unavailable the API **allows** requests (an unavailable cache must not stop the service), logs a warning and counts `zelvo_rate_limit_store_errors_total`; an alert fires after 5 minutes. Sign-in itself is protected by Keycloak's brute-force protection either way.

@@ -156,4 +156,77 @@ internal sealed class FakeKeycloakAdmin : IKeycloakAdmin
             return Task.FromResult(0);
         }
     }
+    /// <summary>OAuth clients created for integrations, by realm and client id.</summary>
+    public Dictionary<(string Realm, string ClientId), (IntegrationClientSpec Spec, bool Enabled, string Secret)> IntegrationClients { get; } = [];
+
+    public Task<IntegrationClientCredentials> CreateIntegrationClientAsync(string realm, IntegrationClientSpec spec, CancellationToken cancellationToken)
+    {
+        if (Fail)
+        {
+            throw new KeycloakAdminException("Keycloak is down (test).");
+        }
+
+        lock (IntegrationClients)
+        {
+            var secret = $"secret-{Guid.NewGuid():N}";
+            IntegrationClients[(realm, spec.ClientId)] = (spec, true, secret);
+            return Task.FromResult(new IntegrationClientCredentials($"internal-{spec.ClientId}", secret, ServiceAccountFor(spec.ClientId)));
+        }
+    }
+
+    /// <summary>The service account subject the fake gives a client.</summary>
+    public static string ServiceAccountFor(string clientId) =>
+        new Guid(SHA256.HashData(System.Text.Encoding.UTF8.GetBytes($"sa|{clientId}"))[..16]).ToString();
+
+    public Task SetClientEnabledAsync(string realm, string internalId, bool enabled, CancellationToken cancellationToken)
+    {
+        if (Fail)
+        {
+            throw new KeycloakAdminException("Keycloak is down (test).");
+        }
+
+        lock (IntegrationClients)
+        {
+            var key = (realm, internalId["internal-".Length..]);
+            var current = IntegrationClients[key];
+            IntegrationClients[key] = (current.Spec, enabled, current.Secret);
+        }
+
+        return Task.CompletedTask;
+    }
+
+    public Task<string> RegenerateClientSecretAsync(string realm, string internalId, CancellationToken cancellationToken)
+    {
+        if (Fail)
+        {
+            throw new KeycloakAdminException("Keycloak is down (test).");
+        }
+
+        lock (IntegrationClients)
+        {
+            var key = (realm, internalId["internal-".Length..]);
+            var current = IntegrationClients[key];
+            var secret = $"secret-{Guid.NewGuid():N}";
+            IntegrationClients[key] = (current.Spec, current.Enabled, secret);
+            return Task.FromResult(secret);
+        }
+    }
+
+    /// <summary>Users created by imports, by realm and email.</summary>
+    public Dictionary<(string Realm, string Email), (string Id, string FirstName, string LastName)> ImportedUsers { get; } = [];
+
+    public Task<string> FindOrCreateUserAsync(string realm, string email, string firstName, string lastName, CancellationToken cancellationToken)
+    {
+        if (Fail)
+        {
+            throw new KeycloakAdminException("Keycloak is down (test).");
+        }
+
+        lock (ImportedUsers)
+        {
+            var id = IdFor(realm, email);
+            ImportedUsers[(realm, email)] = (id, firstName, lastName);
+            return Task.FromResult(id);
+        }
+    }
 }

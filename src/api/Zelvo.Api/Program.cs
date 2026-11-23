@@ -7,6 +7,7 @@ using Zelvo.Api.Demo;
 using Zelvo.Api.Health;
 using Zelvo.Api.Identity;
 using Zelvo.Api.Incidents;
+using Zelvo.Api.Integrations;
 using Zelvo.Api.Localization;
 using Zelvo.Api.OpenApi;
 using Zelvo.Api.Platform;
@@ -70,6 +71,7 @@ builder.Services.AddSingleton<IMissingTranslationSource, IncidentMissingTranslat
 builder.Services.AddZelvoSecrets(builder.Configuration);
 builder.Services.AddZelvoRateLimiting(builder.Configuration);
 builder.Services.AddZelvoDemo();
+builder.Services.AddZelvoApiIntegrations(builder.Configuration);
 
 var app = builder.Build();
 
@@ -78,6 +80,7 @@ app.UseForwardedHeaders();
 app.UseExceptionHandler();
 app.UseStatusCodePages();
 app.UseMiddleware<SecurityHeadersMiddleware>();
+app.UseZelvoEnvironmentHeader();
 
 // The tenant comes first: tokens are checked against the tenant's own Keycloak realm.
 app.UseMiddleware<TenantResolutionMiddleware>();
@@ -85,6 +88,7 @@ app.UseAuthentication();
 app.UseMiddleware<RateLimitingMiddleware>();
 app.UseMiddleware<AuditContextMiddleware>();
 app.UseMiddleware<CurrentUserMiddleware>();
+app.UseMiddleware<IntegrationLogMiddleware>();
 app.UseAuthorization();
 
 app.MapZelvoOpenApi();
@@ -106,6 +110,7 @@ v1.MapSearchEndpoints();
 v1.MapDemoEndpoints();
 v1.MapIncidentEndpoints();
 v1.MapIncidentSettingsEndpoints();
+v1.MapIntegrationEndpoints();
 
 await app.RunAsync();
 return 0;

@@ -26,12 +26,27 @@ public static class DataServiceCollectionExtensions
         services.AddScoped<AuditSaveChangesInterceptor>();
         services.AddScoped<IAuditLog, AuditLog>();
 
+        // Module interceptors (for example webhook events) run before the audit interceptor, so
+        // that the rows they add are stamped and checked for the tenant like any other.
         services.AddDbContext<ZelvoDbContext>((sp, options) => options
             .UseZelvoNpgsql(connectionString)
-            .AddInterceptors(
+            .AddInterceptors([
                 sp.GetRequiredService<TenantConnectionInterceptor>(),
-                sp.GetRequiredService<AuditSaveChangesInterceptor>()));
+                .. sp.GetServices<IZelvoSaveChangesInterceptor>(),
+                sp.GetRequiredService<AuditSaveChangesInterceptor>(),
+            ]));
 
+        return services;
+    }
+
+    /// <summary>
+    /// Adds a save-changes interceptor of a module to every <see cref="ZelvoDbContext"/> of the scope,
+    /// ahead of the audit interceptor.
+    /// </summary>
+    public static IServiceCollection AddZelvoSaveChangesInterceptor<T>(this IServiceCollection services)
+        where T : class, IZelvoSaveChangesInterceptor
+    {
+        services.AddScoped<IZelvoSaveChangesInterceptor, T>();
         return services;
     }
 
@@ -49,3 +64,6 @@ public static class DataServiceCollectionExtensions
         return builder.Options;
     }
 }
+
+/// <summary>A module's save-changes interceptor, added by <see cref="DataServiceCollectionExtensions.AddZelvoSaveChangesInterceptor{T}"/>.</summary>
+public interface IZelvoSaveChangesInterceptor : ISaveChangesInterceptor;

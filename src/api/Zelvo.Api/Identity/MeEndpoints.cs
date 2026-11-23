@@ -1,4 +1,5 @@
 using Zelvo.Api.Conventions;
+using Zelvo.Api.Integrations;
 using Zelvo.Api.Settings;
 using Zelvo.Api.Tenancy;
 
@@ -15,7 +16,7 @@ internal static class MeEndpoints
             .WithSummary("The signed-in user: profile, display preferences, roles, permissions that apply now, and whether a second factor is needed.")
             .WithDescription("The user record is created at the first sign-in, with the requester role. When `mfa.required` is true, sign in again asking for `acr_values=mfa`; `pendingPermissions` then apply too.")
             .RequireTenant()
-            .RequireAuthorization();
+            .RequirePerson();
         return group;
     }
 

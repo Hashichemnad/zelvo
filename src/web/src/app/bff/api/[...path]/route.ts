@@ -84,6 +84,7 @@ function copyHeaders(from: Response, to: NextResponse) {
     "ratelimit-limit",
     "ratelimit-remaining",
     "ratelimit-reset",
+    "zelvo-environment",
   ]) {
     const value = from.headers.get(name);
     if (value) {

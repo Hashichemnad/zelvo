@@ -4,6 +4,8 @@ export class ApiError extends Error {
     message: string,
     readonly status: number,
     readonly code: string | null,
+    /** The problem details the API sent, for extra fields such as `errors` or `urlProblem`. */
+    readonly details: Record<string, unknown> = {},
   ) {
     super(message);
     this.name = "ApiError";
@@ -17,13 +19,15 @@ export class ApiError extends Error {
 
 async function refused(response: Response, what: string): Promise<ApiError> {
   let code: string | null = null;
+  let details: Record<string, unknown> = {};
   try {
-    const body = (await response.json()) as { code?: unknown };
+    const body = (await response.json()) as Record<string, unknown>;
+    details = body;
     code = typeof body.code === "string" ? body.code : null;
   } catch {
     // No problem details: the status is enough.
   }
-  return new ApiError(`${what} failed with ${response.status}`, response.status, code);
+  return new ApiError(`${what} failed with ${response.status}`, response.status, code, details);
 }
 
 /**
@@ -101,4 +105,21 @@ export async function postFile<T>(path: string, file: File, csrfToken: string): 
     throw await refused(response, `POST ${path}`);
   }
   return (await response.json()) as T;
+}
+
+/**
+ * POST a form with a file through the proxy, with the CSRF token. Answers with problem details
+ * other than `acceptStatuses` are refusals; listed statuses (for example 422 with a result body)
+ * are returned like successes.
+ */
+export async function postForm<T>(path: string, form: FormData, csrfToken: string, acceptStatuses: number[] = []): Promise<{ status: number; body: T }> {
+  const response = await fetch(`/bff/api${path}`, {
+    method: "POST",
+    headers: { Accept: "application/json", "X-CSRF-Token": csrfToken },
+    body: form,
+  });
+  if (!response.ok && !acceptStatuses.includes(response.status)) {
+    throw await refused(response, `POST ${path}`);
+  }
+  return { status: response.status, body: (await response.json()) as T };
 }

@@ -27,6 +27,10 @@ The private project must:
 
 No code in this repository changes between development and release builds.
 
+## Installation profiles
+
+`Installation:Profile` says what an installation is for: `Standard` (default), `Demo` (demo mode, `demo-mode.md`) or `Test`, the separate test installation every license includes (module 14, `integrations.md`). The development stub reports the matching license kind (`Development`, `Demo` or `Test`); a release installation gets the matching license file, checked by the private implementation. `ILicenseService.EnvironmentName()` turns the license kind into what integrations see (`production`, `test`, `demo`, `development`).
+
 ## Rules
 
 - Never add license checks, fingerprinting, watermark logic or keys to this repository.

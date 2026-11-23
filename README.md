@@ -40,6 +40,8 @@ make up
 
 **Demo installation:** `make demo` starts a separate demo (its own data; stop the development stack first with `make down`) with two sample organisations, a government entity and a private company. Open "Demo" under the header to sign in as any persona with one click, switch organisation, or, as the demo administrator, reset the demo. `make demo-down` stops it, `make demo-wipe` deletes its data. See `docs/architecture/demo-mode.md`.
 
+**Integrations (E1):** as `admin@zelvo.test`, open Settings → Integrations to create API keys (sent in `X-Api-Key`) and OAuth clients, webhooks with a tester and delivery log, and to read the integration log; Settings → Import and export moves users in CSV or Excel. In development, use `http://webhook-receiver:8096/hook` as a webhook URL and see what arrived at http://localhost:8096/received. **Test installation:** `make test-installation` starts a separate installation for building integrations (its own data; "Test installation" on every page and `test` in every API response and webhook); `make test-installation-down` stops it, `make test-installation-wipe` deletes its data. See `docs/architecture/integrations.md`.
+
 `make down` stops the stack, `make reset` also deletes its data, `make logs` follows the logs. Local Compose changes go in `deploy/compose/compose.override.yaml`, which is git-ignored.
 
 ## Repository layout

@@ -2,6 +2,7 @@ using Microsoft.EntityFrameworkCore;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 using Zelvo.Data.Auditing;
 using Zelvo.Data.Identity;
+using Zelvo.Data.Integrations;
 using Zelvo.Data.Localization;
 using Zelvo.Data.Search;
 using Zelvo.Data.Secrets;
@@ -75,6 +76,18 @@ public sealed class ZelvoDbContext(DbContextOptions<ZelvoDbContext> options) : D
     /// <summary>Major-incident communication timeline.</summary>
     public DbSet<MajorIncidentUpdate> MajorIncidentUpdates => Set<MajorIncidentUpdate>();
 
+    /// <summary>Integrations that call the API: API keys and OAuth clients (module 14).</summary>
+    public DbSet<ApiClient> ApiClients => Set<ApiClient>();
+
+    /// <summary>Outgoing webhook subscriptions (module 14).</summary>
+    public DbSet<WebhookSubscription> WebhookSubscriptions => Set<WebhookSubscription>();
+
+    /// <summary>Webhook deliveries: queue and delivery log.</summary>
+    public DbSet<WebhookDelivery> WebhookDeliveries => Set<WebhookDelivery>();
+
+    /// <summary>Integration log: calls in and out, personal data masked.</summary>
+    public DbSet<IntegrationLogEntry> IntegrationLog => Set<IntegrationLogEntry>();
+
     /// <inheritdoc />
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -142,6 +155,7 @@ public sealed class ZelvoDbContext(DbContextOptions<ZelvoDbContext> options) : D
 
         ConfigureSearch(modelBuilder);
         ConfigureTickets(modelBuilder);
+        ConfigureIntegrations(modelBuilder);
 
         modelBuilder.Entity<TenantDataKey>(key =>
         {
@@ -260,6 +274,99 @@ public sealed class ZelvoDbContext(DbContextOptions<ZelvoDbContext> options) : D
             update.ConfigureLocalizedText(u => u.Body, "body", MajorIncidentUpdate.BodyMaxLength);
             update.Property(u => u.Audience).HasConversion<string>().HasMaxLength(20);
             update.HasIndex(u => new { u.TenantId, u.TicketId, u.PostedAt });
+        });
+    }
+
+    private static void ConfigureIntegrations(ModelBuilder modelBuilder)
+    {
+        modelBuilder.Entity<ApiClient>(client =>
+        {
+            client.ToTable("api_clients", table =>
+            {
+                table.HasCheckConstraint("ck_api_clients_kind", EnumCheck("kind", Enum.GetNames<ApiClientKind>()));
+                table.HasCheckConstraint("ck_api_clients_status", EnumCheck("status", Enum.GetNames<ApiClientStatus>()));
+                table.HasCheckConstraint("ck_api_clients_rate_limit",
+                    $"rate_limit_per_minute BETWEEN {ApiClient.MinRateLimit} AND {ApiClient.MaxRateLimit}");
+                table.HasCheckConstraint("ck_api_clients_credentials",
+                    "(kind = 'ApiKey' AND key_prefix IS NOT NULL AND key_hash IS NOT NULL AND keycloak_client_id IS NULL)"
+                    + " OR (kind = 'OAuthClient' AND key_prefix IS NULL AND key_hash IS NULL AND keycloak_client_id IS NOT NULL)");
+                table.HasCheckConstraint("ck_api_clients_key_prefix", "key_prefix ~ '^[a-z0-9]{12}$'");
+            });
+            client.HasKey(c => c.Id);
+            client.Property(c => c.Id).ValueGeneratedNever();
+            client.HasOne<Tenant>().WithMany().HasForeignKey(c => c.TenantId).OnDelete(DeleteBehavior.Restrict);
+            client.HasOne<Role>().WithMany().HasForeignKey(c => c.RoleId).OnDelete(DeleteBehavior.Restrict);
+            client.Property(c => c.Kind).HasConversion<string>().HasMaxLength(20);
+            client.Property(c => c.Status).HasConversion<string>().HasMaxLength(20);
+            client.Property(c => c.Name).HasMaxLength(ApiClient.NameMaxLength);
+            client.Property(c => c.Description).HasMaxLength(ApiClient.DescriptionMaxLength);
+            client.Property(c => c.KeyPrefix).HasMaxLength(ApiClient.KeyPrefixLength);
+            client.Property(c => c.KeycloakClientId).HasMaxLength(ApiClient.KeycloakIdMaxLength);
+            client.Property(c => c.KeycloakInternalId).HasMaxLength(ApiClient.KeycloakIdMaxLength);
+            client.Property(c => c.ServiceAccountSubject).HasMaxLength(ApiClient.KeycloakIdMaxLength);
+            client.Property(c => c.Version).IsRowVersion();
+            client.HasIndex(c => new { c.TenantId, c.KeyPrefix }).IsUnique().HasFilter("key_prefix IS NOT NULL");
+            client.HasIndex(c => new { c.TenantId, c.KeycloakClientId }).IsUnique().HasFilter("keycloak_client_id IS NOT NULL");
+            client.HasIndex(c => new { c.TenantId, c.ServiceAccountSubject }).IsUnique().HasFilter("service_account_subject IS NOT NULL");
+            client.HasIndex(c => c.RoleId);
+        });
+
+        modelBuilder.Entity<WebhookSubscription>(subscription =>
+        {
+            subscription.ToTable("webhook_subscriptions", table =>
+            {
+                table.HasCheckConstraint("ck_webhook_subscriptions_status", EnumCheck("status", Enum.GetNames<WebhookStatus>()));
+                table.HasCheckConstraint("ck_webhook_subscriptions_url", "url ~ '^https?://'");
+            });
+            subscription.HasKey(s => s.Id);
+            subscription.Property(s => s.Id).ValueGeneratedNever();
+            subscription.HasOne<Tenant>().WithMany().HasForeignKey(s => s.TenantId).OnDelete(DeleteBehavior.Restrict);
+            subscription.Property(s => s.Name).HasMaxLength(WebhookSubscription.NameMaxLength);
+            subscription.Property(s => s.Url).HasMaxLength(WebhookSubscription.UrlMaxLength);
+            subscription.Property(s => s.Status).HasConversion<string>().HasMaxLength(20);
+            subscription.Property(s => s.DisabledReason).HasMaxLength(WebhookSubscription.ReasonMaxLength);
+            subscription.Property(s => s.Version).IsRowVersion();
+            subscription.HasIndex(s => new { s.TenantId, s.Status });
+        });
+
+        modelBuilder.Entity<WebhookDelivery>(delivery =>
+        {
+            delivery.ToTable("webhook_deliveries", table =>
+                table.HasCheckConstraint("ck_webhook_deliveries_status", EnumCheck("status", Enum.GetNames<WebhookDeliveryStatus>())));
+            delivery.HasKey(d => d.Id);
+            delivery.Property(d => d.Id).UseIdentityAlwaysColumn();
+            delivery.HasOne<Tenant>().WithMany().HasForeignKey(d => d.TenantId).OnDelete(DeleteBehavior.Restrict);
+            delivery.HasOne<WebhookSubscription>().WithMany().HasForeignKey(d => d.SubscriptionId).OnDelete(DeleteBehavior.Cascade);
+            delivery.Property(d => d.EventType).HasMaxLength(WebhookDelivery.EventTypeMaxLength);
+            delivery.Property(d => d.Payload).HasColumnType("jsonb");
+            delivery.Property(d => d.Status).HasConversion<string>().HasMaxLength(20);
+            delivery.Property(d => d.LastError).HasMaxLength(WebhookDelivery.ErrorMaxLength);
+
+            // The worker looks for due deliveries per tenant; the delivery log lists a subscription's newest first.
+            delivery.HasIndex(d => new { d.TenantId, d.NextAttemptAt }).HasFilter("status = 'Pending'");
+            delivery.HasIndex(d => new { d.SubscriptionId, d.Id });
+            delivery.HasIndex(d => new { d.TenantId, d.CreatedAt });
+        });
+
+        modelBuilder.Entity<IntegrationLogEntry>(entry =>
+        {
+            entry.ToTable("integration_log", table =>
+                table.HasCheckConstraint("ck_integration_log_direction", EnumCheck("direction", Enum.GetNames<IntegrationDirection>())));
+            entry.HasKey(e => e.Id);
+            entry.Property(e => e.Id).UseIdentityAlwaysColumn();
+            entry.HasOne<Tenant>().WithMany().HasForeignKey(e => e.TenantId).OnDelete(DeleteBehavior.Restrict);
+            entry.Property(e => e.Direction).HasConversion<string>().HasMaxLength(20);
+            entry.Property(e => e.EventType).HasMaxLength(WebhookDelivery.EventTypeMaxLength);
+            entry.Property(e => e.Method).HasMaxLength(IntegrationLogEntry.MethodMaxLength);
+            entry.Property(e => e.Target).HasMaxLength(IntegrationLogEntry.TargetMaxLength);
+            entry.Property(e => e.RequestBody).HasMaxLength(IntegrationLogEntry.BodyMaxLength);
+            entry.Property(e => e.ResponseBody).HasMaxLength(IntegrationLogEntry.BodyMaxLength);
+            entry.Property(e => e.Error).HasMaxLength(IntegrationLogEntry.ErrorMaxLength);
+            entry.Property(e => e.CorrelationId).HasMaxLength(IntegrationLogEntry.CorrelationIdMaxLength);
+            entry.HasIndex(e => new { e.TenantId, e.Id });
+            entry.HasIndex(e => new { e.TenantId, e.OccurredAt });
+            entry.HasIndex(e => new { e.TenantId, e.ApiClientId, e.Id }).HasFilter("api_client_id IS NOT NULL");
+            entry.HasIndex(e => new { e.TenantId, e.SubscriptionId, e.Id }).HasFilter("subscription_id IS NOT NULL");
         });
     }
 

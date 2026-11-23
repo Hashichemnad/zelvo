@@ -10,6 +10,7 @@ COPY src/api/Zelvo.Licensing.Development/Zelvo.Licensing.Development.csproj src/
 COPY src/api/Zelvo.Data/Zelvo.Data.csproj src/api/Zelvo.Data/
 COPY src/api/Zelvo.Search/Zelvo.Search.csproj src/api/Zelvo.Search/
 COPY src/api/Zelvo.Tickets/Zelvo.Tickets.csproj src/api/Zelvo.Tickets/
+COPY src/api/Zelvo.Integrations/Zelvo.Integrations.csproj src/api/Zelvo.Integrations/
 COPY src/api/Zelvo.Secrets/Zelvo.Secrets.csproj src/api/Zelvo.Secrets/
 COPY src/api/Zelvo.Observability/Zelvo.Observability.csproj src/api/Zelvo.Observability/
 RUN dotnet restore src/worker/Zelvo.Worker/Zelvo.Worker.csproj
@@ -19,6 +20,7 @@ COPY src/api/Zelvo.Licensing.Development/ src/api/Zelvo.Licensing.Development/
 COPY src/api/Zelvo.Data/ src/api/Zelvo.Data/
 COPY src/api/Zelvo.Search/ src/api/Zelvo.Search/
 COPY src/api/Zelvo.Tickets/ src/api/Zelvo.Tickets/
+COPY src/api/Zelvo.Integrations/ src/api/Zelvo.Integrations/
 COPY src/api/Zelvo.Secrets/ src/api/Zelvo.Secrets/
 COPY src/api/Zelvo.Observability/ src/api/Zelvo.Observability/
 RUN dotnet publish src/worker/Zelvo.Worker/Zelvo.Worker.csproj -c Release -o /app --no-restore -p:UseAppHost=false
