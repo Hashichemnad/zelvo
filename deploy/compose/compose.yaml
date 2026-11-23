@@ -208,7 +208,7 @@ services:
   # Development mail catcher: sign-in codes and other emails appear at http://localhost:8025.
   mailpit:
     <<: *restart
-    image: axllent/mailpit:v1.33
+    image: axllent/mailpit:v1.34
     ports:
       - "127.0.0.1:${MAILPIT_PORT:-8025}:8025"
     healthcheck:
