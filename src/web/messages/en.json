@@ -74,7 +74,14 @@
     "secondFactorUsed": "Used for this sign-in",
     "secondFactorNotUsed": "Not used for this sign-in",
     "roles": "Your roles",
-    "unavailable": "Your account details cannot be shown right now. Please try again shortly."
+    "unavailable": "Your account details cannot be shown right now. Please try again shortly.",
+    "availability": {
+      "heading": "Assignment",
+      "label": "Available for assignment",
+      "hint": "While this is off, round-robin gives your groups' new tickets to other members. Tickets already assigned to you stay with you.",
+      "groups": "Your groups",
+      "lead": "team lead"
+    }
   },
   "signInProblem": {
     "title": "Sign-in did not finish",
@@ -156,6 +163,34 @@
       "importExport": {
         "title": "Import and export",
         "description": "Export users to CSV or Excel and import them in bulk."
+      },
+      "users": {
+        "title": "Users",
+        "description": "People of your organisation: roles, languages, skills and availability."
+      },
+      "roles": {
+        "title": "Roles",
+        "description": "What each role may do: permissions, field rules and second factor."
+      },
+      "groups": {
+        "title": "Groups",
+        "description": "Assignment groups, their members and team leads."
+      },
+      "categories": {
+        "title": "Categories",
+        "description": "Categories of tickets, up to three levels."
+      },
+      "locations": {
+        "title": "Locations",
+        "description": "Sites, buildings and floors, up to three levels."
+      },
+      "skills": {
+        "title": "Skills",
+        "description": "Skills of agents that assignment rules can require."
+      },
+      "assignment": {
+        "title": "Assignment",
+        "description": "Rules that send tickets to groups and agents, and round-robin."
       }
     },
     "missingWarning": "{count, plural, one {# text is} other {# texts are}} missing a translation.",
@@ -622,7 +657,11 @@
       "me": "Me",
       "nobody": "Nobody",
       "major": "Major incidents only",
-      "apply": "Show"
+      "apply": "Show",
+      "group": "Group",
+      "anyGroup": "Any group",
+      "myGroups": "My groups",
+      "noGroup": "No group"
     },
     "columns": {
       "number": "Number",
@@ -679,7 +718,13 @@
       "noDescription": "No description.",
       "unassigned": "Not assigned yet",
       "major": "Major incident",
-      "majorSince": "Major incident since {date}"
+      "majorSince": "Major incident since {date}",
+      "group": "Group",
+      "noGroup": "No group",
+      "category": "Category",
+      "location": "Location",
+      "notSet": "Not set",
+      "routingRule": "Routed by rule"
     },
     "form": {
       "title": "Title",
@@ -699,7 +744,14 @@
       "submitting": "Saving…",
       "failed": "The incident could not be saved. Please try again.",
       "titleRequired": "Enter a title of at least 3 characters.",
-      "followUpOf": "Follow-up of {number}"
+      "followUpOf": "Follow-up of {number}",
+      "category": "Category",
+      "location": "Location",
+      "notSure": "I am not sure",
+      "group": "Group",
+      "byRules": "Choose by the assignment rules",
+      "groupHint": "Leave this to let the assignment rules choose the group.",
+      "notInGroup": "The assignee is not a member of the chosen group."
     },
     "work": {
       "heading": "Work on this incident",
@@ -736,8 +788,20 @@
         "incident-has-children": "This incident has related incidents of its own, so it cannot be part of another one.",
         "version-mismatch": "Someone else changed this incident. The page now shows the latest version; repeat your change.",
         "validation-failed": "Check the values you entered.",
-        "forbidden": "You do not have permission to do this."
-      }
+        "forbidden": "You do not have permission to do this.",
+        "ticket-not-open": "Resolved and closed incidents cannot be routed again."
+      },
+      "group": "Group",
+      "noGroup": "No group",
+      "groupQueue": "Nobody yet (group queue)",
+      "assigneeInGroup": "Only members of the group can be chosen.",
+      "assigneeAny": "Choose a group to see only its members.",
+      "membersFailed": "The group's members could not be loaded. Please try again.",
+      "routeAgain": "Route again",
+      "routeAgainHint": "Applies the assignment rules again to choose the group and, for round-robin, the agent.",
+      "classification": "Category and location",
+      "none": "Not set",
+      "saveClassification": "Save category and location"
     },
     "reopen": {
       "hint": "Not fixed? You can reopen the incident until it closes; resolved incidents close automatically after a few days.",
@@ -818,8 +882,290 @@
         "isMajor": "Major incident",
         "onHoldReason": "On-hold reason",
         "resolutionNotes": "Resolution",
-        "reopenCount": "Times reopened"
+        "reopenCount": "Times reopened",
+        "categoryId": "Category",
+        "locationId": "Location",
+        "groupId": "Group",
+        "routingRuleId": "Routed by rule"
       }
+    }
+  },
+  "directory": {
+    "saving": "Saving…",
+    "saved": "Saved.",
+    "failed": "The change could not be saved. Please try again.",
+    "inEnglish": "In English",
+    "inArabic": "In Arabic",
+    "errors": {
+      "in-use": "It is still in use, so it cannot be deleted. Make it inactive instead.",
+      "too-deep": "Categories and locations have at most three levels.",
+      "name-taken": "Another entry at this level already has that name.",
+      "parent-not-found": "The level above no longer exists. Reload the page.",
+      "role-system": "Built-in roles cannot be deleted.",
+      "role-locked": "Tenant administrators always keep the permissions to manage users and roles.",
+      "role-mfa-locked": "Agents, team leads and tenant administrators always need a second factor.",
+      "last-tenant-admin": "Your organisation must keep at least one active tenant administrator.",
+      "cannot-disable-self": "You cannot disable your own account.",
+      "user-exists": "A user with that email address already exists.",
+      "ticket-not-open": "Resolved and closed tickets cannot be routed again.",
+      "fields-read-only": "Your role may not change some of these fields.",
+      "validation-failed": "Check the values you entered.",
+      "forbidden": "You do not have permission to do this.",
+      "status-404": "It no longer exists. Reload the page.",
+      "version-mismatch": "Someone else changed this in the meantime. Reload the page and repeat your change."
+    },
+    "languages": {
+      "en": "English",
+      "ar": "Arabic"
+    },
+    "tree": {
+      "save": "Save",
+      "cancel": "Cancel",
+      "inactive": "Inactive",
+      "missingTranslation": "Translation missing",
+      "addChild": "Add below {name}",
+      "rename": "Rename {name}",
+      "moveUp": "Move {name} up",
+      "moveDown": "Move {name} down",
+      "deactivate": "Make {name} inactive",
+      "activate": "Make {name} active",
+      "delete": "Delete {name}",
+      "childName": "Name of the new entry below {name}",
+      "newName": "New name of {name}"
+    },
+    "categories": {
+      "intro": "Categories describe what a ticket is about, in up to three levels (for example Hardware, Laptop, Battery). A rule on a category also applies to the categories below it. Categories in use cannot be deleted; make them inactive instead.",
+      "empty": "No categories yet.",
+      "addTop": "Add a top-level category"
+    },
+    "locations": {
+      "intro": "Locations say where the problem is, in up to three levels (for example site, building, floor). A rule on a location also applies to the locations below it. Locations in use cannot be deleted; make them inactive instead.",
+      "empty": "No locations yet.",
+      "addTop": "Add a top-level location"
+    },
+    "skills": {
+      "intro": "Skills describe what agents can do. Round-robin rules can send tickets only to agents with a given skill. Skills are given to agents on their user page.",
+      "empty": "No skills yet.",
+      "caption": "Skills",
+      "name": "Name",
+      "users": "Agents with it",
+      "state": "State",
+      "actions": "Actions",
+      "active": "Active",
+      "inactive": "Inactive",
+      "rename": "Rename {name}",
+      "save": "Save",
+      "deactivate": "Make {name} inactive",
+      "activate": "Make {name} active",
+      "delete": "Delete {name}",
+      "add": "Add skill",
+      "newName": "Name of the new skill"
+    },
+    "groups": {
+      "intro": "Groups receive tickets from the assignment rules. When a ticket has a group, only the group's members can be assigned. Team leads manage the members of their groups.",
+      "empty": "No groups yet.",
+      "caption": "Groups",
+      "name": "Name",
+      "members": "Members",
+      "leads": "Team leads",
+      "state": "State",
+      "active": "Active",
+      "inactive": "Inactive",
+      "add": "Add group",
+      "newName": "Name of the new group",
+      "details": "Details",
+      "description": "Description",
+      "activeLabel": "Active (inactive groups get no new tickets)",
+      "save": "Save",
+      "noMembers": "No members yet.",
+      "membersCaption": "Members of the group",
+      "member": "Member",
+      "lead": "Team lead",
+      "available": "Available for assignment",
+      "memberLanguages": "Languages",
+      "memberSkills": "Skills",
+      "actions": "Actions",
+      "disabled": "(disabled)",
+      "leadOf": "{name} is a team lead",
+      "yes": "Yes",
+      "no": "No",
+      "availableFor": "{name} is available for assignment",
+      "remove": "Remove {name}",
+      "findPeople": "Find people to add",
+      "find": "Find",
+      "nobodyFound": "Nobody found who is not already a member.",
+      "person": "Person",
+      "choosePerson": "Choose a person",
+      "addMember": "Add to group",
+      "back": "Back to groups"
+    },
+    "users": {
+      "intro": "People of your organisation. Agents need the languages they handle, their skills and their availability for the assignment rules.",
+      "filters": "Find users",
+      "search": "Name or email",
+      "role": "Role",
+      "anyRole": "Any role",
+      "status": "Status",
+      "anyStatus": "Any status",
+      "statuses": {
+        "Active": "Active",
+        "Disabled": "Disabled"
+      },
+      "show": "Show",
+      "empty": "No users match.",
+      "count": "{count, plural, one {# user} other {# users}}",
+      "caption": "Users",
+      "displayName": "Name",
+      "email": "Email",
+      "roles": "Roles",
+      "noName": "(no name)",
+      "back": "Back to users",
+      "add": "Add a user",
+      "addButton": "Add user",
+      "emiratesId": "Emirates ID",
+      "emiratesIdHint": "15 digits starting with 784. Used to match UAE PASS sign-ins. Leave empty to remove it.",
+      "languages": "Languages they handle",
+      "languagesHint": "Rules for requesters of a language send tickets only to agents who handle it.",
+      "skills": "Skills",
+      "noSkills": "No skills are defined yet.",
+      "available": "Available for assignment",
+      "availableHint": "Round-robin skips people who are not available.",
+      "groups": "Groups",
+      "noGroups": "Not a member of any group.",
+      "lead": "team lead",
+      "save": "Save"
+    },
+    "roles": {
+      "intro": "Each role is a set of permissions and field rules. The six built-in roles match the personas; you can add your own.",
+      "caption": "Roles",
+      "name": "Name",
+      "kind": "Kind",
+      "requiresMfa": "Needs a second factor",
+      "permissionCount": "Permissions",
+      "builtIn": "Built-in",
+      "custom": "Custom",
+      "yes": "Yes",
+      "no": "No",
+      "back": "Back to roles",
+      "mfaLocked": "This role always needs a second factor.",
+      "mfaHint": "People with this role must sign in with a second factor before its permissions apply.",
+      "permissions": "Permissions",
+      "fieldRules": "Field rules",
+      "fieldRulesIntro": "Hide fields or make them read-only for this role. Without a rule, the role's permissions decide; personal data stays hidden unless a rule allows it.",
+      "field": "Field",
+      "access": "Access",
+      "sensitive": "personal data",
+      "accessOf": "Access to {field}",
+      "defaultHidden": "Default (hidden)",
+      "defaultByPermission": "Default (by permissions)",
+      "levels": {
+        "Hidden": "Hidden",
+        "Read": "Read only",
+        "Edit": "Can change"
+      },
+      "save": "Save",
+      "delete": "Delete role",
+      "add": "Add a custom role",
+      "key": "Key",
+      "keyHint": "Lower-case letters, digits and hyphens, for example facilities-desk. It cannot be changed later.",
+      "addButton": "Add role"
+    },
+    "permissions": {
+      "areas": {
+        "tenant": "Organisation",
+        "translations": "Translations",
+        "audit": "Audit log",
+        "users": "Users",
+        "roles": "Roles",
+        "identity": "Sign-in",
+        "settings": "Settings",
+        "search": "Search",
+        "demo": "Demo",
+        "incidents": "Incidents",
+        "integrations": "Integrations",
+        "directory": "Directory and assignment"
+      },
+      "tenant_manage": "Change the organisation's name",
+      "translations_read": "See missing translations",
+      "audit_read": "Read and verify the audit log",
+      "users_read": "See users",
+      "users_manage": "Add and change users",
+      "roles_manage": "Change roles",
+      "identity_manage": "Change sign-in settings",
+      "settings_manage": "Change settings",
+      "search_manage": "See and rebuild the search index",
+      "demo_reset": "Reset the demo",
+      "incidents_read": "See every incident",
+      "incidents_create": "Log incidents for others",
+      "incidents_edit": "Work on incidents",
+      "incidents_assign": "Assign incidents",
+      "incidents_major": "Manage major incidents",
+      "integrations_manage": "Manage integrations",
+      "directory_read": "See groups, skills and assignment rules",
+      "directory_manage": "Change categories, locations, skills, groups and assignment rules"
+    },
+    "assignment": {
+      "intro": "The rules are checked in order and the first that matches decides where a new ticket goes. They run when a ticket is created and when an agent chooses \"Route again\"; they never move a ticket on their own later.",
+      "rules": "Rules",
+      "rulesIntro": "A rule matches when each condition it has is met. A rule on a category or location also matches the ones below it.",
+      "noRules": "No rules yet. New tickets go to the default below.",
+      "inactive": "Inactive",
+      "moveUp": "Move {name} up",
+      "moveDown": "Move {name} down",
+      "edit": "Change {name}",
+      "delete": "Delete {name}",
+      "addRule": "Add a rule",
+      "editRule": "Change the rule",
+      "ruleName": "Rule name",
+      "ruleActive": "Active",
+      "when": "When the ticket has",
+      "category": "Category",
+      "anyCategory": "Any category",
+      "location": "Location",
+      "anyLocation": "Any location",
+      "language": "Requester's language",
+      "anyLanguage": "Any language",
+      "whenHint": "Leave a condition as \"Any\" to ignore it.",
+      "then": "Then",
+      "group": "Group",
+      "chooseGroup": "Choose a group",
+      "method": "How",
+      "methods": {
+        "GroupQueue": "Leave in the group's queue",
+        "RoundRobin": "Round-robin to an agent"
+      },
+      "skill": "Only agents with the skill",
+      "anySkill": "Any skill",
+      "methodHints": {
+        "GroupQueue": "The ticket waits in the group's queue until someone takes it.",
+        "RoundRobin": "The ticket goes to the available member who has waited longest for a ticket from this group, with the skill and the requester's language when the rule asks for them. If nobody qualifies, it waits in the queue."
+      },
+      "saveRule": "Save rule",
+      "cancel": "Cancel",
+      "summary": {
+        "category": "category {name}",
+        "location": "location {name}",
+        "language": "requester speaks {language}",
+        "always": "every ticket",
+        "queue": "{group} (queue)",
+        "roundRobin": "{group} (round-robin)",
+        "roundRobinSkill": "{group} (round-robin, skill {skill})"
+      },
+      "default": "Tickets no rule matches",
+      "defaultIntro": "Where tickets go when no rule matches. Without a group they wait without a group until someone assigns them.",
+      "noGroup": "No group",
+      "saveDefault": "Save default",
+      "try": "Try the rules",
+      "tryIntro": "See where a ticket would go now. Nothing is assigned and the round-robin order does not change.",
+      "noCategory": "No category",
+      "noLocation": "No location",
+      "requesterLanguage": "Requester's language",
+      "tenantLanguage": "Organisation default",
+      "tryButton": "Try",
+      "result": "{rule} sends it to {group}: {assignee}.",
+      "defaultName": "The default",
+      "queue": "group queue",
+      "resultNoGroup": "No rule matches and there is no default group: the ticket would have no group."
     }
   }
 }

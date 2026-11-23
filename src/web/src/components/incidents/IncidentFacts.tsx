@@ -1,7 +1,7 @@
 import { useTranslations } from "next-intl";
 import { Link } from "@/i18n/navigation";
 import { formatDateTime, type DateDisplayOptions } from "@/lib/format";
-import { levelName, reasonName, type Incident, type IncidentSettings, type Locale } from "@/lib/incidents";
+import { inLanguage, levelName, reasonName, type Incident, type IncidentSettings, type Locale } from "@/lib/incidents";
 import { MajorBadge, StateBadge } from "./StateBadge";
 
 /**
@@ -26,6 +26,14 @@ export function IncidentFacts({ incident, settings, display, basePath }: {
   if (incident.urgency !== undefined) facts.push({ label: t("fields.urgency"), value: levelName(matrix?.urgencies ?? [], incident.urgency, locale) });
   if (incident.requester) facts.push({ label: t("fields.requester"), value: incident.requester.displayName ?? "—" });
   if (incident.assignee !== undefined) facts.push({ label: t("fields.assignee"), value: incident.assignee?.displayName ?? t("fields.unassigned") });
+  const named = (text: { en: string | null; ar: string | null }) => {
+    const shown = inLanguage(text, locale);
+    return <span lang={shown.lang} dir={shown.dir}>{shown.value}</span>;
+  };
+  if (incident.group !== undefined) facts.push({ label: t("fields.group"), value: incident.group ? named(incident.group.name) : t("fields.noGroup") });
+  if (incident.category !== undefined) facts.push({ label: t("fields.category"), value: incident.category ? named(incident.category.path) : t("fields.notSet") });
+  if (incident.location !== undefined) facts.push({ label: t("fields.location"), value: incident.location ? named(incident.location.path) : t("fields.notSet") });
+  if (incident.routingRule) facts.push({ label: t("fields.routingRule"), value: named(incident.routingRule.name) });
   if (incident.channel) facts.push({ label: t("fields.channel"), value: t(`channels.${incident.channel}`) });
   facts.push({ label: t("fields.created"), value: date(incident.createdAt) });
   facts.push({ label: t("fields.updated"), value: date(incident.updatedAt) });

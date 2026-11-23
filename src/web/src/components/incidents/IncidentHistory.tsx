@@ -1,6 +1,6 @@
 import { useTranslations } from "next-intl";
 import { formatDateTime, type DateDisplayOptions } from "@/lib/format";
-import { levelName, reasonName, ticketStates, type HistoryEntry, type IncidentSettings, type Locale, type TicketState } from "@/lib/incidents";
+import { inLanguage, levelName, reasonName, ticketStates, type HistoryEntry, type IncidentSettings, type Locale, type TicketState } from "@/lib/incidents";
 
 /** The incident's history from the audit log: who changed what, with old and new values. */
 export function IncidentHistory({ entries, settings, display }: { entries: HistoryEntry[]; settings: IncidentSettings | null; display: DateDisplayOptions }) {
@@ -17,6 +17,8 @@ export function IncidentHistory({ entries, settings, display }: { entries: Histo
     if (field === "urgency" && matrix) return levelName(matrix.urgencies, Number(value), locale);
     if (field === "onHoldReason") return reasonName(settings?.onHoldReasons ?? [], String(value), locale);
     if (typeof value === "boolean") return value ? "✓" : "✗";
+    // Groups, categories, locations and rules may come back as bilingual names (task B2).
+    if (typeof value === "object" && value !== null && ("en" in value || "ar" in value)) return inLanguage(value as { en: string | null; ar: string | null }, locale).value || t("empty");
     const text = String(value);
     return text.length > 200 ? `${text.slice(0, 200)}…` : text;
   };

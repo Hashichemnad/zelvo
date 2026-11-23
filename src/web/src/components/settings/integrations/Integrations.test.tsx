@@ -81,8 +81,8 @@ afterEach(() => {
 describe("Settings sections for module 14", () => {
   it("shows Integrations to holders of integrations.manage and Import and export to user managers", () => {
     expect(sectionsFor(["integrations.manage"]).map((s) => s.key)).toEqual(["integrations"]);
-    expect(sectionsFor(["users.manage", "users.read"]).map((s) => s.key)).toEqual(["importExport"]);
-    expect(sectionsFor(["users.read"]).map((s) => s.key)).toEqual([]);
+    expect(sectionsFor(["users.manage", "users.read"]).map((s) => s.key)).toEqual(["users", "importExport"]);
+    expect(sectionsFor(["users.read"]).map((s) => s.key)).toEqual(["users"]);
   });
 });
 

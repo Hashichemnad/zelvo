@@ -6,6 +6,7 @@ import { IncidentHistory } from "@/components/incidents/IncidentHistory";
 import { IncidentWorkPanel } from "@/components/incidents/IncidentWorkPanel";
 import { MajorTimeline } from "@/components/incidents/MajorTimeline";
 import { Link } from "@/i18n/navigation";
+import { loadDirectoryChoices } from "@/lib/directory-pages";
 import { isId, loadAssignees, loadIncident } from "@/lib/incident-pages";
 import { requireSignedIn } from "@/lib/signed-in";
 
@@ -27,10 +28,12 @@ export default async function IncidentPage({ params }: PageProps<"/[locale]/inci
     return <p role="alert">{user ? t("noAccess") : t("unavailable")}</p>;
   }
   const token = session.data.accessToken;
-  const [data, assignees] = await Promise.all([
+  const [data, assignees, choices] = await Promise.all([
     loadIncident(id, token, tenant, locale, { staff: true }),
     permissions.includes("incidents.assign") ? loadAssignees(token, tenant) : Promise.resolve(null),
+    loadDirectoryChoices(token, tenant, permissions),
   ]);
+  const directory = { categories: choices.categories, locations: choices.locations, groups: choices.groups ?? [] };
   const { incident, settings, attachments, attachmentSettings, updates, history, display } = data;
   if (!incident) {
     return (
@@ -58,7 +61,7 @@ export default async function IncidentPage({ params }: PageProps<"/[locale]/inci
         </h1>
       </header>
       <IncidentFacts incident={incident} settings={settings} display={display} basePath="/incidents" />
-      <IncidentWorkPanel incident={incident} settings={settings} csrfToken={session.data.csrfToken} permissions={permissions} assignees={assignees} />
+      <IncidentWorkPanel incident={incident} settings={settings} csrfToken={session.data.csrfToken} permissions={permissions} assignees={assignees} directory={directory} />
       {(incident.isMajor || updates.length > 0) && (
         <MajorTimeline
           incidentId={incident.id}
