@@ -28,7 +28,7 @@ test.describe("AI settings", () => {
     await expect(page).toHaveURL(/\/(en|ar)\/account$/);
 
     await page.goto("/en/settings");
-    await page.getByRole("navigation", { name: "Settings sections" }).getByRole("link", { name: "AI" }).click();
+    await page.getByRole("navigation", { name: "Settings sections" }).getByRole("link", { name: "AI", exact: true }).click();
     await expect(page).toHaveURL(/\/en\/settings\/ai$/);
     await expectAccessible(page);
 
