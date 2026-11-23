@@ -33,7 +33,7 @@ async function forward(request: NextRequest, { params }: { params: Promise<{ pat
 
   const target = `/api/${path.map(encodeURIComponent).join("/")}${request.nextUrl.search}`;
   const headers = new Headers();
-  for (const name of ["content-type", "accept", "accept-language"]) {
+  for (const name of ["content-type", "accept", "accept-language", "if-match"]) {
     const value = request.headers.get(name);
     if (value) {
       headers.set(name, value);
@@ -66,13 +66,25 @@ async function forward(request: NextRequest, { params }: { params: Promise<{ pat
     forgetLocalizationSettings(config.tenant);
   }
 
-  const result = new NextResponse(response.body, { status: response.status });
+  const result = new NextResponse(response.status === 204 ? null : response.body, { status: response.status });
   copyHeaders(response, result);
   return result;
 }
 
 function copyHeaders(from: Response, to: NextResponse) {
-  for (const name of ["content-type", "www-authenticate", "retry-after", "ratelimit-limit", "ratelimit-remaining", "ratelimit-reset"]) {
+  // Downloads (attachments) keep the API's disposition and sandboxing headers.
+  for (const name of [
+    "content-type",
+    "content-disposition",
+    "content-security-policy",
+    "cache-control",
+    "etag",
+    "www-authenticate",
+    "retry-after",
+    "ratelimit-limit",
+    "ratelimit-remaining",
+    "ratelimit-reset",
+  ]) {
     const value = from.headers.get(name);
     if (value) {
       to.headers.set(name, value);

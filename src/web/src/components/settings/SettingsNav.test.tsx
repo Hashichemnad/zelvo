@@ -15,8 +15,8 @@ describe("Settings sections", () => {
   it("are those the user's permissions allow", () => {
     expect(sectionsFor([]).map((s) => s.key)).toEqual([]);
     expect(sectionsFor(["translations.read"]).map((s) => s.key)).toEqual(["translations"]);
-    expect(sectionsFor(["settings.manage", "translations.read", "users.read"]).map((s) => s.key)).toEqual(["language", "translations"]);
-    expect(sectionsFor(["search.manage", "translations.read", "settings.manage"]).map((s) => s.key)).toEqual(["language", "search", "translations"]);
+    expect(sectionsFor(["settings.manage", "translations.read", "users.read"]).map((s) => s.key)).toEqual(["language", "incidents", "attachments", "translations"]);
+    expect(sectionsFor(["search.manage", "translations.read", "settings.manage"]).map((s) => s.key)).toEqual(["language", "incidents", "attachments", "search", "translations"]);
   });
 });
 

@@ -63,3 +63,42 @@ export async function postJson<T>(path: string, body: unknown, csrfToken: string
   }
   return (await response.json()) as T;
 }
+
+/** PATCH through the proxy, with the CSRF token. */
+export async function patchJson<T>(path: string, body: unknown, csrfToken: string): Promise<T> {
+  const response = await fetch(`/bff/api${path}`, {
+    method: "PATCH",
+    headers: { "Content-Type": "application/json", Accept: "application/json", "X-CSRF-Token": csrfToken },
+    body: JSON.stringify(body),
+  });
+  if (!response.ok) {
+    throw await refused(response, `PATCH ${path}`);
+  }
+  return (await response.json()) as T;
+}
+
+/** DELETE through the proxy, with the CSRF token. */
+export async function deleteRequest(path: string, csrfToken: string): Promise<void> {
+  const response = await fetch(`/bff/api${path}`, {
+    method: "DELETE",
+    headers: { Accept: "application/json", "X-CSRF-Token": csrfToken },
+  });
+  if (!response.ok) {
+    throw await refused(response, `DELETE ${path}`);
+  }
+}
+
+/** Uploads one file as multipart form data (field "file") through the proxy, with the CSRF token. */
+export async function postFile<T>(path: string, file: File, csrfToken: string): Promise<T> {
+  const form = new FormData();
+  form.append("file", file, file.name);
+  const response = await fetch(`/bff/api${path}`, {
+    method: "POST",
+    headers: { Accept: "application/json", "X-CSRF-Token": csrfToken },
+    body: form,
+  });
+  if (!response.ok) {
+    throw await refused(response, `POST ${path}`);
+  }
+  return (await response.json()) as T;
+}

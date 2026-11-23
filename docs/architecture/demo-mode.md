@@ -116,6 +116,6 @@ make demo-down    # stop, keep data; make demo-wipe also deletes it
 
 ## Not in this task
 
-- **Sample data of later modules.** Each module adds its seeder: catalog with bundles, proactive services, fees and FAQs (C2–C5); SLAs (B3); knowledge (E-tasks); several months of tickets, complaints, inquiries and suggestions with trends for dashboards and reports; payment gateway in sandbox mode (module 15).
+- **Sample data of later modules.** Each module adds its seeder. B1 adds `b1-incidents` (`DemoIncidentsSeeder`): six incidents per organisation in its main language, including a major incident with two child incidents and its timeline. Still to come: catalog with bundles, proactive services, fees and FAQs (C2–C5); SLAs (B3); knowledge (E-tasks); several months of tickets, complaints, inquiries and suggestions with trends for dashboards and reports; payment gateway in sandbox mode (module 15).
 - **Tenant branding** (logos, colours) of the sample organisations: F1.
 - **A command-line reset.** The button and `make demo-wipe` cover it.

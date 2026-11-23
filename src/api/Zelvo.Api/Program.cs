@@ -6,6 +6,7 @@ using Zelvo.Api.Conventions;
 using Zelvo.Api.Demo;
 using Zelvo.Api.Health;
 using Zelvo.Api.Identity;
+using Zelvo.Api.Incidents;
 using Zelvo.Api.Localization;
 using Zelvo.Api.OpenApi;
 using Zelvo.Api.Platform;
@@ -22,6 +23,7 @@ using OpenTelemetry.Trace;
 using Zelvo.Observability;
 using Zelvo.Search;
 using Zelvo.Secrets;
+using Zelvo.Tickets;
 
 if (args is ["migrate", ..])
 {
@@ -63,6 +65,8 @@ builder.Services.AddScoped<TenantResolver>();
 builder.Services.AddScoped<TenantSettingsStore>();
 builder.Services.AddSingleton<IMissingTranslationSource, TenantMissingTranslations>();
 builder.Services.AddZelvoSearch(builder.Configuration);
+builder.Services.AddZelvoTickets(builder.Configuration);
+builder.Services.AddSingleton<IMissingTranslationSource, IncidentMissingTranslations>();
 builder.Services.AddZelvoSecrets(builder.Configuration);
 builder.Services.AddZelvoRateLimiting(builder.Configuration);
 builder.Services.AddZelvoDemo();
@@ -100,6 +104,8 @@ v1.MapPreferenceEndpoints();
 v1.MapSettingsEndpoints();
 v1.MapSearchEndpoints();
 v1.MapDemoEndpoints();
+v1.MapIncidentEndpoints();
+v1.MapIncidentSettingsEndpoints();
 
 await app.RunAsync();
 return 0;

@@ -63,7 +63,7 @@ Keycloak has no built-in authenticator that emails a sign-in code (checked again
 - Defaults are given once per tenant (`role_default_grants` remembers them), so a later release adds new defaults without undoing an administrator's change.
 - Guards: tenant administrators always keep `users.manage` and `roles.manage` (409 `role-locked`); agents, team leads and tenant administrators always need a second factor (409 `role-mfa-locked`); a tenant always keeps one active tenant administrator (409 `last-tenant-admin`); nobody disables themselves.
 
-Permissions in A2: `tenant.manage`, `translations.read`, `audit.read`, `users.read`, `users.manage`, `roles.manage`, `identity.manage`.
+Permissions in A2: `tenant.manage`, `translations.read`, `audit.read`, `users.read`, `users.manage`, `roles.manage`, `identity.manage`. B1 adds `incidents.read`, `incidents.create`, `incidents.edit`, `incidents.assign` (agents and team leads) and `incidents.major` (team leads), `incidents.read` for executives/auditors, and the `incidents` field resource; see `tickets.md`.
 
 ### Field-level access
 

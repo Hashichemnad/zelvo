@@ -7,6 +7,7 @@ using Zelvo.Data.Search;
 using Zelvo.Data.Secrets;
 using Zelvo.Data.Settings;
 using Zelvo.Data.Tenancy;
+using Zelvo.Data.Tickets;
 
 namespace Zelvo.Data;
 
@@ -55,6 +56,24 @@ public sealed class ZelvoDbContext(DbContextOptions<ZelvoDbContext> options) : D
 
     /// <summary>Tenants' data keys for secrets stored in the database (wrapped, never in clear).</summary>
     public DbSet<TenantDataKey> TenantDataKeys => Set<TenantDataKey>();
+
+    /// <summary>Tickets of every record type (shared core, module 1).</summary>
+    public DbSet<Ticket> Tickets => Set<Ticket>();
+
+    /// <summary>Incident details of tickets.</summary>
+    public DbSet<Incident> Incidents => Set<Incident>();
+
+    /// <summary>Last number given per record type.</summary>
+    public DbSet<TicketNumberSequence> TicketNumberSequences => Set<TicketNumberSequence>();
+
+    /// <summary>Files attached to tickets.</summary>
+    public DbSet<TicketAttachment> TicketAttachments => Set<TicketAttachment>();
+
+    /// <summary>Content of attachments (PostgreSQL attachment store).</summary>
+    public DbSet<TicketAttachmentContent> TicketAttachmentContents => Set<TicketAttachmentContent>();
+
+    /// <summary>Major-incident communication timeline.</summary>
+    public DbSet<MajorIncidentUpdate> MajorIncidentUpdates => Set<MajorIncidentUpdate>();
 
     /// <inheritdoc />
     protected override void OnModelCreating(ModelBuilder modelBuilder)
@@ -122,6 +141,7 @@ public sealed class ZelvoDbContext(DbContextOptions<ZelvoDbContext> options) : D
         });
 
         ConfigureSearch(modelBuilder);
+        ConfigureTickets(modelBuilder);
 
         modelBuilder.Entity<TenantDataKey>(key =>
         {
@@ -134,6 +154,112 @@ public sealed class ZelvoDbContext(DbContextOptions<ZelvoDbContext> options) : D
 
             // One active key per tenant.
             key.HasIndex(k => k.TenantId).IsUnique().HasFilter("retired_at IS NULL").HasDatabaseName("ux_tenant_data_keys_active");
+        });
+    }
+
+    private static void ConfigureTickets(ModelBuilder modelBuilder)
+    {
+        modelBuilder.Entity<Ticket>(ticket =>
+        {
+            ticket.ToTable("tickets", table =>
+            {
+                table.HasCheckConstraint("ck_tickets_type", EnumCheck("type", Enum.GetNames<TicketType>()));
+                table.HasCheckConstraint("ck_tickets_state", EnumCheck("state", Enum.GetNames<TicketState>()));
+                table.HasCheckConstraint("ck_tickets_channel", EnumCheck("channel", Enum.GetNames<TicketChannel>()));
+                table.HasCheckConstraint("ck_tickets_on_hold_reason", "(state = 'OnHold') = (on_hold_reason IS NOT NULL)");
+                table.HasCheckConstraint("ck_tickets_not_own_parent", "parent_id IS NULL OR parent_id <> id");
+            });
+            ticket.HasKey(t => t.Id);
+            ticket.Property(t => t.Id).ValueGeneratedNever();
+            ticket.HasOne<Tenant>().WithMany().HasForeignKey(t => t.TenantId).OnDelete(DeleteBehavior.Restrict);
+            ticket.Property(t => t.Type).HasConversion<string>().HasMaxLength(30);
+            ticket.Property(t => t.State).HasConversion<string>().HasMaxLength(20);
+            ticket.Property(t => t.Channel).HasConversion<string>().HasMaxLength(20);
+            ticket.Property(t => t.Number).HasMaxLength(Ticket.NumberMaxLength);
+            ticket.Property(t => t.Title).HasMaxLength(Ticket.TitleMaxLength);
+            ticket.Property(t => t.Description).HasMaxLength(Ticket.DescriptionMaxLength);
+            ticket.Property(t => t.ResolutionNotes).HasMaxLength(Ticket.ResolutionNotesMaxLength);
+            ticket.Property(t => t.OnHoldReason).HasMaxLength(Ticket.ReasonKeyMaxLength);
+            ticket.Property(t => t.Version).IsRowVersion();
+            ticket.HasOne(t => t.Requester).WithMany().HasForeignKey(t => t.RequesterId).OnDelete(DeleteBehavior.Restrict);
+            ticket.HasOne(t => t.Assignee).WithMany().HasForeignKey(t => t.AssigneeId).OnDelete(DeleteBehavior.Restrict);
+            ticket.HasOne<UserAccount>().WithMany().HasForeignKey(t => t.CreatedById).OnDelete(DeleteBehavior.Restrict);
+            // NO ACTION (checked at the end of each statement), so a tenant's tickets can be deleted together.
+            ticket.HasOne<Ticket>().WithMany().HasForeignKey(t => t.ParentId).OnDelete(DeleteBehavior.NoAction);
+            ticket.HasOne<Ticket>().WithMany().HasForeignKey(t => t.FollowUpOfId).OnDelete(DeleteBehavior.NoAction);
+            ticket.HasOne(t => t.Incident).WithOne().HasForeignKey<Incident>(i => i.TicketId).OnDelete(DeleteBehavior.Cascade);
+            ticket.HasIndex(t => new { t.TenantId, t.Number }).IsUnique();
+            ticket.HasIndex(t => new { t.TenantId, t.Type, t.Sequence }).IsUnique();
+            ticket.HasIndex(t => new { t.TenantId, t.RequesterId, t.CreatedAt });
+            ticket.HasIndex(t => new { t.TenantId, t.AssigneeId });
+            ticket.HasIndex(t => new { t.TenantId, t.ParentId });
+            ticket.HasIndex(t => new { t.TenantId, t.State, t.ResolvedAt });
+            ticket.HasIndex(t => new { t.TenantId, t.CreatedAt });
+        });
+
+        modelBuilder.Entity<Incident>(incident =>
+        {
+            incident.ToTable("incidents", table =>
+            {
+                table.HasCheckConstraint("ck_incidents_levels", "impact BETWEEN 1 AND 9 AND urgency BETWEEN 1 AND 9 AND priority BETWEEN 1 AND 9");
+                table.HasCheckConstraint("ck_incidents_major", "NOT is_major OR major_declared_at IS NOT NULL");
+            });
+            incident.HasKey(i => i.TicketId);
+            incident.HasOne<UserAccount>().WithMany().HasForeignKey(i => i.MajorDeclaredById).OnDelete(DeleteBehavior.Restrict);
+            incident.HasIndex(i => new { i.TenantId, i.Priority });
+            incident.HasIndex(i => new { i.TenantId, i.IsMajor });
+        });
+
+        modelBuilder.Entity<TicketNumberSequence>(sequence =>
+        {
+            sequence.ToTable("ticket_number_sequences", table =>
+                table.HasCheckConstraint("ck_ticket_number_sequences_type", EnumCheck("type", Enum.GetNames<TicketType>())));
+            sequence.HasKey(s => new { s.TenantId, s.Type });
+            sequence.HasOne<Tenant>().WithMany().HasForeignKey(s => s.TenantId).OnDelete(DeleteBehavior.Restrict);
+            sequence.Property(s => s.Type).HasConversion<string>().HasMaxLength(30);
+        });
+
+        modelBuilder.Entity<TicketAttachment>(attachment =>
+        {
+            attachment.ToTable("ticket_attachments", table =>
+            {
+                table.HasCheckConstraint("ck_ticket_attachments_scan_status", EnumCheck("scan_status", Enum.GetNames<AttachmentScanStatus>()));
+                table.HasCheckConstraint("ck_ticket_attachments_size", "size >= 0");
+                table.HasCheckConstraint("ck_ticket_attachments_sha256", "sha256 ~ '^[0-9a-f]{64}$'");
+            });
+            attachment.HasKey(a => a.Id);
+            attachment.Property(a => a.Id).ValueGeneratedNever();
+            attachment.HasOne<Ticket>().WithMany().HasForeignKey(a => a.TicketId).OnDelete(DeleteBehavior.Cascade);
+            attachment.HasOne<UserAccount>().WithMany().HasForeignKey(a => a.UploadedById).OnDelete(DeleteBehavior.Restrict);
+            attachment.Property(a => a.FileName).HasMaxLength(TicketAttachment.FileNameMaxLength);
+            attachment.Property(a => a.ContentType).HasMaxLength(100);
+            attachment.Property(a => a.Sha256).HasMaxLength(64).IsFixedLength();
+            attachment.Property(a => a.ScanStatus).HasConversion<string>().HasMaxLength(20);
+            attachment.Property(a => a.ScanResult).HasMaxLength(TicketAttachment.ScanResultMaxLength);
+            attachment.HasIndex(a => new { a.TenantId, a.TicketId });
+            // The scanner looks for waiting files, oldest first.
+            attachment.HasIndex(a => new { a.TenantId, a.UploadedAt }).HasFilter("scan_status = 'Pending'").HasDatabaseName("ix_ticket_attachments_pending");
+        });
+
+        modelBuilder.Entity<TicketAttachmentContent>(content =>
+        {
+            content.ToTable("ticket_attachment_contents");
+            content.HasKey(c => c.AttachmentId);
+            content.HasOne<TicketAttachment>().WithOne().HasForeignKey<TicketAttachmentContent>(c => c.AttachmentId).OnDelete(DeleteBehavior.Cascade);
+            content.HasIndex(c => c.TenantId);
+        });
+
+        modelBuilder.Entity<MajorIncidentUpdate>(update =>
+        {
+            update.ToTable("major_incident_updates", table =>
+                table.HasCheckConstraint("ck_major_incident_updates_audience", EnumCheck("audience", Enum.GetNames<UpdateAudience>())));
+            update.HasKey(u => u.Id);
+            update.Property(u => u.Id).ValueGeneratedNever();
+            update.HasOne<Ticket>().WithMany().HasForeignKey(u => u.TicketId).OnDelete(DeleteBehavior.Cascade);
+            update.HasOne<UserAccount>().WithMany().HasForeignKey(u => u.PostedById).OnDelete(DeleteBehavior.Restrict);
+            update.ConfigureLocalizedText(u => u.Body, "body", MajorIncidentUpdate.BodyMaxLength);
+            update.Property(u => u.Audience).HasConversion<string>().HasMaxLength(20);
+            update.HasIndex(u => new { u.TenantId, u.TicketId, u.PostedAt });
         });
     }
 

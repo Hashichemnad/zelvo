@@ -11,6 +11,7 @@ internal static class DemoServiceCollectionExtensions
         services.TryAddScoped<DemoReset>();
         services.AddDemoSeeder<DemoOrganisationSeeder>();
         services.AddDemoSeeder<DemoUsersSeeder>();
+        services.AddDemoSeeder<DemoIncidentsSeeder>();
         return services;
     }
 

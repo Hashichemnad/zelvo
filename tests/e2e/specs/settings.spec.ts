@@ -50,7 +50,7 @@ test.describe("settings and localization", () => {
       await page.getByRole("link", { name: "Settings" }).click();
       await expect(page).toHaveURL(/\/en\/settings$/);
       const menu = page.getByRole("navigation", { name: "Settings sections" });
-      await expect(menu.getByRole("link")).toHaveText(["Language and region", "Sign-in", "Search", "Missing translations"]);
+      await expect(menu.getByRole("link")).toHaveText(["Language and region", "Sign-in", "Incidents", "Attachments", "Search", "Missing translations"]);
       await expectAccessible(page);
 
       await menu.getByRole("link", { name: "Language and region" }).click();
@@ -169,5 +169,18 @@ test.describe("settings and localization", () => {
     await page.goto("/en/settings/language");
 
     await expect(page).toHaveURL(/\/realms\/zelvo-[a-z0-9-]+\/protocol\/openid-connect\/auth/);
+  });
+
+  test("Settings → Incidents and Settings → Attachments are accessible in both languages (module 1)", async ({ page }) => {
+    await signInWithPassword(page, devUser("admin"));
+    await completeSecondFactor(page, devUser("admin"));
+    for (const locale of ["en", "ar"] as const) {
+      await page.goto(`/${locale}/settings/incidents`);
+      await expect(page.getByTestId("incident-settings")).toBeVisible();
+      await expectAccessible(page);
+      await page.goto(`/${locale}/settings/attachments`);
+      await expect(page.getByTestId("attachment-settings")).toBeVisible();
+      await expectAccessible(page);
+    }
   });
 });

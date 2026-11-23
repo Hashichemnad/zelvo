@@ -147,6 +147,8 @@ internal static partial class MigrateCommand
         services.AddSingleton(configuration);
         services.AddZelvoData(app);
         services.AddScoped<TenantSettingsStore>();
+        // Sample records go to the search index through the outbox, like any change.
+        services.AddScoped<Zelvo.Search.ISearchIndexer, Zelvo.Search.SearchIndexer>();
         services.AddSingleton(admin);
         services.AddSingleton(Options.Create(identity));
         services.AddZelvoDemo();
