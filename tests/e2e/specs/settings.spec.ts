@@ -64,6 +64,7 @@ test.describe("settings and localization", () => {
         "Attachments",
         "Search",
         "Integrations",
+        "AI",
         "Import and export",
         "Missing translations",
       ]);

@@ -134,7 +134,7 @@ export interface MajorIncidentUpdate {
 export interface HistoryEntry {
   sequence: number;
   occurredAt: string;
-  category: "Create" | "Change" | "Delete" | "Admin" | "View" | "Security";
+  category: "Create" | "Change" | "Delete" | "Admin" | "View" | "Security" | "Ai";
   action: string;
   entityType: string | null;
   actorType: string;

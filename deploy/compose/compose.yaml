@@ -33,6 +33,15 @@ x-integrations-env: &integrations-env
   Integrations__Webhooks__AllowedPrivateNetworks__1: 192.168.0.0/16
   Integrations__Webhooks__AllowedPrivateNetworks__2: 10.0.0.0/8
 
+# AI providers (module 9). Development only: plain HTTP is allowed and the Compose network may be
+# reached, so Settings → AI can use the local ai-mock (http://ai-mock:8097/v1). Installs leave
+# both off and list only the internal networks a self-hosted model is on.
+x-ai-env: &ai-env
+  Ai__AllowInsecureHttp: "true"
+  Ai__AllowedPrivateNetworks__0: 172.16.0.0/12
+  Ai__AllowedPrivateNetworks__1: 192.168.0.0/16
+  Ai__AllowedPrivateNetworks__2: 10.0.0.0/8
+
 x-secrets-env: &secrets-env
   Secrets__Provider: File
   Secrets__File__Path: /run/secrets/zelvo-master-key
@@ -270,6 +279,27 @@ services:
       timeout: 5s
       retries: 20
 
+  # Development only: an OpenAI-compatible AI provider for trying Settings → AI without a real
+  # provider or key. Use http://ai-mock:8097/v1 as the endpoint of an "OpenAI-compatible" provider;
+  # http://localhost:8097/received lists what it got (newest first).
+  ai-mock:
+    <<: *restart
+    image: node:24-alpine
+    command: ["node", "/app/server.mjs"]
+    user: node
+    working_dir: /app
+    environment:
+      PORT: "8097"
+    volumes:
+      - ./ai-mock:/app:ro
+    ports:
+      - "127.0.0.1:${AI_MOCK_PORT:-8097}:8097"
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://127.0.0.1:8097/healthz"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+
   # One-off: applies database migrations as the database owner, creates the default tenant and
   # its built-in roles, sets up each tenant's Keycloak realm and the development users, then
   # exits. The API starts only after it succeeds.
@@ -325,7 +355,7 @@ services:
       Search__Password: ${OPENSEARCH_API_PASSWORD}
       Search__CaFile: /run/certs/ca.crt
       Services__KeycloakHealth: http://keycloak:9000/health/ready
-      <<: [*identity, *secrets-env, *telemetry-env, *integrations-env]
+      <<: [*identity, *secrets-env, *telemetry-env, *integrations-env, *ai-env]
       # Development: everything in the Compose network (the web app's server) may forward client
       # addresses. Installs list their proxies' exact addresses.
       Network__TrustedProxies__0: 172.16.0.0/12
@@ -384,7 +414,7 @@ services:
       AttachmentScanning__Enabled: ${ZELVO_ATTACHMENT_SCANNING:-true}
       AttachmentScanning__Host: clamav
       AttachmentScanning__Port: "3310"
-      <<: [*secrets-env, *telemetry-env, *integrations-env]
+      <<: [*secrets-env, *telemetry-env, *integrations-env, *ai-env]
     secrets: [zelvo-master-key]
     volumes: [*ca-volume]
     depends_on:

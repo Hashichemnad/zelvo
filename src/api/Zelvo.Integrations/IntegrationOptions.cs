@@ -30,7 +30,6 @@ public sealed class IntegrationOptions
 
         var webhooks = section.GetSection("Webhooks");
         var w = options.Webhooks;
-        w.AllowInsecureHttp = bool.TryParse(webhooks["AllowInsecureHttp"], out var insecure) ? insecure : w.AllowInsecureHttp;
         w.Timeout = Time(webhooks["Timeout"]) is { } timeout && timeout > TimeSpan.Zero && timeout <= TimeSpan.FromSeconds(60) ? timeout : w.Timeout;
         w.PollInterval = Time(webhooks["PollInterval"]) is { } poll && poll > TimeSpan.Zero ? poll : w.PollInterval;
         w.DisableAfterFailures = Int(webhooks["DisableAfterFailures"]) is { } failures and > 0 ? failures : w.DisableAfterFailures;
@@ -45,26 +44,7 @@ public sealed class IntegrationOptions
             w.RetryDelays = [.. delays.Select(d => d!.Value)];
         }
 
-        foreach (var entry in webhooks.GetSection("AllowedPrivateNetworks").GetChildren().Select(c => c.Value?.Trim()))
-        {
-            if (string.IsNullOrEmpty(entry))
-            {
-                continue;
-            }
-
-            if (IPNetwork.TryParse(entry, out var network))
-            {
-                w.AllowedPrivateNetworks.Add(network);
-            }
-            else if (IPAddress.TryParse(entry, out var address))
-            {
-                w.AllowedPrivateNetworks.Add(new IPNetwork(address, address.AddressFamily == System.Net.Sockets.AddressFamily.InterNetwork ? 32 : 128));
-            }
-            else
-            {
-                throw new InvalidOperationException($"Integrations:Webhooks:AllowedPrivateNetworks has an entry that is not an address or network: '{entry}'.");
-            }
-        }
+        OutboundNetworkOptions.Read(webhooks, w);
 
         return options;
     }
@@ -76,21 +56,60 @@ public sealed class IntegrationOptions
         int.TryParse(value, NumberStyles.Integer, CultureInfo.InvariantCulture, out var number) ? number : null;
 }
 
-/// <summary>Webhook delivery settings (<c>Integrations:Webhooks</c>).</summary>
-public sealed class WebhookOptions
+/// <summary>
+/// What outgoing requests of one kind (webhooks, AI providers) may reach; read by
+/// <see cref="OutboundAddressPolicy"/>. Set by the installation operator.
+/// </summary>
+public class OutboundNetworkOptions
 {
     /// <summary>
-    /// Allow <c>http://</c> receivers. Off: webhooks go over HTTPS only. Development Compose turns
-    /// it on for the local test receiver; installations should leave it off.
+    /// Allow <c>http://</c> addresses. Off: HTTPS only. Development Compose turns it on for its
+    /// local test services; installations should leave it off.
     /// </summary>
     public bool AllowInsecureHttp { get; set; }
 
     /// <summary>
-    /// Private networks (for example <c>10.20.0.0/16</c>) that webhooks may reach, for receivers on
+    /// Private networks (for example <c>10.20.0.0/16</c>) that may be reached, for services on
     /// the customer's internal network. Loopback, link-local and cloud metadata addresses are never
     /// allowed, whatever is listed here.
     /// </summary>
     public List<IPNetwork> AllowedPrivateNetworks { get; } = [];
+
+    /// <summary>
+    /// Reads <c>AllowInsecureHttp</c> and <c>AllowedPrivateNetworks</c> of <paramref name="section"/>
+    /// into <paramref name="options"/>; entries that are not addresses or networks throw.
+    /// </summary>
+    public static void Read(IConfigurationSection section, OutboundNetworkOptions options)
+    {
+        ArgumentNullException.ThrowIfNull(section);
+        ArgumentNullException.ThrowIfNull(options);
+        options.AllowInsecureHttp = bool.TryParse(section["AllowInsecureHttp"], out var insecure) ? insecure : options.AllowInsecureHttp;
+        foreach (var entry in section.GetSection("AllowedPrivateNetworks").GetChildren().Select(c => c.Value?.Trim()))
+        {
+            if (string.IsNullOrEmpty(entry))
+            {
+                continue;
+            }
+
+            if (IPNetwork.TryParse(entry, out var network))
+            {
+                options.AllowedPrivateNetworks.Add(network);
+            }
+            else if (IPAddress.TryParse(entry, out var address))
+            {
+                options.AllowedPrivateNetworks.Add(new IPNetwork(address, address.AddressFamily == System.Net.Sockets.AddressFamily.InterNetwork ? 32 : 128));
+            }
+            else
+            {
+                throw new InvalidOperationException($"{section.Path}:AllowedPrivateNetworks has an entry that is not an address or network: '{entry}'.");
+            }
+        }
+    }
+}
+
+/// <summary>Webhook delivery settings (<c>Integrations:Webhooks</c>).</summary>
+public sealed class WebhookOptions : OutboundNetworkOptions
+{
 
     /// <summary>Time a receiver has to answer.</summary>
     public TimeSpan Timeout { get; set; } = TimeSpan.FromSeconds(10);

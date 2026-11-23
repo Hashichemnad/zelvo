@@ -63,6 +63,12 @@ internal static class Permissions
     /// log. Never available to integrations themselves.
     /// </summary>
     public const string IntegrationsManage = "integrations.manage";
+
+    /// <summary>
+    /// Settings → AI (module 9): providers and their keys, model per feature, prices, the monthly
+    /// limit, usage and the AI log. Never available to integrations themselves.
+    /// </summary>
+    public const string AiManage = "ai.manage";
 }
 
 /// <summary>A field of a resource that field rules can hide or make read-only.</summary>
@@ -116,6 +122,7 @@ internal static class PermissionCatalog
         Permissions.IntegrationsManage,
         Permissions.DirectoryRead,
         Permissions.DirectoryManage,
+        Permissions.AiManage,
     ];
 
     /// <summary>
@@ -125,6 +132,9 @@ internal static class PermissionCatalog
     public static IReadOnlySet<string> NotForIntegrations { get; } = new HashSet<string>(StringComparer.Ordinal)
     {
         Permissions.UsersManage, Permissions.RolesManage, Permissions.IdentityManage, Permissions.IntegrationsManage,
+        // Not in the 2026-11-22 decision; added with E4 for the product owner's approval: an
+        // integration could point a provider at its own endpoint and receive the stored key's use.
+        Permissions.AiManage,
     };
 
     /// <summary>Permissions an integration may be given as scopes.</summary>

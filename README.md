@@ -42,6 +42,8 @@ make up
 
 **Integrations (E1):** as `admin@zelvo.test`, open Settings → Integrations to create API keys (sent in `X-Api-Key`) and OAuth clients, webhooks with a tester and delivery log, and to read the integration log; Settings → Import and export moves users in CSV or Excel. In development, use `http://webhook-receiver:8096/hook` as a webhook URL and see what arrived at http://localhost:8096/received. **Test installation:** `make test-installation` starts a separate installation for building integrations (its own data; "Test installation" on every page and `test` in every API response and webhook); `make test-installation-down` stops it, `make test-installation-wipe` deletes its data. See `docs/architecture/integrations.md`.
 
+**AI (E4):** AI is off until it is set up. As `admin@zelvo.test`, open Settings → AI, connect a provider (Anthropic Claude, OpenAI, Azure OpenAI, Google Gemini or any OpenAI-compatible endpoint) with your own key, test it, and choose a provider and model per feature; Usage and cost shows the month's calls, tokens and cost against the monthly limit, and the AI log every call with personal data masked. In development, the `ai-mock` service needs no key: add an "OpenAI-compatible" provider with the endpoint `http://ai-mock:8097/v1` and the model `zelvo-mock-fast`; http://localhost:8097/received shows what it was sent. See `docs/architecture/ai-gateway.md`.
+
 `make down` stops the stack, `make reset` also deletes its data, `make logs` follows the logs. Local Compose changes go in `deploy/compose/compose.override.yaml`, which is git-ignored.
 
 ## Repository layout

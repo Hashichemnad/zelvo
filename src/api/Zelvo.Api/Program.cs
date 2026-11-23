@@ -1,6 +1,7 @@
 using Zelvo.Api.ServiceDesk;
 using System.Text.Json.Serialization;
 using Zelvo.Api;
+using Zelvo.Api.Ai;
 using Zelvo.Api.Auditing;
 using Zelvo.Api.Commands;
 using Zelvo.Api.Conventions;
@@ -74,6 +75,7 @@ builder.Services.AddZelvoSecrets(builder.Configuration);
 builder.Services.AddZelvoRateLimiting(builder.Configuration);
 builder.Services.AddZelvoDemo();
 builder.Services.AddZelvoApiIntegrations(builder.Configuration);
+builder.Services.AddZelvoApiAi(builder.Configuration);
 
 var app = builder.Build();
 
@@ -116,6 +118,7 @@ v1.MapTreeEndpoints();
 v1.MapGroupEndpoints();
 v1.MapAssignmentRuleEndpoints();
 v1.MapIntegrationEndpoints();
+v1.MapAiEndpoints();
 
 await app.RunAsync();
 return 0;

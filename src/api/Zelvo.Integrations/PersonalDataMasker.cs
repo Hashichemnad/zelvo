@@ -169,7 +169,7 @@ public static partial class PersonalDataMasker
 
     // Phone, card and account numbers: 9 or more digits, allowing spaces and dashes inside.
     // Plain numbers that are clearly not personal (short counts, years, epoch times) are kept.
-    private static bool IsPersonalNumber(string value)
+    internal static bool IsPersonalNumber(string value)
     {
         var digits = value.Count(char.IsAsciiDigit);
         if (value.StartsWith('+'))
@@ -190,23 +190,23 @@ public static partial class PersonalDataMasker
     private static readonly JsonSerializerOptions CompactJson = new() { WriteIndented = false };
 
     [GeneratedRegex(@"[A-Za-z0-9._%+\-]+@[A-Za-z0-9.\-]+\.[A-Za-z]{2,}", RegexOptions.CultureInvariant, matchTimeoutMilliseconds: 200)]
-    private static partial Regex EmailPattern();
+    internal static partial Regex EmailPattern();
 
     [GeneratedRegex(@"\b784[\s\-]?\d{4}[\s\-]?\d{7}[\s\-]?\d\b", RegexOptions.CultureInvariant, matchTimeoutMilliseconds: 200)]
-    private static partial Regex EmiratesIdPattern();
+    internal static partial Regex EmiratesIdPattern();
 
     [GeneratedRegex(@"\b[A-Z]{2}\d{2}(?:\s?[A-Z0-9]{4}){3,7}(?:\s?[A-Z0-9]{1,4})?\b", RegexOptions.CultureInvariant, matchTimeoutMilliseconds: 200)]
-    private static partial Regex IbanPattern();
+    internal static partial Regex IbanPattern();
 
     [GeneratedRegex(@"Bearer\s+[A-Za-z0-9\-._~+/]+=*", RegexOptions.CultureInvariant | RegexOptions.IgnoreCase, matchTimeoutMilliseconds: 200)]
-    private static partial Regex BearerPattern();
+    internal static partial Regex BearerPattern();
 
     [GeneratedRegex(@"\b(?:zvk|whsec)_[A-Za-z0-9_\-+/=]{8,}", RegexOptions.CultureInvariant, matchTimeoutMilliseconds: 200)]
-    private static partial Regex ApiKeyPattern();
+    internal static partial Regex ApiKeyPattern();
 
     [GeneratedRegex(@"\b[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}\b", RegexOptions.CultureInvariant, matchTimeoutMilliseconds: 200)]
-    private static partial Regex UuidPattern();
+    internal static partial Regex UuidPattern();
 
     [GeneratedRegex(@"\+?\d[\d\s\-]{7,}\d", RegexOptions.CultureInvariant, matchTimeoutMilliseconds: 200)]
-    private static partial Regex LongNumberPattern();
+    internal static partial Regex LongNumberPattern();
 }
