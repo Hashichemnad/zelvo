@@ -13,7 +13,7 @@ internal static class SystemEndpoints
         group.MapGet("/system/info", GetInfo)
             .WithName("GetSystemInfo")
             .WithTags("System")
-            .WithSummary("Product name, version, supported languages and license mode.");
+            .WithSummary("Product name, version, supported languages, license mode and environment (production, test, demo or development).");
         return group;
     }
 
@@ -28,7 +28,7 @@ internal static class SystemEndpoints
             version = version[..plusIndex];
         }
 
-        return new SystemInfo("Zelvo", version, SupportedLanguages, licenseService.Current.Kind.ToString());
+        return new SystemInfo("Zelvo", version, SupportedLanguages, licenseService.Current.Kind.ToString(), licenseService.EnvironmentName());
     }
 }
 
@@ -37,4 +37,5 @@ internal static class SystemEndpoints
 /// <param name="Version">Product version.</param>
 /// <param name="Languages">Supported UI languages.</param>
 /// <param name="LicenseMode">Kind of license the installation runs under.</param>
-internal sealed record SystemInfo(string Product, string Version, IReadOnlyList<string> Languages, string LicenseMode);
+/// <param name="Environment">What the installation is for: <c>production</c>, <c>test</c> (the test installation every license includes), <c>demo</c> or <c>development</c>.</param>
+internal sealed record SystemInfo(string Product, string Version, IReadOnlyList<string> Languages, string LicenseMode, string Environment);

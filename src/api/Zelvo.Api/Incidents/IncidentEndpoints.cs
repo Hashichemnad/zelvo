@@ -6,6 +6,7 @@ using Microsoft.AspNetCore.Http.HttpResults;
 using Microsoft.EntityFrameworkCore;
 using Zelvo.Api.Conventions;
 using Zelvo.Api.Identity;
+using Zelvo.Api.Integrations;
 using Zelvo.Api.Settings;
 using Zelvo.Api.Tenancy;
 using Zelvo.Data;
@@ -43,6 +44,8 @@ internal static partial class IncidentEndpoints
 
         incidents.MapPost("/", CreateAsync)
             .WithName("CreateIncident")
+            // These record the person who acts; integrations cannot do them yet (E1).
+            .RequirePerson()
             .WithSummary("Report an incident. Requesters report their own (channel Portal). Holders of incidents.create can log one for someone else from any channel, set impact and urgency, assign it (incidents.assign), link a parent or follow up a closed incident. The number (for example INC-000123) and the priority come from the tenant's settings; audited.")
             .RequireAuthorization()
             .Produces<IncidentResponse>(StatusCodes.Status201Created)
@@ -76,6 +79,8 @@ internal static partial class IncidentEndpoints
 
         incidents.MapPost("/{id:guid}/transitions", TransitionAsync)
             .WithName("ChangeIncidentState")
+            // These record the person who acts; integrations cannot do them yet (E1).
+            .RequirePerson()
             .WithSummary("Move the incident to another state: InProgress, OnHold (with an active on-hold reason), Resolved (with resolution notes; resolves its open children too), Closed or Reopened. Requesters may reopen their own resolved incidents; everything else needs incidents.edit. Closed is final; audited.")
             .RequireAuthorization()
             .Produces<IncidentResponse>()
@@ -90,6 +95,8 @@ internal static partial class IncidentEndpoints
 
         incidents.MapPut("/{id:guid}/major", SetMajorAsync)
             .WithName("SetMajorIncident")
+            // These record the person who acts; integrations cannot do them yet (E1).
+            .RequirePerson()
             .WithSummary("Declare the incident a major incident, or stand it down. Needs incidents.major; audited.")
             .RequirePermission(Permissions.IncidentsMajor)
             .Produces<IncidentResponse>();
@@ -102,6 +109,8 @@ internal static partial class IncidentEndpoints
 
         incidents.MapPost("/{id:guid}/updates", PostUpdateAsync)
             .WithName("PostMajorIncidentUpdate")
+            // These record the person who acts; integrations cannot do them yet (E1).
+            .RequirePerson()
             .WithSummary("Post an update to a major incident's timeline, in English and Arabic, for staff only or also for requesters (of the incident and its children). Needs incidents.major; audited.")
             .RequirePermission(Permissions.IncidentsMajor)
             .Produces<MajorIncidentUpdateResponse>(StatusCodes.Status201Created)
@@ -120,7 +129,8 @@ internal static partial class IncidentEndpoints
     internal static async Task<Ok<JsonObject>> ListAsync(
         [AsParameters] IncidentListQuery query, ZelvoDbContext db, CurrentUser user, CancellationToken cancellationToken)
     {
-        var me = user.Account!.Id;
+        // Integrations have no account: without incidents.read they see none.
+        var me = user.Account?.Id;
         var staff = user.Has(Permissions.IncidentsRead);
         var tickets = Incidents(db);
         if (!staff || query.Mine == true)

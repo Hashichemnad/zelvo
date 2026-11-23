@@ -63,8 +63,9 @@ internal sealed class KeycloakRealmProvisioner(KeycloakAdminClient admin, Identi
     public const string AcrLoaMap = """{"pwd":1,"mfa":2}""";
 
     // Identity provider roles: the API sets up UAE PASS (GOV-1) when an administrator saves it.
+    // Client roles: the API creates, disables and rotates OAuth clients for integrations (E1).
     private static readonly string[] ProvisionerRealmRoles =
-        ["view-realm", "manage-realm", "view-users", "manage-users", "view-identity-providers", "manage-identity-providers"];
+        ["view-realm", "manage-realm", "view-users", "manage-users", "view-identity-providers", "manage-identity-providers", "view-clients", "manage-clients"];
 
     public async Task EnsureProvisionerAsync(CancellationToken cancellationToken)
     {

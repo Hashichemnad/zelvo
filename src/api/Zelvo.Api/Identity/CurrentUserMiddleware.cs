@@ -22,9 +22,30 @@ internal sealed class CurrentUserMiddleware(RequestDelegate next)
 
     public async Task InvokeAsync(
         HttpContext context, ZelvoDbContext db, CurrentUser currentUser, AuditContext auditContext,
-        IOptions<IdentityOptions> options, Settings.TenantSettingsStore settings)
+        IOptions<IdentityOptions> options, Settings.TenantSettingsStore settings, Integrations.ApiClientDirectory clients)
     {
         var principal = context.User;
+        if (principal.Identity?.IsAuthenticated == true && principal.HasClaim(c => c.Type == Integrations.ApiClientClaims.ClientId))
+        {
+            // An integration (module 14): its role narrowed by its scopes. Revoked or expired
+            // integrations are refused at once, even with a token that has not expired yet.
+            var client = await clients.ForPrincipalAsync(principal, context.RequestAborted).ConfigureAwait(false);
+            if (client is null || !client.IsUsable(DateTimeOffset.UtcNow))
+            {
+                context.Response.Headers.WWWAuthenticate = "Bearer error=\"invalid_token\"";
+                await ApiProblem.WriteAsync(context, StatusCodes.Status401Unauthorized, "credential-revoked",
+                    "This API key or OAuth client is revoked, expired or unknown.").ConfigureAwait(false);
+                return;
+            }
+
+            var role = await db.Roles.AsNoTracking().Include(r => r.Permissions).Include(r => r.FieldRules)
+                .AsSplitQuery().SingleAsync(r => r.Id == client.RoleId, context.RequestAborted).ConfigureAwait(false);
+            auditContext.SetActor(AuditActorType.ApiClient, client.Id.ToString(), client.Name);
+            currentUser.SetClient(client, role);
+            await next(context).ConfigureAwait(false);
+            return;
+        }
+
         if (principal.Identity?.IsAuthenticated == true
             && principal.FindFirstValue(ZelvoClaimTypes.Subject) is { Length: > 0 } subject)
         {

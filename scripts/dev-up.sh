@@ -3,6 +3,8 @@
 # First run: creates deploy/compose/.env from .env.example with random passwords.
 # ZELVO_PROFILE=demo (make demo) starts the demo installation instead: its own Compose project
 # (zelvo-demo) with deploy/compose/compose.demo.yaml, so its data never mixes with development data.
+# ZELVO_PROFILE=test (make test-installation) starts the test installation (module 14) the same
+# way: Compose project zelvo-test with deploy/compose/compose.test.yaml.
 set -euo pipefail
 
 root="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
@@ -92,6 +94,8 @@ JSON
 cd "$compose_dir"
 if [[ "${ZELVO_PROFILE:-}" == "demo" ]]; then
   export COMPOSE_PROJECT_NAME=zelvo-demo COMPOSE_FILE=compose.yaml:compose.demo.yaml
+elif [[ "${ZELVO_PROFILE:-}" == "test" ]]; then
+  export COMPOSE_PROJECT_NAME=zelvo-test COMPOSE_FILE=compose.yaml:compose.test.yaml
 fi
 docker compose up --build --detach --wait --wait-timeout "${ZELVO_WAIT_TIMEOUT:-900}" "$@"
 
@@ -125,6 +129,10 @@ Zelvo is running:
                       password: ZELVO_DEV_USERS_PASSWORD in deploy/compose/.env
   RabbitMQ admin      http://localhost:${RABBITMQ_MANAGEMENT_PORT:-15672}
   Grafana             http://localhost:${GRAFANA_PORT:-3001}  (dashboards, traces, logs; GRAFANA_ADMIN_* in deploy/compose/.env)
+  Webhook receiver    http://webhook-receiver:8096/hook as a webhook URL; what it got: http://localhost:${WEBHOOK_RECEIVER_PORT:-8096}/received
 
 Stop it with: make down
 MSG
+if [[ "${ZELVO_PROFILE:-}" == "test" ]]; then
+  echo "This is the test installation (Compose project zelvo-test). Stop it with: make test-installation-down"
+fi

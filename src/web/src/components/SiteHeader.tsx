@@ -9,6 +9,7 @@ import { sectionsFor } from "@/lib/settings-sections";
 import { AccountMenu } from "./AccountMenu";
 import { DemoPanel } from "./DemoPanel";
 import { LanguageSwitcher } from "./LanguageSwitcher";
+import { TestInstallationBanner } from "./TestInstallationBanner";
 
 export async function SiteHeader() {
   const t = await getTranslations("common");
@@ -59,6 +60,7 @@ export async function SiteHeader() {
           </div>
         </div>
       </header>
+      <TestInstallationBanner />
       {demo && (
         <DemoPanel
           demo={demo}

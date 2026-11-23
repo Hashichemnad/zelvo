@@ -32,7 +32,40 @@ internal interface IKeycloakAdmin
 
     /// <summary>Demo mode: deletes every user of the realm whose username is not in <paramref name="keep"/>; returns how many.</summary>
     Task<int> DeleteUsersExceptAsync(string realm, IReadOnlySet<string> keep, CancellationToken cancellationToken);
+
+    /// <summary>
+    /// Integrations (E1): creates a confidential client that may only use the client credentials
+    /// grant, whose tokens are for the Zelvo API and carry the tenant and integration ids.
+    /// </summary>
+    Task<IntegrationClientCredentials> CreateIntegrationClientAsync(string realm, IntegrationClientSpec spec, CancellationToken cancellationToken);
+
+    /// <summary>Integrations: turns a client on or off (off: Keycloak issues no more tokens).</summary>
+    Task SetClientEnabledAsync(string realm, string internalId, bool enabled, CancellationToken cancellationToken);
+
+    /// <summary>Integrations: gives a client a new secret and returns it; the old one stops working.</summary>
+    Task<string> RegenerateClientSecretAsync(string realm, string internalId, CancellationToken cancellationToken);
+
+    /// <summary>
+    /// Bulk import of users: finds the user with this email, or creates one (enabled, email not yet
+    /// verified, no password; they sign in with an email code, UAE PASS or "Forgot password").
+    /// Returns its Keycloak id.
+    /// </summary>
+    Task<string> FindOrCreateUserAsync(string realm, string email, string firstName, string lastName, CancellationToken cancellationToken);
 }
+
+/// <summary>An integration's OAuth client to create.</summary>
+/// <param name="ClientId">Keycloak client id, <c>zelvo-int-…</c>.</param>
+/// <param name="Name">Name shown in Keycloak.</param>
+/// <param name="TenantId">The tenant, as the <c>zelvo_tenant_id</c> claim.</param>
+/// <param name="ApiClientId">The Zelvo integration id, as the <c>zelvo_api_client</c> claim.</param>
+/// <param name="Audience">The API audience.</param>
+internal sealed record IntegrationClientSpec(string ClientId, string Name, Guid TenantId, Guid ApiClientId, string Audience);
+
+/// <summary>What Keycloak created for an integration.</summary>
+/// <param name="InternalId">Keycloak's internal id of the client.</param>
+/// <param name="Secret">The client secret (shown once).</param>
+/// <param name="ServiceAccountSubject">The <c>sub</c> of the client's tokens.</param>
+internal sealed record IntegrationClientCredentials(string InternalId, string Secret, string ServiceAccountSubject);
 
 /// <summary>Keycloak refused or failed an admin request.</summary>
 internal sealed class KeycloakAdminException(string message, HttpStatusCode? status = null) : Exception(message)
@@ -224,6 +257,118 @@ internal sealed class KeycloakAdminClient : IKeycloakAdmin
 
         return id;
     }
+
+    public async Task<IntegrationClientCredentials> CreateIntegrationClientAsync(string realm, IntegrationClientSpec spec, CancellationToken cancellationToken)
+    {
+        ArgumentNullException.ThrowIfNull(spec);
+        var client = new JsonObject
+        {
+            ["clientId"] = spec.ClientId,
+            ["name"] = spec.Name,
+            ["description"] = "Zelvo integration (Settings > Integrations). Managed by Zelvo; do not change here.",
+            ["enabled"] = true,
+            ["protocol"] = "openid-connect",
+            ["publicClient"] = false,
+            ["clientAuthenticatorType"] = "client-secret",
+            ["standardFlowEnabled"] = false,
+            ["implicitFlowEnabled"] = false,
+            ["directAccessGrantsEnabled"] = false,
+            ["serviceAccountsEnabled"] = true,
+            ["frontchannelLogout"] = false,
+            ["fullScopeAllowed"] = false,
+            ["redirectUris"] = new JsonArray(),
+            ["webOrigins"] = new JsonArray(),
+            ["defaultClientScopes"] = new JsonArray("basic"),
+            ["optionalClientScopes"] = new JsonArray(),
+            ["protocolMappers"] = new JsonArray(
+                Mapper("zelvo-api audience", "oidc-audience-mapper", new JsonObject
+                {
+                    ["included.client.audience"] = spec.Audience,
+                    ["access.token.claim"] = "true",
+                    ["id.token.claim"] = "false",
+                }),
+                HardcodedClaim("zelvo tenant id", Identity.ZelvoClaimTypes.TenantId, spec.TenantId.ToString()),
+                HardcodedClaim("zelvo api client", Integrations.ApiClientClaims.ClientId, spec.ApiClientId.ToString())),
+        };
+
+        using (var _ = await SendAsync(HttpMethod.Post, $"realms/{E(realm)}/clients", client, cancellationToken).ConfigureAwait(false))
+        {
+        }
+
+        var found = await GetArrayAsync($"realms/{E(realm)}/clients?clientId={E(spec.ClientId)}", cancellationToken).ConfigureAwait(false);
+        var internalId = (string?)found.SingleOrDefault()?["id"]
+            ?? throw new KeycloakAdminException($"Keycloak did not create client {spec.ClientId}.");
+        var secret = await GetAsync($"realms/{E(realm)}/clients/{E(internalId)}/client-secret", cancellationToken).ConfigureAwait(false);
+        var account = await GetAsync($"realms/{E(realm)}/clients/{E(internalId)}/service-account-user", cancellationToken).ConfigureAwait(false);
+        return new IntegrationClientCredentials(
+            internalId,
+            (string?)secret?["value"] ?? throw new KeycloakAdminException("Keycloak sent no client secret."),
+            (string?)account?["id"] ?? throw new KeycloakAdminException("Keycloak created no service account."));
+    }
+
+    public async Task SetClientEnabledAsync(string realm, string internalId, bool enabled, CancellationToken cancellationToken)
+    {
+        var path = $"realms/{E(realm)}/clients/{E(internalId)}";
+        var client = await GetAsync(path, cancellationToken).ConfigureAwait(false)
+            ?? throw new KeycloakAdminException($"Client {internalId} does not exist in realm {realm}.", HttpStatusCode.NotFound);
+        client["enabled"] = enabled;
+        if (client is JsonObject obj)
+        {
+            obj.Remove("protocolMappers");
+        }
+
+        using var _ = await SendAsync(HttpMethod.Put, path, client, cancellationToken).ConfigureAwait(false);
+    }
+
+    public async Task<string> RegenerateClientSecretAsync(string realm, string internalId, CancellationToken cancellationToken)
+    {
+        using var response = await SendAsync(HttpMethod.Post, $"realms/{E(realm)}/clients/{E(internalId)}/client-secret", null, cancellationToken).ConfigureAwait(false);
+        var secret = await response.Content.ReadFromJsonAsync<JsonNode>(Json, cancellationToken).ConfigureAwait(false);
+        return (string?)secret?["value"] ?? throw new KeycloakAdminException("Keycloak sent no client secret.");
+    }
+
+    public async Task<string> FindOrCreateUserAsync(string realm, string email, string firstName, string lastName, CancellationToken cancellationToken)
+    {
+        var path = $"realms/{E(realm)}/users?email={E(email)}&exact=true";
+        var found = await GetArrayAsync(path, cancellationToken).ConfigureAwait(false);
+        if (found.Count == 0)
+        {
+            var user = new JsonObject
+            {
+                ["username"] = email,
+                ["email"] = email,
+                ["emailVerified"] = false,
+                ["enabled"] = true,
+                ["firstName"] = firstName,
+                ["lastName"] = lastName,
+            };
+            using (var _ = await SendAsync(HttpMethod.Post, $"realms/{E(realm)}/users", user, cancellationToken, allowConflict: true).ConfigureAwait(false))
+            {
+            }
+
+            found = await GetArrayAsync(path, cancellationToken).ConfigureAwait(false);
+        }
+
+        return (string?)(found.Count > 0 ? found[0] : null)?["id"] ?? throw new KeycloakAdminException($"Keycloak did not create a user for {email}.");
+    }
+
+    private static JsonObject Mapper(string name, string type, JsonObject config) => new()
+    {
+        ["name"] = name,
+        ["protocol"] = "openid-connect",
+        ["protocolMapper"] = type,
+        ["config"] = config,
+    };
+
+    private static JsonObject HardcodedClaim(string name, string claim, string value) => Mapper(name, "oidc-hardcoded-claim-mapper", new JsonObject
+    {
+        ["claim.name"] = claim,
+        ["claim.value"] = value,
+        ["jsonType.label"] = "String",
+        ["access.token.claim"] = "true",
+        ["id.token.claim"] = "false",
+        ["userinfo.token.claim"] = "false",
+    });
 
     public async Task<int> DeleteUsersExceptAsync(string realm, IReadOnlySet<string> keep, CancellationToken cancellationToken)
     {

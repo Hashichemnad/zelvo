@@ -21,6 +21,8 @@ export interface SystemInfo {
   version: string;
   languages: string[];
   licenseMode: string;
+  /** production, test (the test installation every license includes), demo or development. */
+  environment?: string;
 }
 
 const apiBaseUrl = process.env.API_INTERNAL_URL ?? "http://localhost:8080";

@@ -1,4 +1,5 @@
 using Microsoft.AspNetCore.Http.HttpResults;
+using Zelvo.Api.Integrations;
 using Zelvo.Api.Settings;
 using Zelvo.Api.Tenancy;
 using Zelvo.Data;
@@ -12,7 +13,7 @@ internal static class PreferenceEndpoints
 {
     public static RouteGroupBuilder MapPreferenceEndpoints(this RouteGroupBuilder group)
     {
-        var preferences = group.MapGroup("/me/preferences").WithTags("Identity").RequireTenant().RequireAuthorization();
+        var preferences = group.MapGroup("/me/preferences").WithTags("Identity").RequireTenant().RequirePerson();
 
         preferences.MapGet("/", GetAsync)
             .WithName("GetMyPreferences")

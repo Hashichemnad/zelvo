@@ -9,15 +9,16 @@ using Zelvo.Data.Tenancy;
 namespace Zelvo.Api.Security.RateLimiting;
 
 /// <summary>
-/// Applies <see cref="RateLimitOptions"/> to <c>/api</c> requests: signed-in users are counted per
-/// tenant and user, visitors per client address (behind trusted proxies, the forwarded address).
+/// Applies <see cref="RateLimitOptions"/> to <c>/api</c> requests: integrations (API keys and
+/// OAuth clients) are counted per integration with the limit their administrator set (module 14),
+/// signed-in users per tenant and user, visitors per client address (behind trusted proxies, the forwarded address).
 /// Keys are hashed, so the cache holds no user ids or addresses. Every response carries
 /// <c>RateLimit-Limit</c>, <c>RateLimit-Remaining</c> and <c>RateLimit-Reset</c>; refused requests
 /// get 429 <c>rate-limited</c> with <c>Retry-After</c>.
 /// </summary>
 internal sealed partial class RateLimitingMiddleware(RequestDelegate next, IOptions<RateLimitOptions> options, ILogger<RateLimitingMiddleware> logger)
 {
-    public async Task InvokeAsync(HttpContext context, IRateLimitStore store, ITenantContext tenant)
+    public async Task InvokeAsync(HttpContext context, IRateLimitStore store, ITenantContext tenant, Integrations.ApiClientDirectory clients)
     {
         var limits = options.Value;
         if (!limits.Enabled || !context.Request.Path.StartsWithSegments("/api", StringComparison.OrdinalIgnoreCase))
@@ -26,8 +27,10 @@ internal sealed partial class RateLimitingMiddleware(RequestDelegate next, IOpti
             return;
         }
 
-        var (kind, permits, partition) = Partition(context, tenant, limits);
-        var count = await store.HitAsync(Key(kind, partition), limits.Window, context.RequestAborted).ConfigureAwait(false);
+        var (kind, permits, partition) = await PartitionAsync(context, tenant, limits, clients).ConfigureAwait(false);
+        // Integration limits are set per minute by administrators, whatever the installation's window.
+        var window = kind == "client" ? TimeSpan.FromMinutes(1) : limits.Window;
+        var count = await store.HitAsync(Key(kind, partition), window, context.RequestAborted).ConfigureAwait(false);
         if (count is not { } current)
         {
             await next(context).ConfigureAwait(false);
@@ -53,9 +56,16 @@ internal sealed partial class RateLimitingMiddleware(RequestDelegate next, IOpti
         await next(context).ConfigureAwait(false);
     }
 
-    private static (string Kind, int Permits, string Partition) Partition(HttpContext context, ITenantContext tenant, RateLimitOptions limits)
+    private static async Task<(string Kind, int Permits, string Partition)> PartitionAsync(
+        HttpContext context, ITenantContext tenant, RateLimitOptions limits, Integrations.ApiClientDirectory clients)
     {
         var user = context.User;
+        if (user.Identity?.IsAuthenticated == true
+            && await clients.ForPrincipalAsync(user, context.RequestAborted).ConfigureAwait(false) is { } client)
+        {
+            return ("client", client.RateLimitPerMinute, $"{tenant.TenantId:N}|{client.Id:N}");
+        }
+
         var subject = user.Identity?.IsAuthenticated == true
             ? user.FindFirstValue(ClaimTypes.NameIdentifier) ?? user.FindFirstValue("sub")
             : null;

@@ -5,6 +5,7 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Options;
 using Zelvo.Api.Conventions;
 using Zelvo.Api.Identity;
+using Zelvo.Api.Integrations;
 using Zelvo.Api.Settings;
 using Zelvo.Data;
 using Zelvo.Data.Auditing;
@@ -33,6 +34,8 @@ internal static class IncidentAttachmentEndpoints
 
         incidents.MapPost("/{id:guid}/attachments", UploadAsync)
             .WithName("UploadIncidentAttachment")
+            // These record the person who acts; integrations cannot do them yet (E1).
+            .RequirePerson()
             .WithSummary("Attach one file (multipart field 'file'). The requester or holders of incidents.edit; within the tenant's size limit and file types, and its content must match its type. The file is scanned for malware before anyone can download it; audited.")
             .RequireAuthorization()
             .DisableAntiforgery()
@@ -49,6 +52,8 @@ internal static class IncidentAttachmentEndpoints
 
         incidents.MapDelete("/{id:guid}/attachments/{attachmentId:guid}", DeleteAsync)
             .WithName("DeleteIncidentAttachment")
+            // These record the person who acts; integrations cannot do them yet (E1).
+            .RequirePerson()
             .WithSummary("Remove a file: its uploader, or holders of incidents.edit, while the incident is not closed; audited.")
             .RequireAuthorization()
             .Produces(StatusCodes.Status204NoContent);

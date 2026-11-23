@@ -1,4 +1,4 @@
-.PHONY: up down reset logs demo demo-down demo-wipe test test-api test-keycloak test-web e2e e2e-demo
+.PHONY: up down reset logs demo demo-down demo-wipe test-installation test-installation-down test-installation-wipe test test-api test-keycloak test-web e2e e2e-demo
 
 up: ## Build and start the whole stack (creates deploy/compose/.env on first run)
 	./scripts/dev-up.sh
@@ -17,6 +17,15 @@ demo-down: ## Stop the demo installation, keep its data
 
 demo-wipe: ## Stop the demo installation and delete its data (the next make demo seeds it again)
 	ZELVO_PROFILE=demo ./scripts/dev-down.sh --volumes
+
+test-installation: ## Start the test installation for building integrations (own data, "test" in every API response and webhook; stop the development stack first)
+	ZELVO_PROFILE=test ./scripts/dev-up.sh
+
+test-installation-down: ## Stop the test installation, keep its data
+	ZELVO_PROFILE=test ./scripts/dev-down.sh
+
+test-installation-wipe: ## Stop the test installation and delete its data
+	ZELVO_PROFILE=test ./scripts/dev-down.sh --volumes
 
 logs: ## Follow the logs of all services
 	cd deploy/compose && docker compose logs -f
