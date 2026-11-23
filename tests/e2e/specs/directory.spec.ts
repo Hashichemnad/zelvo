@@ -52,7 +52,7 @@ test.describe("directory and assignment", () => {
     await addCategory.getByLabel("In English").fill(category);
     await addCategory.getByLabel("In Arabic").fill(`طابعات ${stamp}`);
     await addCategory.getByRole("button", { name: "Save" }).click();
-    await expect(page.getByTestId("tree-categories").getByText(category)).toBeVisible();
+    await expect(page.getByTestId("tree-categories").getByText(category, { exact: true })).toBeVisible();
     await expectAccessible(page);
 
     // A group with the development agent as its only member.
@@ -95,7 +95,7 @@ test.describe("directory and assignment", () => {
     await expectAccessible(requester);
     await requester.getByRole("button", { name: "Report incident" }).click();
     await expect(requester.getByRole("heading", { level: 1, name: title })).toBeVisible();
-    await expect(requester.getByText(category)).toBeVisible();
+    await expect(requester.getByText(category, { exact: true }).first()).toBeVisible();
     await requesterContext.close();
 
     // The agent finds it assigned to them, in the group, routed by the rule.
@@ -106,7 +106,7 @@ test.describe("directory and assignment", () => {
     await agent.goto("/en/incidents?assignee=me&open=true");
     await agent.getByRole("link", { name: title }).click();
     await expect(agent.getByText(groupName).first()).toBeVisible();
-    await expect(agent.getByText(ruleName)).toBeVisible();
+    await expect(agent.getByText(ruleName, { exact: true }).first()).toBeVisible();
     await expect(agent.getByText("Assigned", { exact: true }).first()).toBeVisible();
     await expect(agent.getByTestId("assignment-picker").getByLabel("Assignee")).toHaveValue(agentId!);
     await expectAccessible(agent);
