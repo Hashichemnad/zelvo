@@ -14,7 +14,7 @@ RUN mvn -B -q verify
 # Keep the version in step with keycloak.version in pom.xml (same patch version). Keycloak
 # republishes images with security fixes as "<version>-<rebuild>" (for example 26.8.2-2); the
 # libraries keep the plain version. CI checks the two match (scripts/check-keycloak-version.sh).
-FROM keycloak/keycloak:26.8.2-2 AS keycloak
+FROM keycloak/keycloak:26.8.2-3 AS keycloak
 
 # Operating system security updates. The upstream image (Red Hat UBI 9 micro) has no package
 # manager and can lag behind fixes, so its file system is upgraded from a full UBI 9 image using
