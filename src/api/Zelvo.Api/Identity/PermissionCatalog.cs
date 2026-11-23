@@ -52,6 +52,12 @@ internal static class Permissions
     /// <summary>Declare major incidents and post to their communication timeline.</summary>
     public const string IncidentsMajor = IncidentPermissions.Major;
 
+    /// <summary>See groups and their members, skills, inactive categories and locations, and assignment rules (task B2).</summary>
+    public const string DirectoryRead = "directory.read";
+
+    /// <summary>Change categories, locations, skills, groups and their members, and assignment rules (task B2).</summary>
+    public const string DirectoryManage = "directory.manage";
+
     /// <summary>
     /// Settings → Integrations (module 14): API keys, OAuth clients, webhooks and the integration
     /// log. Never available to integrations themselves.
@@ -108,6 +114,8 @@ internal static class PermissionCatalog
         Permissions.IncidentsAssign,
         Permissions.IncidentsMajor,
         Permissions.IntegrationsManage,
+        Permissions.DirectoryRead,
+        Permissions.DirectoryManage,
     ];
 
     /// <summary>
@@ -134,6 +142,11 @@ internal static class PermissionCatalog
             new FieldDefinition("status", Writable: true),
             new FieldDefinition("roles"),
             new FieldDefinition("lastSeenAt"),
+            // Task B2: what round-robin looks at.
+            new FieldDefinition("skills", Writable: true),
+            new FieldDefinition("languages", Writable: true),
+            new FieldDefinition("availableForAssignment", Writable: true),
+            new FieldDefinition("groups"),
         ]);
 
     /// <summary>Incidents (module 1), as staff see them. Requesters see their own through a fixed, smaller view.</summary>
@@ -151,6 +164,10 @@ internal static class PermissionCatalog
             new FieldDefinition("assignee"),
             new FieldDefinition("channel"),
             new FieldDefinition("resolutionNotes"),
+            // Task B2.
+            new FieldDefinition("category", Writable: true),
+            new FieldDefinition("location", Writable: true),
+            new FieldDefinition("group"),
         ]);
 
     public static IReadOnlyList<ResourceDefinition> Resources { get; } = [Users, Incidents];
@@ -159,17 +176,17 @@ internal static class PermissionCatalog
     [
         new(BuiltInRoles.Requester, new LocalizedText("Requester", "مقدّم الطلب"), [], new Dictionary<string, FieldAccess>()),
         new(BuiltInRoles.Agent, new LocalizedText("Agent", "موظف الدعم"),
-            [Permissions.UsersRead, Permissions.IncidentsRead, Permissions.IncidentsCreate, Permissions.IncidentsEdit, Permissions.IncidentsAssign],
+            [Permissions.UsersRead, Permissions.IncidentsRead, Permissions.IncidentsCreate, Permissions.IncidentsEdit, Permissions.IncidentsAssign, Permissions.DirectoryRead],
             new Dictionary<string, FieldAccess> { ["users.email"] = FieldAccess.Read }),
         new(BuiltInRoles.TeamLead, new LocalizedText("Team lead", "قائد الفريق"),
-            [Permissions.UsersRead, Permissions.IncidentsRead, Permissions.IncidentsCreate, Permissions.IncidentsEdit, Permissions.IncidentsAssign, Permissions.IncidentsMajor],
+            [Permissions.UsersRead, Permissions.IncidentsRead, Permissions.IncidentsCreate, Permissions.IncidentsEdit, Permissions.IncidentsAssign, Permissions.IncidentsMajor, Permissions.DirectoryRead],
             new Dictionary<string, FieldAccess> { ["users.email"] = FieldAccess.Read }),
         new(BuiltInRoles.Approver, new LocalizedText("Approver", "المعتمِد"), [], new Dictionary<string, FieldAccess>()),
         new(BuiltInRoles.TenantAdmin, new LocalizedText("Tenant administrator", "مسؤول الجهة"),
             All,
             new Dictionary<string, FieldAccess> { ["users.email"] = FieldAccess.Read, ["users.emiratesId"] = FieldAccess.Edit }),
         new(BuiltInRoles.ExecutiveAuditor, new LocalizedText("Executive / auditor", "تنفيذي / مدقق"),
-            [Permissions.AuditRead, Permissions.UsersRead, Permissions.IncidentsRead],
+            [Permissions.AuditRead, Permissions.UsersRead, Permissions.IncidentsRead, Permissions.DirectoryRead],
             new Dictionary<string, FieldAccess> { ["users.email"] = FieldAccess.Read }),
     ];
 

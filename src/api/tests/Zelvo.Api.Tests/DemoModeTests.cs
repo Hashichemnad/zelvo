@@ -93,6 +93,24 @@ public sealed class DemoModeTests(DatabaseFixture database) : IAsyncDisposable
     }
 
     [Fact]
+    public async Task Sample_organisations_get_groups_rules_and_classified_incidents()
+    {
+        foreach (var organisation in new[] { DemoCatalog.Government, DemoCatalog.Company })
+        {
+            var tenant = await SeededAsync(organisation);
+            await using var db = TestData.AppContext(database, tenant);
+            Assert.Equal(3, await db.SupportGroups.CountAsync(Ct));
+            Assert.Equal(3, await db.AssignmentRules.CountAsync(Ct));
+            Assert.True(await db.Categories.AnyAsync(c => c.Depth == 2, Ct));
+            Assert.True(await db.Locations.AnyAsync(c => c.Depth == 3, Ct));
+            Assert.All(await db.Tickets.ToListAsync(Ct), t => Assert.True(t.CategoryId is not null && t.LocationId is not null && t.GroupId is not null));
+            var agent = await db.Users.Include(u => u.Skills).SingleAsync(u => u.Email == organisation.UsernameOf(organisation.User("agent")!), Ct);
+            Assert.Equal(["en", "ar"], agent.Languages);
+            Assert.Equal(2, agent.Skills.Count);
+        }
+    }
+
+    [Fact]
     public async Task Seeders_run_once_per_tenant()
     {
         var gov = await SeededAsync(DemoCatalog.Government);

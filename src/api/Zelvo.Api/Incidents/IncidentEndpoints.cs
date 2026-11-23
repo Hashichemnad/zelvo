@@ -5,12 +5,14 @@ using System.Text.Json.Serialization;
 using Microsoft.AspNetCore.Http.HttpResults;
 using Microsoft.EntityFrameworkCore;
 using Zelvo.Api.Conventions;
+using Zelvo.Api.ServiceDesk;
 using Zelvo.Api.Identity;
 using Zelvo.Api.Integrations;
 using Zelvo.Api.Settings;
 using Zelvo.Api.Tenancy;
 using Zelvo.Data;
 using Zelvo.Data.Auditing;
+using Zelvo.Data.Directory;
 using Zelvo.Data.Identity;
 using Zelvo.Data.Localization;
 using Zelvo.Data.Tenancy;
@@ -28,7 +30,7 @@ namespace Zelvo.Api.Incidents;
 internal static partial class IncidentEndpoints
 {
     /// <summary>Fields left out of the requester's view of their own incident.</summary>
-    private static readonly string[] RequesterHidden = ["assignee", "impact", "urgency", "channel", "parent", "children", "nextStates"];
+    private static readonly string[] RequesterHidden = ["assignee", "impact", "urgency", "channel", "parent", "children", "nextStates", "group", "routingRule"];
 
     private static readonly JsonSerializerOptions Json = new(JsonSerializerDefaults.Web) { Converters = { new JsonStringEnumConverter() } };
 
@@ -53,7 +55,7 @@ internal static partial class IncidentEndpoints
 
         incidents.MapGet("/assignees", AssigneesAsync)
             .WithName("ListIncidentAssignees")
-            .WithSummary("Active users who can be assigned incidents (their roles hold incidents.edit).")
+            .WithSummary("Active users who can be assigned incidents (their roles hold incidents.edit); with groupId, only that group's members.")
             .RequirePermission(Permissions.IncidentsAssign)
             .Produces<IReadOnlyList<PersonResponse>>();
 
@@ -74,6 +76,26 @@ internal static partial class IncidentEndpoints
             .WithName("AssignIncident")
             .WithSummary("Assign the incident to an agent, or to nobody (null). A new incident becomes Assigned. Needs incidents.assign; audited.")
             .RequirePermission(Permissions.IncidentsAssign)
+            .Produces<IncidentResponse>()
+            .ProducesValidationProblem();
+
+        incidents.MapPut("/{id:guid}/assignment", SetAssignmentAsync)
+            .WithName("SetIncidentAssignment")
+            .WithSummary("Set the incident's group and assignee together (task B2). The assignee must be a member of the group when a group is given; null removes either. Needs incidents.assign; audited.")
+            .RequirePermission(Permissions.IncidentsAssign)
+            .Produces<IncidentResponse>()
+            .ProducesValidationProblem();
+
+        incidents.MapPost("/{id:guid}/route", RouteAgainAsync)
+            .WithName("RouteIncident")
+            .WithSummary("Run the assignment rules again (\"Route again\") and set the group and assignee they give. Open incidents only; needs incidents.assign; audited.")
+            .RequirePermission(Permissions.IncidentsAssign)
+            .Produces<IncidentResponse>();
+
+        incidents.MapPut("/{id:guid}/classification", SetClassificationAsync)
+            .WithName("SetIncidentClassification")
+            .WithSummary("Set the incident's category and location (task B2; null removes either). Does not route again. Needs incidents.edit and edit access to both fields; audited.")
+            .RequirePermission(Permissions.IncidentsEdit)
             .Produces<IncidentResponse>()
             .ProducesValidationProblem();
 
@@ -179,13 +201,37 @@ internal static partial class IncidentEndpoints
             };
         }
 
+        if (staff)
+        {
+            tickets = query.Group switch
+            {
+                "mine" => tickets.Where(t => db.SupportGroupMembers.Any(m => m.GroupId == t.GroupId && m.UserId == me)),
+                "none" => tickets.Where(t => t.GroupId == null),
+                { } other when Guid.TryParse(other, out var groupId) => tickets.Where(t => t.GroupId == groupId),
+                _ => tickets,
+            };
+        }
+
+        if (query.Category is { } categoryId)
+        {
+            var below = await DescendantsAsync(db.Categories, categoryId, cancellationToken);
+            tickets = tickets.Where(t => t.CategoryId != null && below.Contains(t.CategoryId.Value));
+        }
+
+        if (query.Location is { } locationId)
+        {
+            var below = await DescendantsAsync(db.Locations, locationId, cancellationToken);
+            tickets = tickets.Where(t => t.LocationId != null && below.Contains(t.LocationId.Value));
+        }
+
         var ordered = tickets.OrderByDescending(t => t.CreatedAt).ThenByDescending(t => t.Id);
         var total = await ordered.LongCountAsync(cancellationToken);
         var page = await ordered.Skip(query.Skip).Take(query.Size).ToListAsync(cancellationToken);
         var parents = await LinksAsync(db, page.Where(t => t.ParentId is not null).Select(t => t.ParentId!.Value), cancellationToken);
+        var refs = await DirectoryRefs.LoadAsync(db, cancellationToken);
         var json = new JsonObject
         {
-            ["items"] = new JsonArray([.. page.Select(t => (JsonNode)View(user, t, IncidentResponse.From(t, user, parents.GetValueOrDefault(t.ParentId ?? Guid.Empty), null, [])))]),
+            ["items"] = new JsonArray([.. page.Select(t => (JsonNode)View(user, t, IncidentResponse.From(t, user, parents.GetValueOrDefault(t.ParentId ?? Guid.Empty), null, [], refs)))]),
             ["page"] = query.PageNumber,
             ["pageSize"] = query.Size,
             ["totalCount"] = total,
@@ -223,9 +269,24 @@ internal static partial class IncidentEndpoints
                 $"Only staff who log incidents for others may set {string.Join(", ", asked)}.");
         }
 
-        if (request.AssigneeId is not null && !user.Has(Permissions.IncidentsAssign))
+        if ((request.AssigneeId is not null || request.GroupId is not null) && !user.Has(Permissions.IncidentsAssign))
         {
             return (ProblemHttpResult)ApiProblem.Create(StatusCodes.Status403Forbidden, "forbidden", "You may not assign incidents.");
+        }
+
+        if (await ClassificationProblemAsync(db, request.CategoryId, request.LocationId, null, cancellationToken) is { } classificationProblem)
+        {
+            return classificationProblem;
+        }
+
+        if (request.GroupId is { } wantedGroup && !await db.SupportGroups.AnyAsync(g => g.Id == wantedGroup && g.Active, cancellationToken))
+        {
+            return UserEndpoints.Validation("groupId", "Choose an active group.");
+        }
+
+        if (request.GroupId is { } inGroup && request.AssigneeId is { } member && !await IsMemberAsync(db, inGroup, member, cancellationToken))
+        {
+            return NotInGroup();
         }
 
         var requesterId = request.RequesterId ?? me;
@@ -289,6 +350,9 @@ internal static partial class IncidentEndpoints
             CreatedById = me,
             ParentId = parent?.Id,
             FollowUpOfId = followUpOf?.Id,
+            CategoryId = request.CategoryId,
+            LocationId = request.LocationId,
+            GroupId = request.GroupId,
             CreatedAt = now,
             UpdatedAt = now,
         };
@@ -296,6 +360,11 @@ internal static partial class IncidentEndpoints
         if (request.AssigneeId is { } assignee)
         {
             TicketWorkflow.Assign(ticket, assignee, now);
+        }
+        else if (request.GroupId is null)
+        {
+            // Task B2: placed by the assignment rules (product owner decision 2026-11-23).
+            await RouteAsync(db, settings, ticket, now, cancellationToken);
         }
 
         db.Tickets.Add(ticket);
@@ -307,9 +376,17 @@ internal static partial class IncidentEndpoints
         return TypedResults.Created($"/api/v1/incidents/{ticket.Id}", await DetailAsync(http, db, user, created, cancellationToken));
     }
 
-    internal static async Task<Ok<List<PersonResponse>>> AssigneesAsync(ZelvoDbContext db, CancellationToken cancellationToken) =>
-        TypedResults.Ok(await Assignable(db).OrderBy(u => u.DisplayName ?? u.Email).Take(500)
+    internal static async Task<Ok<List<PersonResponse>>> AssigneesAsync(Guid? groupId, ZelvoDbContext db, CancellationToken cancellationToken)
+    {
+        var people = Assignable(db);
+        if (groupId is { } group)
+        {
+            people = people.Where(u => db.SupportGroupMembers.Any(m => m.GroupId == group && m.UserId == u.Id));
+        }
+
+        return TypedResults.Ok(await people.OrderBy(u => u.DisplayName ?? u.Email).Take(500)
             .Select(u => new PersonResponse(u.Id, u.DisplayName)).ToListAsync(cancellationToken));
+    }
 
     internal static async Task<Results<Ok<JsonObject>, ValidationProblem, ProblemHttpResult>> UpdateAsync(
         Guid id, UpdateIncidentRequest request, HttpContext http, ZelvoDbContext db, CurrentUser user,
@@ -382,8 +459,176 @@ internal static partial class IncidentEndpoints
             return UserEndpoints.Validation("assigneeId", "The assignee cannot be assigned incidents.");
         }
 
+        if (ticket.GroupId is { } group && request.AssigneeId is { } member && !await IsMemberAsync(db, group, member, cancellationToken))
+        {
+            return NotInGroup();
+        }
+
+        TicketWorkflow.Assign(ticket, request.AssigneeId, DateTimeOffset.UtcNow);
+        ticket.RoutingRuleId = null;
+        return await SaveAsync(http, db, user, indexer, ticket, [ticket], cancellationToken);
+    }
+
+    internal static async Task<Results<Ok<JsonObject>, ValidationProblem, ProblemHttpResult>> SetAssignmentAsync(
+        Guid id, SetAssignmentRequest request, HttpContext http, ZelvoDbContext db, CurrentUser user,
+        ISearchIndexer indexer, CancellationToken cancellationToken)
+    {
+        var ticket = await Incidents(db).SingleOrDefaultAsync(t => t.Id == id, cancellationToken);
+        if (ticket is null)
+        {
+            return NotFound();
+        }
+
+        if (VersionProblem(http, db, ticket) is { } versionProblem)
+        {
+            return versionProblem;
+        }
+
+        if (ticket.State == TicketState.Closed)
+        {
+            return Closed();
+        }
+
+        // Keeping the current group is fine even if it became inactive; a new one must be active.
+        if (request.GroupId is { } groupId && groupId != ticket.GroupId && !await db.SupportGroups.AnyAsync(g => g.Id == groupId && g.Active, cancellationToken))
+        {
+            return UserEndpoints.Validation("groupId", "Choose an active group.");
+        }
+
+        if (request.AssigneeId is { } assigneeId && !await Assignable(db).AnyAsync(u => u.Id == assigneeId, cancellationToken))
+        {
+            return UserEndpoints.Validation("assigneeId", "The assignee cannot be assigned incidents.");
+        }
+
+        if (request.GroupId is { } group && request.AssigneeId is { } member && !await IsMemberAsync(db, group, member, cancellationToken))
+        {
+            return NotInGroup();
+        }
+
+        ticket.GroupId = request.GroupId;
+        ticket.RoutingRuleId = null;
         TicketWorkflow.Assign(ticket, request.AssigneeId, DateTimeOffset.UtcNow);
         return await SaveAsync(http, db, user, indexer, ticket, [ticket], cancellationToken);
+    }
+
+    internal static async Task<Results<Ok<JsonObject>, ValidationProblem, ProblemHttpResult>> RouteAgainAsync(
+        Guid id, HttpContext http, ZelvoDbContext db, CurrentUser user, TenantSettingsStore settings,
+        ISearchIndexer indexer, CancellationToken cancellationToken)
+    {
+        var ticket = await Incidents(db).SingleOrDefaultAsync(t => t.Id == id, cancellationToken);
+        if (ticket is null)
+        {
+            return NotFound();
+        }
+
+        if (VersionProblem(http, db, ticket) is { } versionProblem)
+        {
+            return versionProblem;
+        }
+
+        if (ticket.State is TicketState.Resolved or TicketState.Closed)
+        {
+            return (ProblemHttpResult)ApiProblem.Create(StatusCodes.Status409Conflict, "ticket-not-open", "Only open incidents can be routed again.");
+        }
+
+        await using var transaction = await db.Database.BeginTransactionAsync(cancellationToken);
+        await RouteAsync(db, settings, ticket, DateTimeOffset.UtcNow, cancellationToken);
+        var result = await SaveAsync(http, db, user, indexer, ticket, [ticket], cancellationToken);
+        if (result.Result is Ok<JsonObject>)
+        {
+            await transaction.CommitAsync(cancellationToken);
+        }
+
+        return result;
+    }
+
+    internal static async Task<Results<Ok<JsonObject>, ValidationProblem, ProblemHttpResult>> SetClassificationAsync(
+        Guid id, SetClassificationRequest request, HttpContext http, ZelvoDbContext db, CurrentUser user,
+        ISearchIndexer indexer, CancellationToken cancellationToken)
+    {
+        if (FieldFilter.NotEditable(user, PermissionCatalog.Incidents, ["category", "location"]) is { Count: > 0 } refused)
+        {
+            return FieldsReadOnly(refused);
+        }
+
+        var ticket = await Incidents(db).SingleOrDefaultAsync(t => t.Id == id, cancellationToken);
+        if (ticket is null)
+        {
+            return NotFound();
+        }
+
+        if (VersionProblem(http, db, ticket) is { } versionProblem)
+        {
+            return versionProblem;
+        }
+
+        if (ticket.State == TicketState.Closed)
+        {
+            return Closed();
+        }
+
+        if (await ClassificationProblemAsync(db, request.CategoryId, request.LocationId, ticket, cancellationToken) is { } problem)
+        {
+            return problem;
+        }
+
+        ticket.CategoryId = request.CategoryId;
+        ticket.LocationId = request.LocationId;
+        ticket.UpdatedAt = DateTimeOffset.UtcNow;
+        return await SaveAsync(http, db, user, indexer, ticket, [ticket], cancellationToken);
+    }
+
+    /// <summary>
+    /// Places the ticket by the assignment rules (task B2). Call inside the transaction that saves
+    /// it: round-robin locks the group until the commit.
+    /// </summary>
+    internal static async Task RouteAsync(ZelvoDbContext db, TenantSettingsStore settings, Ticket ticket, DateTimeOffset now, CancellationToken cancellationToken)
+    {
+        var requesterLanguage = await db.Users.AsNoTracking().Where(u => u.Id == ticket.RequesterId).Select(u => u.PreferredLanguage).SingleOrDefaultAsync(cancellationToken);
+        var language = LocalizationSettings.IsLanguage(requesterLanguage)
+            ? requesterLanguage!
+            : await settings.GetAsync(LocalizationSettings.DefaultLanguage, cancellationToken);
+        var fallback = await settings.GetAsync(AssignmentSettings.Default, cancellationToken);
+        var decision = await TicketRouter.RouteAsync(db, new RoutingRequest(ticket.CategoryId, ticket.LocationId, language), fallback, now, cancellationToken);
+        ticket.GroupId = decision.GroupId;
+        ticket.RoutingRuleId = decision.Rule?.Id;
+        TicketWorkflow.Assign(ticket, decision.AssigneeId, now);
+    }
+
+    private static Task<bool> IsMemberAsync(ZelvoDbContext db, Guid groupId, Guid userId, CancellationToken cancellationToken) =>
+        db.SupportGroupMembers.AnyAsync(m => m.GroupId == groupId && m.UserId == userId, cancellationToken);
+
+    private static ValidationProblem NotInGroup() => UserEndpoints.Validation("assigneeId", "The assignee is not a member of the group.");
+
+    /// <summary>New categories and locations must be selectable; keeping the current ones is fine.</summary>
+    private static async Task<ValidationProblem?> ClassificationProblemAsync(
+        ZelvoDbContext db, Guid? categoryId, Guid? locationId, Ticket? current, CancellationToken cancellationToken)
+    {
+        if (categoryId is { } category && category != current?.CategoryId && !await TreeEndpoints.IsSelectableAsync(db.Categories, category, cancellationToken))
+        {
+            return UserEndpoints.Validation("categoryId", "Choose an active category.");
+        }
+
+        if (locationId is { } location && location != current?.LocationId && !await TreeEndpoints.IsSelectableAsync(db.Locations, location, cancellationToken))
+        {
+            return UserEndpoints.Validation("locationId", "Choose an active location.");
+        }
+
+        return null;
+    }
+
+    /// <summary>The node and every node below it.</summary>
+    private static async Task<List<Guid>> DescendantsAsync<TNode>(DbSet<TNode> set, Guid id, CancellationToken cancellationToken)
+        where TNode : TreeNode
+    {
+        var all = await set.AsNoTracking().Select(n => new { n.Id, n.ParentId }).ToListAsync(cancellationToken);
+        var found = new List<Guid> { id };
+        for (var i = 0; i < found.Count; i++)
+        {
+            found.AddRange(all.Where(n => n.ParentId == found[i]).Select(n => n.Id));
+        }
+
+        return found;
     }
 
     internal static async Task<Results<Ok<JsonObject>, ValidationProblem, ProblemHttpResult>> TransitionAsync(
@@ -612,6 +857,13 @@ internal static partial class IncidentEndpoints
             .Where(g => g != Guid.Empty).Distinct().ToList();
         var people = await Names(db, ids, cancellationToken);
         var numbers = await db.Tickets.AsNoTracking().Where(t => ids.Contains(t.Id)).ToDictionaryAsync(t => t.Id, t => t.Number, cancellationToken);
+        var refs = await DirectoryRefs.LoadAsync(db, cancellationToken);
+        var language = user.Account?.PreferredLanguage ?? LocalizedText.English;
+        foreach (var (key, value) in refs.Names(language))
+        {
+            numbers.TryAdd(key, value);
+        }
+
         foreach (var change in entries.SelectMany(e => e.Changes ?? []).Where(c => HistoryEntryResponse.ReferenceFields.Contains(c.Key)).ToList())
         {
             foreach (var side in new[] { "old", "new" })
@@ -709,8 +961,9 @@ internal static partial class IncidentEndpoints
         var children = await db.Tickets.AsNoTracking().Where(t => t.ParentId == ticket.Id).OrderBy(t => t.Sequence)
             .Select(t => new TicketLinkResponse(t.Id, t.Number, t.Title, t.State)).ToListAsync(cancellationToken).ConfigureAwait(false);
         http.Response.Headers.ETag = $"\"{ticket.Version}\"";
+        var refs = await DirectoryRefs.LoadAsync(db, cancellationToken).ConfigureAwait(false);
         return View(user, ticket, IncidentResponse.From(ticket, user,
-            links.GetValueOrDefault(ticket.ParentId ?? Guid.Empty), links.GetValueOrDefault(ticket.FollowUpOfId ?? Guid.Empty), children));
+            links.GetValueOrDefault(ticket.ParentId ?? Guid.Empty), links.GetValueOrDefault(ticket.FollowUpOfId ?? Guid.Empty), children, refs));
     }
 
     private static async Task<Dictionary<Guid, TicketLinkResponse>> LinksAsync(ZelvoDbContext db, IEnumerable<Guid> ids, CancellationToken cancellationToken)
@@ -781,9 +1034,11 @@ internal sealed record IncidentResponse(
     bool IsMajor, DateTimeOffset? MajorDeclaredAt, string? OnHoldReason, string? ResolutionNotes, int ReopenCount,
     TicketLinkResponse? Parent, TicketLinkResponse? FollowUpOf, IReadOnlyList<TicketLinkResponse> Children,
     IReadOnlyList<TicketState> NextStates, bool CanReopen,
-    DateTimeOffset CreatedAt, DateTimeOffset UpdatedAt, DateTimeOffset? ResolvedAt, DateTimeOffset? ClosedAt, uint Version)
+    DateTimeOffset CreatedAt, DateTimeOffset UpdatedAt, DateTimeOffset? ResolvedAt, DateTimeOffset? ClosedAt, uint Version,
+    NodeRef? Category, NodeRef? Location, NamedRef? Group, NamedRef? RoutingRule)
 {
-    public static IncidentResponse From(Ticket t, CurrentUser user, TicketLinkResponse? parent, TicketLinkResponse? followUpOf, IReadOnlyList<TicketLinkResponse> children)
+    public static IncidentResponse From(
+        Ticket t, CurrentUser user, TicketLinkResponse? parent, TicketLinkResponse? followUpOf, IReadOnlyList<TicketLinkResponse> children, DirectoryRefs refs)
     {
         var incident = t.Incident!;
         var mayEdit = user.Has(Permissions.IncidentsEdit);
@@ -795,7 +1050,8 @@ internal sealed record IncidentResponse(
             t.OnHoldReason, t.ResolutionNotes, t.ReopenCount, parent, followUpOf, children,
             mayEdit ? TicketWorkflow.NextStates(t.State) : [],
             t.State == TicketState.Resolved && (mayEdit || t.RequesterId == user.Account?.Id),
-            t.CreatedAt, t.UpdatedAt, t.ResolvedAt, t.ClosedAt, t.Version);
+            t.CreatedAt, t.UpdatedAt, t.ResolvedAt, t.ClosedAt, t.Version,
+            refs.Categories.RefOf(t.CategoryId), refs.Locations.RefOf(t.LocationId), refs.Group(t.GroupId), refs.Rule(t.RoutingRuleId));
     }
 }
 
@@ -822,12 +1078,20 @@ internal sealed record HistoryEntryResponse(
     AuditActorType ActorType, string? ActorName, JsonObject? Changes, JsonObject? Details)
 {
     /// <summary>Fields holding the id of a person or an incident.</summary>
-    internal static readonly HashSet<string> ReferenceFields = new(StringComparer.Ordinal) { "assigneeId", "requesterId", "majorDeclaredById", "parentId", "followUpOfId", "createdById" };
+    internal static readonly HashSet<string> ReferenceFields = new(StringComparer.Ordinal)
+    {
+        "assigneeId", "requesterId", "majorDeclaredById", "parentId", "followUpOfId", "createdById",
+        "categoryId", "locationId", "groupId", "routingRuleId",
+    };
 
     private static readonly Dictionary<string, string> FieldOf = new(StringComparer.Ordinal)
     {
         ["assigneeId"] = "assignee",
         ["requesterId"] = "requester",
+        ["categoryId"] = "category",
+        ["locationId"] = "location",
+        ["groupId"] = "group",
+        ["routingRuleId"] = "group",
     };
 
     public static HistoryEntryResponse From(AuditEvent e, CurrentUser user)
@@ -880,6 +1144,16 @@ public sealed class IncidentListQuery
     /// <summary>Only incidents the caller requested (always true for requesters).</summary>
     public bool? Mine { get; init; }
 
+    /// <summary>Staff: <c>mine</c> (groups the caller belongs to), <c>none</c> or a group id.</summary>
+    [MaxLength(36)]
+    public string? Group { get; init; }
+
+    /// <summary>Only incidents in this category or below it.</summary>
+    public Guid? Category { get; init; }
+
+    /// <summary>Only incidents at this location or below it.</summary>
+    public Guid? Location { get; init; }
+
     /// <summary>Page number, starting at 1.</summary>
     [Range(1, 100_000)]
     public int? Page { get; init; }
@@ -927,6 +1201,35 @@ public sealed class CreateIncidentRequest
 
     /// <summary>The closed incident this one follows up.</summary>
     public Guid? FollowUpOfId { get; init; }
+
+    /// <summary>What it is about (an active category).</summary>
+    public Guid? CategoryId { get; init; }
+
+    /// <summary>Where the requester is (an active location).</summary>
+    public Guid? LocationId { get; init; }
+
+    /// <summary>Needs incidents.assign: the group. Without a group or assignee, the assignment rules place the incident.</summary>
+    public Guid? GroupId { get; init; }
+}
+
+/// <summary>Group and assignee of an incident.</summary>
+public sealed class SetAssignmentRequest
+{
+    /// <summary>The group, or null for none.</summary>
+    public Guid? GroupId { get; init; }
+
+    /// <summary>The agent (a member of the group when one is given), or null for nobody.</summary>
+    public Guid? AssigneeId { get; init; }
+}
+
+/// <summary>Category and location of an incident.</summary>
+public sealed class SetClassificationRequest
+{
+    /// <summary>The category, or null for none.</summary>
+    public Guid? CategoryId { get; init; }
+
+    /// <summary>The location, or null for none.</summary>
+    public Guid? LocationId { get; init; }
 }
 
 /// <summary>Changes to an incident. Leave a field out to keep it.</summary>

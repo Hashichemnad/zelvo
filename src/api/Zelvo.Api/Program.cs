@@ -1,3 +1,4 @@
+using Zelvo.Api.ServiceDesk;
 using System.Text.Json.Serialization;
 using Zelvo.Api;
 using Zelvo.Api.Auditing;
@@ -68,6 +69,7 @@ builder.Services.AddSingleton<IMissingTranslationSource, TenantMissingTranslatio
 builder.Services.AddZelvoSearch(builder.Configuration);
 builder.Services.AddZelvoTickets(builder.Configuration);
 builder.Services.AddSingleton<IMissingTranslationSource, IncidentMissingTranslations>();
+builder.Services.AddSingleton<IMissingTranslationSource, DirectoryMissingTranslations>();
 builder.Services.AddZelvoSecrets(builder.Configuration);
 builder.Services.AddZelvoRateLimiting(builder.Configuration);
 builder.Services.AddZelvoDemo();
@@ -110,6 +112,9 @@ v1.MapSearchEndpoints();
 v1.MapDemoEndpoints();
 v1.MapIncidentEndpoints();
 v1.MapIncidentSettingsEndpoints();
+v1.MapTreeEndpoints();
+v1.MapGroupEndpoints();
+v1.MapAssignmentRuleEndpoints();
 v1.MapIntegrationEndpoints();
 
 await app.RunAsync();
