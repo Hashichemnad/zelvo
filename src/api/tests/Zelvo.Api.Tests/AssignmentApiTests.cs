@@ -62,6 +62,31 @@ public sealed class AssignmentApiTests(DatabaseFixture database) : IAsyncDisposa
     }
 
     [Fact]
+    public async Task A_requester_report_in_a_round_robin_category_shows_in_the_agent_assigned_list()
+    {
+        // The end-to-end journey (directory.spec.ts) through the API.
+        var tenant = await database.CreateTenantAsync("rrcat");
+        using var admin = await _factory.ForTenant(tenant).SignedInAsync(database, tenant, BuiltInRoles.TenantAdmin);
+        var agent = await database.CreateUserAsync(tenant, BuiltInRoles.Agent);
+        using var asAgent = _factory.ForTenant(tenant).As(agent);
+        using var requester = await _factory.ForTenant(tenant).SignedInAsync(database, tenant, BuiltInRoles.Requester);
+        var category = await admin.CategoryAsync("E2E printers", "طابعات");
+        var group = await admin.GroupAsync("E2E print desk", agent);
+        await admin.SendOkAsync(HttpMethod.Post, "/api/v1/assignment-rules", new
+        {
+            name = new { en = "E2E printers to print desk", ar = (string?)null }, active = true, categoryId = category,
+            locationId = (Guid?)null, language = (string?)null, groupId = group, method = "RoundRobin", skillId = (Guid?)null,
+        }, HttpStatusCode.Created);
+        var preview = await admin.SendOkAsync(HttpMethod.Post, "/api/v1/assignment-rules/test", new { categoryId = category });
+        Assert.Equal(agent.Id, Guid.Parse((string)preview["assignee"]!["id"]!));
+
+        var incident = await requester.CreateAsync(new { title = "The label printer does not print", categoryId = category });
+
+        var mine = await asAgent.SendOkAsync(HttpMethod.Get, "/api/v1/incidents?assignee=me&open=true");
+        Assert.Contains(mine["items"]!.AsArray(), i => (string)i!["id"]! == (string)incident["id"]!);
+    }
+
+    [Fact]
     public async Task Round_robin_takes_turns_among_available_members_with_the_skill_and_language()
     {
         var tenant = await database.CreateTenantAsync("rr");

@@ -64,7 +64,9 @@ test.describe("directory and assignment", () => {
     await page.getByRole("searchbox", { name: "Find people to add" }).fill(devUser("agent"));
     await page.getByRole("button", { name: "Find", exact: true }).click();
     const person = page.getByLabel("Person", { exact: true });
-    const agentId = await person.locator("option").nth(1).getAttribute("value");
+    const agentOption = person.locator("option").nth(1);
+    const agentId = await agentOption.getAttribute("value");
+    const agentName = (await agentOption.textContent())!.trim();
     await person.selectOption(agentId!);
     await page.getByRole("button", { name: "Add to group" }).click();
     await expect(page.getByTestId("group-members").getByRole("row")).toHaveCount(2);
@@ -82,7 +84,8 @@ test.describe("directory and assignment", () => {
     await expect(page.getByTestId("assignment-rules")).toContainText(ruleName);
     await page.getByLabel("Category", { exact: true }).last().selectOption({ label: category });
     await page.getByRole("button", { name: "Try", exact: true }).click();
-    await expect(page.getByTestId("rule-test-result")).toContainText(`${ruleName} sends it to ${groupName}`);
+    // Round-robin would give it to the group's only member.
+    await expect(page.getByTestId("rule-test-result")).toContainText(`${ruleName} sends it to ${groupName}: ${agentName}`);
     await expectAccessible(page);
 
     // The requester reports an incident in the category.
@@ -95,6 +98,8 @@ test.describe("directory and assignment", () => {
     await expectAccessible(requester);
     await requester.getByRole("button", { name: "Report incident" }).click();
     await expect(requester.getByRole("heading", { level: 1, name: title })).toBeVisible();
+    await expect(requester).toHaveURL(/\/en\/my-incidents\/[0-9a-f-]{36}$/);
+    const incidentId = requester.url().split("/").pop()!;
     await expect(requester.getByText(category, { exact: true }).first()).toBeVisible();
     await requesterContext.close();
 
@@ -103,13 +108,16 @@ test.describe("directory and assignment", () => {
     const agent = await agentContext.newPage();
     await signInWithPassword(agent, devUser("agent"));
     await completeSecondFactor(agent, devUser("agent"));
-    await agent.goto("/en/incidents?assignee=me&open=true");
-    await agent.getByRole("link", { name: title }).click();
+    await agent.goto(`/en/incidents/${incidentId}`);
+    await expect(agent.getByRole("heading", { level: 1, name: title })).toBeVisible();
     await expect(agent.getByText(groupName).first()).toBeVisible();
     await expect(agent.getByText(ruleName, { exact: true }).first()).toBeVisible();
     await expect(agent.getByText("Assigned", { exact: true }).first()).toBeVisible();
     await expect(agent.getByTestId("assignment-picker").getByLabel("Assignee", { exact: true })).toHaveValue(agentId!);
     await expectAccessible(agent);
+    // And it is in their own open list.
+    await agent.goto("/en/incidents?assignee=me&open=true");
+    await expect(agent.getByRole("link", { name: title })).toBeVisible();
     await agentContext.close();
 
     // Put things back: remove the rule, so later runs start from the same rules.
