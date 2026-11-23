@@ -122,8 +122,13 @@ test.describe("directory and assignment", () => {
     await agentContext.close();
 
     // Put things back: remove the rule, so later runs start from the same rules.
+    // The button is rendered on the server; a click before the page is interactive does
+    // nothing, so click again until the rule is gone.
     await page.goto("/en/settings/assignment");
-    await page.getByRole("button", { name: `Delete ${ruleName}` }).click();
-    await expect(page.getByTestId("assignment-rules")).not.toContainText(ruleName);
+    const deleteRule = page.getByRole("button", { name: `Delete ${ruleName}` });
+    await expect(async () => {
+      if ((await deleteRule.count()) > 0) await deleteRule.click();
+      await expect(deleteRule).toHaveCount(0, { timeout: 2_000 });
+    }).toPass({ timeout: 30_000 });
   });
 });

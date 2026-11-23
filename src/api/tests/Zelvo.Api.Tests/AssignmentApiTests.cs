@@ -84,6 +84,14 @@ public sealed class AssignmentApiTests(DatabaseFixture database) : IAsyncDisposa
 
         var mine = await asAgent.SendOkAsync(HttpMethod.Get, "/api/v1/incidents?assignee=me&open=true");
         Assert.Contains(mine["items"]!.AsArray(), i => (string)i!["id"]! == (string)incident["id"]!);
+
+        // A rule that routed tickets can be deleted; the tickets keep their group and assignee.
+        var rule = Guid.Parse((string)(await admin.GetIncidentAsync(IncidentApi.IdOf(incident)))["routingRule"]!["id"]!);
+        var deleted = await admin.SendAsync(HttpMethod.Delete, $"/api/v1/assignment-rules/{rule}");
+        Assert.True(deleted.StatusCode == HttpStatusCode.NoContent, await deleted.Content.ReadAsStringAsync(TestContext.Current.CancellationToken));
+        var after = await admin.GetIncidentAsync(IncidentApi.IdOf(incident));
+        Assert.Null(after["routingRule"]);
+        Assert.Equal((group, agent.Id), (GroupOf(after)!.Value, AssigneeOf(after)!.Value));
     }
 
     [Fact]
