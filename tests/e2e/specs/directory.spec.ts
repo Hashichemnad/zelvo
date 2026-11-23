@@ -49,8 +49,8 @@ test.describe("directory and assignment", () => {
     await page.goto("/en/settings/categories");
     await page.getByRole("button", { name: "Add a top-level category" }).click();
     const addCategory = page.getByRole("form", { name: "Add a top-level category" });
-    await addCategory.getByLabel("In English").fill(category);
-    await addCategory.getByLabel("In Arabic").fill(`طابعات ${stamp}`);
+    await addCategory.getByLabel("In English", { exact: true }).fill(category);
+    await addCategory.getByLabel("In Arabic", { exact: true }).fill(`طابعات ${stamp}`);
     await addCategory.getByRole("button", { name: "Save" }).click();
     await expect(page.getByTestId("tree-categories").getByText(category, { exact: true })).toBeVisible();
     await expectAccessible(page);
@@ -58,12 +58,12 @@ test.describe("directory and assignment", () => {
     // A group with the development agent as its only member.
     await page.goto("/en/settings/groups");
     const addGroup = page.getByRole("form", { name: "Add group" });
-    await addGroup.getByLabel("In English").fill(groupName);
+    await addGroup.getByLabel("In English", { exact: true }).fill(groupName);
     await addGroup.getByRole("button", { name: "Add group" }).click();
     await expect(page).toHaveURL(/\/en\/settings\/groups\/[0-9a-f-]{36}$/);
-    await page.getByLabel("Find people to add").fill(devUser("agent"));
+    await page.getByRole("searchbox", { name: "Find people to add" }).fill(devUser("agent"));
     await page.getByRole("button", { name: "Find", exact: true }).click();
-    const person = page.getByLabel("Person");
+    const person = page.getByLabel("Person", { exact: true });
     const agentId = await person.locator("option").nth(1).getAttribute("value");
     await person.selectOption(agentId!);
     await page.getByRole("button", { name: "Add to group" }).click();
@@ -74,13 +74,13 @@ test.describe("directory and assignment", () => {
     await page.goto("/en/settings/assignment");
     await page.getByRole("button", { name: "Add a rule" }).click();
     const form = page.getByTestId("rule-form");
-    await form.getByLabel("In English").fill(ruleName);
-    await form.getByLabel("Category").selectOption({ label: category });
-    await form.getByLabel("Group").selectOption({ label: groupName });
-    await form.getByLabel("How").selectOption("RoundRobin");
+    await form.getByLabel("In English", { exact: true }).fill(ruleName);
+    await form.getByLabel("Category", { exact: true }).selectOption({ label: category });
+    await form.getByLabel("Group", { exact: true }).selectOption({ label: groupName });
+    await form.getByLabel("How", { exact: true }).selectOption("RoundRobin");
     await form.getByRole("button", { name: "Save rule" }).click();
     await expect(page.getByTestId("assignment-rules")).toContainText(ruleName);
-    await page.getByLabel("Category").last().selectOption({ label: category });
+    await page.getByLabel("Category", { exact: true }).last().selectOption({ label: category });
     await page.getByRole("button", { name: "Try", exact: true }).click();
     await expect(page.getByTestId("rule-test-result")).toContainText(`${ruleName} sends it to ${groupName}`);
     await expectAccessible(page);
@@ -90,8 +90,8 @@ test.describe("directory and assignment", () => {
     const requester = await requesterContext.newPage();
     await signInWithPassword(requester, devUser("requester"));
     await requester.goto("/en/my-incidents/new");
-    await requester.getByLabel("Title").fill(title);
-    await requester.getByLabel("Category").selectOption({ label: category });
+    await requester.getByLabel("Title", { exact: true }).fill(title);
+    await requester.getByLabel("Category", { exact: true }).selectOption({ label: category });
     await expectAccessible(requester);
     await requester.getByRole("button", { name: "Report incident" }).click();
     await expect(requester.getByRole("heading", { level: 1, name: title })).toBeVisible();
@@ -108,7 +108,7 @@ test.describe("directory and assignment", () => {
     await expect(agent.getByText(groupName).first()).toBeVisible();
     await expect(agent.getByText(ruleName, { exact: true }).first()).toBeVisible();
     await expect(agent.getByText("Assigned", { exact: true }).first()).toBeVisible();
-    await expect(agent.getByTestId("assignment-picker").getByLabel("Assignee")).toHaveValue(agentId!);
+    await expect(agent.getByTestId("assignment-picker").getByLabel("Assignee", { exact: true })).toHaveValue(agentId!);
     await expectAccessible(agent);
     await agentContext.close();
 
