@@ -12,6 +12,7 @@
     <ProjectReference Include="..\..\api\Zelvo.Search\Zelvo.Search.csproj" />
     <ProjectReference Include="..\..\api\Zelvo.Tickets\Zelvo.Tickets.csproj" />
     <ProjectReference Include="..\..\api\Zelvo.Integrations\Zelvo.Integrations.csproj" />
+    <ProjectReference Include="..\..\api\Zelvo.Ai\Zelvo.Ai.csproj" />
     <ProjectReference Include="..\..\api\Zelvo.Secrets\Zelvo.Secrets.csproj" />
     <ProjectReference Include="..\..\api\Zelvo.Observability\Zelvo.Observability.csproj" />
   </ItemGroup>

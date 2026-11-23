@@ -1,3 +1,4 @@
+using Zelvo.Ai;
 using Zelvo.Data;
 using Zelvo.Integrations;
 using Zelvo.Licensing;
@@ -11,7 +12,8 @@ using Zelvo.Worker;
 // writes tenants' OpenSearch indices. Tickets (B1): closes resolved tickets after the tenant's
 // auto-close period and scans attachments for malware with ClamAV. Webhooks (E1): sends due
 // deliveries with retries and removes integration records past their retention. SLA timers,
-// notifications, other integrations and AI jobs arrive with their modules.
+// notifications, other integrations and AI features arrive with their modules. AI (E4): clears the
+// text of AI log entries past their retention.
 var builder = Host.CreateApplicationBuilder(args);
 
 // Traces, metrics and logs over OTLP when OTEL_EXPORTER_OTLP_ENDPOINT is set (A5).
@@ -25,6 +27,8 @@ builder.Services.AddZelvoData(Required(builder.Configuration, "ConnectionStrings
 // Stored secrets (A5): decrypted per tenant when a job needs them (AI keys, gateway credentials).
 builder.Services.AddZelvoSecrets(builder.Configuration);
 builder.Services.AddZelvoIntegrationJobs(builder.Configuration);
+// AI (E4): clears AI log text past its retention; AI jobs of later tasks call the gateway.
+builder.Services.AddZelvoAiJobs(builder.Configuration);
 builder.Services.AddZelvoSearchPipeline(builder.Configuration, new Uri(Required(builder.Configuration, "ConnectionStrings:RabbitMq")));
 builder.Services.AddZelvoTicketJobs(builder.Configuration);
 
