@@ -1,5 +1,6 @@
 using Microsoft.EntityFrameworkCore;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
+using Zelvo.Data.Ai;
 using Zelvo.Data.Auditing;
 using Zelvo.Data.Identity;
 using Zelvo.Data.Integrations;
@@ -88,6 +89,18 @@ public sealed class ZelvoDbContext(DbContextOptions<ZelvoDbContext> options) : D
     /// <summary>Integration log: calls in and out, personal data masked.</summary>
     public DbSet<IntegrationLogEntry> IntegrationLog => Set<IntegrationLogEntry>();
 
+    /// <summary>AI provider connections (module 9).</summary>
+    public DbSet<AiProvider> AiProviders => Set<AiProvider>();
+
+    /// <summary>Provider and model of each AI feature.</summary>
+    public DbSet<AiFeatureSetting> AiFeatureSettings => Set<AiFeatureSetting>();
+
+    /// <summary>Prices of AI models, entered by administrators.</summary>
+    public DbSet<AiModelPrice> AiModelPrices => Set<AiModelPrice>();
+
+    /// <summary>AI calls: usage, cost and the AI log.</summary>
+    public DbSet<AiCall> AiCalls => Set<AiCall>();
+
     /// <inheritdoc />
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -156,6 +169,7 @@ public sealed class ZelvoDbContext(DbContextOptions<ZelvoDbContext> options) : D
         ConfigureSearch(modelBuilder);
         ConfigureTickets(modelBuilder);
         ConfigureIntegrations(modelBuilder);
+        ConfigureAi(modelBuilder);
 
         modelBuilder.Entity<TenantDataKey>(key =>
         {
@@ -367,6 +381,95 @@ public sealed class ZelvoDbContext(DbContextOptions<ZelvoDbContext> options) : D
             entry.HasIndex(e => new { e.TenantId, e.OccurredAt });
             entry.HasIndex(e => new { e.TenantId, e.ApiClientId, e.Id }).HasFilter("api_client_id IS NOT NULL");
             entry.HasIndex(e => new { e.TenantId, e.SubscriptionId, e.Id }).HasFilter("subscription_id IS NOT NULL");
+        });
+    }
+
+    private static void ConfigureAi(ModelBuilder modelBuilder)
+    {
+        modelBuilder.Entity<AiProvider>(provider =>
+        {
+            provider.ToTable("ai_providers", table =>
+            {
+                table.HasCheckConstraint("ck_ai_providers_kind", EnumCheck("kind", Enum.GetNames<AiProviderKind>()));
+                table.HasCheckConstraint("ck_ai_providers_status", EnumCheck("status", Enum.GetNames<AiProviderStatus>()));
+                table.HasCheckConstraint("ck_ai_providers_endpoint", "endpoint IS NULL OR endpoint ~ '^https?://'");
+                table.HasCheckConstraint("ck_ai_providers_endpoint_required",
+                    "kind NOT IN ('AzureOpenAI', 'OpenAICompatible') OR endpoint IS NOT NULL");
+            });
+            provider.HasKey(p => p.Id);
+            provider.Property(p => p.Id).ValueGeneratedNever();
+            provider.HasOne<Tenant>().WithMany().HasForeignKey(p => p.TenantId).OnDelete(DeleteBehavior.Restrict);
+            provider.Property(p => p.Name).HasMaxLength(AiProvider.NameMaxLength);
+            provider.Property(p => p.Kind).HasConversion<string>().HasMaxLength(20);
+            provider.Property(p => p.Status).HasConversion<string>().HasMaxLength(20);
+            provider.Property(p => p.Endpoint).HasMaxLength(AiProvider.EndpointMaxLength);
+            provider.Property(p => p.ApiVersion).HasMaxLength(AiProvider.ApiVersionMaxLength);
+            provider.Property(p => p.LastTestError).HasMaxLength(AiProvider.ErrorMaxLength);
+            provider.Property(p => p.Version).IsRowVersion();
+            provider.HasIndex(p => new { p.TenantId, p.Status });
+        });
+
+        modelBuilder.Entity<AiFeatureSetting>(feature =>
+        {
+            feature.ToTable("ai_feature_settings", table =>
+            {
+                table.HasCheckConstraint("ck_ai_feature_settings_feature", "feature ~ '^[a-z][a-zA-Z]*$'");
+                table.HasCheckConstraint("ck_ai_feature_settings_enabled", "NOT enabled OR (provider_id IS NOT NULL AND model IS NOT NULL)");
+            });
+            feature.HasKey(f => new { f.TenantId, f.Feature });
+            feature.HasOne<Tenant>().WithMany().HasForeignKey(f => f.TenantId).OnDelete(DeleteBehavior.Restrict);
+            feature.HasOne<AiProvider>().WithMany().HasForeignKey(f => f.ProviderId).OnDelete(DeleteBehavior.Restrict);
+            feature.Property(f => f.Feature).HasMaxLength(AiFeatureSetting.FeatureMaxLength);
+            feature.Property(f => f.Model).HasMaxLength(AiFeatureSetting.ModelMaxLength);
+            feature.Property(f => f.Version).IsRowVersion();
+            feature.HasIndex(f => f.ProviderId);
+        });
+
+        modelBuilder.Entity<AiModelPrice>(price =>
+        {
+            price.ToTable("ai_model_prices", table =>
+                table.HasCheckConstraint("ck_ai_model_prices_range",
+                    $"input_per_million >= 0 AND input_per_million <= {AiModelPrice.MaxPrice} AND output_per_million >= 0 AND output_per_million <= {AiModelPrice.MaxPrice}"));
+            price.HasKey(p => new { p.TenantId, p.ProviderId, p.Model });
+            price.HasOne<Tenant>().WithMany().HasForeignKey(p => p.TenantId).OnDelete(DeleteBehavior.Restrict);
+            price.HasOne<AiProvider>().WithMany().HasForeignKey(p => p.ProviderId).OnDelete(DeleteBehavior.Restrict);
+            price.Property(p => p.Model).HasMaxLength(AiFeatureSetting.ModelMaxLength);
+            price.Property(p => p.InputPerMillion).HasPrecision(12, 6);
+            price.Property(p => p.OutputPerMillion).HasPrecision(12, 6);
+            price.Property(p => p.Version).IsRowVersion();
+            price.HasIndex(p => p.ProviderId);
+        });
+
+        modelBuilder.Entity<AiCall>(call =>
+        {
+            call.ToTable("ai_calls", table =>
+            {
+                table.HasCheckConstraint("ck_ai_calls_outcome", EnumCheck("outcome", Enum.GetNames<AiCallOutcome>()));
+                table.HasCheckConstraint("ck_ai_calls_provider_kind", "provider_kind IS NULL OR " + EnumCheck("provider_kind", Enum.GetNames<AiProviderKind>()));
+                table.HasCheckConstraint("ck_ai_calls_tokens", "input_tokens >= 0 AND output_tokens >= 0");
+            });
+            call.HasKey(c => c.Id);
+            call.Property(c => c.Id).UseIdentityAlwaysColumn();
+            call.HasOne<Tenant>().WithMany().HasForeignKey(c => c.TenantId).OnDelete(DeleteBehavior.Restrict);
+            call.HasOne<AiProvider>().WithMany().HasForeignKey(c => c.ProviderId).OnDelete(DeleteBehavior.Restrict);
+            call.Property(c => c.Feature).HasMaxLength(AiFeatureSetting.FeatureMaxLength);
+            call.Property(c => c.ProviderKind).HasConversion<string>().HasMaxLength(20);
+            call.Property(c => c.Model).HasMaxLength(AiFeatureSetting.ModelMaxLength);
+            call.Property(c => c.EntityType).HasMaxLength(AiCall.EntityMaxLength);
+            call.Property(c => c.EntityId).HasMaxLength(AiCall.EntityMaxLength);
+            call.Property(c => c.Outcome).HasConversion<string>().HasMaxLength(20);
+            call.Property(c => c.ErrorCode).HasMaxLength(AiCall.ErrorCodeMaxLength);
+            call.Property(c => c.Error).HasMaxLength(AiCall.ErrorMaxLength);
+            call.Property(c => c.CostUsd).HasPrecision(18, 8);
+            call.Property(c => c.Prompt).HasMaxLength(AiCall.TextMaxLength);
+            call.Property(c => c.Response).HasMaxLength(AiCall.TextMaxLength);
+            call.Property(c => c.CorrelationId).HasMaxLength(AiCall.CorrelationIdMaxLength);
+
+            // The dashboard and the monthly limit sum a tenant's calls by time; the AI log lists newest first.
+            call.HasIndex(c => new { c.TenantId, c.OccurredAt });
+            call.HasIndex(c => new { c.TenantId, c.Id });
+            call.HasIndex(c => c.ProviderId);
+            call.HasIndex(c => c.OccurredAt).HasFilter("prompt IS NOT NULL OR response IS NOT NULL").HasDatabaseName("ix_ai_calls_text_retention");
         });
     }
 

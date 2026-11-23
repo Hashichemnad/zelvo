@@ -14,11 +14,12 @@ public sealed class OutboundRequestBlockedException(string code, string message)
 /// Which addresses outgoing requests (webhooks) may reach, against server-side request forgery
 /// (product owner decision 2026-11-22): HTTPS only; never loopback, link-local (which includes
 /// cloud metadata at 169.254.169.254), unspecified, multicast or reserved addresses; private
-/// networks only when the operator lists them in <see cref="WebhookOptions.AllowedPrivateNetworks"/>.
+/// networks only when the operator lists them in <see cref="OutboundNetworkOptions.AllowedPrivateNetworks"/>.
+/// Used for webhooks (module 14) and AI providers (module 9), each with its own options.
 /// The check runs on the address actually connected to, after DNS, so a name that resolves to an
 /// internal address (or changes to one later) is refused too.
 /// </summary>
-public sealed class OutboundAddressPolicy(WebhookOptions options)
+public sealed class OutboundAddressPolicy(OutboundNetworkOptions options)
 {
     // Never reachable, even when listed: this host, link-local and cloud metadata, special ranges.
     private static readonly IPNetwork[] AlwaysBlocked =
@@ -131,7 +132,7 @@ public sealed class OutboundAddressPolicy(WebhookOptions options)
         if (allowed.Count == 0)
         {
             throw new OutboundRequestBlockedException("address-not-allowed",
-                addresses.Length == 0 ? $"{host} has no address." : $"{host} resolves only to addresses that webhooks may not reach.");
+                addresses.Length == 0 ? $"{host} has no address." : $"{host} resolves only to addresses that Zelvo may not reach.");
         }
 
         var socket = new Socket(SocketType.Stream, ProtocolType.Tcp) { NoDelay = true };
