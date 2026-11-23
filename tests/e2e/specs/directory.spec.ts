@@ -117,7 +117,8 @@ test.describe("directory and assignment", () => {
     await expectAccessible(agent);
     // And it is in their own open list.
     await agent.goto("/en/incidents?assignee=me&open=true");
-    await expect(agent.getByRole("link", { name: title })).toBeVisible();
+    // The list links the incident by its number; the title is the next cell.
+    await expect(agent.getByRole("row").filter({ hasText: title })).toHaveCount(1);
     await agentContext.close();
 
     // Put things back: remove the rule, so later runs start from the same rules.
