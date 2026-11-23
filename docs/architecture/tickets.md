@@ -101,6 +101,6 @@ Administrators (`settings.manage`) edit the matrix (level names in English and A
 
 ## Not in B1
 
-- Groups, categories, locations, skills and assignment rules or round-robin (B2); SLA timers and business calendars (B3); the one-screen agent workspace, public replies and internal notes (B4); notifications about incidents and timeline updates (B5); creating incidents from email, chat and WhatsApp (E2, E3) and API keys for integrations (E1). The data model already records the channel.
+- Groups, categories, locations, skills and assignment rules or round-robin (B2, now built: see `directory-assignment.md`); SLA timers and business calendars (B3); the one-screen agent workspace, public replies and internal notes (B4); notifications about incidents and timeline updates (B5); creating incidents from email, chat and WhatsApp (E2, E3) and API keys for integrations (E1). The data model already records the channel.
 - A search box on the incident list (the search API already finds incidents).
 - Importing malware definitions in Settings (F4) and S3-compatible attachment storage (F6).

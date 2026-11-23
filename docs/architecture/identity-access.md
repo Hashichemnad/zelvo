@@ -59,11 +59,11 @@ Keycloak has no built-in authenticator that emails a sign-in code (checked again
 | Executive / auditor | `executive-auditor` | no (admin may require it) | `audit.read`, `users.read` |
 
 - The catalog of what can be granted is code (`PermissionCatalog`): permission keys and resources with fields. Each module adds its own.
-- What each role holds is data (`roles`, `role_permissions`, `role_field_rules`), changed by tenant administrators through `/api/v1/roles` (the Settings screens come with task B2) and audited field by field.
+- What each role holds is data (`roles`, `role_permissions`, `role_field_rules`), changed by tenant administrators through `/api/v1/roles` and Settings → Roles (task B2, which also adds custom roles) and audited field by field.
 - Defaults are given once per tenant (`role_default_grants` remembers them), so a later release adds new defaults without undoing an administrator's change.
 - Guards: tenant administrators always keep `users.manage` and `roles.manage` (409 `role-locked`); agents, team leads and tenant administrators always need a second factor (409 `role-mfa-locked`); a tenant always keeps one active tenant administrator (409 `last-tenant-admin`); nobody disables themselves.
 
-Permissions in A2: `tenant.manage`, `translations.read`, `audit.read`, `users.read`, `users.manage`, `roles.manage`, `identity.manage`. B1 adds `incidents.read`, `incidents.create`, `incidents.edit`, `incidents.assign` (agents and team leads) and `incidents.major` (team leads), `incidents.read` for executives/auditors, and the `incidents` field resource; see `tickets.md`.
+Permissions in A2: `tenant.manage`, `translations.read`, `audit.read`, `users.read`, `users.manage`, `roles.manage`, `identity.manage`. B2 adds `directory.read` (agents, team leads, administrators, executives/auditors) and `directory.manage` (administrators); see `directory-assignment.md`. B1 adds `incidents.read`, `incidents.create`, `incidents.edit`, `incidents.assign` (agents and team leads) and `incidents.major` (team leads), `incidents.read` for executives/auditors, and the `incidents` field resource; see `tickets.md`.
 
 ### Field-level access
 
@@ -110,4 +110,4 @@ First resource: `users` (`displayName`, `email` (sensitive), `emiratesId` (sensi
 ## Not in A2
 
 - Passkeys (WebAuthn) as a second factor. Keycloak needs a different flow shape so that people without any second factor are asked to set one up. Follow-up.
-- UAE PASS (D3, see `uae-pass.md`), Entra ID / LDAP (E7), API keys and OAuth clients (E1), Settings screens for users and roles (B2), demo user switching (D), rate limiting (A5), tenant branding of the Keycloak pages (F1).
+- UAE PASS (D3, see `uae-pass.md`), Entra ID / LDAP (E7), API keys and OAuth clients (E1), Settings screens for users and roles (B2), demo user switching (D), rate limiting (A5), tenant branding of the Keycloak pages (F1). The Settings screens for users and roles came with B2.
