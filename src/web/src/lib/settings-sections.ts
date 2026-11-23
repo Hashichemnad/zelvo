@@ -4,7 +4,7 @@
  */
 export interface SettingsSection {
   /** Key under `settings.sections` in the translation files. */
-  key: "language" | "signIn" | "incidents" | "attachments" | "search" | "integrations" | "importExport" | "translations";
+  key: "language" | "signIn" | "incidents" | "attachments" | "search" | "integrations" | "ai" | "importExport" | "translations";
   /** Path below /[locale]. */
   href: string;
   /** Permission needed to open the section. */
@@ -18,6 +18,7 @@ export const settingsSections: readonly SettingsSection[] = [
   { key: "attachments", href: "/settings/attachments", permission: "settings.manage" },
   { key: "search", href: "/settings/search", permission: "search.manage" },
   { key: "integrations", href: "/settings/integrations", permission: "integrations.manage" },
+  { key: "ai", href: "/settings/ai", permission: "ai.manage" },
   { key: "importExport", href: "/settings/import-export", permission: "users.manage" },
   { key: "translations", href: "/settings/translations", permission: "translations.read" },
 ];
