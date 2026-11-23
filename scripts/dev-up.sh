@@ -130,6 +130,7 @@ Zelvo is running:
   RabbitMQ admin      http://localhost:${RABBITMQ_MANAGEMENT_PORT:-15672}
   Grafana             http://localhost:${GRAFANA_PORT:-3001}  (dashboards, traces, logs; GRAFANA_ADMIN_* in deploy/compose/.env)
   Webhook receiver    http://webhook-receiver:8096/hook as a webhook URL; what it got: http://localhost:${WEBHOOK_RECEIVER_PORT:-8096}/received
+  AI mock             http://ai-mock:8097/v1 as an OpenAI-compatible endpoint in Settings → AI; what it got: http://localhost:${AI_MOCK_PORT:-8097}/received
 
 Stop it with: make down
 MSG
