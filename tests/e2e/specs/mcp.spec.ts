@@ -59,11 +59,15 @@ test.describe("MCP server", () => {
     await page.getByLabel("Make an integration an AI agent").selectOption({ label: name });
     await page.getByRole("button", { name: "Add as AI agent" }).click();
     const agent = page.getByTestId("mcp-agent").filter({ hasText: name });
+    await expect(agent).toHaveCount(1);
     await agent.getByRole("checkbox", { name: "Turn on Find incidents" }).check();
     await agent.getByRole("checkbox", { name: "Turn on Raise an incident" }).check();
     await expect(agent.getByRole("checkbox", { name: "Raise an incident needs a person's approval" })).toBeChecked();
+    // The first save already showed a "Saved" message, so wait for this save itself.
+    const saved = page.waitForResponse((r) => r.request().method() === "PUT" && r.url().includes("/v1/ai/mcp/agents/"));
     await agent.getByRole("button", { name: /Save tools/ }).click();
-    await expect(page.getByRole("status")).toContainText(name);
+    expect((await saved).status()).toBe(200);
+    await expect(agent.getByRole("checkbox", { name: "Turn on Raise an incident" })).toBeChecked();
 
     // The agent sees its tools and asks for an incident.
     const tools = await mcp(request, key, "tools/list", {});

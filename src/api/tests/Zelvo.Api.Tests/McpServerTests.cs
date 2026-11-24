@@ -222,6 +222,39 @@ public sealed class McpServerTests(DatabaseFixture database) : IAsyncDisposable
         Assert.Equal(0, (int?)(await (await approver.GetAsync(Approvals, Ct)).JsonAsync())["totalCount"]);
     }
 
+    [Fact]
+    public async Task Plain_json_rpc_calls_without_initialize_are_answered()
+    {
+        // What the end-to-end test and simple agents send: one POST per call, no session.
+        var tenant = await database.CreateTenantAsync("mj");
+        using var admin = await _factory.ForTenant(tenant).SignedInAsync(database, tenant, "tenant-admin");
+        await TurnOnAsync(admin);
+        var (key, id) = await admin.CreateApiKeyAsync("agent", "incidents.read");
+        await SetAgentAsync(admin, id, ["search_incidents"]);
+        using var http = _factory.ForTenant(tenant).WithApiKey(key);
+
+        var list = await RpcAsync(http, "tools/list", new { });
+        Assert.Contains("search_incidents", list["result"]!["tools"]!.AsArray().Select(t => (string?)t!["name"]));
+        var call = await RpcAsync(http, "tools/call", new { name = "search_incidents", arguments = new { open = true } });
+        Assert.NotEqual(true, (bool?)call["result"]!["isError"]);
+        Assert.Equal(0, (int?)JsonNode.Parse((string)call["result"]!["content"]![0]!["text"]!)!["totalCount"]);
+    }
+
+    private static async Task<JsonNode> RpcAsync(HttpClient http, string method, object parameters)
+    {
+        using var request = new HttpRequestMessage(HttpMethod.Post, new Uri("/api/v1/mcp", UriKind.Relative))
+        {
+            Content = JsonContent.Create(new { jsonrpc = "2.0", id = 1, method, @params = parameters }),
+        };
+        request.Headers.Accept.Clear();
+        request.Headers.Accept.ParseAdd("application/json, text/event-stream");
+        using var response = await http.SendAsync(request, Ct);
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+        var text = await response.Content.ReadAsStringAsync(Ct);
+        var json = text.TrimStart().StartsWith('{') ? text : text.Split('\n').First(l => l.StartsWith("data: ", StringComparison.Ordinal))[6..];
+        return JsonNode.Parse(json)!;
+    }
+
     private async Task<McpClient> ConnectAsync(Tenant tenant, string key)
     {
         var http = _factory.CreateClient();

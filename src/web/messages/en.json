@@ -398,7 +398,18 @@
         "search_manage": "Search index status and rebuild",
         "demo_reset": "Reset the demo",
         "integrations_manage": "Manage integrations",
-        "sla_manage": "Change SLA policies and calendars"
+        "sla_manage": "Change SLA policies and calendars",
+        "directory_manage": "Change categories, locations, skills, groups and assignment rules",
+        "directory_read": "See groups, skills and assignment rules",
+        "incidents_assign": "Assign incidents",
+        "incidents_create": "Log incidents for others",
+        "incidents_edit": "Work on incidents",
+        "incidents_major": "Manage major incidents",
+        "incidents_read": "See every incident",
+        "ai_manage": "Manage AI providers, features, the MCP server and MCP servers",
+        "knowledge_read": "Read internal knowledge articles",
+        "knowledge_write": "Write knowledge articles",
+        "knowledge_publish": "Review, publish and retire knowledge articles"
       },
       "events": {
         "user_created": "A user was created",
@@ -1467,7 +1478,9 @@
         "incidents": "Incidents",
         "integrations": "Integrations",
         "directory": "Directory and assignment",
-        "sla": "SLA management"
+        "sla": "SLA management",
+        "ai": "AI",
+        "knowledge": "Knowledge base"
       },
       "tenant_manage": "Change the organisation's name",
       "translations_read": "See missing translations",
@@ -1487,7 +1500,11 @@
       "integrations_manage": "Manage integrations",
       "directory_read": "See groups, skills and assignment rules",
       "directory_manage": "Change categories, locations, skills, groups and assignment rules",
-      "sla_manage": "Change SLA policies, business calendars and customer groups"
+      "sla_manage": "Change SLA policies, business calendars and customer groups",
+      "ai_manage": "Manage AI providers, features, the MCP server and MCP servers",
+      "knowledge_read": "Read internal knowledge articles",
+      "knowledge_write": "Write knowledge articles",
+      "knowledge_publish": "Review, publish and retire knowledge articles"
     },
     "assignment": {
       "intro": "The rules are checked in order and the first that matches decides where a new ticket goes. They run when a ticket is created and when an agent chooses \"Route again\"; they never move a ticket on their own later.",
