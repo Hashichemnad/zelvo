@@ -5,6 +5,7 @@ using Zelvo.Data.Auditing;
 using Zelvo.Data.Directory;
 using Zelvo.Data.Identity;
 using Zelvo.Data.Integrations;
+using Zelvo.Data.Knowledge;
 using Zelvo.Data.Localization;
 using Zelvo.Data.Search;
 using Zelvo.Data.Secrets;
@@ -114,6 +115,18 @@ public sealed class ZelvoDbContext(DbContextOptions<ZelvoDbContext> options) : D
     /// <summary>Assignment rules, in order (task B2).</summary>
     public DbSet<AssignmentRule> AssignmentRules => Set<AssignmentRule>();
 
+    /// <summary>Knowledge articles (module 7).</summary>
+    public DbSet<KbArticle> KbArticles => Set<KbArticle>();
+
+    /// <summary>Versions of knowledge articles.</summary>
+    public DbSet<KbArticleVersion> KbArticleVersions => Set<KbArticleVersion>();
+
+    /// <summary>"Was this helpful?" answers.</summary>
+    public DbSet<KbFeedback> KbFeedbackEntries => Set<KbFeedback>();
+
+    /// <summary>Article views per viewer and day.</summary>
+    public DbSet<KbArticleView> KbArticleViews => Set<KbArticleView>();
+
     /// <summary>AI provider connections (module 9).</summary>
     public DbSet<AiProvider> AiProviders => Set<AiProvider>();
 
@@ -196,6 +209,7 @@ public sealed class ZelvoDbContext(DbContextOptions<ZelvoDbContext> options) : D
         ConfigureTickets(modelBuilder);
         ConfigureIntegrations(modelBuilder);
         ConfigureAi(modelBuilder);
+        ConfigureKnowledge(modelBuilder);
 
         modelBuilder.Entity<TenantDataKey>(key =>
         {
@@ -385,10 +399,13 @@ public sealed class ZelvoDbContext(DbContextOptions<ZelvoDbContext> options) : D
                 table.HasCheckConstraint("ck_ticket_attachments_scan_status", EnumCheck("scan_status", Enum.GetNames<AttachmentScanStatus>()));
                 table.HasCheckConstraint("ck_ticket_attachments_size", "size >= 0");
                 table.HasCheckConstraint("ck_ticket_attachments_sha256", "sha256 ~ '^[0-9a-f]{64}$'");
+                table.HasCheckConstraint("ck_ticket_attachments_owner", "(ticket_id IS NULL) <> (article_id IS NULL)");
             });
             attachment.HasKey(a => a.Id);
             attachment.Property(a => a.Id).ValueGeneratedNever();
             attachment.HasOne<Ticket>().WithMany().HasForeignKey(a => a.TicketId).OnDelete(DeleteBehavior.Cascade);
+            attachment.HasOne<KbArticle>().WithMany().HasForeignKey(a => a.ArticleId).OnDelete(DeleteBehavior.Cascade);
+            attachment.HasIndex(a => new { a.TenantId, a.ArticleId }).HasFilter("article_id IS NOT NULL");
             attachment.HasOne<UserAccount>().WithMany().HasForeignKey(a => a.UploadedById).OnDelete(DeleteBehavior.Restrict);
             attachment.Property(a => a.FileName).HasMaxLength(TicketAttachment.FileNameMaxLength);
             attachment.Property(a => a.ContentType).HasMaxLength(100);
@@ -512,6 +529,94 @@ public sealed class ZelvoDbContext(DbContextOptions<ZelvoDbContext> options) : D
             entry.HasIndex(e => new { e.TenantId, e.OccurredAt });
             entry.HasIndex(e => new { e.TenantId, e.ApiClientId, e.Id }).HasFilter("api_client_id IS NOT NULL");
             entry.HasIndex(e => new { e.TenantId, e.SubscriptionId, e.Id }).HasFilter("subscription_id IS NOT NULL");
+        });
+    }
+
+    private static void ConfigureKnowledge(ModelBuilder modelBuilder)
+    {
+        modelBuilder.Entity<KbArticle>(article =>
+        {
+            article.ToTable("kb_articles", table =>
+            {
+                table.HasCheckConstraint("ck_kb_articles_state", EnumCheck("state", Enum.GetNames<ArticleState>()));
+                table.HasCheckConstraint("ck_kb_articles_visibility", EnumCheck("visibility", Enum.GetNames<ArticleVisibility>()));
+                table.HasCheckConstraint("ck_kb_articles_counts", "view_count >= 0 AND helpful_count >= 0 AND not_helpful_count >= 0");
+                table.HasCheckConstraint("ck_kb_articles_published", "state <> 'Published' OR published_version_id IS NOT NULL");
+            });
+            article.HasKey(a => a.Id);
+            article.Property(a => a.Id).ValueGeneratedNever();
+            article.HasOne<Tenant>().WithMany().HasForeignKey(a => a.TenantId).OnDelete(DeleteBehavior.Restrict);
+            article.HasOne<Directory.Category>().WithMany().HasForeignKey(a => a.CategoryId).OnDelete(DeleteBehavior.Restrict);
+            article.HasOne<UserAccount>().WithMany().HasForeignKey(a => a.CreatedById).OnDelete(DeleteBehavior.Restrict);
+            article.HasOne<Ticket>().WithMany().HasForeignKey(a => a.SourceTicketId).OnDelete(DeleteBehavior.SetNull);
+            article.Property(a => a.Number).HasMaxLength(KbArticle.NumberMaxLength);
+            article.Property(a => a.State).HasConversion<string>().HasMaxLength(20);
+            article.Property(a => a.Visibility).HasConversion<string>().HasMaxLength(20);
+            article.HasIndex(a => new { a.TenantId, a.Sequence }).IsUnique();
+            article.HasIndex(a => new { a.TenantId, a.Number }).IsUnique();
+            article.HasIndex(a => new { a.TenantId, a.State, a.Visibility });
+            article.HasIndex(a => a.CategoryId);
+            article.HasIndex(a => a.SourceTicketId).HasFilter("source_ticket_id IS NOT NULL");
+            article.HasIndex(a => a.CreatedById);
+        });
+
+        modelBuilder.Entity<KbArticleVersion>(version =>
+        {
+            version.ToTable("kb_article_versions", table =>
+            {
+                table.HasCheckConstraint("ck_kb_article_versions_state", EnumCheck("state", Enum.GetNames<ArticleVersionState>()));
+                table.HasCheckConstraint("ck_kb_article_versions_visibility", EnumCheck("visibility", Enum.GetNames<ArticleVisibility>()));
+                table.HasCheckConstraint("ck_kb_article_versions_number", "number >= 1");
+                table.HasCheckConstraint("ck_kb_article_versions_title", "title_en IS NOT NULL OR title_ar IS NOT NULL");
+            });
+            version.HasKey(v => v.Id);
+            version.Property(v => v.Id).ValueGeneratedNever();
+            version.HasOne<Tenant>().WithMany().HasForeignKey(v => v.TenantId).OnDelete(DeleteBehavior.Restrict);
+            version.HasOne<KbArticle>().WithMany().HasForeignKey(v => v.ArticleId).OnDelete(DeleteBehavior.Cascade);
+            version.HasOne<Directory.Category>().WithMany().HasForeignKey(v => v.CategoryId).OnDelete(DeleteBehavior.Restrict);
+            version.ConfigureLocalizedText(v => v.Title, "title", KbArticleVersion.TitleMaxLength);
+            version.ConfigureLocalizedText(v => v.Summary, "summary", KbArticleVersion.SummaryMaxLength);
+            version.ConfigureLocalizedText(v => v.Body, "body", KbArticleVersion.BodyMaxLength);
+            version.Property(v => v.State).HasConversion<string>().HasMaxLength(20);
+            version.Property(v => v.Visibility).HasConversion<string>().HasMaxLength(20);
+            version.Property(v => v.ChangeNote).HasMaxLength(KbArticleVersion.NoteMaxLength);
+            version.Property(v => v.ReviewComment).HasMaxLength(KbArticleVersion.NoteMaxLength);
+            version.Property(v => v.Version).IsRowVersion();
+            version.HasIndex(v => new { v.ArticleId, v.Number }).IsUnique();
+            version.HasIndex(v => new { v.TenantId, v.State });
+            version.HasIndex(v => v.CategoryId);
+        });
+
+        modelBuilder.Entity<KbFeedback>(feedback =>
+        {
+            feedback.ToTable("kb_feedback", table =>
+            {
+                table.HasCheckConstraint("ck_kb_feedback_who", "(user_id IS NULL) <> (visitor_hash IS NULL)");
+                table.HasCheckConstraint("ck_kb_feedback_visitor_hash", "visitor_hash ~ '^[0-9a-f]{64}$'");
+            });
+            feedback.HasKey(f => f.Id);
+            feedback.Property(f => f.Id).ValueGeneratedNever();
+            feedback.HasOne<Tenant>().WithMany().HasForeignKey(f => f.TenantId).OnDelete(DeleteBehavior.Restrict);
+            feedback.HasOne<KbArticle>().WithMany().HasForeignKey(f => f.ArticleId).OnDelete(DeleteBehavior.Cascade);
+            feedback.HasOne<KbArticleVersion>().WithMany().HasForeignKey(f => f.VersionId).OnDelete(DeleteBehavior.SetNull);
+            feedback.HasOne<UserAccount>().WithMany().HasForeignKey(f => f.UserId).OnDelete(DeleteBehavior.Cascade);
+            feedback.Property(f => f.VisitorHash).HasMaxLength(64).IsFixedLength();
+            feedback.Property(f => f.Comment).HasMaxLength(Knowledge.KbFeedback.CommentMaxLength);
+            feedback.HasIndex(f => new { f.ArticleId, f.UserId }).IsUnique().HasFilter("user_id IS NOT NULL");
+            feedback.HasIndex(f => new { f.ArticleId, f.VisitorHash }).IsUnique().HasFilter("visitor_hash IS NOT NULL");
+            feedback.HasIndex(f => new { f.TenantId, f.ArticleId, f.CreatedAt });
+            feedback.HasIndex(f => f.VersionId);
+            feedback.HasIndex(f => f.UserId);
+        });
+
+        modelBuilder.Entity<KbArticleView>(view =>
+        {
+            view.ToTable("kb_article_views", table => table.HasCheckConstraint("ck_kb_article_views_viewer_hash", "viewer_hash ~ '^[0-9a-f]{64}$'"));
+            view.HasKey(v => new { v.ArticleId, v.ViewerHash, v.Day });
+            view.HasOne<Tenant>().WithMany().HasForeignKey(v => v.TenantId).OnDelete(DeleteBehavior.Restrict);
+            view.HasOne<KbArticle>().WithMany().HasForeignKey(v => v.ArticleId).OnDelete(DeleteBehavior.Cascade);
+            view.Property(v => v.ViewerHash).HasMaxLength(64).IsFixedLength();
+            view.HasIndex(v => new { v.TenantId, v.Day });
         });
     }
 

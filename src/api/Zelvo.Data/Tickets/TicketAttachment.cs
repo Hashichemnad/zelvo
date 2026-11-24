@@ -4,9 +4,10 @@ using Zelvo.Data.Tenancy;
 namespace Zelvo.Data.Tickets;
 
 /// <summary>
-/// A file attached to a ticket. Its content lives behind the attachment store (in PostgreSQL,
-/// <see cref="TicketAttachmentContent"/>); nobody can download it until the malware scan finds
-/// it clean (product owner decision 2026-11-22).
+/// A file attached to a ticket, or an image of a knowledge article (D1). Its content lives behind
+/// the attachment store (in PostgreSQL, <see cref="TicketAttachmentContent"/>); nobody can
+/// download it until the malware scan finds it clean (product owner decision 2026-11-22).
+/// Exactly one of <see cref="TicketId"/> and <see cref="ArticleId"/> is set.
 /// </summary>
 public sealed class TicketAttachment : ITenantOwned, IAuditedEntity
 {
@@ -22,8 +23,11 @@ public sealed class TicketAttachment : ITenantOwned, IAuditedEntity
     /// <inheritdoc />
     public Guid TenantId { get; set; }
 
-    /// <summary>The ticket.</summary>
-    public Guid TicketId { get; init; }
+    /// <summary>The ticket, for ticket attachments.</summary>
+    public Guid? TicketId { get; init; }
+
+    /// <summary>The knowledge article, for article images.</summary>
+    public Guid? ArticleId { get; init; }
 
     /// <summary>File name as uploaded, cleaned of paths and control characters.</summary>
     public required string FileName { get; init; }

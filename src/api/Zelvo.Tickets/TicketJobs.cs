@@ -261,7 +261,8 @@ public sealed partial class AttachmentScanJob(
             {
                 attachment.ScanStatus = AttachmentScanStatus.Infected;
                 await store.RemoveAsync(attachment.Id, cancellationToken).ConfigureAwait(false);
-                audit.Add(AuditCategory.Security, "tickets.attachment.infected", "ticket", attachment.TicketId.ToString(),
+                audit.Add(AuditCategory.Security, attachment.ArticleId is null ? "tickets.attachment.infected" : "knowledge.image.infected",
+                    attachment.ArticleId is null ? "ticket" : "kb_article", (attachment.TicketId ?? attachment.ArticleId)!.Value.ToString(),
                     new Dictionary<string, object?>(StringComparer.Ordinal)
                     {
                         ["attachmentId"] = attachment.Id.ToString(),
