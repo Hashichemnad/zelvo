@@ -43,6 +43,7 @@ public sealed class DatabaseFixture : IAsyncLifetime
             """);
 
         await DatabaseMigrator.MigrateAsync(OwnerConnectionString, TestContext.Current.CancellationToken);
+        await Zelvo.Workflows.Engine.WorkflowEngineSetup.MigrateAsync(OwnerConnectionString, TestContext.Current.CancellationToken);
     }
 
     public async ValueTask DisposeAsync() => await _postgres.DisposeAsync();

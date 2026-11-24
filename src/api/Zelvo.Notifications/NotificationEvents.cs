@@ -11,6 +11,9 @@ public enum NotificationAudience
 
     /// <summary>People who publish knowledge articles.</summary>
     Publisher,
+
+    /// <summary>People asked to approve requests (task C3); anyone can be an approver.</summary>
+    Approver,
 }
 
 /// <summary>One kind of notification.</summary>
@@ -96,6 +99,23 @@ public static class NotificationEvents
 
     /// <summary>A complaint, inquiry or suggestion arrived in a group's queue without an assignee.</summary>
     public const string VoiceQueued = "voice.queued";
+    /// <summary>An approver is asked to decide on a request (task C3); the email has Approve and Reject buttons.</summary>
+    public const string ApprovalRequested = "approval.requested";
+
+    /// <summary>A request was approved and goes to the service desk (task C3).</summary>
+    public const string RequestApproved = "request.approved";
+
+    /// <summary>A request was rejected before assignment and closed, with the reason (task C3).</summary>
+    public const string RequestRejected = "request.rejected";
+
+    /// <summary>The sign-off of a fulfilled request was rejected; the work goes back to the assignee (task C3).</summary>
+    public const string RequestSignOffRejected = "request.signoff-rejected";
+
+    /// <summary>
+    /// A notify action of a workflow rule (task C3). Its wording is the rule's own, carried in the
+    /// notification's values; it is not listed in Settings → Notifications or Account → Notifications.
+    /// </summary>
+    public const string WorkflowRule = "workflow.rule";
 
     /// <summary>Event type of test emails sent from Settings → Notifications.</summary>
     public const string TestEmail = "notifications.test";
@@ -131,10 +151,23 @@ public static class NotificationEvents
         new(SuggestionReviewed, NotificationAudience.Requester, true, [Placeholders.TicketNumber, Placeholders.TicketTitle, Placeholders.ReviewState, Placeholders.ReviewFeedback]),
         new(VoiceAssigned, NotificationAudience.Staff, true, [Placeholders.TicketNumber, Placeholders.TicketTitle, Placeholders.TicketType, Placeholders.TicketGroup, Placeholders.RequesterName]),
         new(VoiceQueued, NotificationAudience.Staff, true, [Placeholders.TicketNumber, Placeholders.TicketTitle, Placeholders.TicketType, Placeholders.TicketGroup, Placeholders.RequesterName]),
+        new(ApprovalRequested, NotificationAudience.Approver, true,
+            [Placeholders.TicketNumber, Placeholders.TicketTitle, Placeholders.RequesterName, Placeholders.ServiceName, Placeholders.ApprovalLevel]),
+        new(RequestApproved, NotificationAudience.Requester, true, [Placeholders.TicketNumber, Placeholders.TicketTitle, Placeholders.ServiceName]),
+        new(RequestRejected, NotificationAudience.Requester, true, [Placeholders.TicketNumber, Placeholders.TicketTitle, Placeholders.ServiceName, Placeholders.ApprovalReason]),
+        new(RequestSignOffRejected, NotificationAudience.Staff, true, [Placeholders.TicketNumber, Placeholders.TicketTitle, Placeholders.ApprovalReason]),
+    ];
+
+    /// <summary>Events that are not set up in Settings (their wording comes from elsewhere).</summary>
+    public static IReadOnlyList<NotificationEventDefinition> Internal { get; } =
+    [
+        new(WorkflowRule, NotificationAudience.Staff, false, [Placeholders.RuleSubject, Placeholders.RuleBody]),
     ];
 
     /// <summary>The event with key <paramref name="type"/>, or <see langword="null"/>.</summary>
-    public static NotificationEventDefinition? Find(string? type) => All.FirstOrDefault(e => string.Equals(e.Type, type, StringComparison.Ordinal));
+    public static NotificationEventDefinition? Find(string? type) =>
+        All.FirstOrDefault(e => string.Equals(e.Type, type, StringComparison.Ordinal))
+        ?? Internal.FirstOrDefault(e => string.Equals(e.Type, type, StringComparison.Ordinal));
 }
 
 /// <summary>Placeholder names (<c>{{ticket.number}}</c> in templates).</summary>
@@ -205,4 +238,24 @@ public static class Placeholders
 
     /// <summary>Feedback to a suggestion's submitter.</summary>
     public const string ReviewFeedback = "review.feedback";
+    /// <summary>The requested service's name (task C3).</summary>
+    public const string ServiceName = "service.name";
+
+    /// <summary>The approval level's name.</summary>
+    public const string ApprovalLevel = "approval.level";
+
+    /// <summary>Why a request was rejected.</summary>
+    public const string ApprovalReason = "approval.reason";
+
+    /// <summary>The ticket's state, named in the recipient's language.</summary>
+    public const string TicketState = "ticket.state";
+
+    /// <summary>A workflow rule's subject, in both languages (its own placeholders are filled in when sent).</summary>
+    public const string RuleSubject = "rule.subject";
+
+    /// <summary>A workflow rule's message.</summary>
+    public const string RuleBody = "rule.body";
+
+    /// <summary>Whether a workflow rule's notification also goes by email ("true").</summary>
+    public const string RuleEmail = "rule.email";
 }

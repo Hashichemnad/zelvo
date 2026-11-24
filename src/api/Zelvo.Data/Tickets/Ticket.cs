@@ -101,6 +101,12 @@ public sealed class Ticket : ITenantOwned, IAuditedEntity
     /// <summary>How it was resolved; required to resolve.</summary>
     public string? ResolutionNotes { get; set; }
 
+    /// <summary>
+    /// Waiting for an approval process (task C3): before assignment the ticket is not routed to
+    /// agents yet; after fulfilment the sign-off is pending. SLA clocks pause meanwhile (module 2).
+    /// </summary>
+    public bool AwaitingApproval { get; set; }
+
     /// <summary>How many times it was reopened.</summary>
     public int ReopenCount { get; set; }
 

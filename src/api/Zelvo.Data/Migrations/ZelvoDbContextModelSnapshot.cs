@@ -6068,6 +6068,10 @@ namespace Zelvo.Data.Migrations
                         .HasColumnType("uuid")
                         .HasColumnName("assignee_id");
 
+                    b.Property<bool>("AwaitingApproval")
+                        .HasColumnType("boolean")
+                        .HasColumnName("awaiting_approval");
+
                     b.Property<Guid?>("CategoryId")
                         .HasColumnType("uuid")
                         .HasColumnName("category_id");
@@ -6773,6 +6777,295 @@ namespace Zelvo.Data.Migrations
                             t.HasCheckConstraint("ck_happiness_ratings_record_type", "record_type IN ('Incident', 'ServiceRequest', 'Complaint', 'Inquiry', 'Suggestion')");
 
                             t.HasCheckConstraint("ck_happiness_ratings_score", "score BETWEEN 1 AND points");
+                        });
+                });
+
+            modelBuilder.Entity("Zelvo.Data.Workflows.ApprovalDecision", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<Guid>("ApproverId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("approver_id");
+
+                    b.Property<string>("Comment")
+                        .HasMaxLength(2000)
+                        .HasColumnType("character varying(2000)")
+                        .HasColumnName("comment");
+
+                    b.Property<DateTimeOffset>("CreatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("created_at");
+
+                    b.Property<DateTimeOffset?>("DecidedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("decided_at");
+
+                    b.Property<string>("DecidedVia")
+                        .HasMaxLength(20)
+                        .HasColumnType("character varying(20)")
+                        .HasColumnName("decided_via");
+
+                    b.Property<int>("Level")
+                        .HasColumnType("integer")
+                        .HasColumnName("level");
+
+                    b.Property<Guid>("ProcessId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("process_id");
+
+                    b.Property<string>("State")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("character varying(20)")
+                        .HasColumnName("state");
+
+                    b.Property<Guid>("TenantId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("tenant_id");
+
+                    b.Property<Guid>("TicketId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("ticket_id");
+
+                    b.Property<uint>("Version")
+                        .IsConcurrencyToken()
+                        .ValueGeneratedOnAddOrUpdate()
+                        .HasColumnType("xid")
+                        .HasColumnName("xmin");
+
+                    b.HasKey("Id")
+                        .HasName("pk_approval_decisions");
+
+                    b.HasIndex("ApproverId")
+                        .HasDatabaseName("ix_approval_decisions_approver_id");
+
+                    b.HasIndex("TicketId")
+                        .HasDatabaseName("ix_approval_decisions_ticket_id");
+
+                    b.HasIndex("ProcessId", "Level", "ApproverId")
+                        .IsUnique()
+                        .HasDatabaseName("ix_approval_decisions_process_id_level_approver_id");
+
+                    b.HasIndex("TenantId", "ApproverId", "State")
+                        .HasDatabaseName("ix_approval_decisions_tenant_id_approver_id_state");
+
+                    b.ToTable("approval_decisions", null, t =>
+                        {
+                            t.HasCheckConstraint("ck_approval_decisions_reason", "state <> 'Rejected' OR comment IS NOT NULL");
+
+                            t.HasCheckConstraint("ck_approval_decisions_state", "state IN ('Pending', 'Approved', 'Rejected', 'NotNeeded')");
+                        });
+                });
+
+            modelBuilder.Entity("Zelvo.Data.Workflows.ApprovalProcess", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<DateTimeOffset>("CreatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("created_at");
+
+                    b.Property<int>("CurrentLevel")
+                        .HasColumnType("integer")
+                        .HasColumnName("current_level");
+
+                    b.Property<DateTimeOffset?>("EndedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("ended_at");
+
+                    b.Property<string>("EngineBookmarkId")
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)")
+                        .HasColumnName("engine_bookmark_id");
+
+                    b.Property<string>("EngineInstanceId")
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)")
+                        .HasColumnName("engine_instance_id");
+
+                    b.Property<string>("Levels")
+                        .IsRequired()
+                        .HasColumnType("jsonb")
+                        .HasColumnName("levels");
+
+                    b.Property<string>("Reason")
+                        .HasMaxLength(10000)
+                        .HasColumnType("character varying(10000)")
+                        .HasColumnName("reason");
+
+                    b.Property<string>("ResolutionNotes")
+                        .HasMaxLength(10000)
+                        .HasColumnType("character varying(10000)")
+                        .HasColumnName("resolution_notes");
+
+                    b.Property<string>("Stage")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("character varying(20)")
+                        .HasColumnName("stage");
+
+                    b.Property<Guid?>("StartedById")
+                        .HasColumnType("uuid")
+                        .HasColumnName("started_by_id");
+
+                    b.Property<string>("State")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("character varying(20)")
+                        .HasColumnName("state");
+
+                    b.Property<Guid>("TenantId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("tenant_id");
+
+                    b.Property<Guid>("TicketId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("ticket_id");
+
+                    b.Property<uint>("Version")
+                        .IsConcurrencyToken()
+                        .ValueGeneratedOnAddOrUpdate()
+                        .HasColumnType("xid")
+                        .HasColumnName("xmin");
+
+                    b.HasKey("Id")
+                        .HasName("pk_approval_processes");
+
+                    b.HasIndex("StartedById")
+                        .HasDatabaseName("ix_approval_processes_started_by_id");
+
+                    b.HasIndex("TicketId")
+                        .HasDatabaseName("ix_approval_processes_ticket_id");
+
+                    b.HasIndex("TenantId", "TicketId")
+                        .HasDatabaseName("ix_approval_processes_tenant_id_ticket_id");
+
+                    b.ToTable("approval_processes", null, t =>
+                        {
+                            t.HasCheckConstraint("ck_approval_processes_stage", "stage IN ('BeforeAssignment', 'AfterFulfilment')");
+
+                            t.HasCheckConstraint("ck_approval_processes_state", "state IN ('Pending', 'Approved', 'Rejected', 'Cancelled')");
+                        });
+                });
+
+            modelBuilder.Entity("Zelvo.Data.Workflows.WorkflowRule", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<string>("Actions")
+                        .IsRequired()
+                        .HasColumnType("jsonb")
+                        .HasColumnName("actions");
+
+                    b.Property<bool>("Active")
+                        .HasColumnType("boolean")
+                        .HasColumnName("active");
+
+                    b.Property<string>("Conditions")
+                        .IsRequired()
+                        .HasColumnType("jsonb")
+                        .HasColumnName("conditions");
+
+                    b.Property<DateTimeOffset>("CreatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("created_at");
+
+                    b.Property<Guid?>("CreatedById")
+                        .HasColumnType("uuid")
+                        .HasColumnName("created_by_id");
+
+                    b.Property<string>("Match")
+                        .IsRequired()
+                        .HasMaxLength(10)
+                        .HasColumnType("character varying(10)")
+                        .HasColumnName("match");
+
+                    b.Property<int>("Position")
+                        .HasColumnType("integer")
+                        .HasColumnName("position");
+
+                    b.Property<string>("RecordType")
+                        .HasMaxLength(30)
+                        .HasColumnType("character varying(30)")
+                        .HasColumnName("record_type");
+
+                    b.Property<bool>("StopProcessing")
+                        .HasColumnType("boolean")
+                        .HasColumnName("stop_processing");
+
+                    b.Property<Guid>("TenantId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("tenant_id");
+
+                    b.Property<string>("Trigger")
+                        .IsRequired()
+                        .HasMaxLength(30)
+                        .HasColumnType("character varying(30)")
+                        .HasColumnName("trigger");
+
+                    b.Property<DateTimeOffset>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("updated_at");
+
+                    b.Property<uint>("Version")
+                        .IsConcurrencyToken()
+                        .ValueGeneratedOnAddOrUpdate()
+                        .HasColumnType("xid")
+                        .HasColumnName("xmin");
+
+                    b.ComplexProperty(typeof(Dictionary<string, object>), "Description", "Zelvo.Data.Workflows.WorkflowRule.Description#LocalizedText", b1 =>
+                        {
+                            b1.IsRequired();
+
+                            b1.Property<string>("Ar")
+                                .HasMaxLength(1000)
+                                .HasColumnType("character varying(1000)")
+                                .HasColumnName("description_ar");
+
+                            b1.Property<string>("En")
+                                .HasMaxLength(1000)
+                                .HasColumnType("character varying(1000)")
+                                .HasColumnName("description_en");
+                        });
+
+                    b.ComplexProperty(typeof(Dictionary<string, object>), "Name", "Zelvo.Data.Workflows.WorkflowRule.Name#LocalizedText", b1 =>
+                        {
+                            b1.IsRequired();
+
+                            b1.Property<string>("Ar")
+                                .HasMaxLength(150)
+                                .HasColumnType("character varying(150)")
+                                .HasColumnName("name_ar");
+
+                            b1.Property<string>("En")
+                                .HasMaxLength(150)
+                                .HasColumnType("character varying(150)")
+                                .HasColumnName("name_en");
+                        });
+
+                    b.HasKey("Id")
+                        .HasName("pk_workflow_rules");
+
+                    b.HasIndex("CreatedById")
+                        .HasDatabaseName("ix_workflow_rules_created_by_id");
+
+                    b.HasIndex("TenantId", "Trigger", "Position")
+                        .HasDatabaseName("ix_workflow_rules_tenant_id_trigger_position");
+
+                    b.ToTable("workflow_rules", null, t =>
+                        {
+                            t.HasCheckConstraint("ck_workflow_rules_match", "match IN ('All', 'Any')");
+
+                            t.HasCheckConstraint("ck_workflow_rules_record_type", "record_type IS NULL OR record_type IN ('Incident', 'ServiceRequest', 'Complaint', 'Inquiry', 'Suggestion')");
+
+                            t.HasCheckConstraint("ck_workflow_rules_trigger", "trigger IN ('TicketCreated', 'StateChanged', 'AssignmentChanged', 'ApprovalDecided')");
                         });
                 });
 
@@ -8697,6 +8990,76 @@ namespace Zelvo.Data.Migrations
                         .HasForeignKey("UserId")
                         .OnDelete(DeleteBehavior.SetNull)
                         .HasConstraintName("fk_happiness_ratings_users_user_id");
+                });
+
+            modelBuilder.Entity("Zelvo.Data.Workflows.ApprovalDecision", b =>
+                {
+                    b.HasOne("Zelvo.Data.Identity.UserAccount", null)
+                        .WithMany()
+                        .HasForeignKey("ApproverId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired()
+                        .HasConstraintName("fk_approval_decisions_users_approver_id");
+
+                    b.HasOne("Zelvo.Data.Workflows.ApprovalProcess", null)
+                        .WithMany()
+                        .HasForeignKey("ProcessId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired()
+                        .HasConstraintName("fk_approval_decisions_approval_processes_process_id");
+
+                    b.HasOne("Zelvo.Data.Tenancy.Tenant", null)
+                        .WithMany()
+                        .HasForeignKey("TenantId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired()
+                        .HasConstraintName("fk_approval_decisions_tenants_tenant_id");
+
+                    b.HasOne("Zelvo.Data.Tickets.Ticket", null)
+                        .WithMany()
+                        .HasForeignKey("TicketId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired()
+                        .HasConstraintName("fk_approval_decisions_tickets_ticket_id");
+                });
+
+            modelBuilder.Entity("Zelvo.Data.Workflows.ApprovalProcess", b =>
+                {
+                    b.HasOne("Zelvo.Data.Identity.UserAccount", null)
+                        .WithMany()
+                        .HasForeignKey("StartedById")
+                        .OnDelete(DeleteBehavior.SetNull)
+                        .HasConstraintName("fk_approval_processes_users_started_by_id");
+
+                    b.HasOne("Zelvo.Data.Tenancy.Tenant", null)
+                        .WithMany()
+                        .HasForeignKey("TenantId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired()
+                        .HasConstraintName("fk_approval_processes_tenants_tenant_id");
+
+                    b.HasOne("Zelvo.Data.Tickets.Ticket", null)
+                        .WithMany()
+                        .HasForeignKey("TicketId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired()
+                        .HasConstraintName("fk_approval_processes_tickets_ticket_id");
+                });
+
+            modelBuilder.Entity("Zelvo.Data.Workflows.WorkflowRule", b =>
+                {
+                    b.HasOne("Zelvo.Data.Identity.UserAccount", null)
+                        .WithMany()
+                        .HasForeignKey("CreatedById")
+                        .OnDelete(DeleteBehavior.SetNull)
+                        .HasConstraintName("fk_workflow_rules_users_created_by_id");
+
+                    b.HasOne("Zelvo.Data.Tenancy.Tenant", null)
+                        .WithMany()
+                        .HasForeignKey("TenantId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired()
+                        .HasConstraintName("fk_workflow_rules_tenants_tenant_id");
                 });
 
             modelBuilder.Entity("Zelvo.Data.Workspace.CannedResponse", b =>

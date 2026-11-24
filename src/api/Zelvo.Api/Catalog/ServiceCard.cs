@@ -287,6 +287,9 @@ public sealed record ServiceCard
 
     /// <summary>Roles whose holders may request it on behalf of someone else; empty: nobody.</summary>
     public IReadOnlyList<string> OnBehalfRoleKeys { get; init; } = [];
+
+    /// <summary>Approvals before assignment and after fulfilment (task C3).</summary>
+    public Zelvo.Workflows.Rules.ServiceApprovals Approvals { get; init; } = new();
 }
 
 /// <summary>Limits, JSON and the self-contained checks of service cards.</summary>
@@ -386,6 +389,18 @@ public static partial class ServiceCards
             UserIds = [.. (card.Access?.UserIds ?? []).Distinct()],
         },
         OnBehalfRoleKeys = [.. (card.OnBehalfRoleKeys ?? []).Distinct(StringComparer.Ordinal)],
+        Approvals = new Zelvo.Workflows.Rules.ServiceApprovals
+        {
+            BeforeAssignment = [.. (card.Approvals?.BeforeAssignment ?? []).Select(CleanLevel)],
+            AfterFulfilment = [.. (card.Approvals?.AfterFulfilment ?? []).Select(CleanLevel)],
+        },
+    };
+
+    private static Zelvo.Workflows.Rules.ApprovalLevelDefinition CleanLevel(Zelvo.Workflows.Rules.ApprovalLevelDefinition level) => level with
+    {
+        Name = Clean(level.Name),
+        Approvers = [.. (level.Approvers ?? []).Distinct()],
+        Conditions = level.Conditions ?? [],
     };
 
     /// <summary>
@@ -527,6 +542,13 @@ public static partial class ServiceCards
         if (access.GroupIds.Count + access.RoleKeys.Count + access.DepartmentIds.Count + access.LocationIds.Count + access.UserIds.Count > 90)
         {
             Add("access", "access-too-long", "Name at most 90 groups, roles, departments, locations and users.");
+        }
+
+        Zelvo.Workflows.Rules.RuleDocuments.CheckLevels(card.Approvals.BeforeAssignment, "approvals.beforeAssignment", problems);
+        Zelvo.Workflows.Rules.RuleDocuments.CheckLevels(card.Approvals.AfterFulfilment, "approvals.afterFulfilment", problems);
+        if (card.Type == ServiceType.External && card.Approvals.BeforeAssignment.Count + card.Approvals.AfterFulfilment.Count > 0)
+        {
+            Add("approvals", "external-has-approvals", "External services are requested on the provider's site; remove the approvals.");
         }
 
         return problems;

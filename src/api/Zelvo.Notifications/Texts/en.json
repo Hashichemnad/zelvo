@@ -49,7 +49,15 @@
     "review.UnderReview": "under review",
     "review.Accepted": "accepted",
     "review.Implemented": "implemented",
-    "review.Declined": "declined"
+    "review.Declined": "declined",
+    "approval.reject": "Reject",
+    "ticket.state.New": "New",
+    "ticket.state.Assigned": "Assigned",
+    "ticket.state.InProgress": "In progress",
+    "ticket.state.OnHold": "On hold",
+    "ticket.state.Resolved": "Resolved",
+    "ticket.state.Closed": "Closed",
+    "ticket.state.Reopened": "Reopened"
   },
   "templates": {
     "incident.received": {
@@ -177,6 +185,30 @@
       "inApp": "New {{ticket.type}} in {{ticket.group}}: “{{ticket.title}}”.",
       "body": "Hello {{recipient.name}},\n\nA new {{ticket.type}}, {{ticket.number}} “{{ticket.title}}”, is waiting in the queue of {{ticket.group}}.\n\nFrom: {{requester.name}}\n\n{{tenant.name}}",
       "action": "Open it"
+    },
+    "approval.requested": {
+      "subject": "{{ticket.number}}: your approval is needed",
+      "inApp": "{{requester.name}} asks for “{{service.name}}” and needs your approval ({{approval.level}}).",
+      "body": "Dear {{recipient.name}},\n\n{{requester.name}} has requested “{{service.name}}” ({{ticket.number}}, “{{ticket.title}}”). The request needs your approval at the stage “{{approval.level}}”.\n\nPlease review the request and approve or reject it. You will be asked to sign in before your decision is recorded.\n\nKind regards,\n{{tenant.name}}",
+      "action": "Approve"
+    },
+    "request.approved": {
+      "subject": "{{ticket.number}}: your request has been approved",
+      "inApp": "Your request “{{ticket.title}}” has been approved and passed to the service desk.",
+      "body": "Dear {{recipient.name}},\n\nYour request {{ticket.number}} for “{{service.name}}” has been approved. It has now been passed to the service desk, who will keep you informed.\n\nKind regards,\n{{tenant.name}}",
+      "action": "View your request"
+    },
+    "request.rejected": {
+      "subject": "{{ticket.number}}: your request was not approved",
+      "inApp": "Your request “{{ticket.title}}” was not approved: {{approval.reason}}",
+      "body": "Dear {{recipient.name}},\n\nWe regret to inform you that your request {{ticket.number}} for “{{service.name}}” was not approved, and it has been closed.\n\nReason: {{approval.reason}}\n\nYou may submit a new request at any time.\n\nKind regards,\n{{tenant.name}}",
+      "action": "View your request"
+    },
+    "request.signoff-rejected": {
+      "subject": "{{ticket.number}}: sign-off rejected",
+      "inApp": "The sign-off of “{{ticket.title}}” was rejected: {{approval.reason}}",
+      "body": "Dear {{recipient.name}},\n\nThe sign-off of the completed work on {{ticket.number}}, “{{ticket.title}}”, was rejected, and the request is back in progress.\n\nReason: {{approval.reason}}\n\nKind regards,\n{{tenant.name}}",
+      "action": "Open the request"
     }
   },
   "samples": {
@@ -190,6 +222,9 @@
     "recipient.name": "Mariam Al Ketbi",
     "comment.text": "Could you restart the printer and tell us whether the error light is still on?",
     "comment.author": "Omar Al Hashimi",
-    "review.feedback": "Thank you. We will add evening hours at the service centre from next month."
+    "review.feedback": "Thank you. We will add evening hours at the service centre from next month.",
+    "service.name": "New laptop",
+    "approval.level": "Manager approval",
+    "approval.reason": "The budget for this quarter has been used."
   }
 }

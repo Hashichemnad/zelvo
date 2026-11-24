@@ -403,7 +403,8 @@ public sealed class SlaTracker(ZelvoDbContext db, IAuditLog audit)
             return SlaClockState.Stopped;
         }
 
-        return ticket.State == TicketState.OnHold && ticket.OnHoldReason is { } reason && pausingReasons.Contains(reason)
+        // Task C3 (module 2): clocks also pause while the ticket waits for an approval.
+        return ticket.AwaitingApproval || (ticket.State == TicketState.OnHold && ticket.OnHoldReason is { } reason && pausingReasons.Contains(reason))
             ? SlaClockState.Paused
             : SlaClockState.Running;
     }

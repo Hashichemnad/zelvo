@@ -34,6 +34,7 @@ export interface SettingsSection {
     | "integrations"
     | "ai"
     | "importExport"
+    | "workflows"
     | "translations";
   /** Path below /[locale]. */
   href: string;
@@ -66,6 +67,8 @@ export const settingsSections: readonly SettingsSection[] = [
   // Task C2: managers build the catalog; publishers review and approve services.
   { key: "catalog", href: "/settings/catalog", permission: "catalog.manage", orPermissions: ["catalog.publish"] },
   { key: "customerVoice", href: "/settings/customer-voice", permission: "voice.manage" },
+  // Task C3: the no-code builder for assignment, approval and notification rules.
+  { key: "workflows", href: "/settings/workflows", permission: "workflows.manage" },
   { key: "knowledge", href: "/settings/knowledge", permission: "settings.manage" },
   { key: "notifications", href: "/settings/notifications", permission: "notifications.manage" },
   // Task B4: everyone who works on incidents keeps their own; leads and administrators share them.

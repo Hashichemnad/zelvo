@@ -8,7 +8,8 @@
     "skipToContent": "الانتقال إلى المحتوى الرئيسي",
     "poweredBy": "بتقنية زيلفو",
     "rateLimited": "تم إرسال طلبات كثيرة خلال وقت قصير. يُرجى الانتظار دقيقة ثم المحاولة مرة أخرى.",
-    "testInstallation": "نسخة اختبار: البيانات هنا لبناء التكاملات وتجربتها، وليست بيانات فعلية."
+    "testInstallation": "نسخة اختبار: البيانات هنا لبناء التكاملات وتجربتها، وليست بيانات فعلية.",
+    "approvals": "اعتماداتي"
   },
   "language": {
     "name": "العربية",
@@ -251,6 +252,10 @@
       "branding": {
         "title": "الهوية المؤسسية",
         "description": "اسم المنتج والشعارات والألوان والخط، والنطاقات الخاصة ونطاق مُرسِل البريد الإلكتروني."
+      },
+      "workflows": {
+        "title": "قواعد سير العمل",
+        "description": "قواعد «عندما / إذا / عندئذٍ» للإسناد وطلب الاعتماد والإشعار."
       }
     },
     "missingWarning": "{count, plural, zero {لا توجد نصوص ينقصها ترجمة.} one {نص واحد ينقصه ترجمة.} two {نصّان ينقصهما ترجمة.} few {# نصوص ينقصها ترجمة.} many {# نصًا ينقصه ترجمة.} other {# نص ينقصه ترجمة.}}",
@@ -280,7 +285,8 @@
         "incident_settings": "إعدادات البلاغات",
         "notification_template": "صياغة الإشعارات",
         "service_catalogs": "دليل",
-        "catalog_services": "خدمة"
+        "catalog_services": "خدمة",
+        "workflow_rule": "قاعدة سير عمل"
       },
       "fields": {
         "name": "الاسم"
@@ -469,7 +475,9 @@
         "voice_assign": "إسناد الشكاوى والاستفسارات والاقتراحات",
         "voice_report": "الاطلاع على تقرير صوت المتعامل والسعادة",
         "voice_manage": "تغيير إعدادات صوت المتعامل ومؤشر السعادة",
-        "branding_manage": "تغيير الهوية المؤسسية والنطاقات الخاصة ونطاق مُرسِل البريد"
+        "branding_manage": "تغيير الهوية المؤسسية والنطاقات الخاصة ونطاق مُرسِل البريد",
+        "workflows_manage": "إعداد قواعد سير العمل",
+        "approvals_read": "الاطلاع على جميع الاعتمادات"
       },
       "events": {
         "user_created": "إنشاء مستخدم",
@@ -1785,7 +1793,9 @@
         "channels": "البريد والمحادثة",
         "chat": "المحادثة المباشرة",
         "voice": "صوت المتعامل",
-        "branding": "الهوية المؤسسية"
+        "branding": "الهوية المؤسسية",
+        "workflows": "سير العمل",
+        "approvals": "الاعتمادات"
       },
       "tenant_manage": "تغيير اسم الجهة",
       "translations_read": "عرض الترجمات الناقصة",
@@ -1826,7 +1836,9 @@
       "voice_assign": "إسناد الشكاوى والاستفسارات والاقتراحات",
       "voice_report": "الاطلاع على تقرير صوت المتعامل والسعادة",
       "voice_manage": "تغيير إعدادات صوت المتعامل ومؤشر السعادة",
-      "branding_manage": "تغيير الهوية المؤسسية والنطاقات الخاصة ونطاق مُرسِل البريد"
+      "branding_manage": "تغيير الهوية المؤسسية والنطاقات الخاصة ونطاق مُرسِل البريد",
+      "workflows_manage": "إعداد قواعد سير العمل",
+      "approvals_read": "الاطلاع على جميع الاعتمادات"
     },
     "assignment": {
       "intro": "تُفحص القواعد بالترتيب، وأول قاعدة مطابقة تحدد وجهة التذكرة الجديدة. وتُطبَّق عند إنشاء التذكرة وعند اختيار موظف الدعم \"إعادة التوجيه\"، ولا تنقل أي تذكرة تلقائيًا بعد ذلك.",
@@ -2364,12 +2376,17 @@
       "suggestion_reviewed": "تمت دراسة اقتراحكم",
       "voice_assigned": "تم إسناد شكوى أو استفسار أو اقتراح إليكم",
       "voice_queued": "شكوى أو استفسار أو اقتراح جديد بانتظار فريقكم",
-      "incident_requester_frustrated": "مقدّم بلاغ يبدو مستاءً"
+      "incident_requester_frustrated": "مقدّم بلاغ يبدو مستاءً",
+      "approval_requested": "طلب يحتاج إلى اعتمادكم",
+      "request_approved": "تم اعتماد طلبكم",
+      "request_rejected": "لم يُعتمد طلبكم",
+      "request_signoff_rejected": "رُفض اعتماد إنجاز عملكم"
     },
     "audiences": {
       "Requester": "بلاغاتكم",
       "Staff": "أعمالكم",
-      "Publisher": "مراجعة المقالات المعرفية"
+      "Publisher": "مراجعة المقالات المعرفية",
+      "Approver": "اعتماداتكم"
     },
     "preferences": {
       "heading": "الإشعارات",
@@ -3335,7 +3352,13 @@
       },
       "comment": "التعديلات المطلوبة",
       "suspendMessage": "رسالة إلى مقدّمي الطلبات",
-      "cancel": "إلغاء"
+      "cancel": "إلغاء",
+      "approvals": "الاعتمادات",
+      "approvalsHint": "اعتمادات هذه الخدمة. ويمكن لقواعد سير العمل في الإعدادات إضافة مستويات أخرى.",
+      "approvalsBefore": "قبل الإسناد",
+      "approvalsBeforeHint": "لا يصل الطلب إلى مكتب الخدمة إلا بعد اعتماده في هذه المستويات.",
+      "approvalsAfter": "بعد التنفيذ (اعتماد الإنجاز)",
+      "approvalsAfterHint": "يُعتمد العمل المنجز قبل إغلاق الطلب."
     },
     "problems": {
       "name-required": "يُرجى إدخال اسم الخدمة باللغة الإنجليزية أو العربية.",
@@ -4329,5 +4352,262 @@
     "download": "تنزيل ملف PDF",
     "making": "جارٍ إعداد ملف PDF…",
     "failed": "تعذّر إعداد ملف PDF. يُرجى المحاولة لاحقًا."
+  },
+  "workflows": {
+    "intro": "تُطبَّق القواعد بالترتيب. عندما يحدث أمر لتذكرة وتتحقق شروط القاعدة، تُنفَّذ إجراءاتها: إسناد التذكرة أو طلب الاعتماد أو إشعار الأشخاص. استخدموا أزرار التحريك لتغيير الترتيب.",
+    "conditionField": "حقل الشرط {number}",
+    "operator": "المعامل",
+    "answerKey": "مفتاح حقل النموذج",
+    "value": "القيمة",
+    "valueAed": "المبلغ بالدرهم",
+    "values": "القيم (اختيار واحدة أو أكثر)",
+    "removeCondition": "حذف الشرط {number}",
+    "remove": "حذف",
+    "noConditions": "لا شروط: تنطبق دائماً.",
+    "addCondition": "إضافة شرط",
+    "group": "المجموعة",
+    "chooseGroup": "اختيار مجموعة",
+    "role": "الدور",
+    "chooseRole": "اختيار دور",
+    "person": "الشخص",
+    "levelNumber": "المستوى {number}",
+    "moveLevelUp": "نقل المستوى {number} إلى الأعلى",
+    "moveLevelDown": "نقل المستوى {number} إلى الأسفل",
+    "removeLevel": "حذف المستوى {number}",
+    "levelName": "اسم المستوى",
+    "mode": "من يجب أن يعتمد",
+    "modes": {
+      "Any": "أي معتمِد واحد",
+      "All": "جميع المعتمِدين (بالتوازي)"
+    },
+    "approverNumber": "المعتمِد {number}",
+    "addApprover": "إضافة معتمِد",
+    "levelConditions": "فقط عندما (الاعتماد حسب المبلغ أو الإجابة)",
+    "addLevel": "إضافة مستوى",
+    "fields": {
+      "service": "الخدمة",
+      "category": "التصنيف (أو ما دونه)",
+      "location": "الموقع (أو ما دونه)",
+      "group": "المجموعة",
+      "requesterDepartment": "إدارة مقدّم الطلب",
+      "channel": "القناة",
+      "state": "الحالة",
+      "requesterLanguage": "لغة مقدّم الطلب",
+      "priority": "الأولوية (1 هي الأعلى)",
+      "fee": "رسوم الخدمة",
+      "answer": "إجابة في النموذج"
+    },
+    "operators": {
+      "in": "إحدى القيم",
+      "notIn": "ليست أياً من القيم",
+      "eq": "يساوي",
+      "neq": "لا يساوي",
+      "gt": "أكبر من",
+      "gte": "لا يقل عن",
+      "lt": "أقل من",
+      "lte": "لا يزيد على",
+      "contains": "يحتوي على",
+      "empty": "فارغ",
+      "notEmpty": "غير فارغ"
+    },
+    "channels": {
+      "Portal": "البوابة",
+      "Email": "البريد الإلكتروني",
+      "Chat": "المحادثة",
+      "WhatsApp": "واتساب",
+      "Phone": "الهاتف",
+      "Api": "واجهة البرمجة",
+      "AiAgent": "وكيل الذكاء الاصطناعي"
+    },
+    "states": {
+      "New": "جديد",
+      "Assigned": "مُسنَد",
+      "InProgress": "قيد التنفيذ",
+      "OnHold": "معلّق",
+      "Resolved": "تمت المعالجة",
+      "Closed": "مغلق",
+      "Reopened": "أُعيد فتحه"
+    },
+    "languages": {
+      "en": "الإنجليزية",
+      "ar": "العربية"
+    },
+    "approverKinds": {
+      "RequesterManager": "مدير مقدّم الطلب",
+      "User": "شخص محدد",
+      "Group": "جميع أعضاء مجموعة",
+      "GroupLeads": "قادة فريق مجموعة",
+      "Role": "كل من لديه دور",
+      "AnswerUser": "الشخص المختار في إجابة النموذج"
+    },
+    "recipients": "من يُبلَّغ",
+    "recipientKinds": {
+      "requester": "مقدّم الطلب",
+      "requesterManager": "مدير مقدّم الطلب",
+      "assignee": "الموظف المسنَد إليه",
+      "group": "مجموعة التذكرة",
+      "groupLeads": "قادة فريق المجموعة"
+    },
+    "groupMembers": "أعضاء {name}",
+    "roleHolders": "كل من لديه الدور {name}",
+    "actionNumber": "الإجراء {number}",
+    "actionTypes": {
+      "assign": "إسناد",
+      "notify": "إشعار",
+      "approval": "طلب اعتماد"
+    },
+    "removeAction": "حذف الإجراء {number}",
+    "method": "الطريقة",
+    "methods": {
+      "GroupQueue": "إلى قائمة انتظار المجموعة",
+      "RoundRobin": "بالتناوب بين الأعضاء المتاحين"
+    },
+    "subject": "الموضوع",
+    "body": "الرسالة",
+    "inEnglish": "بالإنجليزية",
+    "inArabic": "بالعربية",
+    "placeholders": "العناصر النائبة المتاحة:",
+    "alsoEmail": "الإرسال بالبريد الإلكتروني أيضاً",
+    "stage": "متى",
+    "stages": {
+      "BeforeAssignment": "قبل الإسناد",
+      "AfterFulfilment": "بعد التنفيذ (اعتماد الإنجاز)"
+    },
+    "levels": "مستويات الاعتماد",
+    "ruleEditor": "قاعدة سير العمل",
+    "problemsTitle": "يُرجى معالجة ما يلي أولاً:",
+    "problems": {
+      "name-required": "يُرجى تسمية القاعدة بالعربية أو الإنجليزية.",
+      "operator-invalid": "يُرجى اختيار معامل يناسب الحقل.",
+      "value-invalid": "يُرجى اختيار قيمة أو إدخالها.",
+      "approval-not-allowed": "لا يُطلب الاعتماد إلا بقواعد على طلبات الخدمة عند تقديمها.",
+      "placeholder-unknown": "تستخدم الصياغة عنصراً نائباً غير موجود.",
+      "levels-required": "يُرجى إضافة مستوى اعتماد واحد على الأقل.",
+      "approvers-required": "يُرجى تحديد معتمِد واحد على الأقل.",
+      "recipients-required": "يُرجى اختيار من يُبلَّغ.",
+      "wording-required": "يُرجى كتابة الموضوع والرسالة.",
+      "group-required": "يُرجى اختيار المجموعة.",
+      "actions-required": "يُرجى إضافة إجراء واحد على الأقل.",
+      "reference-unknown": "أحد الخيارات لم يعد موجوداً.",
+      "approver-unknown": "أحد المعتمِدين لم يعد موجوداً.",
+      "group-unknown": "يُرجى اختيار مجموعة فعّالة."
+    },
+    "ruleName": "الاسم",
+    "ruleDescription": "الوصف",
+    "ruleActive": "القاعدة مفعّلة",
+    "when": "عندما",
+    "trigger": "يحدث أمر",
+    "triggers": {
+      "TicketCreated": "تسجيل تذكرة أو تقديم طلب",
+      "StateChanged": "تغيّر حالة تذكرة",
+      "AssignmentChanged": "تغيّر مجموعة التذكرة أو الموظف المسنَد إليه",
+      "ApprovalDecided": "انتهاء اعتماد"
+    },
+    "recordType": "على",
+    "anyRecordType": "البلاغات وطلبات الخدمة",
+    "recordTypes": {
+      "Incident": "البلاغات",
+      "ServiceRequest": "طلبات الخدمة"
+    },
+    "if": "إذا",
+    "match": "الشروط",
+    "matches": {
+      "All": "يجب تحقق جميعها",
+      "Any": "يكفي تحقق أحدها"
+    },
+    "conditions": "الشروط",
+    "then": "عندئذٍ",
+    "addAction": "إضافة إجراء",
+    "stopProcessing": "عند انطباق هذه القاعدة، لا تُطبَّق القواعد التي تليها",
+    "saveRule": "حفظ القاعدة",
+    "cancel": "إلغاء",
+    "saveFailed": "تعذّر حفظ القاعدة.",
+    "addRule": "إضافة قاعدة",
+    "rulesInOrder": "القواعد بترتيب تطبيقها",
+    "noRules": "لا توجد قواعد بعد.",
+    "inactive": "(غير مفعّلة)",
+    "summary": "{trigger} · {type} · {conditions, plural, =0 {بلا شروط} one {شرط واحد} two {شرطان} few {# شروط} many {# شرطاً} other {# شرط}} · {actions}",
+    "moveRuleUp": "نقل {name} إلى الأعلى",
+    "moveRuleDown": "نقل {name} إلى الأسفل",
+    "editRuleNamed": "تعديل {name}",
+    "edit": "تعديل",
+    "deleteRuleNamed": "حذف {name}",
+    "delete": "حذف",
+    "tryRules": "تجربة القواعد",
+    "ticketNumber": "رقم التذكرة",
+    "try": "تجربة",
+    "noRulesForTrigger": "لا توجد قواعد مفعّلة لهذا الحدث.",
+    "holds": "تنطبق — {actions}",
+    "doesNotHold": "لا تنطبق"
+  },
+  "approvals": {
+    "title": "اعتماداتي",
+    "detailTitle": "اعتماد",
+    "unavailable": "يتعذّر عرض الاعتمادات حالياً.",
+    "notFound": "هذا الاعتماد غير موجود أو لا يخصّكم.",
+    "back": "العودة إلى اعتماداتي",
+    "waiting": "بانتظاركم ({count})",
+    "history": "ما تم البت فيه",
+    "none": "لا يوجد شيء هنا.",
+    "request": "الطلب",
+    "service": "الخدمة",
+    "requester": "مقدّم الطلب",
+    "level": "المرحلة",
+    "state": "الحالة",
+    "asked": "تاريخ الطلب",
+    "decisionStates": {
+      "Pending": "بانتظار القرار",
+      "Approved": "معتمد",
+      "Rejected": "مرفوض",
+      "NotNeeded": "لم يعد مطلوباً"
+    },
+    "stages": {
+      "BeforeAssignment": "الاعتماد",
+      "AfterFulfilment": "اعتماد الإنجاز"
+    },
+    "processStates": {
+      "Pending": "قيد الإجراء",
+      "Approved": "معتمد",
+      "Rejected": "مرفوض",
+      "Cancelled": "موقوف"
+    },
+    "reason": "السبب:",
+    "levelLine": "المستوى {number}:",
+    "levelStates": {
+      "Waiting": "بانتظار القرار",
+      "Approved": "معتمد",
+      "Rejected": "مرفوض",
+      "NotStarted": "لم يبدأ بعد",
+      "Cancelled": "موقوف"
+    },
+    "modes": {
+      "Any": "أي معتمِد واحد",
+      "All": "جميع المعتمِدين"
+    },
+    "fallback": "أُحيل إلى المسؤولين لعدم وجود معتمِد آخر",
+    "requestApprovals": "الاعتمادات",
+    "withdraw": "سحب الطلب",
+    "stopApproval": "إيقاف الاعتماد",
+    "cancelReason": "السبب (اختياري)",
+    "cancel": "إلغاء",
+    "decided": {
+      "Pending": "لم يحن دوركم في البت بعد.",
+      "Approved": "لقد اعتمدتم هذا الطلب.",
+      "Rejected": "لقد رفضتم هذا الطلب.",
+      "NotNeeded": "لم يعد قراركم مطلوباً."
+    },
+    "yourDecision": "قراركم",
+    "decision": "القرار",
+    "choices": {
+      "Approve": "اعتماد",
+      "Reject": "رفض"
+    },
+    "reasonRequired": "السبب (مطلوب)",
+    "comment": "ملاحظة (اختيارية)",
+    "giveReason": "يُرجى ذكر سبب الرفض.",
+    "confirm": "تأكيد قراري",
+    "askedBy": "مقدّم الطلب: {name}",
+    "awaitingRequester": "طلبكم بانتظار الاعتماد، وسنبلغكم بالقرار.",
+    "awaitingStaff": "هذا الطلب بانتظار اعتماد، ولا يمكن تعديله خلال ذلك."
   }
 }

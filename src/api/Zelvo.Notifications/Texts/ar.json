@@ -49,7 +49,15 @@
     "review.UnderReview": "قيد الدراسة",
     "review.Accepted": "مقبول",
     "review.Implemented": "تم تنفيذه",
-    "review.Declined": "لم تتم الموافقة عليه"
+    "review.Declined": "لم تتم الموافقة عليه",
+    "approval.reject": "رفض",
+    "ticket.state.New": "جديد",
+    "ticket.state.Assigned": "مُسنَد",
+    "ticket.state.InProgress": "قيد التنفيذ",
+    "ticket.state.OnHold": "معلّق",
+    "ticket.state.Resolved": "تمت المعالجة",
+    "ticket.state.Closed": "مغلق",
+    "ticket.state.Reopened": "أُعيد فتحه"
   },
   "templates": {
     "incident.received": {
@@ -177,6 +185,30 @@
       "inApp": "{{ticket.type}} جديد لدى {{ticket.group}}: «{{ticket.title}}».",
       "body": "تحية طيبة، {{recipient.name}}\n\nيوجد {{ticket.type}} جديد رقم {{ticket.number}} بعنوان «{{ticket.title}}» بانتظار المعالجة لدى {{ticket.group}}.\n\nمن: {{requester.name}}\n\nمع خالص التحية،\n{{tenant.name}}",
       "action": "فتح التفاصيل"
+    },
+    "approval.requested": {
+      "subject": "{{ticket.number}}: مطلوب اعتمادكم",
+      "inApp": "تقدّم {{requester.name}} بطلب «{{service.name}}» ويحتاج إلى اعتمادكم ({{approval.level}}).",
+      "body": "حضرة {{recipient.name}} المحترم،\n\nتحية طيبة وبعد،\n\nتقدّم {{requester.name}} بطلب خدمة «{{service.name}}» (رقم {{ticket.number}}، «{{ticket.title}}»)، ويحتاج الطلب إلى اعتمادكم في مرحلة «{{approval.level}}».\n\nيُرجى الاطلاع على الطلب واعتماده أو رفضه، وسيُطلب منكم تسجيل الدخول قبل تسجيل قراركم.\n\nوتفضلوا بقبول فائق الاحترام والتقدير،\n{{tenant.name}}",
+      "action": "اعتماد"
+    },
+    "request.approved": {
+      "subject": "{{ticket.number}}: تم اعتماد طلبكم",
+      "inApp": "تم اعتماد طلبكم «{{ticket.title}}» وإحالته إلى مكتب الخدمة.",
+      "body": "حضرة {{recipient.name}} المحترم،\n\nتحية طيبة وبعد،\n\nنفيدكم بأنه تم اعتماد طلبكم رقم {{ticket.number}} لخدمة «{{service.name}}»، وقد أُحيل إلى مكتب الخدمة الذي سيوافيكم بالمستجدات.\n\nوتفضلوا بقبول فائق الاحترام والتقدير،\n{{tenant.name}}",
+      "action": "عرض طلبكم"
+    },
+    "request.rejected": {
+      "subject": "{{ticket.number}}: لم يُعتمد طلبكم",
+      "inApp": "لم يُعتمد طلبكم «{{ticket.title}}»: {{approval.reason}}",
+      "body": "حضرة {{recipient.name}} المحترم،\n\nتحية طيبة وبعد،\n\nيؤسفنا إبلاغكم بأن طلبكم رقم {{ticket.number}} لخدمة «{{service.name}}» لم يُعتمد، وقد تم إغلاقه.\n\nالسبب: {{approval.reason}}\n\nويمكنكم تقديم طلب جديد في أي وقت.\n\nوتفضلوا بقبول فائق الاحترام والتقدير،\n{{tenant.name}}",
+      "action": "عرض طلبكم"
+    },
+    "request.signoff-rejected": {
+      "subject": "{{ticket.number}}: رُفض اعتماد الإنجاز",
+      "inApp": "رُفض اعتماد إنجاز «{{ticket.title}}»: {{approval.reason}}",
+      "body": "حضرة {{recipient.name}} المحترم،\n\nتحية طيبة وبعد،\n\nنفيدكم بأنه رُفض اعتماد إنجاز العمل على الطلب {{ticket.number}}، «{{ticket.title}}»، وأُعيد الطلب إلى قيد التنفيذ.\n\nالسبب: {{approval.reason}}\n\nوتفضلوا بقبول فائق الاحترام والتقدير،\n{{tenant.name}}",
+      "action": "فتح الطلب"
     }
   },
   "samples": {
@@ -190,6 +222,9 @@
     "recipient.name": "مريم الكتبي",
     "comment.text": "نرجو إعادة تشغيل الطابعة وإفادتنا باستمرار ظهور مؤشر الخطأ من عدمه.",
     "comment.author": "عمر الهاشمي",
-    "review.feedback": "نشكركم على اقتراحكم، وسيتم تمديد ساعات العمل المسائية في مركز الخدمة اعتبارًا من الشهر المقبل."
+    "review.feedback": "نشكركم على اقتراحكم، وسيتم تمديد ساعات العمل المسائية في مركز الخدمة اعتبارًا من الشهر المقبل.",
+    "service.name": "حاسوب محمول جديد",
+    "approval.level": "اعتماد المدير",
+    "approval.reason": "تم استنفاد ميزانية هذا الربع."
   }
 }

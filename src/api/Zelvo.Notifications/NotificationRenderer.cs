@@ -23,7 +23,7 @@ public sealed record RenderedNotification(string Subject, string InApp, string H
 /// <summary>Where the email's links go.</summary>
 /// <param name="Action">The ticket or article; <see langword="null"/> for no button.</param>
 /// <param name="Preferences">Account → Notifications.</param>
-public sealed record NotificationLinks(Uri? Action, Uri? Preferences);
+public sealed record NotificationLinks(Uri? Action, Uri? Preferences, Uri? Secondary = null, string? SecondaryLabel = null);
 
 /// <summary>
 /// Writes a notification for one recipient: placeholders replaced with values formatted in the
@@ -162,6 +162,11 @@ public static partial class NotificationRenderer
             builder.Append("\n\n").Append(template.Action).Append(": ").Append(action.AbsoluteUri);
         }
 
+        if (links.Secondary is { } secondary && links.SecondaryLabel is { } label)
+        {
+            builder.Append('\n').Append(label).Append(": ").Append(secondary.AbsoluteUri);
+        }
+
         builder.Append("\n\n--\n").Append(texts.Layout.Automated);
         if (links.Preferences is { } preferences)
         {
@@ -220,7 +225,7 @@ public static partial class NotificationRenderer
         {
             var href = Encode(action.AbsoluteUri);
             html.Append(CultureInfo.InvariantCulture, $"""
-                <p style="margin:24px 0;"><a href="{href}" style="display:inline-block;background-color:{Accent};color:#ffffff;text-decoration:none;padding:12px 20px;border-radius:6px;font-weight:bold;">{Encode(template.Action)}</a></p>
+                <p style="margin:24px 0;"><a href="{href}" style="display:inline-block;background-color:{Accent};color:#ffffff;text-decoration:none;padding:12px 20px;border-radius:6px;font-weight:bold;">{Encode(template.Action)}</a>{SecondaryButton(links, Accent)}</p>
                 <p style="margin:0;font-size:13px;color:{MutedColour};">{Encode(texts.Layout.LinkHint)}<br><a href="{href}" dir="ltr" style="color:{Accent};word-break:break-all;">{href}</a></p>
                 """);
         }
@@ -245,6 +250,12 @@ public static partial class NotificationRenderer
             """);
         return html.ToString();
     }
+
+    /// <summary>A second button (for example Reject next to Approve), outlined.</summary>
+    private static string SecondaryButton(NotificationLinks links, string accent) =>
+        links.Secondary is { } secondary && links.SecondaryLabel is { } label
+            ? $"""&#160;&#160;<a href="{Encode(secondary.AbsoluteUri)}" style="display:inline-block;background-color:#ffffff;color:{accent};text-decoration:none;padding:10px 18px;border:2px solid {accent};border-radius:6px;font-weight:bold;">{Encode(label)}</a>"""
+            : string.Empty;
 
     private static IEnumerable<string> Paragraphs(string body) =>
         BlankLines().Split(Normalize(body)).Select(p => p.Trim('\n', ' ')).Where(p => p.Length > 0);

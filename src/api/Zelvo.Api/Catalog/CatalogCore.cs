@@ -267,6 +267,9 @@ internal static class ServiceCardCheck
             Add("onBehalfRoleKeys", "role-unknown", "A role does not exist.");
         }
 
+        await Workflows.WorkflowReferences.CheckLevelsAsync(db, card.Approvals.BeforeAssignment, "approvals.beforeAssignment", problems, cancellationToken).ConfigureAwait(false);
+        await Workflows.WorkflowReferences.CheckLevelsAsync(db, card.Approvals.AfterFulfilment, "approvals.afterFulfilment", problems, cancellationToken).ConfigureAwait(false);
+
         var files = card.Documents.Where(x => x.TemplateFileId is not null).Select(x => x.TemplateFileId!.Value).ToList();
         if (card.ImageFileId is { } image)
         {

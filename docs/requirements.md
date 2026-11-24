@@ -202,6 +202,7 @@ Admins build and change the whole service catalog themselves, with a drag-and-dr
   - *Before assignment* — the request goes to agents only after approval (for example, manager or budget approval).
   - *After fulfilment* — the agent's completed work is checked and signed off before the request closes (for example, quality or supervisor sign-off).
   - Approvals can be single, multi-level, parallel, or chosen by role, amount or form answer; approve from email, Teams, WhatsApp or the portal; rejection returns the request with a reason.
+  - Approvals in Phase 1 task C3 (2026-11-24): run on the embedded Elsa engine (confirmed by the C3 spike). The email's Approve and Reject buttons open the approval in Zelvo with the choice made; the approver signs in and confirms. A request rejected before assignment is closed with the reason; a rejected sign-off after fulfilment goes back to the assignee with the reason. Teams and WhatsApp approvals come with task E3.
 - **Fulfilment tasks:** each service has its own task template, assigned to one or more teams in sequence or in parallel, each task with its own target time.
 - *Story:* As an employee, I want to request a new laptop from a catalog with my manager's approval routed automatically, so that I don't chase anyone.
 - *Story:* As an admin, I want to define a new service with its documents, fees, steps, SLAs and approvals in one place, so that each department can publish its own services without developers.
@@ -306,7 +307,7 @@ Admins build and change the whole service catalog themselves, with a drag-and-dr
 - Mail server (2026-11-24): one per installation, set by the operator; emails carry the organisation's name as sender. The organisation's own sender domain comes with white-label branding (module 11).
 - Dashboards: volumes, backlog, SLA compliance, agent performance, happiness scores; scheduled reports to email.
 - Admin: setup wizard, users and groups, roles and permissions, forms, categories, SLA policies, business hours, branding, language defaults.
-- No-code workflow builder for assignment, approval and notification rules.
+- No-code workflow builder for assignment, approval and notification rules. Phase 1 task C3 (2026-11-24): ordered when / if / then rules (a trigger, conditions on the ticket, its service and form answers, and actions that assign, ask for approval and notify in English and Arabic); a flowchart view comes with module 20.
 - Settings → Search (administrators only, in English and Arabic): the tenant's search index status (documents in the index, updates waiting to be indexed, the last indexing error) and a "Rebuild index" button. Every rebuild is written to the audit log (product owner decision 2026-11-18).
 - *Story:* As an administrator, I want to set up a new department's service desk from a template, so that it's live the same day.
 

@@ -8,6 +8,7 @@ COPY src/api/Zelvo.Api/Zelvo.Api.csproj src/api/Zelvo.Api/
 COPY src/api/Zelvo.Data/Zelvo.Data.csproj src/api/Zelvo.Data/
 COPY src/api/Zelvo.Search/Zelvo.Search.csproj src/api/Zelvo.Search/
 COPY src/api/Zelvo.Tickets/Zelvo.Tickets.csproj src/api/Zelvo.Tickets/
+COPY src/api/Zelvo.Workflows/Zelvo.Workflows.csproj src/api/Zelvo.Workflows/
 COPY src/api/Zelvo.Integrations/Zelvo.Integrations.csproj src/api/Zelvo.Integrations/
 COPY src/api/Zelvo.Notifications/Zelvo.Notifications.csproj src/api/Zelvo.Notifications/
 COPY src/api/Zelvo.Channels/Zelvo.Channels.csproj src/api/Zelvo.Channels/
@@ -21,6 +22,7 @@ COPY src/api/Zelvo.Api/ src/api/Zelvo.Api/
 COPY src/api/Zelvo.Data/ src/api/Zelvo.Data/
 COPY src/api/Zelvo.Search/ src/api/Zelvo.Search/
 COPY src/api/Zelvo.Tickets/ src/api/Zelvo.Tickets/
+COPY src/api/Zelvo.Workflows/ src/api/Zelvo.Workflows/
 COPY src/api/Zelvo.Integrations/ src/api/Zelvo.Integrations/
 COPY src/api/Zelvo.Notifications/ src/api/Zelvo.Notifications/
 COPY src/api/Zelvo.Channels/ src/api/Zelvo.Channels/

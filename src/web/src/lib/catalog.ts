@@ -2,6 +2,7 @@
  * Service catalog and service requests (task C2, module 2) as the API returns them. See
  * docs/architecture/catalog.md. Cards are edited as a whole and saved as the working version.
  */
+import type { ApprovalLevelDefinition } from "./workflows";
 import type { Bilingual, Person, TicketChannel, TicketState } from "./incidents";
 import type { FormProblem } from "./forms/types";
 import type { SlaClock } from "./sla";
@@ -85,6 +86,8 @@ export interface ServiceCard {
   faq: { question: Text; answer: Text }[];
   access: { mode: ServiceAccessMode; groupIds: string[]; roleKeys: string[]; departmentIds: string[]; locationIds: string[]; userIds: string[] };
   onBehalfRoleKeys: string[];
+  /** Approvals before assignment and after fulfilment (task C3). */
+  approvals: { beforeAssignment: ApprovalLevelDefinition[]; afterFulfilment: ApprovalLevelDefinition[] };
 }
 
 export const emptyText = (): Text => ({ en: null, ar: null });
@@ -111,6 +114,7 @@ export function completeCard(card: Partial<ServiceCard> | null | undefined): Ser
       departmentIds: c.access?.departmentIds ?? [], locationIds: c.access?.locationIds ?? [], userIds: c.access?.userIds ?? [],
     },
     onBehalfRoleKeys: c.onBehalfRoleKeys ?? [],
+    approvals: { beforeAssignment: c.approvals?.beforeAssignment ?? [], afterFulfilment: c.approvals?.afterFulfilment ?? [] },
   };
 }
 
@@ -285,6 +289,8 @@ export interface ServiceRequest {
   onHoldReason: string | null;
   resolutionNotes: string | null;
   nextStates: TicketState[];
+  /** Waiting for an approval (task C3): before assignment, or the sign-off after fulfilment. */
+  awaitingApproval: boolean;
   sla: SlaClock[];
   etag: string;
   createdAt: string;
@@ -344,5 +350,9 @@ export function cardForApi(card: ServiceCard): ServiceCard {
     partners: card.partners.map((p) => ({ ...p, name: cleanText(p.name) })),
     faq: card.faq.map((f) => ({ question: cleanText(f.question), answer: cleanText(f.answer) })),
     keywords: card.keywords.map((k) => k.trim()).filter(Boolean),
+    approvals: {
+      beforeAssignment: card.approvals.beforeAssignment.map((l) => ({ ...l, name: cleanText(l.name) })),
+      afterFulfilment: card.approvals.afterFulfilment.map((l) => ({ ...l, name: cleanText(l.name) })),
+    },
   };
 }
