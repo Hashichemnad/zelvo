@@ -42,6 +42,14 @@ export interface Skill {
   userCount: number;
 }
 
+/** A department (task C1); userCount only for holders of directory.read. */
+export interface Department {
+  id: string;
+  name: Bilingual;
+  active: boolean;
+  userCount: number | null;
+}
+
 export interface GroupSummary {
   id: string;
   name: Bilingual;
@@ -87,6 +95,12 @@ export interface DirectoryUser {
   languages?: Language[];
   availableForAssignment?: boolean;
   groups?: (NamedRef & { isLead: boolean })[];
+  /** Task C1: profile fields that forms fill in. */
+  department?: NamedRef | null;
+  manager?: { id: string; displayName: string | null } | null;
+  location?: PathRef | null;
+  employeeId?: string | null;
+  phone?: string | null;
 }
 
 export interface UserPage {

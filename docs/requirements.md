@@ -181,6 +181,9 @@ Admins build and change the whole service catalog themselves, with a drag-and-dr
 - Reusable field sets (for example, "Requester details") shared across many forms; a change updates every form that uses it.
 - Every field label and option in English and Arabic; live preview on desktop and mobile before publishing.
 - The same form builder customizes incident, complaint, inquiry and suggestion forms, so each category can ask its own questions.
+- Asset picker and lookups (2026-11-24): the asset picker comes with the CMDB (module 18) and lookups from other systems with the REST connector builder (task E7).
+- Profile defaults (2026-11-24): user profiles hold a department (from a bilingual list in Settings → Departments), a manager, a location, an employee number and a phone number, set by administrators on the user page and by bulk import.
+- Signatures (2026-11-24): drawn with a mouse, finger or stylus and stored as a scanned image; typing the full name and confirming is the equal alternative for keyboard and screen-reader users.
 
 **Fulfillment per service**
 
