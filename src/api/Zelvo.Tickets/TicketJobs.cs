@@ -146,12 +146,18 @@ public sealed partial class TicketAutoCloseJob(IServiceScopeFactory scopes, ILog
 
         var staff = await IncidentSearch.StaffRolesAsync(db, cancellationToken).ConfigureAwait(false);
         IReadOnlyList<string>? voiceStaff = null;
+        IReadOnlyList<string>? requestStaff = null;
         foreach (var ticket in tickets)
         {
             TicketWorkflow.Apply(ticket, TicketState.Closed, null, null, now);
             if (ticket.Type == TicketType.Incident)
             {
                 indexer.Upsert(IncidentSearch.Document(ticket, staff));
+            }
+            else if (ticket.Type == TicketType.ServiceRequest)
+            {
+                requestStaff ??= await RequestSearch.StaffRolesAsync(db, cancellationToken).ConfigureAwait(false);
+                indexer.Upsert(RequestSearch.Document(ticket, requestStaff));
             }
             else if (ticket.Voice is { } voice)
             {
@@ -357,6 +363,7 @@ public static class TicketServiceCollectionExtensions
         services.TryAddSingleton<IMalwareScanner, ClamAvScanner>();
         services.AddScoped<ISearchDocumentSource, IncidentSearchSource>();
         services.AddScoped<ISearchDocumentSource, VoiceSearchSource>();
+        services.AddScoped<ISearchDocumentSource, RequestSearchSource>();
         services.TryAddScoped<Sla.SlaTracker>();
         services.TryAddScoped<IncidentIntake>();
         if (!services.Any(d => d.ImplementationType == typeof(Sla.SlaWebhookEvents)))
@@ -366,6 +373,7 @@ public static class TicketServiceCollectionExtensions
 
         services.AddSearchType(IncidentSearch.Type, null);
         services.AddSearchType(VoiceSearch.Type, null);
+        services.AddSearchType(RequestSearch.Type, null);
         return services;
     }
 

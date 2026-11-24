@@ -183,6 +183,8 @@ internal static class ServiceRequestEndpoints
         }
 
         await http.RequestServices.GetRequiredService<SlaTracker>().UpdateAsync([ticket], now, cancellationToken);
+        // Task D2: found from the portal's search.
+        await RequestSearch.IndexAsync(db, http.RequestServices.GetRequiredService<Zelvo.Search.ISearchIndexer>(), [ticket], cancellationToken);
         await db.SaveChangesAsync(cancellationToken);
         await transaction.CommitAsync(cancellationToken);
 
@@ -540,6 +542,7 @@ internal static class ServiceRequestEndpoints
         try
         {
             await http.RequestServices.GetRequiredService<SlaTracker>().UpdateAsync([ticket], DateTimeOffset.UtcNow, cancellationToken);
+            await RequestSearch.IndexAsync(db, http.RequestServices.GetRequiredService<Zelvo.Search.ISearchIndexer>(), [ticket], cancellationToken);
             await db.SaveChangesAsync(cancellationToken);
             if (transaction is not null)
             {

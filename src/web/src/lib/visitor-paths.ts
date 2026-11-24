@@ -29,6 +29,10 @@ export function isVisitorPath(method: string, path: string[]): boolean {
     }
     return id === "track" && (sub === undefined || sub === "comments" || sub === "confirmation" || sub === "happiness");
   }
+  // Task D2: the portal's search-first home (visitors find public services and external articles).
+  if (area === "portal" && kind === "search" && id === undefined) {
+    return method === "GET";
+  }
   if (area === "happiness" && kind === "portal" && id === undefined) {
     return method === "POST";
   }

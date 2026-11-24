@@ -647,6 +647,7 @@ internal static class VoiceEndpoints
             db.Tickets.Add(created);
             db.ServiceRequests.Add(new ServiceRequestDetails { TicketId = created.Id, ServiceId = found.Service.Id, ServiceVersionId = found.Version.Id });
             await sla.UpdateAsync([created], now, cancellationToken);
+            await RequestSearch.IndexAsync(db, indexer, [created], cancellationToken);
         }
 
         inquiry.Voice!.ConvertedToId = created.Id;

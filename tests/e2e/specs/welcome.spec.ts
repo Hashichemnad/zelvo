@@ -1,14 +1,14 @@
 import AxeBuilder from "@axe-core/playwright";
 import { expect, test } from "@playwright/test";
 
-test.describe("welcome page", () => {
+test.describe("portal home and system status", () => {
   test("opens in English by default, left to right", async ({ page }) => {
     await page.goto("/");
 
     await expect(page).toHaveURL(/\/en$/);
     await expect(page.locator("html")).toHaveAttribute("lang", "en");
     await expect(page.locator("html")).toHaveAttribute("dir", "ltr");
-    await expect(page.getByRole("heading", { level: 1 })).toHaveText("Welcome to Zelvo");
+    await expect(page.getByRole("heading", { level: 1 })).toHaveText("How can we help?");
     await expect(page.getByTestId("powered-by")).toHaveText("Powered by Zelvo");
   });
 
@@ -21,7 +21,7 @@ test.describe("welcome page", () => {
     await expect(page).toHaveURL(/\/ar$/);
     await expect(page.locator("html")).toHaveAttribute("lang", "ar");
     await expect(page.locator("html")).toHaveAttribute("dir", "rtl");
-    await expect(page.getByRole("heading", { level: 1 })).toHaveText("مرحبًا بكم في زيلفو");
+    await expect(page.getByRole("heading", { level: 1 })).toHaveText("كيف يمكننا مساعدتكم؟");
     await expect(page.getByTestId("powered-by")).toHaveText("بتقنية زيلفو");
     await context.close();
   });
@@ -46,7 +46,7 @@ test.describe("welcome page", () => {
   });
 
   test("shows every service running", async ({ page }) => {
-    await page.goto("/en");
+    await page.goto("/en/status");
 
     for (const service of ["api", "postgres", "redis", "rabbitmq", "opensearch", "keycloak", "keyVault"]) {
       await expect(page.locator(`[data-service="${service}"]`)).toHaveAttribute("data-status", "Healthy");
@@ -65,7 +65,13 @@ test.describe("welcome page", () => {
 
   for (const locale of ["en", "ar"]) {
     test(`has no WCAG 2.2 AA violations in ${locale}`, async ({ page }) => {
-      await page.goto(`/${locale}`);
+      for (const path of [`/${locale}`, `/${locale}/status`]) {
+        await page.goto(path);
+        await expect(page.getByRole("heading", { level: 1 })).toBeVisible();
+        const pageResults = await new AxeBuilder({ page }).withTags(["wcag2a", "wcag2aa", "wcag21a", "wcag21aa", "wcag22aa"]).analyze();
+        expect(pageResults.violations).toEqual([]);
+      }
+      await page.goto(`/${locale}/status`);
       await expect(page.locator('[data-service="api"]')).toBeVisible();
 
       const results = await new AxeBuilder({ page })

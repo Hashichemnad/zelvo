@@ -50,4 +50,10 @@ describe("visitor paths of the API proxy", () => {
     expect(isVisitorPath("GET", ["v1", "customer-voice"])).toBe(false);
     expect(isVisitorPath("POST", ["v1", "tickets", id, "happiness"])).toBe(false);
   });
+
+  it("lets visitors search the portal (task D2) but not list tickets", () => {
+    expect(isVisitorPath("GET", ["v1", "portal", "search"])).toBe(true);
+    expect(isVisitorPath("POST", ["v1", "portal", "search"])).toBe(false);
+    expect(isVisitorPath("GET", ["v1", "me", "tickets"])).toBe(false);
+  });
 });

@@ -24,6 +24,7 @@ export async function SiteHeader() {
   const tChats = await getTranslations("channels.agent");
   const tCatalog = await getTranslations("catalog.nav");
   const tVoice = await getTranslations("voice.nav");
+  const tPortal = await getTranslations("portal.nav");
   const config = await getRequestAuthConfig();
   const session = await getSession(config).catch(() => null);
   const user = session ? await getCurrentUser(session.data.accessToken, config.tenant) : null;
@@ -43,7 +44,8 @@ export async function SiteHeader() {
       <header className="border-b border-line bg-surface">
         <div className="mx-auto flex max-w-5xl flex-wrap items-center justify-between gap-4 px-4 py-3">
           <div className="flex flex-wrap items-center gap-4">
-            <span className="text-lg font-bold text-brand">{t("productName")}</span>
+            {/* Task D2: the product name leads to the portal's home. */}
+            <Link href="/" className="text-lg font-bold text-brand">{t("productName")}</Link>
             <nav aria-label={tIncidents("label")}>
               <ul className="flex flex-wrap gap-3 text-sm font-semibold">
                 <li>
@@ -64,18 +66,8 @@ export async function SiteHeader() {
                 {user && (
                   <>
                   <li>
-                    <Link href="/my-incidents" className="text-brand underline-offset-4 hover:underline">
-                      {tIncidents("myIncidents")}
-                    </Link>
-                  </li>
-                  <li>
-                    <Link href="/my-requests" className="text-brand underline-offset-4 hover:underline">
-                      {tCatalog("myRequests")}
-                    </Link>
-                  </li>
-                  <li>
-                    <Link href="/my-voice" className="text-brand underline-offset-4 hover:underline">
-                      {tVoice("mine")}
+                    <Link href="/my-tickets" className="text-brand underline-offset-4 hover:underline">
+                      {tPortal("myTickets")}
                     </Link>
                   </li>
                   {user.permissions.includes("voice.read") && (

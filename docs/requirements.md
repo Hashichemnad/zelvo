@@ -223,6 +223,7 @@ Admins build and change the whole service catalog themselves, with a drag-and-dr
 - My tickets, my approvals, status tracking with a visual progress bar.
 - Login by UAE PASS, single sign-on, email + one-time code, or anonymous for public complaints.
 - Tenant branding: logo, colors, domain; fully responsive on mobile.
+- My approvals (2026-11-24): comes with the approvals of task C3; task D2 builds the search-first home and My tickets with progress.
 - *Story:* As a user, I want to see exactly where my request is and who has it, so that I don't need to call.
 
 ### 5. Agent workspace
