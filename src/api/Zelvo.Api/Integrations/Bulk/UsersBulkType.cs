@@ -33,6 +33,12 @@ internal sealed partial class UsersBulkType(
     private const string EmiratesId = "emiratesId";
     private const string Roles = "roles";
     private const string Status = "status";
+    private const string Department = "department";
+    private const string Manager = "manager";
+    private const string Location = "location";
+    private const string EmployeeId = "employeeId";
+    private const string Phone = "phone";
+    private const string Clear = "-";
 
     public string Key => "users";
 
@@ -47,6 +53,11 @@ internal sealed partial class UsersBulkType(
         new(EmiratesId, false, "Emirates ID number, 15 digits starting with 784 (dashes allowed), to match UAE PASS sign-ins."),
         new(Roles, false, "Role keys separated by semicolons, for example agent;approver. Replaces the user's roles."),
         new(Status, false, "Active or Disabled."),
+        new(Department, false, "Task C1: department name in English or Arabic; '-' removes it."),
+        new(Manager, false, "Task C1: the manager's email address; '-' removes it."),
+        new(Location, false, "Task C1: location path in English or Arabic, levels separated by ' › ' or ' > ', for example Ajman > Main building; '-' removes it."),
+        new(EmployeeId, false, "Task C1: employee number (up to 50 characters); '-' removes it."),
+        new(Phone, false, "Task C1: phone number, for example +971501234567; '-' removes it."),
     ];
 
     public async Task<BulkTable> ExportAsync(CancellationToken cancellationToken)
@@ -56,16 +67,23 @@ internal sealed partial class UsersBulkType(
             .ToList();
         var users = await db.Users.AsNoTracking().Include(u => u.Roles).ThenInclude(r => r.Role)
             .OrderBy(u => u.Email).ThenBy(u => u.Id).ToListAsync(cancellationToken);
+        var refs = await ProfileNames.LoadAsync(db, cancellationToken);
+        var emails = users.ToDictionary(u => u.Id, u => u.Email);
         var rows = users.Select(u => (IReadOnlyList<string?>)[.. columns.Select(c => c switch
         {
             Email => u.Email,
             DisplayName => u.DisplayName,
             EmiratesId => u.EmiratesId,
             Roles => string.Join(';', u.Roles.Select(r => r.Role!.Key).Order(StringComparer.Ordinal)),
+            Department => u.DepartmentId is { } d ? refs.DepartmentName(d) : null,
+            Manager => u.ManagerId is { } m ? emails.GetValueOrDefault(m) : null,
+            Location => u.LocationId is { } l ? refs.LocationPath(l) : null,
+            EmployeeId => u.EmployeeId,
+            Phone => u.Phone,
             _ => u.Status.ToString(),
         })]).ToList();
 
-        var personal = columns.Where(c => c is Email or EmiratesId).ToArray();
+        var personal = columns.Where(c => c is Email or EmiratesId or Phone).ToArray();
         await audit.RecordAsync(personal.Length > 0 ? AuditCategory.View : AuditCategory.Admin, "bulk.users.exported", "user_account", null,
             new Dictionary<string, object?>(StringComparer.Ordinal) { ["count"] = users.Count, ["fields"] = columns.ToArray(), ["personalData"] = personal },
             cancellationToken);
@@ -82,7 +100,7 @@ internal sealed partial class UsersBulkType(
         }
 
         // Field rules apply to imports as to single changes.
-        var used = new[] { DisplayName, EmiratesId, Status }
+        var used = new[] { DisplayName, EmiratesId, Status, Department, Manager, Location, EmployeeId, Phone }
             .Where(c => index.ContainsKey(c) && table.Rows.Any(r => !string.IsNullOrWhiteSpace(Cell(r, index, c))));
         var refused = FieldFilter.NotEditable(user, PermissionCatalog.Users, used);
         if (refused.Count > 0)
@@ -92,6 +110,7 @@ internal sealed partial class UsersBulkType(
         }
 
         var roles = await db.Roles.ToDictionaryAsync(r => r.Key, StringComparer.Ordinal, cancellationToken);
+        var names = await ProfileNames.LoadAsync(db, cancellationToken);
         var existing = await db.Users.Include(u => u.Roles).ThenInclude(r => r.Role).ToListAsync(cancellationToken);
         var byEmail = existing.Where(u => u.Email is not null).GroupBy(u => u.Email!.ToUpperInvariant()).ToDictionary(g => g.Key, g => g.ToList());
         var emiratesIds = existing.Where(u => u.EmiratesId is not null).ToDictionary(u => u.EmiratesId!, u => u.Id);
@@ -203,6 +222,41 @@ internal sealed partial class UsersBulkType(
                 }
             }
 
+            // Task C1: profile fields, matched by name, path or email.
+            string? Ref(string column, Func<string, Guid?> find, string error)
+            {
+                if (Cell(row, index, column) is not { Length: > 0 } cell)
+                {
+                    return null;
+                }
+
+                if (cell == Clear)
+                {
+                    return string.Empty;
+                }
+
+                if (find(cell) is { } found)
+                {
+                    return found.ToString();
+                }
+
+                errors.Add(new(rowNumber, column, column + "-unknown", error));
+                return null;
+            }
+
+            plan.Profile = ProfileChange.Parse(
+                Ref(Department, names.FindDepartment, "No active department has this name."),
+                Ref(Manager, m => byEmail.TryGetValue(m.ToUpperInvariant(), out var found) && found.Count == 1 && found[0].Status == UserStatus.Active ? found[0].Id : null,
+                    "No active user has this email address."),
+                Ref(Location, names.FindLocation, "No active location has this path."),
+                Cell(row, index, EmployeeId) is { Length: > 0 } employee ? (employee == Clear ? string.Empty : employee) : null,
+                Cell(row, index, Phone) is { Length: > 0 } phone ? (phone == Clear ? string.Empty : phone) : null);
+            if (plan.Profile.Error is { } profileError)
+            {
+                var column = profileError.Field switch { "departmentId" => Department, "managerId" => Manager, "locationId" => Location, var f => f };
+                errors.Add(new(rowNumber, column, column + "-invalid", profileError.Message));
+            }
+
             plans.Add(plan);
         }
 
@@ -281,6 +335,11 @@ internal sealed partial class UsersBulkType(
                 account.Status = status;
             }
 
+            if (plan.Profile is { Fields.Count: > 0 } profile && await profile.ApplyAsync(db, account, cancellationToken) is { } refused)
+            {
+                throw new BulkImportRefusedException(StatusCodes.Status422UnprocessableEntity, "profile-invalid", $"Row {plan.Row}: {refused.Message}");
+            }
+
             if (plan.EmiratesId is not null && plan.EmiratesId != account.EmiratesId)
             {
                 account.EmiratesId = plan.EmiratesId;
@@ -341,6 +400,7 @@ internal sealed partial class UsersBulkType(
         count += plan.DisplayName is not null && plan.DisplayName != account.DisplayName ? 1 : 0;
         count += plan.EmiratesId is not null && plan.EmiratesId != account.EmiratesId ? 1 : 0;
         count += plan.Status is { } status && status != account.Status ? 1 : 0;
+        count += plan.Profile?.Fields.Count > 0 ? 1 : 0;
         if (plan.Roles is { } keys)
         {
             var current = account.Roles.Select(r => r.Role!.Key).ToHashSet(StringComparer.Ordinal);
@@ -410,6 +470,8 @@ internal sealed partial class UsersBulkType(
         public List<string>? Roles { get; set; }
 
         public UserStatus? Status { get; set; }
+
+        public ProfileChange? Profile { get; set; }
 
         public string? Subject { get; set; }
     }

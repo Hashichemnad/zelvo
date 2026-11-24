@@ -141,6 +141,12 @@ internal static partial class IncidentEndpoints
             .Produces<MajorIncidentUpdateResponse>(StatusCodes.Status201Created)
             .ProducesValidationProblem();
 
+        incidents.MapGet("/{id:guid}/form", FormAsync)
+            .WithName("GetIncidentForm")
+            .WithSummary("The form answers given when the incident was reported (task C1), with the fields as they were then. The requester and holders of incidents.read; staff viewing personal answers is audited. Answers with form null when no form was filled.")
+            .RequireAuthorization()
+            .Produces<Forms.TicketFormView>();
+
         incidents.MapGet("/{id:guid}/history", HistoryAsync)
             .WithName("GetIncidentHistory")
             .WithSummary("Every change of the incident from the audit log, oldest first, with old and new values of the fields the caller may see. Needs incidents.read.")
@@ -271,6 +277,21 @@ internal static partial class IncidentEndpoints
         return TypedResults.Ok(await DetailAsync(http, db, user, ticket, cancellationToken));
     }
 
+    internal static async Task<Results<Ok<JsonObject>, ProblemHttpResult>> FormAsync(
+        Guid id, ZelvoDbContext db, CurrentUser user, IAuditLog audit, CancellationToken cancellationToken)
+    {
+        var ticket = await FindVisibleAsync(db, user, id, cancellationToken);
+        if (ticket is null)
+        {
+            return NotFound();
+        }
+
+        var view = await Forms.FormSubmission.ViewAsync(db, user, audit, ticket, cancellationToken);
+        return TypedResults.Ok(view is null
+            ? new JsonObject { ["form"] = null }
+            : (JsonObject)System.Text.Json.JsonSerializer.SerializeToNode(view, Zelvo.Tickets.Forms.FormJson.Options)!);
+    }
+
     internal static async Task<Results<Created<JsonObject>, ValidationProblem, ProblemHttpResult>> CreateAsync(
         CreateIncidentRequest request, HttpContext http, ZelvoDbContext db, CurrentUser user, ITenantContext tenant,
         TenantSettingsStore settings, ISearchIndexer indexer, CancellationToken cancellationToken)
@@ -369,6 +390,20 @@ internal static partial class IncidentEndpoints
             }
         }
 
+        // Task C1: the category's form (or the default one), checked on the server.
+        var (formResponse, formProblem) = await Forms.FormSubmission.PrepareAsync(
+            db, user, http.RequestServices.GetRequiredService<IAuditLog>(), TicketType.Incident, request.CategoryId, requesterId,
+            request.FormVersionId, request.FormAnswers, await settings.GetAsync(IncidentSettings.Attachments, cancellationToken), cancellationToken);
+        if (formProblem is not null)
+        {
+            return formProblem switch
+            {
+                ValidationProblem validation => validation,
+                ProblemHttpResult problem => problem,
+                _ => throw new InvalidOperationException("Unexpected form problem."),
+            };
+        }
+
         var matrix = await settings.GetAsync(IncidentSettings.PriorityMatrix, cancellationToken);
         var prefixes = await settings.GetAsync(IncidentSettings.NumberPrefixes, cancellationToken);
         var now = DateTimeOffset.UtcNow;
@@ -406,6 +441,7 @@ internal static partial class IncidentEndpoints
         }
 
         db.Tickets.Add(ticket);
+        formResponse?.Attach(db, ticket);
         await IndexAsync(db, indexer, [ticket], cancellationToken);
         // Task B3: the SLA clocks start with the ticket.
         await http.RequestServices.GetRequiredService<SlaTracker>().UpdateAsync([ticket], now, cancellationToken);
@@ -1268,6 +1304,15 @@ public sealed class CreateIncidentRequest
 
     /// <summary>Needs incidents.assign: the group. Without a group or assignee, the assignment rules place the incident.</summary>
     public Guid? GroupId { get; init; }
+
+    /// <summary>
+    /// Task C1: the version of the form that was filled (from <c>/forms/resolve</c>). When it is no
+    /// longer the published one, the answer is 409 form-changed.
+    /// </summary>
+    public Guid? FormVersionId { get; init; }
+
+    /// <summary>Task C1: answers to the category's form, by field key. Required fields must be answered whenever a form applies.</summary>
+    public System.Text.Json.Nodes.JsonObject? FormAnswers { get; init; }
 }
 
 /// <summary>Group and assignee of an incident.</summary>

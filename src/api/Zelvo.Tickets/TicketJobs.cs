@@ -276,8 +276,14 @@ public sealed partial class AttachmentScanJob(
             {
                 attachment.ScanStatus = AttachmentScanStatus.Infected;
                 await store.RemoveAsync(attachment.Id, cancellationToken).ConfigureAwait(false);
-                audit.Add(AuditCategory.Security, attachment.ArticleId is null ? "tickets.attachment.infected" : "knowledge.image.infected",
-                    attachment.ArticleId is null ? "ticket" : "kb_article", (attachment.TicketId ?? attachment.ArticleId)!.Value.ToString(),
+                // Task C1: files uploaded for a form that was not sent yet belong to no ticket.
+                var (action, entityType, entityId) = (attachment.TicketId, attachment.ArticleId) switch
+                {
+                    ({ } ticketId, _) => ("tickets.attachment.infected", "ticket", ticketId.ToString()),
+                    (_, { } articleId) => ("knowledge.image.infected", "kb_article", articleId.ToString()),
+                    _ => ("forms.upload.infected", "ticket_attachment", attachment.Id.ToString()),
+                };
+                audit.Add(AuditCategory.Security, action, entityType, entityId,
                     new Dictionary<string, object?>(StringComparer.Ordinal)
                     {
                         ["attachmentId"] = attachment.Id.ToString(),
@@ -351,6 +357,8 @@ public static class TicketServiceCollectionExtensions
         services.AddHostedService(sp => sp.GetRequiredService<TicketAutoCloseJob>());
         services.TryAddSingleton<Sla.SlaTimerJob>();
         services.AddHostedService(sp => sp.GetRequiredService<Sla.SlaTimerJob>());
+        services.TryAddSingleton<Forms.FormUploadCleanupJob>();
+        services.AddHostedService(sp => sp.GetRequiredService<Forms.FormUploadCleanupJob>());
         if (ScanningEnabled(configuration))
         {
             services.TryAddSingleton<AttachmentScanJob>();

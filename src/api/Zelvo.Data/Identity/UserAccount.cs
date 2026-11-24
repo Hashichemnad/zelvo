@@ -22,6 +22,12 @@ public sealed class UserAccount : ITenantOwned, IAuditedEntity
     /// <summary>Length of <see cref="EmiratesId"/>: 15 digits.</summary>
     public const int EmiratesIdLength = 15;
 
+    /// <summary>Maximum length of <see cref="EmployeeId"/>.</summary>
+    public const int EmployeeIdMaxLength = 50;
+
+    /// <summary>Maximum length of <see cref="Phone"/>: <c>+</c> and up to 15 digits (E.164).</summary>
+    public const int PhoneMaxLength = 16;
+
     /// <summary>Unique id (UUID version 7).</summary>
     public Guid Id { get; init; } = Guid.CreateVersion7();
 
@@ -81,6 +87,22 @@ public sealed class UserAccount : ITenantOwned, IAuditedEntity
 
     /// <summary>Skills of the user (task B2).</summary>
     public List<Directory.UserSkill> Skills { get; init; } = [];
+
+    /// <summary>The person's department (task C1; filled into forms from the profile).</summary>
+    public Guid? DepartmentId { get; set; }
+
+    /// <summary>The person's manager, another user of the tenant (task C1).</summary>
+    public Guid? ManagerId { get; set; }
+
+    /// <summary>Where the person works, a node of the location tree (task C1).</summary>
+    public Guid? LocationId { get; set; }
+
+    /// <summary>The organisation's employee number (task C1).</summary>
+    public string? EmployeeId { get; set; }
+
+    /// <summary>Phone number in international form, for example <c>+971501234567</c> (task C1). Personal data.</summary>
+    [SensitiveData]
+    public string? Phone { get; set; }
 
     /// <summary>Optimistic concurrency token (PostgreSQL <c>xmin</c>).</summary>
     public uint Version { get; init; }

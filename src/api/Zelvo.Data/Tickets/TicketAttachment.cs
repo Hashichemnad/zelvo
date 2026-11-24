@@ -24,10 +24,20 @@ public sealed class TicketAttachment : ITenantOwned, IAuditedEntity
     public Guid TenantId { get; set; }
 
     /// <summary>The ticket, for ticket attachments.</summary>
-    public Guid? TicketId { get; init; }
+    public Guid? TicketId { get; set; }
 
     /// <summary>The knowledge article, for article images.</summary>
     public Guid? ArticleId { get; init; }
+
+    /// <summary>
+    /// Task C1: the form field the file answers (a file upload or a drawn signature). Files are
+    /// uploaded before the form is sent; until then they belong to nobody but their uploader and
+    /// are removed by the worker after a day.
+    /// </summary>
+    public string? FormFieldKey { get; set; }
+
+    /// <summary>Maximum length of <see cref="FormFieldKey"/>.</summary>
+    public const int FormFieldKeyMaxLength = 60;
 
     /// <summary>File name as uploaded, cleaned of paths and control characters.</summary>
     public required string FileName { get; init; }

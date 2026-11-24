@@ -5,7 +5,7 @@ using Zelvo.Data.Localization;
 namespace Zelvo.Api.ServiceDesk;
 
 /// <summary>
-/// Reports directory names that miss a language (LANG-5): categories, locations, skills, groups
+/// Reports directory names that miss a language (LANG-5): categories, locations, departments, skills, groups
 /// (name and, when it has one, description) and assignment rules.
 /// </summary>
 internal sealed class DirectoryMissingTranslations : IMissingTranslationSource
@@ -23,6 +23,7 @@ internal sealed class DirectoryMissingTranslations : IMissingTranslationSource
 
         foreach (var c in await db.Categories.AsNoTracking().ToListAsync(cancellationToken).ConfigureAwait(false)) Add("category", c.Id, "name", c.Name);
         foreach (var l in await db.Locations.AsNoTracking().ToListAsync(cancellationToken).ConfigureAwait(false)) Add("location", l.Id, "name", l.Name);
+        foreach (var d in await db.Departments.AsNoTracking().ToListAsync(cancellationToken).ConfigureAwait(false)) Add("department", d.Id, "name", d.Name);
         foreach (var s in await db.Skills.AsNoTracking().ToListAsync(cancellationToken).ConfigureAwait(false)) Add("skill", s.Id, "name", s.Name);
         foreach (var g in await db.SupportGroups.AsNoTracking().ToListAsync(cancellationToken).ConfigureAwait(false))
         {

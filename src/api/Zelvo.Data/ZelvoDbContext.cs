@@ -3,6 +3,7 @@ using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 using Zelvo.Data.Ai;
 using Zelvo.Data.Auditing;
 using Zelvo.Data.Directory;
+using Zelvo.Data.Forms;
 using Zelvo.Data.Identity;
 using Zelvo.Data.Integrations;
 using Zelvo.Data.Knowledge;
@@ -194,6 +195,27 @@ public sealed class ZelvoDbContext(DbContextOptions<ZelvoDbContext> options) : D
     public DbSet<NotificationPreference> NotificationPreferences => Set<NotificationPreference>();
 
     /// <inheritdoc />
+    /// <summary>Departments (task C1).</summary>
+    public DbSet<Department> Departments => Set<Department>();
+
+    /// <summary>Forms (task C1).</summary>
+    public DbSet<Form> Forms => Set<Form>();
+
+    /// <summary>Published versions of forms.</summary>
+    public DbSet<FormVersion> FormVersions => Set<FormVersion>();
+
+    /// <summary>Reusable field sets.</summary>
+    public DbSet<FieldSet> FieldSets => Set<FieldSet>();
+
+    /// <summary>Published versions of field sets.</summary>
+    public DbSet<FieldSetVersion> FieldSetVersions => Set<FieldSetVersion>();
+
+    /// <summary>Which form each record type and category uses.</summary>
+    public DbSet<FormBinding> FormBindings => Set<FormBinding>();
+
+    /// <summary>Form answers of tickets.</summary>
+    public DbSet<TicketFormResponse> TicketFormResponses => Set<TicketFormResponse>();
+
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         modelBuilder.Entity<Tenant>(tenant =>
@@ -267,6 +289,7 @@ public sealed class ZelvoDbContext(DbContextOptions<ZelvoDbContext> options) : D
         ConfigureMcp(modelBuilder);
         ConfigureKnowledge(modelBuilder);
         ConfigureNotifications(modelBuilder);
+        ConfigureForms(modelBuilder);
 
         modelBuilder.Entity<TenantDataKey>(key =>
         {
@@ -358,6 +381,128 @@ public sealed class ZelvoDbContext(DbContextOptions<ZelvoDbContext> options) : D
             rule.HasOne<SupportGroup>().WithMany().HasForeignKey(r => r.GroupId).OnDelete(DeleteBehavior.Restrict);
             rule.HasOne<Skill>().WithMany().HasForeignKey(r => r.SkillId).OnDelete(DeleteBehavior.Restrict);
             rule.HasIndex(r => new { r.TenantId, r.Position });
+        });
+    }
+
+    private static void ConfigureForms(ModelBuilder modelBuilder)
+    {
+        modelBuilder.Entity<Form>(form =>
+        {
+            form.ToTable("forms", table =>
+            {
+                table.HasCheckConstraint("ck_forms_state", EnumCheck("state", Enum.GetNames<FormState>()));
+                table.HasCheckConstraint("ck_forms_key", "key ~ '^[a-z0-9]([a-z0-9-]{0,58}[a-z0-9])?$'");
+                table.HasCheckConstraint("ck_forms_published", "state = 'Draft' OR published_version_id IS NOT NULL");
+            });
+            form.HasKey(f => f.Id);
+            form.Property(f => f.Id).ValueGeneratedNever();
+            form.HasOne<Tenant>().WithMany().HasForeignKey(f => f.TenantId).OnDelete(DeleteBehavior.Restrict);
+            form.HasOne<UserAccount>().WithMany().HasForeignKey(f => f.CreatedById).OnDelete(DeleteBehavior.SetNull);
+            form.Property(f => f.Key).HasMaxLength(Form.KeyMaxLength);
+            form.ConfigureLocalizedText(f => f.Name, "name", Form.NameMaxLength);
+            form.ConfigureLocalizedText(f => f.Description, "description", Form.DescriptionMaxLength);
+            form.Property(f => f.State).HasConversion<string>().HasMaxLength(20);
+            form.Property(f => f.DraftSchema).HasColumnType("jsonb");
+            form.Property(f => f.Version).IsRowVersion();
+            form.HasIndex(f => new { f.TenantId, f.Key }).IsUnique();
+            form.HasIndex(f => f.CreatedById);
+            form.HasOne<FormVersion>().WithMany().HasForeignKey(f => f.PublishedVersionId).OnDelete(DeleteBehavior.Restrict);
+            form.HasIndex(f => f.PublishedVersionId);
+        });
+
+        modelBuilder.Entity<FormVersion>(version =>
+        {
+            version.ToTable("form_versions", table => table.HasCheckConstraint("ck_form_versions_number", "number >= 1"));
+            version.HasKey(v => v.Id);
+            version.Property(v => v.Id).ValueGeneratedNever();
+            version.HasOne<Tenant>().WithMany().HasForeignKey(v => v.TenantId).OnDelete(DeleteBehavior.Restrict);
+            version.HasOne<Form>().WithMany().HasForeignKey(v => v.FormId).OnDelete(DeleteBehavior.Cascade);
+            version.HasOne<UserAccount>().WithMany().HasForeignKey(v => v.PublishedById).OnDelete(DeleteBehavior.SetNull);
+            version.Property(v => v.Schema).HasColumnType("jsonb");
+            version.HasIndex(v => new { v.FormId, v.Number }).IsUnique();
+            version.HasIndex(v => v.TenantId);
+            version.HasIndex(v => v.PublishedById);
+        });
+
+        modelBuilder.Entity<FieldSet>(set =>
+        {
+            set.ToTable("field_sets", table =>
+            {
+                table.HasCheckConstraint("ck_field_sets_state", EnumCheck("state", Enum.GetNames<FormState>()));
+                table.HasCheckConstraint("ck_field_sets_key", "key ~ '^[a-z0-9]([a-z0-9-]{0,58}[a-z0-9])?$'");
+                table.HasCheckConstraint("ck_field_sets_published", "state = 'Draft' OR published_version_id IS NOT NULL");
+            });
+            set.HasKey(f => f.Id);
+            set.Property(f => f.Id).ValueGeneratedNever();
+            set.HasOne<Tenant>().WithMany().HasForeignKey(f => f.TenantId).OnDelete(DeleteBehavior.Restrict);
+            set.HasOne<UserAccount>().WithMany().HasForeignKey(f => f.CreatedById).OnDelete(DeleteBehavior.SetNull);
+            set.Property(f => f.Key).HasMaxLength(Form.KeyMaxLength);
+            set.ConfigureLocalizedText(f => f.Name, "name", Form.NameMaxLength);
+            set.ConfigureLocalizedText(f => f.Description, "description", Form.DescriptionMaxLength);
+            set.Property(f => f.State).HasConversion<string>().HasMaxLength(20);
+            set.Property(f => f.DraftSchema).HasColumnType("jsonb");
+            set.Property(f => f.Version).IsRowVersion();
+            set.HasIndex(f => new { f.TenantId, f.Key }).IsUnique();
+            set.HasIndex(f => f.CreatedById);
+            set.HasOne<FieldSetVersion>().WithMany().HasForeignKey(f => f.PublishedVersionId).OnDelete(DeleteBehavior.Restrict);
+            set.HasIndex(f => f.PublishedVersionId);
+        });
+
+        modelBuilder.Entity<FieldSetVersion>(version =>
+        {
+            version.ToTable("field_set_versions", table => table.HasCheckConstraint("ck_field_set_versions_number", "number >= 1"));
+            version.HasKey(v => v.Id);
+            version.Property(v => v.Id).ValueGeneratedNever();
+            version.HasOne<Tenant>().WithMany().HasForeignKey(v => v.TenantId).OnDelete(DeleteBehavior.Restrict);
+            version.HasOne<FieldSet>().WithMany().HasForeignKey(v => v.FieldSetId).OnDelete(DeleteBehavior.Cascade);
+            version.HasOne<UserAccount>().WithMany().HasForeignKey(v => v.PublishedById).OnDelete(DeleteBehavior.SetNull);
+            version.Property(v => v.Schema).HasColumnType("jsonb");
+            version.HasIndex(v => new { v.FieldSetId, v.Number }).IsUnique();
+            version.HasIndex(v => v.TenantId);
+            version.HasIndex(v => v.PublishedById);
+        });
+
+        modelBuilder.Entity<FormBinding>(binding =>
+        {
+            binding.ToTable("form_bindings", table =>
+                table.HasCheckConstraint("ck_form_bindings_record_type", EnumCheck("record_type", Enum.GetNames<TicketType>())));
+            binding.HasKey(b => b.Id);
+            binding.Property(b => b.Id).ValueGeneratedNever();
+            binding.HasOne<Tenant>().WithMany().HasForeignKey(b => b.TenantId).OnDelete(DeleteBehavior.Restrict);
+            binding.HasOne<Form>().WithMany().HasForeignKey(b => b.FormId).OnDelete(DeleteBehavior.Cascade);
+            binding.HasOne<Category>().WithMany().HasForeignKey(b => b.CategoryId).OnDelete(DeleteBehavior.Cascade);
+            binding.Property(b => b.RecordType).HasConversion<string>().HasMaxLength(20);
+            binding.HasIndex(b => new { b.TenantId, b.RecordType, b.CategoryId }).IsUnique().AreNullsDistinct(false);
+            binding.HasIndex(b => b.FormId);
+            binding.HasIndex(b => b.CategoryId);
+        });
+
+        modelBuilder.Entity<TicketFormResponse>(response =>
+        {
+            response.ToTable("ticket_form_responses");
+            response.HasKey(r => r.TicketId);
+            response.HasOne<Tenant>().WithMany().HasForeignKey(r => r.TenantId).OnDelete(DeleteBehavior.Restrict);
+            response.HasOne<Ticket>().WithOne().HasForeignKey<TicketFormResponse>(r => r.TicketId).OnDelete(DeleteBehavior.Cascade);
+            response.HasOne<Form>().WithMany().HasForeignKey(r => r.FormId).OnDelete(DeleteBehavior.Restrict);
+            response.HasOne<FormVersion>().WithMany().HasForeignKey(r => r.FormVersionId).OnDelete(DeleteBehavior.Restrict);
+            response.HasOne<UserAccount>().WithMany().HasForeignKey(r => r.SubmittedById).OnDelete(DeleteBehavior.SetNull);
+            response.Property(r => r.Fields).HasColumnType("jsonb");
+            response.Property(r => r.Answers).HasColumnType("jsonb");
+            response.Property(r => r.PersonalAnswers).HasColumnType("jsonb");
+            response.HasIndex(r => r.TenantId);
+            response.HasIndex(r => r.FormId);
+            response.HasIndex(r => r.FormVersionId);
+            response.HasIndex(r => r.SubmittedById);
+        });
+
+        modelBuilder.Entity<Department>(department =>
+        {
+            department.ToTable("departments");
+            department.HasKey(d => d.Id);
+            department.Property(d => d.Id).ValueGeneratedNever();
+            department.HasOne<Tenant>().WithMany().HasForeignKey(d => d.TenantId).OnDelete(DeleteBehavior.Restrict);
+            department.ConfigureLocalizedText(d => d.Name, "name", Department.NameMaxLength);
+            department.HasIndex(d => d.TenantId);
         });
     }
 
@@ -459,12 +604,15 @@ public sealed class ZelvoDbContext(DbContextOptions<ZelvoDbContext> options) : D
                 table.HasCheckConstraint("ck_ticket_attachments_scan_status", EnumCheck("scan_status", Enum.GetNames<AttachmentScanStatus>()));
                 table.HasCheckConstraint("ck_ticket_attachments_size", "size >= 0");
                 table.HasCheckConstraint("ck_ticket_attachments_sha256", "sha256 ~ '^[0-9a-f]{64}$'");
-                table.HasCheckConstraint("ck_ticket_attachments_owner", "(ticket_id IS NULL) <> (article_id IS NULL)");
+                table.HasCheckConstraint("ck_ticket_attachments_owner", "num_nonnulls(ticket_id, article_id) = 1 OR (ticket_id IS NULL AND article_id IS NULL AND form_field_key IS NOT NULL)");
+                table.HasCheckConstraint("ck_ticket_attachments_form_field_key", "form_field_key ~ '^[a-z][a-zA-Z0-9]{0,59}$'");
             });
             attachment.HasKey(a => a.Id);
             attachment.Property(a => a.Id).ValueGeneratedNever();
             attachment.HasOne<Ticket>().WithMany().HasForeignKey(a => a.TicketId).OnDelete(DeleteBehavior.Cascade);
             attachment.HasOne<KbArticle>().WithMany().HasForeignKey(a => a.ArticleId).OnDelete(DeleteBehavior.Cascade);
+            attachment.Property(a => a.FormFieldKey).HasMaxLength(TicketAttachment.FormFieldKeyMaxLength);
+            attachment.HasIndex(a => new { a.TenantId, a.UploadedAt }).HasFilter("ticket_id IS NULL AND article_id IS NULL").HasDatabaseName("ix_ticket_attachments_form_uploads");
             attachment.HasIndex(a => new { a.TenantId, a.ArticleId }).HasFilter("article_id IS NOT NULL");
             attachment.HasOne<UserAccount>().WithMany().HasForeignKey(a => a.UploadedById).OnDelete(DeleteBehavior.Restrict);
             attachment.Property(a => a.FileName).HasMaxLength(TicketAttachment.FileNameMaxLength);
@@ -1119,6 +1267,8 @@ public sealed class ZelvoDbContext(DbContextOptions<ZelvoDbContext> options) : D
                 table.HasCheckConstraint("ck_users_digits", EnumCheck("digits", Enum.GetNames<DigitSystem>()));
                 table.HasCheckConstraint("ck_users_emirates_id", "emirates_id ~ '^784[0-9]{12}$'");
                 table.HasCheckConstraint("ck_users_languages", "languages <@ ARRAY['en', 'ar']::text[]");
+                table.HasCheckConstraint("ck_users_phone", "phone ~ '^\\+[1-9][0-9]{6,14}$'");
+                table.HasCheckConstraint("ck_users_not_own_manager", "manager_id IS NULL OR manager_id <> id");
             });
             user.HasKey(u => u.Id);
             user.Property(u => u.Id).ValueGeneratedNever();
@@ -1139,6 +1289,15 @@ public sealed class ZelvoDbContext(DbContextOptions<ZelvoDbContext> options) : D
             user.HasMany(u => u.Skills).WithOne().HasForeignKey(s => s.UserId).OnDelete(DeleteBehavior.Cascade);
             user.Property(u => u.Languages).HasColumnType("text[]").HasDefaultValueSql("'{}'");
             user.Property(u => u.AvailableForAssignment).HasDefaultValue(true);
+            // Task C1: profile fields that forms fill in.
+            user.Property(u => u.EmployeeId).HasMaxLength(UserAccount.EmployeeIdMaxLength);
+            user.Property(u => u.Phone).HasMaxLength(UserAccount.PhoneMaxLength);
+            user.HasOne<Department>().WithMany().HasForeignKey(u => u.DepartmentId).OnDelete(DeleteBehavior.Restrict);
+            user.HasOne<UserAccount>().WithMany().HasForeignKey(u => u.ManagerId).OnDelete(DeleteBehavior.SetNull);
+            user.HasOne<Location>().WithMany().HasForeignKey(u => u.LocationId).OnDelete(DeleteBehavior.Restrict);
+            user.HasIndex(u => u.DepartmentId);
+            user.HasIndex(u => u.ManagerId);
+            user.HasIndex(u => u.LocationId);
         });
 
         modelBuilder.Entity<Role>(role =>
