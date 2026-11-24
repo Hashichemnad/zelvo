@@ -160,6 +160,7 @@ describe("ChatWidgetsPanel", () => {
     allowedOrigins: ["https://www.entity.example.gov"],
     onPortal: true,
     active: true,
+    virtualAgent: false,
   };
 
   it("gives the code to embed a widget on the websites it lists", () => {

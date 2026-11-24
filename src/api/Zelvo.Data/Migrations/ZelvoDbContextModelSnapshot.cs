@@ -156,6 +156,83 @@ namespace Zelvo.Data.Migrations
                         });
                 });
 
+            modelBuilder.Entity("Zelvo.Data.Ai.AiDuplicateCandidate", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<Guid>("CandidateId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("candidate_id");
+
+                    b.Property<int>("Confidence")
+                        .HasColumnType("integer")
+                        .HasColumnName("confidence");
+
+                    b.Property<DateTimeOffset>("CreatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("created_at");
+
+                    b.Property<DateTimeOffset?>("DecidedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("decided_at");
+
+                    b.Property<Guid?>("DecidedById")
+                        .HasColumnType("uuid")
+                        .HasColumnName("decided_by_id");
+
+                    b.Property<string>("Reason")
+                        .HasMaxLength(300)
+                        .HasColumnType("character varying(300)")
+                        .HasColumnName("reason");
+
+                    b.Property<string>("Status")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("character varying(20)")
+                        .HasColumnName("status");
+
+                    b.Property<Guid>("TenantId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("tenant_id");
+
+                    b.Property<Guid>("TicketId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("ticket_id");
+
+                    b.Property<uint>("Version")
+                        .IsConcurrencyToken()
+                        .ValueGeneratedOnAddOrUpdate()
+                        .HasColumnType("xid")
+                        .HasColumnName("xmin");
+
+                    b.HasKey("Id")
+                        .HasName("pk_ai_duplicate_candidates");
+
+                    b.HasIndex("CandidateId")
+                        .HasDatabaseName("ix_ai_duplicate_candidates_candidate_id");
+
+                    b.HasIndex("DecidedById")
+                        .HasDatabaseName("ix_ai_duplicate_candidates_decided_by_id");
+
+                    b.HasIndex("TicketId")
+                        .HasDatabaseName("ix_ai_duplicate_candidates_ticket_id");
+
+                    b.HasIndex("TenantId", "TicketId", "CandidateId")
+                        .IsUnique()
+                        .HasDatabaseName("ix_ai_duplicate_candidates_tenant_id_ticket_id_candidate_id");
+
+                    b.ToTable("ai_duplicate_candidates", null, t =>
+                        {
+                            t.HasCheckConstraint("ck_ai_duplicate_candidates_confidence", "confidence BETWEEN 0 AND 100");
+
+                            t.HasCheckConstraint("ck_ai_duplicate_candidates_other", "ticket_id <> candidate_id");
+
+                            t.HasCheckConstraint("ck_ai_duplicate_candidates_status", "status IN ('Pending', 'Linked', 'Dismissed')");
+                        });
+                });
+
             modelBuilder.Entity("Zelvo.Data.Ai.AiFeatureSetting", b =>
                 {
                     b.Property<Guid>("TenantId")
@@ -201,6 +278,88 @@ namespace Zelvo.Data.Migrations
                             t.HasCheckConstraint("ck_ai_feature_settings_enabled", "NOT enabled OR (provider_id IS NOT NULL AND model IS NOT NULL)");
 
                             t.HasCheckConstraint("ck_ai_feature_settings_feature", "feature ~ '^[a-z][a-zA-Z]*$'");
+                        });
+                });
+
+            modelBuilder.Entity("Zelvo.Data.Ai.AiJob", b =>
+                {
+                    b.Property<long>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bigint")
+                        .HasColumnName("id");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityAlwaysColumn(b.Property<long>("Id"));
+
+                    b.Property<int>("Attempts")
+                        .HasColumnType("integer")
+                        .HasColumnName("attempts");
+
+                    b.Property<Guid?>("CommentId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("comment_id");
+
+                    b.Property<DateTimeOffset>("CreatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("created_at");
+
+                    b.Property<DateTimeOffset?>("FinishedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("finished_at");
+
+                    b.Property<string>("Kind")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("character varying(20)")
+                        .HasColumnName("kind");
+
+                    b.Property<string>("LastError")
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)")
+                        .HasColumnName("last_error");
+
+                    b.Property<DateTimeOffset?>("LeaseUntil")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("lease_until");
+
+                    b.Property<DateTimeOffset>("NextAttemptAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("next_attempt_at");
+
+                    b.Property<string>("Status")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("character varying(20)")
+                        .HasColumnName("status");
+
+                    b.Property<Guid>("TenantId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("tenant_id");
+
+                    b.Property<Guid>("TicketId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("ticket_id");
+
+                    b.HasKey("Id")
+                        .HasName("pk_ai_jobs");
+
+                    b.HasIndex("CommentId")
+                        .HasDatabaseName("ix_ai_jobs_comment_id");
+
+                    b.HasIndex("NextAttemptAt")
+                        .HasDatabaseName("ix_ai_jobs_due")
+                        .HasFilter("status = 'Pending'");
+
+                    b.HasIndex("TicketId")
+                        .HasDatabaseName("ix_ai_jobs_ticket_id");
+
+                    b.HasIndex("TenantId", "Status", "NextAttemptAt")
+                        .HasDatabaseName("ix_ai_jobs_tenant_id_status_next_attempt_at");
+
+                    b.ToTable("ai_jobs", null, t =>
+                        {
+                            t.HasCheckConstraint("ck_ai_jobs_kind", "kind IN ('Triage', 'Sentiment', 'Duplicates')");
+
+                            t.HasCheckConstraint("ck_ai_jobs_status", "status IN ('Pending', 'Done', 'Failed')");
                         });
                 });
 
@@ -339,6 +498,250 @@ namespace Zelvo.Data.Migrations
                             t.HasCheckConstraint("ck_ai_providers_kind", "kind IN ('Anthropic', 'OpenAI', 'AzureOpenAI', 'Gemini', 'OpenAICompatible')");
 
                             t.HasCheckConstraint("ck_ai_providers_status", "status IN ('Active', 'Disabled')");
+                        });
+                });
+
+            modelBuilder.Entity("Zelvo.Data.Ai.AiTicketInsight", b =>
+                {
+                    b.Property<Guid>("TicketId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("ticket_id");
+
+                    b.Property<DateTimeOffset?>("FrustratedSince")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("frustrated_since");
+
+                    b.Property<string>("Sentiment")
+                        .HasMaxLength(20)
+                        .HasColumnType("character varying(20)")
+                        .HasColumnName("sentiment");
+
+                    b.Property<DateTimeOffset?>("SentimentAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("sentiment_at");
+
+                    b.Property<Guid?>("SentimentCommentId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("sentiment_comment_id");
+
+                    b.Property<string>("SentimentReason")
+                        .HasMaxLength(300)
+                        .HasColumnType("character varying(300)")
+                        .HasColumnName("sentiment_reason");
+
+                    b.Property<string>("Summary")
+                        .HasMaxLength(4000)
+                        .HasColumnType("character varying(4000)")
+                        .HasColumnName("summary");
+
+                    b.Property<DateTimeOffset?>("SummaryAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("summary_at");
+
+                    b.Property<string>("SummaryBasis")
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)")
+                        .HasColumnName("summary_basis");
+
+                    b.Property<string>("SummaryLanguage")
+                        .HasMaxLength(5)
+                        .HasColumnType("character varying(5)")
+                        .HasColumnName("summary_language");
+
+                    b.Property<Guid>("TenantId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("tenant_id");
+
+                    b.Property<uint>("Version")
+                        .IsConcurrencyToken()
+                        .ValueGeneratedOnAddOrUpdate()
+                        .HasColumnType("xid")
+                        .HasColumnName("xmin");
+
+                    b.HasKey("TicketId")
+                        .HasName("pk_ai_ticket_insights");
+
+                    b.HasIndex("SentimentCommentId")
+                        .HasDatabaseName("ix_ai_ticket_insights_sentiment_comment_id");
+
+                    b.HasIndex("TenantId", "FrustratedSince")
+                        .HasDatabaseName("ix_ai_ticket_insights_tenant_id_frustrated_since")
+                        .HasFilter("frustrated_since IS NOT NULL");
+
+                    b.ToTable("ai_ticket_insights", null, t =>
+                        {
+                            t.HasCheckConstraint("ck_ai_ticket_insights_language", "summary_language IS NULL OR summary_language IN ('en', 'ar')");
+
+                            t.HasCheckConstraint("ck_ai_ticket_insights_sentiment", "sentiment IS NULL OR sentiment IN ('Positive', 'Neutral', 'Negative', 'Frustrated')");
+                        });
+                });
+
+            modelBuilder.Entity("Zelvo.Data.Ai.AiTranslation", b =>
+                {
+                    b.Property<Guid>("TenantId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("tenant_id");
+
+                    b.Property<string>("Source")
+                        .HasMaxLength(20)
+                        .HasColumnType("character varying(20)")
+                        .HasColumnName("source");
+
+                    b.Property<Guid>("SourceId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("source_id");
+
+                    b.Property<string>("Language")
+                        .HasMaxLength(5)
+                        .HasColumnType("character varying(5)")
+                        .HasColumnName("language");
+
+                    b.Property<DateTimeOffset>("CreatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("created_at");
+
+                    b.Property<string>("SourceHash")
+                        .IsRequired()
+                        .HasMaxLength(64)
+                        .HasColumnType("character(64)")
+                        .HasColumnName("source_hash")
+                        .IsFixedLength();
+
+                    b.Property<string>("Text")
+                        .IsRequired()
+                        .HasMaxLength(24000)
+                        .HasColumnType("character varying(24000)")
+                        .HasColumnName("text");
+
+                    b.HasKey("TenantId", "Source", "SourceId", "Language")
+                        .HasName("pk_ai_translations");
+
+                    b.ToTable("ai_translations", null, t =>
+                        {
+                            t.HasCheckConstraint("ck_ai_translations_language", "language IN ('en', 'ar')");
+
+                            t.HasCheckConstraint("ck_ai_translations_source", "source IN ('Ticket', 'Comment', 'ChatMessage')");
+                        });
+                });
+
+            modelBuilder.Entity("Zelvo.Data.Ai.AiTriageSuggestion", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<long?>("AiCallId")
+                        .HasColumnType("bigint")
+                        .HasColumnName("ai_call_id");
+
+                    b.Property<Guid?>("CategoryId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("category_id");
+
+                    b.Property<int>("Confidence")
+                        .HasColumnType("integer")
+                        .HasColumnName("confidence");
+
+                    b.Property<DateTimeOffset>("CreatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("created_at");
+
+                    b.Property<DateTimeOffset?>("DecidedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("decided_at");
+
+                    b.Property<Guid?>("DecidedById")
+                        .HasColumnType("uuid")
+                        .HasColumnName("decided_by_id");
+
+                    b.Property<Guid?>("FinalCategoryId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("final_category_id");
+
+                    b.Property<Guid?>("FinalGroupId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("final_group_id");
+
+                    b.Property<int?>("FinalImpact")
+                        .HasColumnType("integer")
+                        .HasColumnName("final_impact");
+
+                    b.Property<int?>("FinalUrgency")
+                        .HasColumnType("integer")
+                        .HasColumnName("final_urgency");
+
+                    b.Property<Guid?>("GroupId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("group_id");
+
+                    b.Property<int?>("Impact")
+                        .HasColumnType("integer")
+                        .HasColumnName("impact");
+
+                    b.Property<string>("Reason")
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)")
+                        .HasColumnName("reason");
+
+                    b.Property<string>("Status")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("character varying(20)")
+                        .HasColumnName("status");
+
+                    b.Property<Guid>("TenantId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("tenant_id");
+
+                    b.Property<Guid>("TicketId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("ticket_id");
+
+                    b.Property<int?>("Urgency")
+                        .HasColumnType("integer")
+                        .HasColumnName("urgency");
+
+                    b.Property<uint>("Version")
+                        .IsConcurrencyToken()
+                        .ValueGeneratedOnAddOrUpdate()
+                        .HasColumnType("xid")
+                        .HasColumnName("xmin");
+
+                    b.HasKey("Id")
+                        .HasName("pk_ai_triage_suggestions");
+
+                    b.HasIndex("CategoryId")
+                        .HasDatabaseName("ix_ai_triage_suggestions_category_id");
+
+                    b.HasIndex("DecidedById")
+                        .HasDatabaseName("ix_ai_triage_suggestions_decided_by_id");
+
+                    b.HasIndex("FinalCategoryId")
+                        .HasDatabaseName("ix_ai_triage_suggestions_final_category_id");
+
+                    b.HasIndex("FinalGroupId")
+                        .HasDatabaseName("ix_ai_triage_suggestions_final_group_id");
+
+                    b.HasIndex("GroupId")
+                        .HasDatabaseName("ix_ai_triage_suggestions_group_id");
+
+                    b.HasIndex("TicketId")
+                        .HasDatabaseName("ix_ai_triage_suggestions_ticket_id");
+
+                    b.HasIndex("TenantId", "DecidedAt")
+                        .HasDatabaseName("ix_ai_triage_suggestions_tenant_id_decided_at")
+                        .HasFilter("decided_at IS NOT NULL");
+
+                    b.HasIndex("TenantId", "TicketId")
+                        .HasDatabaseName("ix_ai_triage_suggestions_tenant_id_ticket_id");
+
+                    b.ToTable("ai_triage_suggestions", null, t =>
+                        {
+                            t.HasCheckConstraint("ck_ai_triage_suggestions_confidence", "confidence BETWEEN 0 AND 100");
+
+                            t.HasCheckConstraint("ck_ai_triage_suggestions_levels", "(impact IS NULL OR impact BETWEEN 1 AND 3) AND (urgency IS NULL OR urgency BETWEEN 1 AND 3) AND (final_impact IS NULL OR final_impact BETWEEN 1 AND 3) AND (final_urgency IS NULL OR final_urgency BETWEEN 1 AND 3)");
+
+                            t.HasCheckConstraint("ck_ai_triage_suggestions_status", "status IN ('Pending', 'Accepted', 'Corrected', 'Dismissed', 'AutoApplied', 'Outdated')");
                         });
                 });
 
@@ -944,6 +1347,10 @@ namespace Zelvo.Data.Migrations
                         .HasColumnType("character varying(4000)")
                         .HasColumnName("body");
 
+                    b.PrimitiveCollection<Guid[]>("Citations")
+                        .HasColumnType("uuid[]")
+                        .HasColumnName("citations");
+
                     b.Property<DateTimeOffset>("CreatedAt")
                         .HasColumnType("timestamp with time zone")
                         .HasColumnName("created_at");
@@ -988,7 +1395,7 @@ namespace Zelvo.Data.Migrations
 
                     b.ToTable("chat_messages", null, t =>
                         {
-                            t.HasCheckConstraint("ck_chat_messages_sender", "sender IN ('Visitor', 'Agent', 'System')");
+                            t.HasCheckConstraint("ck_chat_messages_sender", "sender IN ('Visitor', 'Agent', 'System', 'Assistant')");
                         });
                 });
 
@@ -1123,7 +1530,7 @@ namespace Zelvo.Data.Migrations
 
                             t.HasCheckConstraint("ck_chat_sessions_language", "language IN ('en', 'ar')");
 
-                            t.HasCheckConstraint("ck_chat_sessions_state", "state IN ('Waiting', 'Active', 'Ended')");
+                            t.HasCheckConstraint("ck_chat_sessions_state", "state IN ('Waiting', 'Assistant', 'Active', 'Ended')");
                         });
                 });
 
@@ -1171,6 +1578,10 @@ namespace Zelvo.Data.Migrations
                         .ValueGeneratedOnAddOrUpdate()
                         .HasColumnType("xid")
                         .HasColumnName("xmin");
+
+                    b.Property<bool>("VirtualAgent")
+                        .HasColumnType("boolean")
+                        .HasColumnName("virtual_agent");
 
                     b.ComplexProperty(typeof(Dictionary<string, object>), "Greeting", "Zelvo.Data.Channels.ChatWidget.Greeting#LocalizedText", b1 =>
                         {
@@ -6051,6 +6462,36 @@ namespace Zelvo.Data.Migrations
                         .HasConstraintName("fk_ai_calls_tenants_tenant_id");
                 });
 
+            modelBuilder.Entity("Zelvo.Data.Ai.AiDuplicateCandidate", b =>
+                {
+                    b.HasOne("Zelvo.Data.Tickets.Ticket", null)
+                        .WithMany()
+                        .HasForeignKey("CandidateId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired()
+                        .HasConstraintName("fk_ai_duplicate_candidates_tickets_candidate_id");
+
+                    b.HasOne("Zelvo.Data.Identity.UserAccount", null)
+                        .WithMany()
+                        .HasForeignKey("DecidedById")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .HasConstraintName("fk_ai_duplicate_candidates_users_decided_by_id");
+
+                    b.HasOne("Zelvo.Data.Tenancy.Tenant", null)
+                        .WithMany()
+                        .HasForeignKey("TenantId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired()
+                        .HasConstraintName("fk_ai_duplicate_candidates_tenants_tenant_id");
+
+                    b.HasOne("Zelvo.Data.Tickets.Ticket", null)
+                        .WithMany()
+                        .HasForeignKey("TicketId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired()
+                        .HasConstraintName("fk_ai_duplicate_candidates_tickets_ticket_id");
+                });
+
             modelBuilder.Entity("Zelvo.Data.Ai.AiFeatureSetting", b =>
                 {
                     b.HasOne("Zelvo.Data.Ai.AiProvider", null)
@@ -6065,6 +6506,29 @@ namespace Zelvo.Data.Migrations
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired()
                         .HasConstraintName("fk_ai_feature_settings_tenants_tenant_id");
+                });
+
+            modelBuilder.Entity("Zelvo.Data.Ai.AiJob", b =>
+                {
+                    b.HasOne("Zelvo.Data.Tickets.TicketComment", null)
+                        .WithMany()
+                        .HasForeignKey("CommentId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .HasConstraintName("fk_ai_jobs_ticket_comments_comment_id");
+
+                    b.HasOne("Zelvo.Data.Tenancy.Tenant", null)
+                        .WithMany()
+                        .HasForeignKey("TenantId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired()
+                        .HasConstraintName("fk_ai_jobs_tenants_tenant_id");
+
+                    b.HasOne("Zelvo.Data.Tickets.Ticket", null)
+                        .WithMany()
+                        .HasForeignKey("TicketId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired()
+                        .HasConstraintName("fk_ai_jobs_tickets_ticket_id");
                 });
 
             modelBuilder.Entity("Zelvo.Data.Ai.AiModelPrice", b =>
@@ -6092,6 +6556,86 @@ namespace Zelvo.Data.Migrations
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired()
                         .HasConstraintName("fk_ai_providers_tenants_tenant_id");
+                });
+
+            modelBuilder.Entity("Zelvo.Data.Ai.AiTicketInsight", b =>
+                {
+                    b.HasOne("Zelvo.Data.Tickets.TicketComment", null)
+                        .WithMany()
+                        .HasForeignKey("SentimentCommentId")
+                        .OnDelete(DeleteBehavior.SetNull)
+                        .HasConstraintName("fk_ai_ticket_insights_ticket_comments_sentiment_comment_id");
+
+                    b.HasOne("Zelvo.Data.Tenancy.Tenant", null)
+                        .WithMany()
+                        .HasForeignKey("TenantId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired()
+                        .HasConstraintName("fk_ai_ticket_insights_tenants_tenant_id");
+
+                    b.HasOne("Zelvo.Data.Tickets.Ticket", null)
+                        .WithOne()
+                        .HasForeignKey("Zelvo.Data.Ai.AiTicketInsight", "TicketId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired()
+                        .HasConstraintName("fk_ai_ticket_insights_tickets_ticket_id");
+                });
+
+            modelBuilder.Entity("Zelvo.Data.Ai.AiTranslation", b =>
+                {
+                    b.HasOne("Zelvo.Data.Tenancy.Tenant", null)
+                        .WithMany()
+                        .HasForeignKey("TenantId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired()
+                        .HasConstraintName("fk_ai_translations_tenants_tenant_id");
+                });
+
+            modelBuilder.Entity("Zelvo.Data.Ai.AiTriageSuggestion", b =>
+                {
+                    b.HasOne("Zelvo.Data.Directory.Category", null)
+                        .WithMany()
+                        .HasForeignKey("CategoryId")
+                        .OnDelete(DeleteBehavior.SetNull)
+                        .HasConstraintName("fk_ai_triage_suggestions_categories_category_id");
+
+                    b.HasOne("Zelvo.Data.Identity.UserAccount", null)
+                        .WithMany()
+                        .HasForeignKey("DecidedById")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .HasConstraintName("fk_ai_triage_suggestions_users_decided_by_id");
+
+                    b.HasOne("Zelvo.Data.Directory.Category", null)
+                        .WithMany()
+                        .HasForeignKey("FinalCategoryId")
+                        .OnDelete(DeleteBehavior.SetNull)
+                        .HasConstraintName("fk_ai_triage_suggestions_categories_final_category_id");
+
+                    b.HasOne("Zelvo.Data.Directory.SupportGroup", null)
+                        .WithMany()
+                        .HasForeignKey("FinalGroupId")
+                        .OnDelete(DeleteBehavior.SetNull)
+                        .HasConstraintName("fk_ai_triage_suggestions_support_groups_final_group_id");
+
+                    b.HasOne("Zelvo.Data.Directory.SupportGroup", null)
+                        .WithMany()
+                        .HasForeignKey("GroupId")
+                        .OnDelete(DeleteBehavior.SetNull)
+                        .HasConstraintName("fk_ai_triage_suggestions_support_groups_group_id");
+
+                    b.HasOne("Zelvo.Data.Tenancy.Tenant", null)
+                        .WithMany()
+                        .HasForeignKey("TenantId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired()
+                        .HasConstraintName("fk_ai_triage_suggestions_tenants_tenant_id");
+
+                    b.HasOne("Zelvo.Data.Tickets.Ticket", null)
+                        .WithMany()
+                        .HasForeignKey("TicketId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired()
+                        .HasConstraintName("fk_ai_triage_suggestions_tickets_ticket_id");
                 });
 
             modelBuilder.Entity("Zelvo.Data.Auditing.AuditEvent", b =>

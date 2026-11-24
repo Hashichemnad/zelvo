@@ -186,6 +186,13 @@ public sealed class DemoModeTests(DatabaseFixture database) : IAsyncDisposable
 
         Assert.Equal(2, await db.ServiceRequests.CountAsync(Ct));
         Assert.All(await db.Tickets.Where(t => t.Type == Data.Tickets.TicketType.ServiceRequest).ToListAsync(Ct), t => Assert.StartsWith("REQ-", t.Number, StringComparison.Ordinal));
+
+        // Task E5: what the AI found on sample incidents, with the AI itself off.
+        Assert.Contains("e5-ai", ran);
+        Assert.Single(await db.AiTriageSuggestions.Where(s => s.Status == Data.Ai.TriageStatus.Pending).ToListAsync(Ct));
+        Assert.True(await db.AiTicketInsights.AnyAsync(i => i.FrustratedSince != null, Ct));
+        Assert.True(await db.AiDuplicateCandidates.AnyAsync(Ct));
+        Assert.False(await db.AiFeatureSettings.AnyAsync(f => f.Enabled, Ct));
     }
 
     [Fact]

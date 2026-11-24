@@ -85,6 +85,8 @@ export interface ChatWidget {
   allowedOrigins: string[];
   onPortal: boolean;
   active: boolean;
+  /** The virtual agent answers first (task E5). */
+  virtualAgent: boolean;
 }
 
 export interface PublicChatWidget {
@@ -94,10 +96,12 @@ export interface PublicChatWidget {
   online: boolean;
   allowed: boolean;
   allowedOrigins: string[];
+  /** The virtual agent answers now (task E5): a chat can start with nobody online. */
+  virtualAgent?: boolean;
 }
 
-export type ChatState = "Waiting" | "Active" | "Ended";
-export type ChatSender = "Visitor" | "Agent" | "System";
+export type ChatState = "Waiting" | "Assistant" | "Active" | "Ended";
+export type ChatSender = "Visitor" | "Agent" | "System" | "Assistant";
 
 export interface ChatMessage {
   id: string;
@@ -107,6 +111,8 @@ export interface ChatMessage {
   body: string;
   event: string | null;
   createdAt: string;
+  /** Virtual agent answers: the knowledge articles it answered from. */
+  citations?: { id: string; number: string }[];
 }
 
 export interface VisitorChat {

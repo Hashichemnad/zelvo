@@ -31,10 +31,13 @@ export default async function MyIncidentPage({ params }: PageProps<"/[locale]/my
     getTranslations({ locale, namespace: "incidents" }),
     getTranslations({ locale, namespace: "workspace.conversation" }),
   ]);
-  const [{ incident, settings, attachments, attachmentSettings, updates, display, form }, comments] = await Promise.all([
+  const [{ incident, settings, attachments, attachmentSettings, updates, display, form }, comments, aiStatus] = await Promise.all([
     loadIncident(id, session.data.accessToken, tenant, locale, { staff: false }),
     getJsonAs<Comment[]>(`/api/v1/incidents/${encodeURIComponent(id)}/comments`, session.data.accessToken, tenant),
+    // Task E5: requesters translate staff replies with one click when the AI feature is on (LANG-7).
+    getJsonAs<{ features: { feature: string; available: boolean }[] }>("/api/v1/ai/status", session.data.accessToken, tenant),
   ]);
+  const canTranslate = aiStatus?.features.some((f) => f.feature === "translation" && f.available) ?? false;
   if (!incident) {
     return (
       <section className="space-y-4">
@@ -73,7 +76,10 @@ export default async function MyIncidentPage({ params }: PageProps<"/[locale]/my
       )}
       <section aria-labelledby="conversation-heading" className="space-y-3">
         <h2 id="conversation-heading" className="text-xl font-bold">{tConversation("title")}</h2>
-        {comments ? <ConversationList comments={comments} display={display} staff={false} /> : <p role="alert">{tConversation("unavailable")}</p>}
+        {comments ? (
+          <ConversationList comments={comments} display={display} staff={false}
+            translate={canTranslate ? { incidentId: incident.id, csrfToken: session.data.csrfToken } : null} />
+        ) : <p role="alert">{tConversation("unavailable")}</p>}
         {closed ? (
           <p className="text-ink-muted">{tConversation("closed")}</p>
         ) : (

@@ -6,6 +6,8 @@ import { IncidentWorkPanel } from "@/components/incidents/IncidentWorkPanel";
 import { MajorTimeline } from "@/components/incidents/MajorTimeline";
 import { Composer, ConversationList } from "@/components/workspace/Conversation";
 import { AiAssistantPlaceholder, CustomerPanel } from "@/components/workspace/CustomerPanel";
+import { AiAssistantPanel } from "@/components/ai/AiAssistantPanel";
+import type { AiInsights } from "@/lib/ai-features";
 import { LiveSlaTimers } from "@/components/workspace/SlaCountdown";
 import { WorkspaceShell } from "@/components/workspace/WorkspaceShell";
 import { Link } from "@/i18n/navigation";
@@ -67,11 +69,14 @@ export default async function WorkspacePage({ params, searchParams }: PageProps<
   let detail: React.ReactNode = <p className="rounded-lg border border-dashed border-line p-6 text-ink-muted">{t("detail.none")}</p>;
   let aside: React.ReactNode = <AiAssistantPlaceholder />;
   if (selectedId) {
-    const [data, comments, customer] = await Promise.all([
+    const [data, comments, customer, insights] = await Promise.all([
       loadIncident(selectedId, token, tenant, locale, { staff: true }),
       get<Comment[]>(`/api/v1/incidents/${selectedId}/comments`),
       get<Customer>(`/api/v1/incidents/${selectedId}/customer`),
+      // Task E5: what the AI found and which AI features can be used now.
+      get<AiInsights>(`/api/v1/incidents/${selectedId}/ai`),
     ]);
+    const available = new Set(insights?.available ?? []);
     const { incident, attachments, attachmentSettings, updates, history } = data;
     if (!incident) {
       detail = <p role="alert">{t("detail.notFound")}</p>;
@@ -92,7 +97,10 @@ export default async function WorkspacePage({ params, searchParams }: PageProps<
           <IncidentFacts incident={incident} settings={settings} display={display} basePath="/workspace" />
           <section aria-labelledby="conversation-heading" className="space-y-3">
             <h2 id="conversation-heading" className="text-xl font-bold">{t("conversation.title")}</h2>
-            {comments ? <ConversationList comments={comments} display={display} staff /> : <p role="alert">{t("conversation.unavailable")}</p>}
+            {comments ? (
+              <ConversationList comments={comments} display={display} staff
+                translate={available.has("translation") ? { incidentId: incident.id, csrfToken: session.data.csrfToken } : null} />
+            ) : <p role="alert">{t("conversation.unavailable")}</p>}
             {mayEdit && !closed && (
               <Composer
                 incidentId={incident.id}
@@ -101,6 +109,7 @@ export default async function WorkspacePage({ params, searchParams }: PageProps<
                 requesterLanguage={customer?.preferredLanguage ?? null}
                 responses={responses ?? []}
                 people={assignees ?? []}
+                ai={{ reply: available.has("reply"), translation: available.has("translation") }}
               />
             )}
             {closed && <p className="text-ink-muted">{t("conversation.closed")}</p>}
@@ -123,7 +132,8 @@ export default async function WorkspacePage({ params, searchParams }: PageProps<
       aside = (
         <>
           <CustomerPanel customer={customer} display={display} />
-          <AiAssistantPlaceholder />
+          <AiAssistantPanel incidentId={incident.id} insights={insights} csrfToken={session.data.csrfToken} permissions={permissions}
+            settings={settings} categories={choices.categories} groups={groups} display={display} />
         </>
       );
     }

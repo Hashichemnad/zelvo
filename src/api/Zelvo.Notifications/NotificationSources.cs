@@ -492,3 +492,54 @@ public sealed class CommentNotificationSource : INotificationSource
         return result;
     }
 }
+
+/// <summary>
+/// Frustrated requesters (task E5; product owner decision 2026-11-24): when the AI's sentiment
+/// reading of an incident turns to frustrated, the group's team leads are alerted, or the assignee
+/// when the group has no team leads (or the incident has no group).
+/// </summary>
+public sealed class SentimentNotificationSource : INotificationSource
+{
+    /// <inheritdoc />
+    public async Task<IReadOnlyList<NotificationRequest>> CollectAsync(ZelvoDbContext db, Guid? actorId, CancellationToken cancellationToken)
+    {
+        ArgumentNullException.ThrowIfNull(db);
+        var turned = db.ChangeTracker.Entries<Data.Ai.AiTicketInsight>()
+            .Where(e => e.Entity.FrustratedSince is not null
+                && (e.State == EntityState.Added || e.State == EntityState.Modified && e.Property(i => i.FrustratedSince).OriginalValue is null))
+            .Select(e => e.Entity.TicketId).ToList();
+        var result = new List<NotificationRequest>();
+        foreach (var ticketId in turned)
+        {
+            if (await SourceLookups.TicketAsync(db, ticketId, cancellationToken).ConfigureAwait(false) is not { Type: TicketType.Incident } ticket
+                || !TicketWorkflow.IsOpen(ticket.State))
+            {
+                continue;
+            }
+
+            var leads = ticket.GroupId is { } group
+                ? await db.SupportGroupMembers.AsNoTracking().Where(m => m.GroupId == group && m.IsLead).Select(m => m.UserId).ToListAsync(cancellationToken).ConfigureAwait(false)
+                : [];
+            var recipients = leads.Count > 0 ? leads : ticket.AssigneeId is { } assignee ? [assignee] : [];
+            recipients = [.. recipients.Where(r => r != actorId && r != ticket.RequesterId)];
+            if (recipients.Count == 0)
+            {
+                continue;
+            }
+
+            var priorities = await SourceLookups.PrioritiesAsync(db, [ticket.Id], cancellationToken).ConfigureAwait(false);
+            var groups = await SourceLookups.GroupNamesAsync(db, [ticket.GroupId], cancellationToken).ConfigureAwait(false);
+            var names = await SourceLookups.NamesAsync(db, [ticket.RequesterId], cancellationToken).ConfigureAwait(false);
+            result.Add(new(NotificationEvents.IncidentRequesterFrustrated, recipients, new Dictionary<string, PlaceholderValue>(StringComparer.Ordinal)
+            {
+                [Placeholders.TicketNumber] = PlaceholderValue.OfText(ticket.Number),
+                [Placeholders.TicketTitle] = PlaceholderValue.OfText(ticket.Title),
+                [Placeholders.TicketPriority] = priorities.GetValueOrDefault(ticket.Id) ?? PlaceholderValue.OfText(string.Empty),
+                [Placeholders.TicketGroup] = ticket.GroupId is { } g && groups.TryGetValue(g, out var name) ? name : PlaceholderValue.OfText(string.Empty),
+                [Placeholders.RequesterName] = PlaceholderValue.OfText(names.GetValueOrDefault(ticket.RequesterId)),
+            }, SourceLookups.WorkspacePath(ticket.Id), TicketId: ticket.Id));
+        }
+
+        return result;
+    }
+}

@@ -143,6 +143,7 @@ v1.MapFormUploadEndpoints();
 v1.MapSlaEndpoints();
 v1.MapIntegrationEndpoints();
 v1.MapAiEndpoints();
+v1.MapAiFeatureEndpoints();
 v1.MapZelvoKnowledgeEndpoints();
 v1.MapZelvoCatalogEndpoints();
 v1.MapZelvoMcp();

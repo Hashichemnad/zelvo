@@ -20,6 +20,7 @@ internal static class DemoServiceCollectionExtensions
         services.AddDemoSeeder<DemoWorkspaceSeeder>();
         services.AddDemoSeeder<DemoChannelsSeeder>();
         services.AddDemoSeeder<DemoServiceCatalogSeeder>();
+        services.AddDemoSeeder<DemoAiSeeder>();
         return services;
     }
 

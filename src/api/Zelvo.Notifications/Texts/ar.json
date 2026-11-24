@@ -87,6 +87,12 @@
       "body": "تحية طيبة، {{recipient.name}}\n\nوصل البلاغ رقم {{ticket.number}} بعنوان «{{ticket.title}}» إلى قائمة {{ticket.group}}، ولم يُسند إلى أحد بعد.\n\nالأولوية: {{ticket.priority}}\nمقدّم البلاغ: {{requester.name}}\n\nمع خالص التحية،\n{{tenant.name}}",
       "action": "فتح البلاغ"
     },
+    "incident.requester-frustrated": {
+      "subject": "مقدّم البلاغ مستاء: {{ticket.number}}",
+      "inApp": "يبدو أن {{requester.name}} مستاء في البلاغ رقم {{ticket.number}} «{{ticket.title}}».",
+      "body": "تحية طيبة، {{recipient.name}}\n\nلاحظ المساعد الذكي أن {{requester.name}} يبدو مستاءً في رسالته الأخيرة على البلاغ رقم {{ticket.number}} بعنوان «{{ticket.title}}».\n\nالأولوية: {{ticket.priority}}\nالمجموعة: {{ticket.group}}\n\nيُرجى الاطلاع على البلاغ والنظر في التواصل مع مقدّم البلاغ.\n\nمع خالص التحية،\n{{tenant.name}}",
+      "action": "فتح البلاغ"
+    },
     "sla.threshold": {
       "subject": "البلاغ رقم {{ticket.number}}: انقضى {{sla.percent}} من مدة {{sla.target}}",
       "inApp": "«{{ticket.title}}»: انقضى {{sla.percent}} من مدة {{sla.target}}، وموعدها {{sla.dueAt}}.",

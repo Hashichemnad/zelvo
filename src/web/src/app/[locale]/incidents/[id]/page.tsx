@@ -9,6 +9,7 @@ import { IncidentWorkPanel } from "@/components/incidents/IncidentWorkPanel";
 import { MajorTimeline } from "@/components/incidents/MajorTimeline";
 import { CreateArticleFromIncident } from "@/components/knowledge/NewArticle";
 import { Link } from "@/i18n/navigation";
+import { getJsonAs } from "@/lib/api";
 import { loadDirectoryChoices } from "@/lib/directory-pages";
 import { isId, loadAssignees, loadIncident } from "@/lib/incident-pages";
 import { requireSignedIn } from "@/lib/signed-in";
@@ -31,11 +32,13 @@ export default async function IncidentPage({ params }: PageProps<"/[locale]/inci
     return <p role="alert">{user ? t("noAccess") : t("unavailable")}</p>;
   }
   const token = session.data.accessToken;
-  const [data, assignees, choices] = await Promise.all([
+  const [data, assignees, choices, aiStatus] = await Promise.all([
     loadIncident(id, token, tenant, locale, { staff: true }),
     permissions.includes("incidents.assign") ? loadAssignees(token, tenant) : Promise.resolve(null),
     loadDirectoryChoices(token, tenant, permissions),
+    getJsonAs<{ features: { feature: string; available: boolean }[] }>("/api/v1/ai/status", token, tenant),
   ]);
+  const articleDraftsOn = aiStatus?.features.some((f) => f.feature === "articleDrafts" && f.available) ?? false;
   const directory = { categories: choices.categories, locations: choices.locations, groups: choices.groups ?? [] };
   const { incident, settings, attachments, attachmentSettings, updates, history, display, form } = data;
   if (!incident) {
@@ -68,7 +71,7 @@ export default async function IncidentPage({ params }: PageProps<"/[locale]/inci
       {incident.sla && <SlaClocks clocks={incident.sla} display={display} />}
       <IncidentWorkPanel incident={incident} settings={settings} csrfToken={session.data.csrfToken} permissions={permissions} assignees={assignees} directory={directory} />
       {(incident.state === "Resolved" || closed) && permissions.includes("knowledge.write") && (
-        <CreateArticleFromIncident incidentId={incident.id} csrfToken={session.data.csrfToken} />
+        <CreateArticleFromIncident incidentId={incident.id} csrfToken={session.data.csrfToken} withAi={articleDraftsOn} />
       )}
       {(incident.isMajor || updates.length > 0) && (
         <MajorTimeline

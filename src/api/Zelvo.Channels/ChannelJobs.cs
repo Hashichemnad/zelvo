@@ -502,6 +502,9 @@ public static class ChatEvents
 
     /// <summary>A ticket was made from the chat, or the chat was linked to one.</summary>
     public const string Ticket = "ticket";
+
+    /// <summary>The virtual agent passed the chat to the group's queue (task E5).</summary>
+    public const string Handover = "handover";
 }
 
 /// <summary>Worker job: removes old mailbox log entries and finished outgoing emails, every hour.</summary>

@@ -1,6 +1,6 @@
 # Email and live chat (task E2)
 
-Covers the email and live chat parts of **module 6** (omnichannel intake) of `docs/requirements.md`: email-to-ticket with threading and several mailboxes per tenant (Exchange / Microsoft 365, Gmail, IMAP/SMTP), and a live chat widget for the portal and external websites. WhatsApp, Teams and SMS come with E3; the AI virtual agent and its handover to a person with E5.
+Covers the email and live chat parts of **module 6** (omnichannel intake) of `docs/requirements.md`: email-to-ticket with threading and several mailboxes per tenant (Exchange / Microsoft 365, Gmail, IMAP/SMTP), and a live chat widget for the portal and external websites. WhatsApp, Teams and SMS come with E3. The AI virtual agent (chat state `Assistant`, sender `Assistant`, a switch per widget) and its handover to a person came with E5: see `ai-features.md`.
 
 Product owner decisions of 2026-11-24:
 
@@ -142,7 +142,7 @@ Seeder `e2-channels`: a support mailbox per sample organisation (IMAP, **turned 
 ## Not in E2
 
 - Internal notes, @mentions, canned responses and the agent workspace (B4); SignalR for the notification bell (B4).
-- The AI virtual agent in the chat and its handover (E5); one-click translation of messages (E5, LANG-7).
+- (Done in E5: the AI virtual agent in the chat and its handover, and one-click translation of chat messages; see `ai-features.md`.)
 - WhatsApp, Teams and SMS (E3).
 - Push from Microsoft Graph (subscriptions) or Gmail (Pub/Sub): they need an address the internet can reach; polling works offline.
 - Attachments in chats and in staff replies (files are attached to the incident as before).

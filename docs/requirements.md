@@ -276,6 +276,8 @@ Admins build and change the whole service catalog themselves, with a drag-and-dr
 - Virtual agent in portal and chat that answers from the knowledge base and hands over to a human.
 - Detect duplicate tickets and sentiment; escalate frustrated customers.
 - Every AI action is logged; the AI never closes or changes a ticket without a human or a rule the admin approved.
+- Triage (product owner decision 2026-11-24): the AI suggests category, priority and group and agents accept or correct; an administrator may turn on "apply triage automatically to new incidents" (off by default), the approved rule; agents' corrections are given to later suggestions as examples.
+- Frustrated customers (product owner decision 2026-11-24): the ticket shows that the requester sounds frustrated, and the team leads of its group are alerted by a notification administrators switch on or off and word in English and Arabic.
 - *Story:* As an agent, I want a suggested reply drafted from the knowledge base, so that I answer faster and consistently.
 
 **AI providers (Settings → AI)**
