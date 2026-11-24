@@ -111,6 +111,41 @@ public sealed class DemoModeTests(DatabaseFixture database) : IAsyncDisposable
     }
 
     [Fact]
+    public async Task Sample_organisations_get_calendars_sla_policies_and_clocks()
+    {
+        foreach (var organisation in new[] { DemoCatalog.Government, DemoCatalog.Company })
+        {
+            var tenant = await SeededAsync(organisation);
+            await using var db = TestData.AppContext(database, tenant);
+            var calendars = await db.BusinessCalendars.Include(c => c.Holidays).ToListAsync(Ct);
+            Assert.Equal(2, calendars.Count);
+            Assert.Contains(calendars, c => c.IsDefault && c.Holidays.Any(h => h.StartDate == new DateOnly(2026, 12, 2)));
+            Assert.Equal(2, await db.SlaPolicies.CountAsync(Ct));
+            Assert.Single(await db.CustomerGroupMembers.ToListAsync(Ct));
+            Assert.True(await db.SupportGroups.AnyAsync(g => g.CalendarId != null, Ct));
+            Assert.Equal(await db.Tickets.CountAsync(Ct) * 2, await db.TicketSlas.CountAsync(Ct));
+            Assert.True(await db.TicketSlas.AnyAsync(c => c.TargetMinutes != null && c.State == Data.Sla.SlaClockState.Running, Ct));
+        }
+    }
+
+    [Fact]
+    public async Task Every_seeder_runs_with_the_services_of_the_migrate_command()
+    {
+        // migrate seeds demo installations without the web host's services (task B3 needed one more).
+        var tenant = await database.CreateTenantAsync("seedmig");
+        await database.EnsureIdentityAsync(tenant);
+        var configuration = _demo.Services.GetRequiredService<Microsoft.Extensions.Configuration.IConfiguration>();
+        var identity = _demo.Services.GetRequiredService<Microsoft.Extensions.Options.IOptions<IdentityOptions>>().Value;
+        await using var services = Commands.MigrateCommand.DemoServices(configuration, database.AppConnectionString, identity, _demo.Keycloak);
+
+        var ran = await services.GetRequiredService<DemoSeeding>().SeedPendingAsync(DemoCatalog.Government, tenant, Ct);
+
+        Assert.Contains("b3-sla", ran);
+        await using var db = TestData.AppContext(database, tenant);
+        Assert.True(await db.TicketSlas.AnyAsync(Ct));
+    }
+
+    [Fact]
     public async Task Seeders_run_once_per_tenant()
     {
         var gov = await SeededAsync(DemoCatalog.Government);

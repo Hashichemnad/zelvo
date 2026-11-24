@@ -33,11 +33,17 @@ public static class WebhookEventTypes
     /// <summary>A role was removed.</summary>
     public const string RoleDeleted = "role.deleted";
 
+    /// <summary>A ticket reached an escalation threshold of an SLA target (task B3).</summary>
+    public const string TicketSlaThreshold = "ticket.sla.threshold";
+
+    /// <summary>A ticket passed an SLA target (task B3).</summary>
+    public const string TicketSlaBreached = "ticket.sla.breached";
+
     /// <summary>Sent only by the webhook tester; cannot be subscribed to.</summary>
     public const string Test = "webhook.test";
 
     /// <summary>Every event type a subscription can choose.</summary>
-    public static IReadOnlyList<string> All { get; } = [UserCreated, UserUpdated, UserDisabled, RoleCreated, RoleUpdated, RoleDeleted];
+    public static IReadOnlyList<string> All { get; } = [UserCreated, UserUpdated, UserDisabled, RoleCreated, RoleUpdated, RoleDeleted, TicketSlaThreshold, TicketSlaBreached];
 
     /// <summary>Whether a subscription can choose <paramref name="type"/>.</summary>
     public static bool IsSubscribable(string type) => All.Contains(type, StringComparer.Ordinal);

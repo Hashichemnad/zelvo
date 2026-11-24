@@ -361,7 +361,8 @@ internal sealed record GroupMemberResponse(
 
 /// <summary>A group with its members.</summary>
 internal sealed record GroupResponse(
-    Guid Id, LocalizedTextDto Name, LocalizedTextDto Description, bool Active, int MemberCount, int LeadCount, IReadOnlyList<GroupMemberResponse> Members)
+    Guid Id, LocalizedTextDto Name, LocalizedTextDto Description, bool Active, int MemberCount, int LeadCount, IReadOnlyList<GroupMemberResponse> Members,
+    Guid? CalendarId)
 {
     public static GroupResponse From(SupportGroup g, IReadOnlyDictionary<Guid, DateTimeOffset> rotation) => new(
         g.Id, LocalizedTextDto.From(g.Name), LocalizedTextDto.From(g.Description), g.Active, g.Members.Count, g.Members.Count(m => m.IsLead),
@@ -370,7 +371,8 @@ internal sealed record GroupResponse(
                 m.UserId, m.User?.DisplayName, m.IsLead, m.User?.AvailableForAssignment ?? false, m.User?.Languages ?? [],
                 [.. (m.User?.Skills ?? []).Where(s => s.Skill is not null).Select(s => NamedRef.From(s.SkillId, s.Skill!.Name))],
                 m.User?.Status ?? UserStatus.Disabled,
-                rotation.TryGetValue(m.UserId, out var at) ? at : null))]);
+                rotation.TryGetValue(m.UserId, out var at) ? at : null))],
+        g.CalendarId);
 }
 
 /// <summary>A new skill.</summary>

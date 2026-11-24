@@ -9,16 +9,19 @@ using Zelvo.Api.ServiceDesk;
 using Zelvo.Api.Identity;
 using Zelvo.Api.Integrations;
 using Zelvo.Api.Settings;
+using Zelvo.Api.Sla;
 using Zelvo.Api.Tenancy;
 using Zelvo.Data;
 using Zelvo.Data.Auditing;
 using Zelvo.Data.Directory;
 using Zelvo.Data.Identity;
 using Zelvo.Data.Localization;
+using Zelvo.Data.Sla;
 using Zelvo.Data.Tenancy;
 using Zelvo.Data.Tickets;
 using Zelvo.Search;
 using Zelvo.Tickets;
+using Zelvo.Tickets.Sla;
 
 namespace Zelvo.Api.Incidents;
 
@@ -30,7 +33,7 @@ namespace Zelvo.Api.Incidents;
 internal static partial class IncidentEndpoints
 {
     /// <summary>Fields left out of the requester's view of their own incident.</summary>
-    private static readonly string[] RequesterHidden = ["assignee", "impact", "urgency", "channel", "parent", "children", "nextStates", "group", "routingRule"];
+    private static readonly string[] RequesterHidden = ["assignee", "impact", "urgency", "channel", "parent", "children", "nextStates", "group", "routingRule", "sla"];
 
     private static readonly JsonSerializerOptions Json = new(JsonSerializerDefaults.Web) { Converters = { new JsonStringEnumConverter() } };
 
@@ -224,14 +227,31 @@ internal static partial class IncidentEndpoints
             tickets = tickets.Where(t => t.LocationId != null && below.Contains(t.LocationId.Value));
         }
 
-        var ordered = tickets.OrderByDescending(t => t.CreatedAt).ThenByDescending(t => t.Id);
+        // Task B3: tickets past an escalation threshold, or past a target.
+        if (staff)
+        {
+            tickets = query.Sla switch
+            {
+                "atRisk" => tickets.Where(t => db.TicketSlas.Any(c => c.TicketId == t.Id && c.State != SlaClockState.Stopped && c.BreachedAt == null && c.ReachedPercent > 0)),
+                "breached" => tickets.Where(t => db.TicketSlas.Any(c => c.TicketId == t.Id && c.BreachedAt != null)),
+                _ => tickets,
+            };
+        }
+
+        var ordered = staff && query.Sort == "due"
+            // Soonest running target first; tickets without one last.
+            ? tickets.OrderBy(t => db.TicketSlas.Where(c => c.TicketId == t.Id && c.DueAt != null).Min(c => c.DueAt) ?? DateTimeOffset.MaxValue)
+                .ThenByDescending(t => t.CreatedAt).ThenByDescending(t => t.Id)
+            : tickets.OrderByDescending(t => t.CreatedAt).ThenByDescending(t => t.Id);
         var total = await ordered.LongCountAsync(cancellationToken);
         var page = await ordered.Skip(query.Skip).Take(query.Size).ToListAsync(cancellationToken);
         var parents = await LinksAsync(db, page.Where(t => t.ParentId is not null).Select(t => t.ParentId!.Value), cancellationToken);
         var refs = await DirectoryRefs.LoadAsync(db, cancellationToken);
+        var slas = await TicketSlaView.LoadAsync(db, staff ? [.. page.Select(t => t.Id)] : [], cancellationToken);
+        var now = DateTimeOffset.UtcNow;
         var json = new JsonObject
         {
-            ["items"] = new JsonArray([.. page.Select(t => (JsonNode)View(user, t, IncidentResponse.From(t, user, parents.GetValueOrDefault(t.ParentId ?? Guid.Empty), null, [], refs)))]),
+            ["items"] = new JsonArray([.. page.Select(t => (JsonNode)View(user, t, IncidentResponse.From(t, user, parents.GetValueOrDefault(t.ParentId ?? Guid.Empty), null, [], refs, slas.For(t.Id, now))))]),
             ["page"] = query.PageNumber,
             ["pageSize"] = query.Size,
             ["totalCount"] = total,
@@ -369,6 +389,8 @@ internal static partial class IncidentEndpoints
 
         db.Tickets.Add(ticket);
         await IndexAsync(db, indexer, [ticket], cancellationToken);
+        // Task B3: the SLA clocks start with the ticket.
+        await http.RequestServices.GetRequiredService<SlaTracker>().UpdateAsync([ticket], now, cancellationToken);
         await db.SaveChangesAsync(cancellationToken);
         await transaction.CommitAsync(cancellationToken);
 
@@ -930,9 +952,16 @@ internal static partial class IncidentEndpoints
         HttpContext http, ZelvoDbContext db, CurrentUser user, ISearchIndexer indexer, Ticket ticket, List<Ticket> changed, CancellationToken cancellationToken)
     {
         await IndexAsync(db, indexer, changed, cancellationToken);
+        await using var transaction = db.Database.CurrentTransaction is null ? await db.Database.BeginTransactionAsync(cancellationToken) : null;
         try
         {
+            // Task B3: every change can move SLA clocks (state, priority, category, group).
+            await http.RequestServices.GetRequiredService<SlaTracker>().UpdateAsync(changed, DateTimeOffset.UtcNow, cancellationToken);
             await db.SaveChangesAsync(cancellationToken);
+            if (transaction is not null)
+            {
+                await transaction.CommitAsync(cancellationToken);
+            }
         }
         catch (DbUpdateConcurrencyException)
         {
@@ -962,8 +991,10 @@ internal static partial class IncidentEndpoints
             .Select(t => new TicketLinkResponse(t.Id, t.Number, t.Title, t.State)).ToListAsync(cancellationToken).ConfigureAwait(false);
         http.Response.Headers.ETag = $"\"{ticket.Version}\"";
         var refs = await DirectoryRefs.LoadAsync(db, cancellationToken).ConfigureAwait(false);
+        var slas = await TicketSlaView.LoadAsync(db, user.Has(Permissions.IncidentsRead) ? [ticket.Id] : [], cancellationToken).ConfigureAwait(false);
         return View(user, ticket, IncidentResponse.From(ticket, user,
-            links.GetValueOrDefault(ticket.ParentId ?? Guid.Empty), links.GetValueOrDefault(ticket.FollowUpOfId ?? Guid.Empty), children, refs));
+            links.GetValueOrDefault(ticket.ParentId ?? Guid.Empty), links.GetValueOrDefault(ticket.FollowUpOfId ?? Guid.Empty), children, refs,
+            slas.For(ticket.Id, DateTimeOffset.UtcNow)));
     }
 
     private static async Task<Dictionary<Guid, TicketLinkResponse>> LinksAsync(ZelvoDbContext db, IEnumerable<Guid> ids, CancellationToken cancellationToken)
@@ -1035,10 +1066,11 @@ internal sealed record IncidentResponse(
     TicketLinkResponse? Parent, TicketLinkResponse? FollowUpOf, IReadOnlyList<TicketLinkResponse> Children,
     IReadOnlyList<TicketState> NextStates, bool CanReopen,
     DateTimeOffset CreatedAt, DateTimeOffset UpdatedAt, DateTimeOffset? ResolvedAt, DateTimeOffset? ClosedAt, uint Version,
-    NodeRef? Category, NodeRef? Location, NamedRef? Group, NamedRef? RoutingRule)
+    NodeRef? Category, NodeRef? Location, NamedRef? Group, NamedRef? RoutingRule, DateTimeOffset? RespondedAt, IReadOnlyList<SlaClockResponse> Sla)
 {
     public static IncidentResponse From(
-        Ticket t, CurrentUser user, TicketLinkResponse? parent, TicketLinkResponse? followUpOf, IReadOnlyList<TicketLinkResponse> children, DirectoryRefs refs)
+        Ticket t, CurrentUser user, TicketLinkResponse? parent, TicketLinkResponse? followUpOf, IReadOnlyList<TicketLinkResponse> children, DirectoryRefs refs,
+        IReadOnlyList<SlaClockResponse> sla)
     {
         var incident = t.Incident!;
         var mayEdit = user.Has(Permissions.IncidentsEdit);
@@ -1051,7 +1083,7 @@ internal sealed record IncidentResponse(
             mayEdit ? TicketWorkflow.NextStates(t.State) : [],
             t.State == TicketState.Resolved && (mayEdit || t.RequesterId == user.Account?.Id),
             t.CreatedAt, t.UpdatedAt, t.ResolvedAt, t.ClosedAt, t.Version,
-            refs.Categories.RefOf(t.CategoryId), refs.Locations.RefOf(t.LocationId), refs.Group(t.GroupId), refs.Rule(t.RoutingRuleId));
+            refs.Categories.RefOf(t.CategoryId), refs.Locations.RefOf(t.LocationId), refs.Group(t.GroupId), refs.Rule(t.RoutingRuleId), t.RespondedAt, sla);
     }
 }
 
@@ -1153,6 +1185,14 @@ public sealed class IncidentListQuery
 
     /// <summary>Only incidents at this location or below it.</summary>
     public Guid? Location { get; init; }
+
+    /// <summary>Staff (task B3): <c>atRisk</c> (past an escalation threshold, not breached) or <c>breached</c> (past a target).</summary>
+    [AllowedValues(null, "atRisk", "breached")]
+    public string? Sla { get; init; }
+
+    /// <summary>Staff: <c>due</c> lists the soonest running SLA target first; otherwise newest first.</summary>
+    [AllowedValues(null, "due", "created")]
+    public string? Sort { get; init; }
 
     /// <summary>Page number, starting at 1.</summary>
     [Range(1, 100_000)]

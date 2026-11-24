@@ -26,11 +26,12 @@ export function IncidentSettingsForm({ initial, csrfToken }: { initial: Incident
   const [urgencies, setUrgencies] = useState<Names>(toNames(initial.priorityMatrix.urgencies));
   const [priorities, setPriorities] = useState<Names>(toNames(initial.priorityMatrix.priorities));
   const [matrix, setMatrix] = useState<number[][]>(initial.priorityMatrix.matrix.map((row) => [...row]));
-  const [reasons, setReasons] = useState<{ key: string; en: string; ar: string; active: boolean }[]>(
-    initial.onHoldReasons.map((r: OnHoldReason) => ({ key: r.key, en: r.name.en ?? "", ar: r.name.ar ?? "", active: r.active })),
+  const [reasons, setReasons] = useState<{ key: string; en: string; ar: string; active: boolean; pausesSla: boolean }[]>(
+    initial.onHoldReasons.map((r: OnHoldReason) => ({ key: r.key, en: r.name.en ?? "", ar: r.name.ar ?? "", active: r.active, pausesSla: r.pausesSla ?? false })),
   );
   const [prefix, setPrefix] = useState(initial.numberPrefixes.Incident ?? "INC");
   const [autoCloseDays, setAutoCloseDays] = useState(initial.autoCloseDays);
+  const [businessDays, setBusinessDays] = useState(initial.autoCloseBusinessDays ?? false);
   const [status, setStatus] = useState<"idle" | "saving" | "saved" | "failed" | "inUse" | "rateLimited">("idle");
 
   async function save(event: React.FormEvent) {
@@ -42,9 +43,10 @@ export function IncidentSettingsForm({ initial, csrfToken }: { initial: Incident
         "/v1/settings/incidents",
         {
           priorityMatrix: { impacts: names(impacts), urgencies: names(urgencies), priorities: names(priorities), matrix },
-          onHoldReasons: reasons.map((r) => ({ key: r.key.trim(), name: { en: r.en.trim() || null, ar: r.ar.trim() || null }, active: r.active })),
+          onHoldReasons: reasons.map((r) => ({ key: r.key.trim(), name: { en: r.en.trim() || null, ar: r.ar.trim() || null }, active: r.active, pausesSla: r.pausesSla })),
           numberPrefixes: { Incident: prefix.trim().toUpperCase() },
           autoCloseDays,
+          autoCloseBusinessDays: businessDays,
         },
         csrfToken,
       );
@@ -136,7 +138,7 @@ export function IncidentSettingsForm({ initial, csrfToken }: { initial: Incident
         </h3>
         <p className="max-w-2xl">{t("reasonsIntro")}</p>
         {reasons.map((reason, index) => (
-          <fieldset key={index} className="grid items-end gap-2 rounded-lg border border-line p-3 sm:grid-cols-[1fr_1fr_1fr_auto_auto]">
+          <fieldset key={index} className="grid items-end gap-2 rounded-lg border border-line p-3 sm:grid-cols-[1fr_1fr_1fr_auto_auto_auto]">
             <legend className="sr-only">{reason.key}</legend>
             <div>
               <label htmlFor={`${id}-reason-${index}-key`} className="block text-sm">{t("reasonKey")}</label>
@@ -157,12 +159,16 @@ export function IncidentSettingsForm({ initial, csrfToken }: { initial: Incident
               <input type="checkbox" checked={reason.active} onChange={(e) => setReasons(reasons.map((r, i) => (i === index ? { ...r, active: e.target.checked } : r)))} />
               {t("reasonActive")}
             </label>
+            <label className="flex items-center gap-2 pb-2">
+              <input type="checkbox" checked={reason.pausesSla} onChange={(e) => setReasons(reasons.map((r, i) => (i === index ? { ...r, pausesSla: e.target.checked } : r)))} />
+              {t("reasonPausesSla")}
+            </label>
             <button type="button" className={smallButton} onClick={() => setReasons(reasons.filter((_, i) => i !== index))}>
               {t("removeReason", { key: reason.key || index + 1 })}
             </button>
           </fieldset>
         ))}
-        <button type="button" className={smallButton} onClick={() => setReasons([...reasons, { key: "", en: "", ar: "", active: true }])}>
+        <button type="button" className={smallButton} onClick={() => setReasons([...reasons, { key: "", en: "", ar: "", active: true, pausesSla: false }])}>
           {t("addReason")}
         </button>
       </section>
@@ -180,6 +186,10 @@ export function IncidentSettingsForm({ initial, csrfToken }: { initial: Incident
           <label htmlFor={`${id}-days`} className="block font-semibold">{t("autoClose")}</label>
           <input id={`${id}-days`} type="number" min={1} max={365} value={autoCloseDays} onChange={(e) => setAutoCloseDays(Number(e.target.value))} aria-describedby={`${id}-days-hint`} className={inputClass} />
           <p id={`${id}-days-hint`} className="text-sm text-ink-muted">{t("autoCloseHint")}</p>
+          <label className="flex items-center gap-2">
+            <input type="checkbox" checked={businessDays} onChange={(e) => setBusinessDays(e.target.checked)} />
+            {t("autoCloseBusinessDays")}
+          </label>
         </div>
       </section>
 

@@ -195,9 +195,10 @@ internal static class TreeEndpoints
             return DirectoryProblems.InUse($"Delete or move the entries below this {kind.Singular} first, or make it inactive.");
         }
 
-        if (await db.Tickets.AnyAsync(kind.TicketUses(id), cancellationToken) || await db.AssignmentRules.AnyAsync(kind.RuleUses(id), cancellationToken))
+        if (await db.Tickets.AnyAsync(kind.TicketUses(id), cancellationToken) || await db.AssignmentRules.AnyAsync(kind.RuleUses(id), cancellationToken)
+            || (kind.Singular == "category" && await db.SlaPolicies.AnyAsync(p => p.CategoryId == id, cancellationToken)))
         {
-            return DirectoryProblems.InUse($"Tickets or assignment rules use this {kind.Singular}; make it inactive instead.");
+            return DirectoryProblems.InUse($"Tickets, assignment rules or SLA policies use this {kind.Singular}; make it inactive instead.");
         }
 
         set.Remove(node);

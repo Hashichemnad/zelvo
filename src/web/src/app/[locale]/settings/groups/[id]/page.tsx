@@ -1,5 +1,7 @@
 import { notFound } from "next/navigation";
 import { getTranslations, setRequestLocale } from "next-intl/server";
+import { GroupCalendarPicker } from "@/components/sla/GroupCalendarPicker";
+import type { BusinessCalendar } from "@/lib/sla";
 import { GroupDetailPanel } from "@/components/directory/GroupDetailPanel";
 import { Localized } from "@/components/directory/common";
 import { Link } from "@/i18n/navigation";
@@ -27,7 +29,10 @@ export default async function GroupPage({ params }: PageProps<"/[locale]/setting
   if (!user?.permissions.includes("directory.read")) {
     return <p role="alert">{tSettings(user ? "noAccess" : "unavailable")}</p>;
   }
-  const group = await getJsonAs<Group>(`/api/v1/groups/${id}`, session.data.accessToken, tenant);
+  const [group, calendars] = await Promise.all([
+    getJsonAs<Group>(`/api/v1/groups/${id}`, session.data.accessToken, tenant),
+    getJsonAs<BusinessCalendar[]>("/api/v1/sla/calendars", session.data.accessToken, tenant),
+  ]);
   if (!group) notFound();
 
   return (
@@ -37,6 +42,10 @@ export default async function GroupPage({ params }: PageProps<"/[locale]/setting
         <Localized text={group.name} locale={locale as "en" | "ar"} />
       </h2>
       <GroupDetailPanel initial={group} csrfToken={session.data.csrfToken} canManage={user.permissions.includes("directory.manage")} meId={user.id} />
+      {calendars && (
+        <GroupCalendarPicker groupId={group.id} initial={group.calendarId ?? null} calendars={calendars} csrfToken={session.data.csrfToken}
+          canManage={user.permissions.includes("sla.manage")} />
+      )}
     </section>
   );
 }

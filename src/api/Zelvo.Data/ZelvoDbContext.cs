@@ -10,6 +10,7 @@ using Zelvo.Data.Localization;
 using Zelvo.Data.Search;
 using Zelvo.Data.Secrets;
 using Zelvo.Data.Settings;
+using Zelvo.Data.Sla;
 using Zelvo.Data.Tenancy;
 using Zelvo.Data.Tickets;
 
@@ -127,6 +128,36 @@ public sealed class ZelvoDbContext(DbContextOptions<ZelvoDbContext> options) : D
     /// <summary>Article views per viewer and day.</summary>
     public DbSet<KbArticleView> KbArticleViews => Set<KbArticleView>();
 
+    /// <summary>Business calendars (task B3, GOV-7).</summary>
+    public DbSet<BusinessCalendar> BusinessCalendars => Set<BusinessCalendar>();
+
+    /// <summary>Working periods of calendars.</summary>
+    public DbSet<BusinessCalendarPeriod> BusinessCalendarPeriods => Set<BusinessCalendarPeriod>();
+
+    /// <summary>Holidays of calendars.</summary>
+    public DbSet<BusinessCalendarHoliday> BusinessCalendarHolidays => Set<BusinessCalendarHoliday>();
+
+    /// <summary>Customer groups for SLA policies (task B3).</summary>
+    public DbSet<CustomerGroup> CustomerGroups => Set<CustomerGroup>();
+
+    /// <summary>Requesters added to customer groups by hand.</summary>
+    public DbSet<CustomerGroupMember> CustomerGroupMembers => Set<CustomerGroupMember>();
+
+    /// <summary>SLA policies, in order (task B3).</summary>
+    public DbSet<SlaPolicy> SlaPolicies => Set<SlaPolicy>();
+
+    /// <summary>Targets of SLA policies per priority.</summary>
+    public DbSet<SlaPolicyTarget> SlaPolicyTargets => Set<SlaPolicyTarget>();
+
+    /// <summary>Escalation thresholds of SLA policies.</summary>
+    public DbSet<SlaEscalation> SlaEscalations => Set<SlaEscalation>();
+
+    /// <summary>SLA clocks of tickets.</summary>
+    public DbSet<TicketSla> TicketSlas => Set<TicketSla>();
+
+    /// <summary>Thresholds tickets reached, for notifications (B5).</summary>
+    public DbSet<SlaAlert> SlaAlerts => Set<SlaAlert>();
+
     /// <summary>AI provider connections (module 9).</summary>
     public DbSet<AiProvider> AiProviders => Set<AiProvider>();
 
@@ -207,6 +238,7 @@ public sealed class ZelvoDbContext(DbContextOptions<ZelvoDbContext> options) : D
         ConfigureSearch(modelBuilder);
         ConfigureDirectory(modelBuilder);
         ConfigureTickets(modelBuilder);
+        ConfigureSla(modelBuilder);
         ConfigureIntegrations(modelBuilder);
         ConfigureAi(modelBuilder);
         ConfigureKnowledge(modelBuilder);
@@ -259,6 +291,7 @@ public sealed class ZelvoDbContext(DbContextOptions<ZelvoDbContext> options) : D
             group.Property(g => g.Version).IsRowVersion();
             group.HasMany(g => g.Members).WithOne().HasForeignKey(m => m.GroupId).OnDelete(DeleteBehavior.Cascade);
             group.HasIndex(g => g.TenantId);
+            group.HasOne<BusinessCalendar>().WithMany().HasForeignKey(g => g.CalendarId).OnDelete(DeleteBehavior.Restrict);
         });
 
         modelBuilder.Entity<SupportGroupMember>(member =>
@@ -436,6 +469,156 @@ public sealed class ZelvoDbContext(DbContextOptions<ZelvoDbContext> options) : D
             update.ConfigureLocalizedText(u => u.Body, "body", MajorIncidentUpdate.BodyMaxLength);
             update.Property(u => u.Audience).HasConversion<string>().HasMaxLength(20);
             update.HasIndex(u => new { u.TenantId, u.TicketId, u.PostedAt });
+        });
+    }
+
+    private static void ConfigureSla(ModelBuilder modelBuilder)
+    {
+        modelBuilder.Entity<BusinessCalendar>(calendar =>
+        {
+            calendar.ToTable("business_calendars");
+            calendar.HasKey(c => c.Id);
+            calendar.Property(c => c.Id).ValueGeneratedNever();
+            calendar.HasOne<Tenant>().WithMany().HasForeignKey(c => c.TenantId).OnDelete(DeleteBehavior.Restrict);
+            calendar.ConfigureLocalizedText(c => c.Name, "name", BusinessCalendar.NameMaxLength);
+            calendar.Property(c => c.TimeZone).HasMaxLength(BusinessCalendar.TimeZoneMaxLength);
+            calendar.Property(c => c.Version).IsRowVersion();
+            calendar.HasMany(c => c.Periods).WithOne().HasForeignKey(p => p.CalendarId).OnDelete(DeleteBehavior.Cascade);
+            calendar.HasMany(c => c.Holidays).WithOne().HasForeignKey(h => h.CalendarId).OnDelete(DeleteBehavior.Cascade);
+            calendar.HasIndex(c => c.TenantId);
+            // At most one default per tenant.
+            calendar.HasIndex(c => c.TenantId, "ux_business_calendars_default").IsUnique().HasFilter("is_default");
+        });
+
+        modelBuilder.Entity<BusinessCalendarPeriod>(period =>
+        {
+            period.ToTable("business_calendar_periods", table =>
+            {
+                table.HasCheckConstraint("ck_business_calendar_periods_day", "day BETWEEN 0 AND 6");
+                table.HasCheckConstraint("ck_business_calendar_periods_minutes",
+                    $"start_minute >= 0 AND end_minute <= {BusinessCalendarPeriod.MinutesPerDay} AND start_minute < end_minute");
+            });
+            period.HasKey(p => p.Id);
+            period.Property(p => p.Id).ValueGeneratedNever();
+            period.HasIndex(p => new { p.TenantId, p.CalendarId });
+        });
+
+        modelBuilder.Entity<BusinessCalendarHoliday>(holiday =>
+        {
+            holiday.ToTable("business_calendar_holidays", table =>
+                table.HasCheckConstraint("ck_business_calendar_holidays_dates", "start_date <= end_date"));
+            holiday.HasKey(h => h.Id);
+            holiday.Property(h => h.Id).ValueGeneratedNever();
+            holiday.ConfigureLocalizedText(h => h.Name, "name", BusinessCalendarHoliday.NameMaxLength);
+            holiday.HasIndex(h => new { h.TenantId, h.CalendarId, h.StartDate });
+        });
+
+        modelBuilder.Entity<CustomerGroup>(group =>
+        {
+            group.ToTable("customer_groups");
+            group.HasKey(g => g.Id);
+            group.Property(g => g.Id).ValueGeneratedNever();
+            group.HasOne<Tenant>().WithMany().HasForeignKey(g => g.TenantId).OnDelete(DeleteBehavior.Restrict);
+            group.ConfigureLocalizedText(g => g.Name, "name", CustomerGroup.NameMaxLength);
+            group.Property(g => g.EmailDomains).HasColumnType("text[]").HasDefaultValueSql("'{}'");
+            group.Property(g => g.Version).IsRowVersion();
+            group.HasMany(g => g.Members).WithOne().HasForeignKey(m => m.GroupId).OnDelete(DeleteBehavior.Cascade);
+            group.HasIndex(g => g.TenantId);
+        });
+
+        modelBuilder.Entity<CustomerGroupMember>(member =>
+        {
+            member.ToTable("customer_group_members");
+            member.HasKey(m => new { m.GroupId, m.UserId });
+            member.HasOne(m => m.User).WithMany().HasForeignKey(m => m.UserId).OnDelete(DeleteBehavior.Cascade);
+            member.HasIndex(m => new { m.TenantId, m.UserId });
+        });
+
+        modelBuilder.Entity<SlaPolicy>(policy =>
+        {
+            policy.ToTable("sla_policies", table =>
+                table.HasCheckConstraint("ck_sla_policies_record_type", EnumCheck("record_type", Enum.GetNames<TicketType>())));
+            policy.HasKey(p => p.Id);
+            policy.Property(p => p.Id).ValueGeneratedNever();
+            policy.HasOne<Tenant>().WithMany().HasForeignKey(p => p.TenantId).OnDelete(DeleteBehavior.Restrict);
+            policy.ConfigureLocalizedText(p => p.Name, "name", SlaPolicy.NameMaxLength);
+            policy.Property(p => p.RecordType).HasConversion<string>().HasMaxLength(30);
+            policy.Property(p => p.Version).IsRowVersion();
+            policy.HasOne<Category>().WithMany().HasForeignKey(p => p.CategoryId).OnDelete(DeleteBehavior.Restrict);
+            policy.HasOne<CustomerGroup>().WithMany().HasForeignKey(p => p.CustomerGroupId).OnDelete(DeleteBehavior.Restrict);
+            policy.HasOne<BusinessCalendar>().WithMany().HasForeignKey(p => p.CalendarId).OnDelete(DeleteBehavior.Restrict);
+            policy.HasMany(p => p.Targets).WithOne().HasForeignKey(t => t.PolicyId).OnDelete(DeleteBehavior.Cascade);
+            policy.HasMany(p => p.Escalations).WithOne().HasForeignKey(e => e.PolicyId).OnDelete(DeleteBehavior.Cascade);
+            policy.HasIndex(p => new { p.TenantId, p.Position });
+        });
+
+        modelBuilder.Entity<SlaPolicyTarget>(target =>
+        {
+            target.ToTable("sla_policy_targets", table =>
+            {
+                table.HasCheckConstraint("ck_sla_policy_targets_priority", "priority BETWEEN 1 AND 9");
+                table.HasCheckConstraint("ck_sla_policy_targets_minutes",
+                    $"(response_minutes IS NULL OR response_minutes BETWEEN 1 AND {SlaPolicyTarget.MaxMinutes})"
+                    + $" AND (resolution_minutes IS NULL OR resolution_minutes BETWEEN 1 AND {SlaPolicyTarget.MaxMinutes})");
+            });
+            target.HasKey(t => new { t.PolicyId, t.Priority });
+            target.HasIndex(t => t.TenantId);
+        });
+
+        modelBuilder.Entity<SlaEscalation>(escalation =>
+        {
+            escalation.ToTable("sla_escalations", table =>
+            {
+                table.HasCheckConstraint("ck_sla_escalations_metric", EnumCheck("metric", Enum.GetNames<SlaMetric>()));
+                table.HasCheckConstraint("ck_sla_escalations_percent", $"percent BETWEEN 1 AND {SlaEscalation.MaxPercent}");
+            });
+            escalation.HasKey(e => e.Id);
+            escalation.Property(e => e.Id).ValueGeneratedNever();
+            escalation.Property(e => e.Metric).HasConversion<string>().HasMaxLength(20);
+            escalation.HasOne<SupportGroup>().WithMany().HasForeignKey(e => e.NotifyGroupId).OnDelete(DeleteBehavior.Restrict);
+            escalation.HasIndex(e => new { e.TenantId, e.PolicyId });
+        });
+
+        modelBuilder.Entity<TicketSla>(sla =>
+        {
+            sla.ToTable("ticket_slas", table =>
+            {
+                table.HasCheckConstraint("ck_ticket_slas_metric", EnumCheck("metric", Enum.GetNames<SlaMetric>()));
+                table.HasCheckConstraint("ck_ticket_slas_state", EnumCheck("state", Enum.GetNames<SlaClockState>()));
+                table.HasCheckConstraint("ck_ticket_slas_elapsed", "elapsed_seconds >= 0");
+            });
+            sla.HasKey(s => s.Id);
+            sla.Property(s => s.Id).ValueGeneratedNever();
+            sla.Property(s => s.Metric).HasConversion<string>().HasMaxLength(20);
+            sla.Property(s => s.State).HasConversion<string>().HasMaxLength(20);
+            sla.HasOne<Ticket>().WithMany().HasForeignKey(s => s.TicketId).OnDelete(DeleteBehavior.Cascade);
+            // A deleted policy or calendar leaves the clock without one; the next change of the ticket finds another.
+            sla.HasOne<SlaPolicy>().WithMany().HasForeignKey(s => s.PolicyId).OnDelete(DeleteBehavior.SetNull);
+            sla.HasOne<BusinessCalendar>().WithMany().HasForeignKey(s => s.CalendarId).OnDelete(DeleteBehavior.SetNull);
+            sla.HasIndex(s => new { s.TicketId, s.Metric }).IsUnique();
+            sla.HasIndex(s => new { s.TenantId, s.TicketId });
+            // The timer job looks for running clocks that are due a look.
+            sla.HasIndex(s => new { s.TenantId, s.NextCheckAt }, "ix_ticket_slas_due").HasFilter("next_check_at IS NOT NULL");
+        });
+
+        modelBuilder.Entity<SlaAlert>(alert =>
+        {
+            alert.ToTable("sla_alerts", table =>
+            {
+                table.HasCheckConstraint("ck_sla_alerts_metric", EnumCheck("metric", Enum.GetNames<SlaMetric>()));
+                table.HasCheckConstraint("ck_sla_alerts_percent", $"percent BETWEEN 1 AND {SlaEscalation.MaxPercent}");
+            });
+            alert.HasKey(a => a.Id);
+            alert.Property(a => a.Id).ValueGeneratedNever();
+            alert.Property(a => a.Metric).HasConversion<string>().HasMaxLength(20);
+            alert.Property(a => a.RecipientIds).HasColumnType("uuid[]").HasDefaultValueSql("'{}'");
+            alert.HasOne<Ticket>().WithMany().HasForeignKey(a => a.TicketId).OnDelete(DeleteBehavior.Cascade);
+            alert.HasOne<TicketSla>().WithMany().HasForeignKey(a => a.TicketSlaId).OnDelete(DeleteBehavior.Cascade);
+            // Each threshold once per clock.
+            alert.HasIndex(a => new { a.TicketSlaId, a.Percent }).IsUnique();
+            alert.HasIndex(a => new { a.TenantId, a.TicketId });
+            // Notifications (B5) pick up alerts not delivered yet.
+            alert.HasIndex(a => new { a.TenantId, a.ReachedAt }, "ix_sla_alerts_undelivered").HasFilter("delivered_at IS NULL");
         });
     }
 

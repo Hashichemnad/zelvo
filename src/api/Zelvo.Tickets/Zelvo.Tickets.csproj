@@ -9,6 +9,7 @@
   <ItemGroup>
     <ProjectReference Include="..\Zelvo.Data\Zelvo.Data.csproj" />
     <ProjectReference Include="..\Zelvo.Search\Zelvo.Search.csproj" />
+    <ProjectReference Include="..\Zelvo.Integrations\Zelvo.Integrations.csproj" />
   </ItemGroup>
   <ItemGroup>
     <InternalsVisibleTo Include="Zelvo.Api.Tests" />

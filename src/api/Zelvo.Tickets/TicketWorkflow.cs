@@ -73,6 +73,14 @@ public static class TicketWorkflow
         }
 
         ticket.OnHoldReason = to == TicketState.OnHold ? onHoldReason!.Trim() : null;
+
+        // The first response stops the response clock (task B3; product owner decision 2026-11-24):
+        // starting work, or resolving before anyone started.
+        if (to is TicketState.InProgress or TicketState.Resolved)
+        {
+            ticket.RespondedAt ??= now;
+        }
+
         switch (to)
         {
             case TicketState.Resolved:

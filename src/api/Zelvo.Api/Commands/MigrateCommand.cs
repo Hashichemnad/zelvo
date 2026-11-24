@@ -143,16 +143,7 @@ internal static partial class MigrateCommand
             return 2;
         }
 
-        var services = new ServiceCollection();
-        services.AddSingleton(configuration);
-        services.AddZelvoData(app);
-        services.AddScoped<TenantSettingsStore>();
-        // Sample records go to the search index through the outbox, like any change.
-        services.AddScoped<Zelvo.Search.ISearchIndexer, Zelvo.Search.SearchIndexer>();
-        services.AddSingleton(admin);
-        services.AddSingleton(Options.Create(identity));
-        services.AddZelvoDemo();
-        await using var provider = services.BuildServiceProvider();
+        await using var provider = DemoServices(configuration, app, identity, admin);
         var seeding = provider.GetRequiredService<DemoSeeding>();
         foreach (var tenant in tenants)
         {
@@ -165,6 +156,21 @@ internal static partial class MigrateCommand
         }
 
         return 0;
+    }
+
+    /// <summary>The services the demo seeders run with in <c>migrate</c> (no web host, no worker).</summary>
+    internal static ServiceProvider DemoServices(IConfiguration configuration, string appConnection, IdentityOptions identity, IKeycloakAdmin admin)
+    {
+        var services = new ServiceCollection();
+        services.AddSingleton(configuration);
+        services.AddZelvoData(appConnection);
+        services.AddScoped<TenantSettingsStore>();
+        // Sample records go to the search index through the outbox, like any change.
+        services.AddScoped<Zelvo.Search.ISearchIndexer, Zelvo.Search.SearchIndexer>();
+        services.AddSingleton(admin);
+        services.AddSingleton(Options.Create(identity));
+        services.AddZelvoDemo();
+        return services.BuildServiceProvider();
     }
 
     private static async Task WaitForKeycloakAsync(KeycloakRealmProvisioner realms, ILogger logger)

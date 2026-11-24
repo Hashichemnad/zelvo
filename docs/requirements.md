@@ -243,6 +243,10 @@ Admins build and change the whole service catalog themselves, with a drag-and-dr
 - SLA policies by priority, category, customer group and record type (incident, request, complaint and so on).
 - Business calendars with UAE weekends and public holidays, per tenant and per team.
 - Response and resolution targets, pause on "waiting for customer", escalations at configurable thresholds.
+- Customer groups (2026-11-24): administrators create them (bilingual names); a requester belongs to a group when their email domain is one of its domains or when an administrator adds them by name. A requester can be in several groups; SLA policies are ordered and the first match wins.
+- Response target (2026-11-24): met when a staff member moves the ticket to In progress (or resolves it first); from the agent workspace (module 5) a staff public reply also counts, whichever comes first.
+- Escalations (2026-11-24): each threshold names who to alert (the assignee, the group's team leads, another group). Zelvo records the alert on the ticket, audits it, sends a webhook event and lists the ticket as at risk; notifications (module 10) deliver the alerts.
+- Business calendar of a ticket (2026-11-24): the assigned group's calendar when it has one, otherwise the SLA policy's calendar, otherwise the tenant default. When the group changes, the remaining time is counted on the new calendar.
 - *Story:* As a team lead, I want to be alerted when a ticket reaches 75% of its SLA, so that I can act before it breaches.
 
 ### 9. AI capabilities (included)
