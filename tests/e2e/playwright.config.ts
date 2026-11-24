@@ -1,7 +1,7 @@
 import { defineConfig, devices } from "@playwright/test";
 
 /** Specs that change tenant-wide settings; each runs in its own project, one after another. */
-const tenantWide = [/settings\.spec\.ts/, /uae-pass\.spec\.ts/, /integrations\.spec\.ts/, /directory\.spec\.ts/, /sla\.spec\.ts/, /ai\.spec\.ts/, /knowledge\.spec\.ts/, /mcp\.spec\.ts/, /notifications\.spec\.ts/, /forms\.spec\.ts/];
+const tenantWide = [/settings\.spec\.ts/, /uae-pass\.spec\.ts/, /integrations\.spec\.ts/, /directory\.spec\.ts/, /sla\.spec\.ts/, /ai\.spec\.ts/, /knowledge\.spec\.ts/, /mcp\.spec\.ts/, /notifications\.spec\.ts/, /forms\.spec\.ts/, /channels\.spec\.ts/];
 
 /** Demo mode needs the demo installation (`make demo`); `make e2e-demo` runs it with E2E_DEMO=1. */
 const demo = /demo\.spec\.ts/;
@@ -98,6 +98,13 @@ export default defineConfig({
           use: { ...devices["Desktop Chrome"] },
           testMatch: /forms\.spec\.ts/,
           dependencies: ["notifications"],
+        },
+        // Live chat (task E2) adds a group and a portal chat widget; after the form builder, on its own.
+        {
+          name: "channels",
+          use: { ...devices["Desktop Chrome"] },
+          testMatch: /channels\.spec\.ts/,
+          dependencies: ["forms"],
         },
       ],
 });

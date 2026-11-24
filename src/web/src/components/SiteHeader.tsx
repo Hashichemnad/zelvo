@@ -21,6 +21,7 @@ export async function SiteHeader() {
   const tIncidents = await getTranslations("incidents.nav");
   const tKnowledge = await getTranslations("knowledge.nav");
   const tApprovals = await getTranslations("aiApprovals");
+  const tChats = await getTranslations("channels.agent");
   const config = await getRequestAuthConfig();
   const session = await getSession(config).catch(() => null);
   const user = session ? await getCurrentUser(session.data.accessToken, config.tenant) : null;
@@ -73,6 +74,13 @@ export async function SiteHeader() {
                     <li>
                       <Link href="/knowledge" className="text-brand underline-offset-4 hover:underline">
                         {tKnowledge("knowledge")}
+                      </Link>
+                    </li>
+                  )}
+                  {user.permissions.includes("chat.handle") && (
+                    <li>
+                      <Link href="/chats" className="text-brand underline-offset-4 hover:underline">
+                        {tChats("nav")}
                       </Link>
                     </li>
                   )}

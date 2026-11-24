@@ -1,0 +1,19 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <RootNamespace>Zelvo.Channels</RootNamespace>
+    <Description>Zelvo omnichannel intake (module 6, task E2): mailboxes read over IMAP, Microsoft Graph or the Gmail API that turn emails into tickets and threads, replies sent from the ticket's mailbox, and the worker jobs for mailboxes, outgoing replies and idle live chats.</Description>
+  </PropertyGroup>
+  <ItemGroup>
+    <PackageReference Include="Microsoft.Extensions.Hosting.Abstractions" />
+    <PackageReference Include="MailKit" />
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\Zelvo.Data\Zelvo.Data.csproj" />
+    <ProjectReference Include="..\Zelvo.Tickets\Zelvo.Tickets.csproj" />
+    <ProjectReference Include="..\Zelvo.Integrations\Zelvo.Integrations.csproj" />
+    <ProjectReference Include="..\Zelvo.Secrets\Zelvo.Secrets.csproj" />
+  </ItemGroup>
+  <ItemGroup>
+    <InternalsVisibleTo Include="Zelvo.Api.Tests" />
+  </ItemGroup>
+</Project>

@@ -7,6 +7,8 @@ using Zelvo.Data;
 using Zelvo.Data.Auditing;
 using Zelvo.Data.Identity;
 
+using Zelvo.Tickets;
+
 namespace Zelvo.Api.Identity;
 
 /// <summary>
@@ -95,6 +97,12 @@ internal sealed class CurrentUserMiddleware(RequestDelegate next)
         var now = DateTimeOffset.UtcNow;
 
         var account = await Query(db).SingleOrDefaultAsync(u => u.Subject == subject, cancellationToken).ConfigureAwait(false);
+        if (account is null && email is not null && string.Equals(principal.FindFirstValue("email_verified"), "true", StringComparison.OrdinalIgnoreCase)
+            && await ClaimContactAsync(db, auditContext, email, subject, cancellationToken).ConfigureAwait(false) is { } claimed)
+        {
+            return claimed;
+        }
+
         if (account is null)
         {
             var requester = await db.Roles.SingleAsync(r => r.Key == BuiltInRoles.Requester, cancellationToken).ConfigureAwait(false);
@@ -154,6 +162,37 @@ internal sealed class CurrentUserMiddleware(RequestDelegate next)
         }
 
         return account;
+    }
+
+    /// <summary>
+    /// Task E2: people who wrote by email or chat before they ever signed in have an account made
+    /// for their address. Their first sign-in with that address verified takes it over, with their
+    /// tickets.
+    /// </summary>
+    private static async Task<UserAccount?> ClaimContactAsync(
+        ZelvoDbContext db, AuditContext auditContext, string email, string subject, CancellationToken cancellationToken)
+    {
+        var contact = await ContactAccounts.FindByEmailAsync(db, email, cancellationToken).ConfigureAwait(false);
+        if (contact is null || !ContactAccounts.IsContact(contact))
+        {
+            return null;
+        }
+
+        contact.Subject = subject;
+        contact.LastSeenAt = DateTimeOffset.UtcNow;
+        contact.UpdatedAt = DateTimeOffset.UtcNow;
+        auditContext.SetActor(AuditActorType.User, contact.Id.ToString(), contact.DisplayName ?? contact.Email);
+        try
+        {
+            await db.SaveChangesAsync(cancellationToken).ConfigureAwait(false);
+        }
+        catch (DbUpdateException)
+        {
+            // Another request claimed it or made the account first.
+            db.ChangeTracker.Clear();
+        }
+
+        return await Query(db).SingleOrDefaultAsync(u => u.Subject == subject, cancellationToken).ConfigureAwait(false);
     }
 
     private static IQueryable<UserAccount> Query(ZelvoDbContext db) => db.Users

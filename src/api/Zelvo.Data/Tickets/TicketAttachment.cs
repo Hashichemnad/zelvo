@@ -38,6 +38,8 @@ public sealed class TicketAttachment : ITenantOwned, IAuditedEntity
 
     /// <summary>Maximum length of <see cref="FormFieldKey"/>.</summary>
     public const int FormFieldKeyMaxLength = 60;
+    /// <summary>The conversation message it came with (task E2: email attachments).</summary>
+    public Guid? MessageId { get; init; }
 
     /// <summary>File name as uploaded, cleaned of paths and control characters.</summary>
     public required string FileName { get; init; }

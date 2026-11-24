@@ -125,6 +125,12 @@ public sealed class SupportGroup : ITenantOwned, IAuditedEntity
     /// <summary>The team's business hours for SLA clocks (task B3); <see langword="null"/>: the SLA policy's or the tenant default.</summary>
     public Guid? CalendarId { get; set; }
 
+    /// <summary>Most live chats one member answers at a time (task E2, default 3).</summary>
+    public int ChatLimit { get; set; } = DefaultChatLimit;
+
+    /// <summary>Default of <see cref="ChatLimit"/>.</summary>
+    public const int DefaultChatLimit = 3;
+
     /// <summary>Members of the group.</summary>
     public List<SupportGroupMember> Members { get; init; } = [];
 

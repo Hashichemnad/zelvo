@@ -42,7 +42,8 @@ async function forward(request: NextRequest, { params }: { params: Promise<{ pat
   // polling), so they end when the browser goes away rather than after the usual timeout.
   const live = path[1] === "live";
   const headers = new Headers();
-  for (const name of ["content-type", "accept", "accept-language", "if-match", ...(live ? ["x-requested-with", "x-signalr-user-agent"] : [])]) {
+  // The chat token proves a visitor's chat is theirs (task E2).
+  for (const name of ["content-type", "accept", "accept-language", "if-match", "x-chat-token", ...(live ? ["x-requested-with", "x-signalr-user-agent"] : [])]) {
     const value = request.headers.get(name);
     if (value) {
       headers.set(name, value);

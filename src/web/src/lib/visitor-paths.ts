@@ -12,6 +12,9 @@ export function isVisitorPath(method: string, path: string[]): boolean {
   if (version !== "v1" || rest.length > 0) {
     return false;
   }
+  if (area === "chat") {
+    return isChatVisitorPath(method, kind, id, sub, subId);
+  }
   if (area === "settings" && kind === "knowledge" && id === undefined) {
     return method === "GET";
   }
@@ -32,4 +35,34 @@ export function isVisitorPath(method: string, path: string[]): boolean {
     );
   }
   return kind === "articles" && method === "GET" && id !== undefined && uuid.test(id) && sub === "images" && subId !== undefined && uuid.test(subId);
+}
+
+/**
+ * Live chat (task E2): the portal's widget, a widget's public details, starting a chat, leaving a
+ * message, the visitor's own chat (the API checks its token), watch keys and the hub's signals.
+ */
+function isChatVisitorPath(method: string, kind?: string, id?: string, sub?: string, subId?: string): boolean {
+  if (subId !== undefined) {
+    return false;
+  }
+  if (kind === "portal-widget") {
+    return method === "GET" && id === undefined;
+  }
+  if (kind === "watch") {
+    return method === "POST" && id === undefined;
+  }
+  if (kind === "hub") {
+    // SignalR: negotiate, then the server-sent events stream (GET) or long polling, and sends (POST).
+    return (id === undefined && (method === "GET" || method === "POST")) || (id === "negotiate" && method === "POST" && sub === undefined);
+  }
+  if (id === undefined || !uuid.test(id)) {
+    return false;
+  }
+  if (kind === "widgets") {
+    return (sub === "public" && method === "GET") || ((sub === "sessions" || sub === "offline-messages") && method === "POST");
+  }
+  if (kind === "sessions") {
+    return (sub === undefined && method === "GET") || ((sub === "messages" || sub === "end") && method === "POST");
+  }
+  return false;
 }

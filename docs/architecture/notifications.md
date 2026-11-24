@@ -34,6 +34,8 @@ worker NotificationDispatcher (every 2 s, per tenant, lease + SKIP LOCKED)  ▼
    | `incident.assigned` | The new assignee | The assignee changes (on creation too), unless they assigned themselves |
    | `incident.queued` | Members of the group | An incident arrives in a group with nobody assigned (created, or moved to another group) |
    | `sla.threshold`, `sla.breached` | The recipients B3 recorded on the `sla_alerts` row | A threshold is reached; 100 % is the breach |
+   | `incident.reply` | The requester | Staff write in the incident's conversation (task E2) |
+   | `incident.requester-replied` | The assignee, else the group's members | The requester writes in the conversation (portal, email or chat; task E2) |
    | `knowledge.review-requested` | Active people with `knowledge.publish`, except the version's creator, last editor and submitter (four-eyes rule) | A version is submitted for review |
    | `incident.replied` (B4) | The requester | A staff member posts a public reply on their incident |
    | `incident.mentioned` (B4) | The people mentioned | Someone @mentions them in a reply or internal note (links to the workspace) |
@@ -108,6 +110,10 @@ Compose sends to Mailpit (`http://localhost:8025`) without TLS; `ZELVO_SMTP_*` i
 
 Seeder `b5-notifications` queues "received" for each sample incident's requester and "assigned" for each assignee, so every persona finds notifications; the worker writes them and emails them to Mailpit. When "Reset demo" runs in the API, saving the sample incidents already raised them and the seeder adds nothing.
 
+## Email tickets (task E2)
+
+Requester notifications of tickets that came in by email go out **from the ticket's mailbox** in the same email thread (`outbound_emails`, sent by the worker's mail job) instead of the installation's mail server, with the same wording in the requester's language; staff replies to them go out even when `incident.reply` is switched off. See `channels.md`.
+
 ## Channels later
 
 `IEmailSender` is the email channel; SMS, WhatsApp and Teams arrive with module 6 (E3) as further channels of the same pipeline, with their own templates (the template table is per event today; a channel column is added then). The bell follows live updates over SignalR since B4 (`workspace.md`): it hears when the person's notifications change and polls only as a fallback.
@@ -118,3 +124,4 @@ Seeder `b5-notifications` queues "received" for each sample incident's requester
 - Logo letterhead, a tenant's own sender domain and branded colours (F1); both calendars on official letters (F1 letterhead option).
 - Digests and quiet hours (not in the requirements).
 - Notifications for B4's public replies and mentions: added with B4 (`incident.replied`, `incident.mentioned`; see `workspace.md`).
+- Notifications for B4's internal notes and mentions (added with B4; public replies came with E2).

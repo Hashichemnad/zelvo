@@ -272,3 +272,24 @@ export async function getDemo(tenant: string): Promise<DemoInfo | null> {
     return null;
   }
 }
+
+/**
+ * Websites that may frame a chat widget (task E2), for the widget page's frame-ancestors policy;
+ * cached for a minute. None when the widget is unknown or the API cannot be reached.
+ */
+export async function getWidgetOrigins(tenant: string, widgetId: string): Promise<string[]> {
+  try {
+    const response = await fetch(new URL(`/api/v1/chat/widgets/${encodeURIComponent(widgetId)}/public`, apiBaseUrl), {
+      next: { revalidate: 60 },
+      signal: AbortSignal.timeout(timeoutMs),
+      headers: { Accept: "application/json", "X-Zelvo-Tenant": tenant },
+    });
+    if (!response.ok) return [];
+    const widget = (await response.json()) as { allowedOrigins?: unknown };
+    return Array.isArray(widget.allowedOrigins)
+      ? widget.allowedOrigins.filter((o): o is string => typeof o === "string" && /^https?:\/\/[a-z0-9.:-]+$/i.test(o))
+      : [];
+  } catch {
+    return [];
+  }
+}

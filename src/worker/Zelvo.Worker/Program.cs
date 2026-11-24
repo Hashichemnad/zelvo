@@ -1,4 +1,5 @@
 using Zelvo.Ai;
+using Zelvo.Channels;
 using Zelvo.Data;
 using Zelvo.Integrations;
 using Zelvo.Licensing;
@@ -15,7 +16,8 @@ using Zelvo.Worker;
 // deliveries with retries and removes integration records past their retention. SLA timers,
 // other integrations and AI features arrive with their modules. AI (E4): clears the text of AI log
 // entries past their retention. Notifications (B5): renders notifications in each recipient's
-// language, sends their emails with retries and removes old ones.
+// language, sends their emails with retries and removes old ones. Email and chat (E2): reads
+// mailboxes, sends replies from the ticket's mailbox, ends chats their visitors left.
 var builder = Host.CreateApplicationBuilder(args);
 
 // Traces, metrics and logs over OTLP when OTEL_EXPORTER_OTLP_ENDPOINT is set (A5).
@@ -34,6 +36,8 @@ builder.Services.AddZelvoAiJobs(builder.Configuration);
 builder.Services.AddZelvoSearchPipeline(builder.Configuration, new Uri(Required(builder.Configuration, "ConnectionStrings:RabbitMq")));
 builder.Services.AddZelvoTicketJobs(builder.Configuration);
 builder.Services.AddZelvoNotificationJobs(builder.Configuration);
+// Email and chat (E2): reads mailboxes into tickets, sends replies from them, ends idle chats.
+builder.Services.AddZelvoChannelJobs(builder.Configuration);
 
 builder.Build().Run();
 

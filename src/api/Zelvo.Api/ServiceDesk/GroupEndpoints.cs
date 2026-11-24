@@ -169,7 +169,7 @@ internal static class GroupEndpoints
             return DirectoryProblems.NameTaken();
         }
 
-        var group = new SupportGroup { Name = name, Description = description, Active = request.Active ?? true };
+        var group = new SupportGroup { Name = name, Description = description, Active = request.Active ?? true, ChatLimit = request.ChatLimit ?? SupportGroup.DefaultChatLimit };
         db.SupportGroups.Add(group);
         await db.SaveChangesAsync(cancellationToken);
         return TypedResults.Created($"/api/v1/groups/{group.Id}", (await LoadAsync(db, group.Id, cancellationToken))!);
@@ -221,6 +221,7 @@ internal static class GroupEndpoints
         }
 
         group.Active = request.Active ?? group.Active;
+        group.ChatLimit = request.ChatLimit ?? group.ChatLimit;
         group.UpdatedAt = DateTimeOffset.UtcNow;
         await db.SaveChangesAsync(cancellationToken);
         return TypedResults.Ok((await LoadAsync(db, id, cancellationToken))!);
@@ -362,7 +363,7 @@ internal sealed record GroupMemberResponse(
 /// <summary>A group with its members.</summary>
 internal sealed record GroupResponse(
     Guid Id, LocalizedTextDto Name, LocalizedTextDto Description, bool Active, int MemberCount, int LeadCount, IReadOnlyList<GroupMemberResponse> Members,
-    Guid? CalendarId)
+    Guid? CalendarId, int ChatLimit)
 {
     public static GroupResponse From(SupportGroup g, IReadOnlyDictionary<Guid, DateTimeOffset> rotation) => new(
         g.Id, LocalizedTextDto.From(g.Name), LocalizedTextDto.From(g.Description), g.Active, g.Members.Count, g.Members.Count(m => m.IsLead),
@@ -372,7 +373,7 @@ internal sealed record GroupResponse(
                 [.. (m.User?.Skills ?? []).Where(s => s.Skill is not null).Select(s => NamedRef.From(s.SkillId, s.Skill!.Name))],
                 m.User?.Status ?? UserStatus.Disabled,
                 rotation.TryGetValue(m.UserId, out var at) ? at : null))],
-        g.CalendarId);
+        g.CalendarId, g.ChatLimit);
 }
 
 /// <summary>A new skill.</summary>
@@ -406,6 +407,10 @@ public sealed class GroupRequest
     /// <summary>What the group does (either language may be blank).</summary>
     public UpdateDescription? Description { get; init; }
 
+    /// <summary>Live chats one member answers at a time, 1 to 20 (task E2; default 3).</summary>
+    [Range(1, 20)]
+    public int? ChatLimit { get; init; }
+
     /// <summary>Active (default true).</summary>
     public bool? Active { get; init; }
 }
@@ -418,6 +423,10 @@ public sealed class UpdateGroupRequest
 
     /// <summary>New description (blank languages remove it).</summary>
     public UpdateDescription? Description { get; init; }
+
+    /// <summary>Live chats one member answers at a time, 1 to 20 (task E2; default 3).</summary>
+    [Range(1, 20)]
+    public int? ChatLimit { get; init; }
 
     /// <summary>Active or inactive.</summary>
     public bool? Active { get; init; }

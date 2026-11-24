@@ -25,6 +25,8 @@ export interface SettingsSection {
     | "knowledge"
     | "notifications"
     | "cannedResponses"
+    | "mailboxes"
+    | "liveChat"
     | "search"
     | "integrations"
     | "ai"
@@ -58,6 +60,8 @@ export const settingsSections: readonly SettingsSection[] = [
   { key: "notifications", href: "/settings/notifications", permission: "notifications.manage" },
   // Task B4: everyone who works on incidents keeps their own; leads and administrators share them.
   { key: "cannedResponses", href: "/settings/canned-responses", permission: "incidents.edit" },
+  { key: "mailboxes", href: "/settings/mailboxes", permission: "channels.manage" },
+  { key: "liveChat", href: "/settings/chat", permission: "channels.manage" },
   { key: "search", href: "/settings/search", permission: "search.manage" },
   { key: "integrations", href: "/settings/integrations", permission: "integrations.manage" },
   { key: "ai", href: "/settings/ai", permission: "ai.manage" },
