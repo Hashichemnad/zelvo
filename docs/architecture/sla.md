@@ -3,7 +3,7 @@
 Covers **module 8** (SLA management) and **GOV-7** (UAE business calendar) of `docs/requirements.md`. Product owner decisions of 2026-11-24:
 
 1. **Customer groups** are made by administrators (bilingual names). A requester belongs to a group when their email address is in one of the group's domains, or when an administrator adds them by name. A requester can be in several groups; the first matching SLA policy wins.
-2. **The response clock** stops when a staff member moves the ticket to In progress, or resolves it first. From B4 a staff public reply also counts, whichever comes first.
+2. **The response clock** stops when a staff member moves the ticket to In progress, or resolves it first. From B4 a staff public reply also counts, whichever comes first (built: `workspace.md`).
 3. **Escalations:** each threshold says who to alert (the assignee, the group's team leads, the members of another group). B3 records the alert on the ticket, audits it, sends a webhook event and shows the ticket as at risk. Notifications (B5) deliver the alerts.
 4. **Calendar of a ticket:** the assigned group's calendar when the group has one, else the SLA policy's calendar, else the tenant default. When the group changes, the remaining time is counted on the new calendar.
 
@@ -93,7 +93,7 @@ Calendars, periods, holidays, customer groups and members, policies, targets, es
 - **Settings → Customer groups:** domains and people added by name.
 - **Settings → Groups → a group:** its business hours.
 - **Settings → Incidents:** "Pauses SLA clocks" per on-hold reason; "Count working days" for auto-close.
-- **Incidents:** an SLA column (the most urgent clock and when it is due), filters at risk and breached, soonest due first, and a link to open incidents at risk. The incident page shows both clocks: status, target, time used with a progress bar, due, breach and stop times, policy and business hours. Live timers come with B4.
+- **Incidents:** an SLA column (the most urgent clock and when it is due), filters at risk and breached, soonest due first, and a link to open incidents at risk. The incident page shows both clocks: status, target, time used with a progress bar, due, breach and stop times, policy and business hours. Live timers are in the agent workspace (B4, `workspace.md`).
 - English and Arabic, right to left, Hijri dates and Arabic-Indic digits as the user chooses, WCAG 2.2 AA (axe checks in `tests/e2e/specs/sla.spec.ts`).
 
 ## Demo data
@@ -108,7 +108,7 @@ Calendars, periods, holidays, customer groups and members, policies, targets, es
 
 ## Not in B3
 
-- Live timers over SignalR in the agent workspace (B4); public replies as a response (B4). Delivering the alerts by email and in-app is now built (B5, `notifications.md`): each new `sla_alerts` row notifies its recipients and `delivered_at` is set when the first notification is out.
+- Live timers over SignalR in the agent workspace and public replies as a response: built in B4 (`workspace.md`). Delivering the alerts by email and in-app is now built (B5, `notifications.md`): each new `sla_alerts` row notifies its recipients and `delivered_at` is set when the first notification is out.
 - SLAs of service requests, complaints, inquiries and suggestions: the model takes any record type (`sla_policies.record_type`); C4 and C6 add their record types and service-specific targets.
 - Special working hours for a period (for example shorter hours in Ramadan) and half-day holidays: holidays are whole days. To confirm with the product owner.
 - SLA compliance dashboards (F2).
