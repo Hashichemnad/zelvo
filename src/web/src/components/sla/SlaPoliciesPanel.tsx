@@ -304,7 +304,7 @@ export function SlaPoliciesPanel({ initial, choices, csrfToken, canManage, displ
       <section aria-labelledby={`${id}-list`} className="space-y-3">
         <h3 id={`${id}-list`} className="text-xl font-bold">{t("list")}</h3>
         <p className="max-w-2xl">{t("listIntro")}</p>
-        {!catchAll && <p className="text-warn" role="note">{t("noCatchAll")}</p>}
+        {!catchAll && <p className="rounded-md border border-warn bg-surface px-3 py-2 text-warn" role="note">{t("noCatchAll")}</p>}
         {policies.length === 0 ? (
           <p>{t("none")}</p>
         ) : (

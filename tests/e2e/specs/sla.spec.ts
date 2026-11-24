@@ -92,12 +92,13 @@ test.describe("SLA management", () => {
     await expectAccessible(page);
     await policy.getByRole("button", { name: "Save policy" }).click();
     await expect(page.getByTestId("sla-policies")).toContainText(policyName);
-    // Policies are tried in order: move it first.
+    // Policies are tried in order: move it first (buttons are disabled while an order change saves).
     const moveUp = page.getByRole("button", { name: `Move ${policyName} up` });
-    while (await moveUp.isEnabled()) {
-      await moveUp.click();
-      await page.waitForTimeout(300);
-    }
+    const first = page.getByTestId("sla-policies").getByRole("listitem").first();
+    await expect(async () => {
+      if (!(await first.textContent())?.includes(policyName) && (await moveUp.isEnabled())) await moveUp.click();
+      await expect(first).toContainText(policyName, { timeout: 2_000 });
+    }).toPass({ timeout: 30_000 });
     await page.getByLabel("Category", { exact: true }).last().selectOption({ label: category });
     await page.getByRole("button", { name: "Try", exact: true }).click();
     await expect(page.getByTestId("sla-test-result")).toContainText(`Policy ${policyName}, business hours: ${calendarName}.`);
@@ -144,8 +145,11 @@ test.describe("SLA management", () => {
       await expect(page.getByText("Assigned", { exact: true }).first()).toBeVisible({ timeout: 3_000 });
     }).toPass({ timeout: 30_000 });
     await page.getByRole("button", { name: "Start work" }).click();
-    await page.reload();
-    await expect(page.getByTestId("sla-clocks").getByText("Response: Met")).toBeVisible();
+    await expect(page.getByText("In progress", { exact: true }).first()).toBeVisible();
+    await expect(async () => {
+      await page.reload();
+      await expect(page.getByTestId("sla-clocks").getByText("Response: Met")).toBeVisible({ timeout: 3_000 });
+    }).toPass({ timeout: 30_000 });
 
     // Put things back.
     await page.goto("/en/settings/sla-policies");

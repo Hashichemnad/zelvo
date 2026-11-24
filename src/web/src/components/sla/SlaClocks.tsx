@@ -7,7 +7,7 @@ import { formatDuration, slaTone, type SlaClock } from "@/lib/sla";
 export function SlaBadge({ clock }: { clock: SlaClock }) {
   const t = useTranslations("sla.clock");
   return (
-    <span className={`inline-block rounded-full border px-2 py-0.5 text-xs font-semibold ${slaTone[clock.status]}`}>
+    <span className={`inline-block rounded-full border bg-surface px-2 py-0.5 text-xs font-semibold ${slaTone[clock.status]}`}>
       {t(`metrics.${clock.metric}`)}: {t(`status.${clock.status}`)}
     </span>
   );
