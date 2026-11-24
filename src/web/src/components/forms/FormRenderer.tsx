@@ -195,7 +195,7 @@ function Control(props: ControlProps) {
     case "Checkbox":
       return (
         <input {...common} type="checkbox" checked={value === true} disabled={state.readOnly}
-          onChange={(e) => set(e.target.checked)} className="size-5 accent-brand" />
+          onChange={(e) => set(e.target.checked)} className="size-6 shrink-0 accent-brand" />
       );
     case "Radio":
       return (
@@ -203,7 +203,7 @@ function Control(props: ControlProps) {
           {(field.options ?? []).map((option) => (
             <label key={option.value} className="flex items-center gap-2">
               <input type="radio" name={control.id} value={option.value} checked={value === option.value} disabled={state.readOnly}
-                onChange={() => set(option.value)} className="size-4 accent-brand" />
+                onChange={() => set(option.value)} className="size-6 shrink-0 accent-brand" />
               <FormText text={option.label} locale={contentLocale} />
             </label>
           ))}
@@ -217,7 +217,7 @@ function Control(props: ControlProps) {
             {(field.options ?? []).map((option) => (
               <label key={option.value} className="flex items-center gap-2">
                 <input type="checkbox" checked={chosen.includes(option.value)} disabled={state.readOnly}
-                  onChange={(e) => set(e.target.checked ? [...chosen, option.value] : chosen.filter((c) => c !== option.value))} className="size-4 accent-brand" />
+                  onChange={(e) => set(e.target.checked ? [...chosen, option.value] : chosen.filter((c) => c !== option.value))} className="size-6 shrink-0 accent-brand" />
                 <FormText text={option.label} locale={contentLocale} />
               </label>
             ))}
@@ -449,7 +449,7 @@ function SignatureControl({ field, value, set, state, control, csrfToken, previe
               onChange={() => {
                 setMode(m);
                 set(null);
-              }} className="size-4 accent-brand" />
+              }} className="size-6 shrink-0 accent-brand" />
             {t(m === "draw" ? "signatureDraw" : "signatureType")}
           </label>
         ))}
@@ -480,7 +480,7 @@ function SignatureControl({ field, value, set, state, control, csrfToken, previe
             onChange={(e) => set({ typedName: e.target.value, confirmed: current?.confirmed === true })} className={`${fieldInput} max-w-md`} />
           <label className="flex items-center gap-2">
             <input type="checkbox" disabled={state.readOnly} checked={current?.confirmed === true}
-              onChange={(e) => set({ typedName: typeof current?.typedName === "string" ? current.typedName : "", confirmed: e.target.checked })} className="size-4 accent-brand" />
+              onChange={(e) => set({ typedName: typeof current?.typedName === "string" ? current.typedName : "", confirmed: e.target.checked })} className="size-6 shrink-0 accent-brand" />
             {t("signatureConfirm")}
           </label>
         </div>
@@ -528,7 +528,7 @@ function TableControl(props: ControlProps) {
                     <td key={c.key} className="border border-line p-1 align-top">
                       {c.type === "Checkbox" ? (
                         <input id={cellId} type="checkbox" aria-label={cellLabel} checked={cell === true} disabled={state.readOnly}
-                          onChange={(e) => setCell(i, c.key, e.target.checked)} className="size-4 accent-brand" />
+                          onChange={(e) => setCell(i, c.key, e.target.checked)} className="size-6 shrink-0 accent-brand" />
                       ) : c.type === "Dropdown" ? (
                         <select id={cellId} aria-label={cellLabel} value={typeof cell === "string" ? cell : ""} disabled={state.readOnly}
                           aria-invalid={cellErrors.length > 0 || undefined} onChange={(e) => setCell(i, c.key, e.target.value || null)} className={fieldInput}>

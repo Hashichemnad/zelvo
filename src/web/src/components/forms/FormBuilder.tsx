@@ -76,7 +76,7 @@ function PaletteItem({ type, label, onAdd }: { type: FieldType; label: string; o
     <li className="flex items-center gap-1">
       <button type="button" ref={setNodeRef} {...listeners} {...attributes} aria-label={t("dragNew", { type: label })}
         style={{ transform: CSS.Translate.toString(transform), opacity: isDragging ? 0.6 : 1 }}
-        className="cursor-grab rounded border border-line px-1.5 text-ink-muted" aria-roledescription={t("draggable")}>
+        className="min-h-6 min-w-6 cursor-grab rounded border border-line px-1.5 text-ink-muted" aria-roledescription={t("draggable")}>
         ⋮⋮
       </button>
       <button type="button" className={`${fieldButton} flex-1 text-start`} onClick={onAdd}>
@@ -118,7 +118,7 @@ function CanvasItem({
       className={`rounded-lg border p-3 ${selected ? "border-brand bg-surface-muted" : "border-line bg-surface"}`} data-testid="canvas-item">
       <div className="flex items-start gap-2">
         <button type="button" {...attributes} {...listeners} aria-label={t("dragMove", { name: title })} aria-roledescription={t("sortable")}
-          className="cursor-grab rounded border border-line px-1.5 text-ink-muted">
+          className="min-h-6 min-w-6 cursor-grab rounded border border-line px-1.5 text-ink-muted">
           ⋮⋮
         </button>
         <button type="button" onClick={onSelect} aria-pressed={selected} className="flex-1 text-start focus-visible:outline-2 focus-visible:outline-brand">

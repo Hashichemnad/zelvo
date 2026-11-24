@@ -175,10 +175,10 @@ function Toggle({ label, hint, checked, disabled, onChange }: { label: string; h
     <div>
       <label className="flex items-center gap-2">
         <input type="checkbox" checked={checked} disabled={disabled} aria-describedby={hint ? `${id}-hint` : undefined}
-          onChange={(e) => onChange(e.target.checked)} className="size-4 accent-brand" />
+          onChange={(e) => onChange(e.target.checked)} className="size-6 shrink-0 accent-brand" />
         {label}
       </label>
-      {hint && <p id={`${id}-hint`} className="ms-6 text-sm text-ink-muted">{hint}</p>}
+      {hint && <p id={`${id}-hint`} className="ms-8 text-sm text-ink-muted">{hint}</p>}
     </div>
   );
 }
@@ -216,7 +216,7 @@ function DefaultValueInput({ id, field, onChange }: { id: string; field: FormFie
     case "Checkbox":
       return (
         <label className="flex items-center gap-2">
-          <input id={id} type="checkbox" checked={value === true} onChange={(e) => onChange(e.target.checked ? true : undefined)} className="size-4 accent-brand" />
+          <input id={id} type="checkbox" checked={value === true} onChange={(e) => onChange(e.target.checked ? true : undefined)} className="size-6 shrink-0 accent-brand" />
           {t("defaultTicked")}
         </label>
       );
