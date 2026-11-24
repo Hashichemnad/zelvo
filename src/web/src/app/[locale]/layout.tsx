@@ -36,7 +36,7 @@ export default async function LocaleLayout({ children, params }: LayoutProps<"/[
         </a>
         <NextIntlClientProvider>
           <SiteHeader />
-          <main id="main" className="mx-auto w-full max-w-5xl flex-1 px-4 py-10">
+          <main id="main" className="mx-auto w-full max-w-5xl flex-1 px-4 py-10 has-[[data-layout=wide]]:max-w-none has-[[data-layout=wide]]:py-4">
             {children}
           </main>
           <PoweredByFooter />

@@ -38,8 +38,11 @@ async function forward(request: NextRequest, { params }: { params: Promise<{ pat
   }
 
   const target = `/api/${path.map(encodeURIComponent).join("/")}${request.nextUrl.search}`;
+  // Live updates (task B4): the SignalR connection's requests are long (Server-Sent Events, long
+  // polling), so they end when the browser goes away rather than after the usual timeout.
+  const live = path[1] === "live";
   const headers = new Headers();
-  for (const name of ["content-type", "accept", "accept-language", "if-match"]) {
+  for (const name of ["content-type", "accept", "accept-language", "if-match", ...(live ? ["x-requested-with", "x-signalr-user-agent"] : [])]) {
     const value = request.headers.get(name);
     if (value) {
       headers.set(name, value);
@@ -49,6 +52,7 @@ async function forward(request: NextRequest, { params }: { params: Promise<{ pat
     method: request.method,
     headers,
     body: changes ? await request.arrayBuffer() : undefined,
+    ...(live ? { signal: request.signal } : {}),
   });
 
   // A saved profile language applies on this device right away (LANG-2).
@@ -74,6 +78,13 @@ async function forward(request: NextRequest, { params }: { params: Promise<{ pat
 
   const result = new NextResponse(response.status === 204 ? null : response.body, { status: response.status });
   copyHeaders(response, result);
+  if (live) {
+    // Stream events as they come; proxies in front of the web app must not buffer them.
+    result.headers.set("x-accel-buffering", "no");
+    if (!result.headers.has("cache-control")) {
+      result.headers.set("cache-control", "no-cache");
+    }
+  }
   return result;
 }
 

@@ -56,11 +56,18 @@ export async function SiteHeader() {
                     </Link>
                   </li>
                   {user.permissions.includes("incidents.read") && (
-                    <li>
-                      <Link href="/incidents" className="text-brand underline-offset-4 hover:underline">
-                        {tIncidents("incidents")}
-                      </Link>
-                    </li>
+                    <>
+                      <li>
+                        <Link href="/workspace" className="text-brand underline-offset-4 hover:underline">
+                          {tIncidents("workspace")}
+                        </Link>
+                      </li>
+                      <li>
+                        <Link href="/incidents" className="text-brand underline-offset-4 hover:underline">
+                          {tIncidents("incidents")}
+                        </Link>
+                      </li>
+                    </>
                   )}
                   {isKnowledgeStaff(user.permissions) && (
                     <li>
@@ -83,7 +90,7 @@ export async function SiteHeader() {
           </div>
           <div className="flex flex-wrap items-center gap-3">
             {user && unread && (
-              <NotificationBell initialCount={unread.count} locale={await getLocale()} digits={toDigitSystem(user.preferences.effective.digits)} />
+              <NotificationBell initialCount={unread.count} csrfToken={session?.data.csrfToken} locale={await getLocale()} digits={toDigitSystem(user.preferences.effective.digits)} />
             )}
             <AccountMenu
               userName={session ? (session.data.name ?? session.data.email ?? session.data.subject) : null}

@@ -1,30 +1,40 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { useTranslations } from "next-intl";
 import { Link } from "@/i18n/navigation";
 import { getJson } from "@/lib/client-api";
 import { formatNumber, type DigitSystem } from "@/lib/format";
+import { useLive } from "@/lib/live";
 
-/** How often the bell asks for the unread count. Live updates over SignalR come with the agent workspace (B4). */
+/** How often the bell asks for the unread count while live updates are not connected. */
 export const bellPollMilliseconds = 30_000;
+
+/** How often it still asks while live updates are connected, in case one was missed. */
+export const bellLivePollMilliseconds = 300_000;
 
 export interface NotificationBellProps {
   /** Unread count when the page was rendered. */
   initialCount: number;
+  /** The session's CSRF token, for the live updates connection (task B4); without it the bell only polls. */
+  csrfToken?: string | null;
   locale: string;
   digits: DigitSystem;
 }
 
 /**
- * The header's link to the notifications page with the unread count. The count is checked every
- * 30 seconds while the page is visible, and a change is announced to screen readers politely.
+ * The header's link to the notifications page with the unread count. The count follows live
+ * updates (task B4) and is also checked every 30 seconds while they are not connected (every five
+ * minutes while they are) when the page is visible. A change is announced to screen readers politely.
  */
-export function NotificationBell({ initialCount, locale, digits }: NotificationBellProps) {
+export function NotificationBell({ initialCount, csrfToken, locale, digits }: NotificationBellProps) {
   const t = useTranslations("notifications.bell");
   const [count, setCount] = useState(initialCount);
   const [announcement, setAnnouncement] = useState("");
   const last = useRef(initialCount);
+
+  const notify = useCallback(() => window.dispatchEvent(new Event("zelvo:notifications-changed")), []);
+  const live = useLive(csrfToken ?? null, { notificationsChanged: notify });
 
   useEffect(() => {
     let stopped = false;
@@ -43,7 +53,7 @@ export function NotificationBell({ initialCount, locale, digits }: NotificationB
         // Signed out or offline: keep the last count.
       }
     }
-    const timer = window.setInterval(refresh, bellPollMilliseconds);
+    const timer = window.setInterval(refresh, live === "live" ? bellLivePollMilliseconds : bellPollMilliseconds);
     const onChange = () => void refresh();
     window.addEventListener("zelvo:notifications-changed", onChange);
     return () => {
@@ -51,7 +61,7 @@ export function NotificationBell({ initialCount, locale, digits }: NotificationB
       window.clearInterval(timer);
       window.removeEventListener("zelvo:notifications-changed", onChange);
     };
-  }, [t]);
+  }, [t, live]);
 
   return (
     <>
