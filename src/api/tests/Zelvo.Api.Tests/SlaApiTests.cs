@@ -206,6 +206,9 @@ public sealed class SlaApiTests(DatabaseFixture database) : IAsyncDisposable
             Assert.DoesNotContain(await db.WebhookDeliveries.Select(d => d.Payload).ToListAsync(Ct), p => p.Contains('@', StringComparison.Ordinal));
         }
 
+        // The receiver does not exist: remove the queued deliveries, so later tests' webhook runs never meet them.
+        await database.ExecuteAsOwnerAsync("DELETE FROM webhook_deliveries WHERE tenant_id = @t", ("t", tenant.Id));
+
         var breached = await asAgent.SendOkAsync(HttpMethod.Get, "/api/v1/incidents?sla=breached&open=true");
         Assert.Equal(1, (int)breached["totalCount"]!);
         Assert.Equal("Breached", (string)(await asAgent.GetIncidentAsync(id)).Clock("Response")["status"]!);
