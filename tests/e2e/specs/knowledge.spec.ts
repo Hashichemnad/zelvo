@@ -29,7 +29,8 @@ test.describe("knowledge base", () => {
     await completeSecondFactor(page, devUser("agent"));
     await expect(page).toHaveURL(/\/(en|ar)\/account$/);
     await page.goto("/en/knowledge");
-    await expect(page.getByTestId("knowledge-list").or(page.getByText("No articles match."))).toBeVisible();
+    // The list is always shown, with "No articles match." when it is empty.
+    await expect(page.getByTestId("knowledge-list")).toBeVisible();
     await expectAccessible(page);
     await page.getByRole("link", { name: "New article" }).click();
     const editor = page.getByTestId("article-editor");
