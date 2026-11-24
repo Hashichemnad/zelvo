@@ -75,9 +75,12 @@ test.describe("notifications", () => {
       if ((await received.getByRole("button", { name: "Edit wording" }).count()) > 0) await received.getByRole("button", { name: "Edit wording" }).click();
       await expect(received.getByRole("button", { name: "Preview in Arabic" })).toBeVisible({ timeout: 2_000 });
     }).toPass({ timeout: 30_000 });
+    // The wording editor, checked before the preview: the preview shows the email in a sandboxed
+    // iframe (no scripts), which axe cannot enter, so a check with it on the page never finishes.
+    await expectAccessible(admin);
     await received.getByRole("button", { name: "Preview in Arabic" }).click();
     await expect(received.getByTestId("preview-subject")).toHaveText("بلاغ رقم INC-000123: تم استلام بلاغكم");
-    await expectAccessible(admin);
+    await expect(received.getByTitle("Email as it will look")).toHaveAttribute("sandbox", "");
 
     await admin.goto("/en/settings/notifications/deliveries");
     await expect(admin.getByTestId("delivery-log").getByRole("row").filter({ hasText: number }).first()).toBeVisible();
