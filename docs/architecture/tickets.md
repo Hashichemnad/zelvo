@@ -33,7 +33,7 @@ New ──assign──▶ Assigned ──▶ In progress ⇄ On hold (reason)
 
 - Assigning a new incident makes it Assigned; removing the assignee of an Assigned incident makes it New again. Starting work needs an assignee.
 - On hold needs an **active** on-hold reason (tenant setting `incidents.onHoldReasons`; reasons in use can be made inactive but not removed). Resolving needs resolution notes.
-- **Reopening:** the requester or an agent can reopen a resolved incident until it closes. **Auto-close:** the worker (`TicketAutoCloseJob`, every minute) closes incidents that stayed resolved for the tenant's period (`tickets.autoCloseDays`, 5 calendar days by default; business days come with B3 calendars). **Closed is final**: nothing changes any more; a follow-up is a new incident with `followUpOfId` pointing to the closed one.
+- **Reopening:** the requester or an agent can reopen a resolved incident until it closes. **Auto-close:** the worker (`TicketAutoCloseJob`, every minute) closes incidents that stayed resolved for the tenant's period (`tickets.autoCloseDays`, 5 calendar days by default; with `tickets.autoCloseBusinessDays` the days are working days of the default business calendar, task B3). **Closed is final**: nothing changes any more; a follow-up is a new incident with `followUpOfId` pointing to the closed one.
 - **Parent and child** (one level): a parent has no parent, a child has no children. Resolving a parent resolves its open children with the same notes (module 1 story).
 - **Major incidents:** holders of `incidents.major` (team leads, administrators) declare or stand down a major incident and post bilingual updates to its timeline, for staff only or also for requesters. Requesters of the incident **and of its child incidents** see the updates meant for them.
 
@@ -101,6 +101,6 @@ Administrators (`settings.manage`) edit the matrix (level names in English and A
 
 ## Not in B1
 
-- Groups, categories, locations, skills and assignment rules or round-robin (B2, now built: see `directory-assignment.md`); SLA timers and business calendars (B3); the one-screen agent workspace, public replies and internal notes (B4); notifications about incidents and timeline updates (B5); creating incidents from email, chat and WhatsApp (E2, E3) and API keys for integrations (E1). The data model already records the channel.
+- Groups, categories, locations, skills and assignment rules or round-robin (B2, now built: see `directory-assignment.md`); SLA timers and business calendars (B3, now built: see `sla.md`); the one-screen agent workspace, public replies and internal notes (B4); notifications about incidents and timeline updates (B5); creating incidents from email, chat and WhatsApp (E2, E3) and API keys for integrations (E1). The data model already records the channel.
 - A search box on the incident list (the search API already finds incidents).
 - Importing malware definitions in Settings (F4) and S3-compatible attachment storage (F6).
