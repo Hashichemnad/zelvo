@@ -59,13 +59,14 @@ test.describe("form builder", () => {
     await expect(page).toHaveURL(/\/en\/settings\/forms\/[0-9a-f-]{36}$/);
     await expectAccessible(page);
 
-    const properties = page.locator("section", { has: page.getByRole("heading", { name: "Properties" }) });
+    // The builder's right-hand pane (a region named by its heading), not the page around it.
+    const properties = page.getByRole("region", { name: "Properties", exact: true });
     await page.getByRole("button", { name: "Add Checkbox" }).click();
-    await properties.getByLabel("Key").fill("addMonitor");
+    await properties.getByLabel("Key", { exact: true }).fill("addMonitor");
     await properties.getByLabel("In English").first().fill("Add a monitor");
     await properties.getByLabel("In Arabic").first().fill("إضافة شاشة");
     await page.getByRole("button", { name: "Add Dropdown" }).click();
-    await properties.getByLabel("Key").fill("monitorSize");
+    await properties.getByLabel("Key", { exact: true }).fill("monitorSize");
     await properties.getByLabel("In English").first().fill("Monitor size");
     await properties.getByLabel("In Arabic").first().fill("حجم الشاشة");
     await properties.getByLabel("English label of option 1").fill("27 inch");
@@ -78,23 +79,24 @@ test.describe("form builder", () => {
     await expect(page.getByText("Draft saved.")).toBeVisible();
 
     // Preview on mobile, in Arabic: the rule works there too.
-    await page.getByRole("button", { name: "Preview" }).click();
-    await page.getByRole("button", { name: "Mobile" }).click();
-    await page.getByRole("button", { name: "العربية" }).click();
+    await page.getByRole("button", { name: "Preview", exact: true }).click();
+    await page.getByRole("group", { name: "Screen" }).getByRole("button", { name: "Mobile" }).click();
+    // The header's language switch says العربية too; this one only changes the preview.
+    await page.getByRole("group", { name: "Language", exact: true }).getByRole("button", { name: "العربية" }).click();
     const preview = page.getByTestId("preview-mobile");
     await expect(preview.getByLabel("حجم الشاشة")).toHaveCount(0);
     await preview.getByLabel("إضافة شاشة").check();
     await expect(preview.getByLabel(/حجم الشاشة/)).toBeVisible();
     await expectAccessible(page);
 
-    await page.getByRole("button", { name: "Publish" }).click();
+    await page.getByRole("button", { name: "Publish", exact: true }).click();
     await expect(page.getByText("Published. New tickets use this version.")).toBeVisible();
 
     // Use it for the category.
     await page.goto("/en/settings/forms");
     const bind = page.getByRole("form", { name: "Use this form" });
-    await bind.getByLabel("Category").selectOption({ label: category });
-    await bind.getByLabel("Form").selectOption({ label: `Monitor request ${stamp}` });
+    await bind.getByLabel("Category", { exact: true }).selectOption({ label: category });
+    await bind.getByLabel("Form", { exact: true }).selectOption({ label: `Monitor request ${stamp}` });
     await bind.getByRole("button", { name: "Use this form" }).click();
     await expect(page.getByRole("cell", { name: category })).toBeVisible();
 
