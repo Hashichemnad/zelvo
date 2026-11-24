@@ -2034,6 +2034,263 @@ namespace Zelvo.Data.Migrations
                         });
                 });
 
+            modelBuilder.Entity("Zelvo.Data.Mcp.McpAction", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<Guid>("ApiClientId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("api_client_id");
+
+                    b.Property<bool>("ApprovalRequired")
+                        .HasColumnType("boolean")
+                        .HasColumnName("approval_required");
+
+                    b.Property<string>("Arguments")
+                        .IsRequired()
+                        .HasColumnType("jsonb")
+                        .HasColumnName("arguments");
+
+                    b.Property<DateTimeOffset?>("CompletedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("completed_at");
+
+                    b.Property<DateTimeOffset?>("DecidedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("decided_at");
+
+                    b.Property<Guid?>("DecidedById")
+                        .HasColumnType("uuid")
+                        .HasColumnName("decided_by_id");
+
+                    b.Property<string>("DecisionNote")
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)")
+                        .HasColumnName("decision_note");
+
+                    b.Property<string>("Error")
+                        .HasMaxLength(1000)
+                        .HasColumnType("character varying(1000)")
+                        .HasColumnName("error");
+
+                    b.Property<string>("ErrorCode")
+                        .HasMaxLength(64)
+                        .HasColumnType("character varying(64)")
+                        .HasColumnName("error_code");
+
+                    b.Property<DateTimeOffset?>("ExpiresAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("expires_at");
+
+                    b.Property<string>("Permission")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)")
+                        .HasColumnName("permission");
+
+                    b.Property<DateTimeOffset>("RequestedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("requested_at");
+
+                    b.Property<string>("Result")
+                        .HasColumnType("jsonb")
+                        .HasColumnName("result");
+
+                    b.Property<string>("Status")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("character varying(20)")
+                        .HasColumnName("status");
+
+                    b.Property<string>("Summary")
+                        .IsRequired()
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)")
+                        .HasColumnName("summary");
+
+                    b.Property<Guid>("TenantId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("tenant_id");
+
+                    b.Property<Guid?>("TicketId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("ticket_id");
+
+                    b.Property<string>("Tool")
+                        .IsRequired()
+                        .HasMaxLength(64)
+                        .HasColumnType("character varying(64)")
+                        .HasColumnName("tool");
+
+                    b.Property<uint>("Version")
+                        .IsConcurrencyToken()
+                        .ValueGeneratedOnAddOrUpdate()
+                        .HasColumnType("xid")
+                        .HasColumnName("xmin");
+
+                    b.HasKey("Id")
+                        .HasName("pk_mcp_actions");
+
+                    b.HasIndex("DecidedById")
+                        .HasDatabaseName("ix_mcp_actions_decided_by_id");
+
+                    b.HasIndex("TicketId")
+                        .HasDatabaseName("ix_mcp_actions_ticket_id");
+
+                    b.HasIndex("ApiClientId", "RequestedAt")
+                        .HasDatabaseName("ix_mcp_actions_api_client_id_requested_at");
+
+                    b.HasIndex("TenantId", "Status", "RequestedAt")
+                        .HasDatabaseName("ix_mcp_actions_tenant_id_status_requested_at");
+
+                    b.ToTable("mcp_actions", null, t =>
+                        {
+                            t.HasCheckConstraint("ck_mcp_actions_expiry", "NOT approval_required OR expires_at IS NOT NULL");
+
+                            t.HasCheckConstraint("ck_mcp_actions_status", "status IN ('Pending', 'Rejected', 'Expired', 'Succeeded', 'Failed')");
+
+                            t.HasCheckConstraint("ck_mcp_actions_tool", "tool ~ '^[a-z][a-z0-9_]*$'");
+                        });
+                });
+
+            modelBuilder.Entity("Zelvo.Data.Mcp.McpAgent", b =>
+                {
+                    b.Property<Guid>("ApiClientId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("api_client_id");
+
+                    b.Property<DateTimeOffset>("CreatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("created_at");
+
+                    b.Property<Guid>("TenantId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("tenant_id");
+
+                    b.PrimitiveCollection<string[]>("Tools")
+                        .IsRequired()
+                        .HasColumnType("text[]")
+                        .HasColumnName("tools");
+
+                    b.PrimitiveCollection<string[]>("ToolsWithoutApproval")
+                        .IsRequired()
+                        .HasColumnType("text[]")
+                        .HasColumnName("tools_without_approval");
+
+                    b.Property<DateTimeOffset>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("updated_at");
+
+                    b.Property<uint>("Version")
+                        .IsConcurrencyToken()
+                        .ValueGeneratedOnAddOrUpdate()
+                        .HasColumnType("xid")
+                        .HasColumnName("xmin");
+
+                    b.HasKey("ApiClientId")
+                        .HasName("pk_mcp_agents");
+
+                    b.HasIndex("TenantId")
+                        .HasDatabaseName("ix_mcp_agents_tenant_id");
+
+                    b.ToTable("mcp_agents", (string)null);
+                });
+
+            modelBuilder.Entity("Zelvo.Data.Mcp.McpServerConnection", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<string>("AuthHeader")
+                        .HasMaxLength(64)
+                        .HasColumnType("character varying(64)")
+                        .HasColumnName("auth_header");
+
+                    b.Property<DateTimeOffset>("CreatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("created_at");
+
+                    b.Property<DateTimeOffset?>("LastTestAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("last_test_at");
+
+                    b.Property<string>("LastTestError")
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)")
+                        .HasColumnName("last_test_error");
+
+                    b.Property<bool?>("LastTestSucceeded")
+                        .HasColumnType("boolean")
+                        .HasColumnName("last_test_succeeded");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)")
+                        .HasColumnName("name");
+
+                    b.Property<string>("SecretCiphertext")
+                        .HasColumnType("text")
+                        .HasColumnName("secret_ciphertext");
+
+                    b.Property<DateTimeOffset?>("SecretSetAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("secret_set_at");
+
+                    b.Property<string>("Status")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("character varying(20)")
+                        .HasColumnName("status");
+
+                    b.Property<Guid>("TenantId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("tenant_id");
+
+                    b.Property<string>("Tools")
+                        .IsRequired()
+                        .HasColumnType("jsonb")
+                        .HasColumnName("tools");
+
+                    b.Property<DateTimeOffset?>("ToolsRefreshedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("tools_refreshed_at");
+
+                    b.Property<DateTimeOffset>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("updated_at");
+
+                    b.Property<string>("Url")
+                        .IsRequired()
+                        .HasMaxLength(2000)
+                        .HasColumnType("character varying(2000)")
+                        .HasColumnName("url");
+
+                    b.Property<uint>("Version")
+                        .IsConcurrencyToken()
+                        .ValueGeneratedOnAddOrUpdate()
+                        .HasColumnType("xid")
+                        .HasColumnName("xmin");
+
+                    b.HasKey("Id")
+                        .HasName("pk_mcp_servers");
+
+                    b.HasIndex("TenantId", "Status")
+                        .HasDatabaseName("ix_mcp_servers_tenant_id_status");
+
+                    b.ToTable("mcp_servers", null, t =>
+                        {
+                            t.HasCheckConstraint("ck_mcp_servers_auth_header", "auth_header IS NULL OR auth_header ~ '^[A-Za-z][A-Za-z0-9-]*$'");
+
+                            t.HasCheckConstraint("ck_mcp_servers_status", "status IN ('Active', 'Disabled')");
+
+                            t.HasCheckConstraint("ck_mcp_servers_url", "url ~ '^https?://'");
+                        });
+                });
+
             modelBuilder.Entity("Zelvo.Data.Search.SearchIndexState", b =>
                 {
                     b.Property<Guid>("TenantId")
@@ -3020,6 +3277,10 @@ namespace Zelvo.Data.Migrations
                         .HasColumnType("timestamp with time zone")
                         .HasColumnName("created_at");
 
+                    b.Property<Guid?>("CreatedByApiClientId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("created_by_api_client_id");
+
                     b.Property<Guid?>("CreatedById")
                         .HasColumnType("uuid")
                         .HasColumnName("created_by_id");
@@ -3126,6 +3387,9 @@ namespace Zelvo.Data.Migrations
                     b.HasIndex("CategoryId")
                         .HasDatabaseName("ix_tickets_category_id");
 
+                    b.HasIndex("CreatedByApiClientId")
+                        .HasDatabaseName("ix_tickets_created_by_api_client_id");
+
                     b.HasIndex("CreatedById")
                         .HasDatabaseName("ix_tickets_created_by_id");
 
@@ -3181,7 +3445,7 @@ namespace Zelvo.Data.Migrations
 
                     b.ToTable("tickets", null, t =>
                         {
-                            t.HasCheckConstraint("ck_tickets_channel", "channel IN ('Portal', 'Email', 'Chat', 'WhatsApp', 'Phone', 'Api')");
+                            t.HasCheckConstraint("ck_tickets_channel", "channel IN ('Portal', 'Email', 'Chat', 'WhatsApp', 'Phone', 'Api', 'AiAgent')");
 
                             t.HasCheckConstraint("ck_tickets_not_own_parent", "parent_id IS NULL OR parent_id <> id");
 
@@ -3784,6 +4048,62 @@ namespace Zelvo.Data.Migrations
                         .HasConstraintName("fk_kb_feedback_kb_article_versions_version_id");
                 });
 
+            modelBuilder.Entity("Zelvo.Data.Mcp.McpAction", b =>
+                {
+                    b.HasOne("Zelvo.Data.Integrations.ApiClient", null)
+                        .WithMany()
+                        .HasForeignKey("ApiClientId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired()
+                        .HasConstraintName("fk_mcp_actions_api_clients_api_client_id");
+
+                    b.HasOne("Zelvo.Data.Identity.UserAccount", null)
+                        .WithMany()
+                        .HasForeignKey("DecidedById")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .HasConstraintName("fk_mcp_actions_users_decided_by_id");
+
+                    b.HasOne("Zelvo.Data.Tenancy.Tenant", null)
+                        .WithMany()
+                        .HasForeignKey("TenantId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired()
+                        .HasConstraintName("fk_mcp_actions_tenants_tenant_id");
+
+                    b.HasOne("Zelvo.Data.Tickets.Ticket", null)
+                        .WithMany()
+                        .HasForeignKey("TicketId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .HasConstraintName("fk_mcp_actions_tickets_ticket_id");
+                });
+
+            modelBuilder.Entity("Zelvo.Data.Mcp.McpAgent", b =>
+                {
+                    b.HasOne("Zelvo.Data.Integrations.ApiClient", null)
+                        .WithOne()
+                        .HasForeignKey("Zelvo.Data.Mcp.McpAgent", "ApiClientId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired()
+                        .HasConstraintName("fk_mcp_agents_api_clients_api_client_id");
+
+                    b.HasOne("Zelvo.Data.Tenancy.Tenant", null)
+                        .WithMany()
+                        .HasForeignKey("TenantId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired()
+                        .HasConstraintName("fk_mcp_agents_tenants_tenant_id");
+                });
+
+            modelBuilder.Entity("Zelvo.Data.Mcp.McpServerConnection", b =>
+                {
+                    b.HasOne("Zelvo.Data.Tenancy.Tenant", null)
+                        .WithMany()
+                        .HasForeignKey("TenantId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired()
+                        .HasConstraintName("fk_mcp_servers_tenants_tenant_id");
+                });
+
             modelBuilder.Entity("Zelvo.Data.Search.SearchIndexState", b =>
                 {
                     b.HasOne("Zelvo.Data.Tenancy.Tenant", null)
@@ -4022,6 +4342,12 @@ namespace Zelvo.Data.Migrations
                         .HasForeignKey("CategoryId")
                         .OnDelete(DeleteBehavior.Restrict)
                         .HasConstraintName("fk_tickets_categories_category_id");
+
+                    b.HasOne("Zelvo.Data.Integrations.ApiClient", null)
+                        .WithMany()
+                        .HasForeignKey("CreatedByApiClientId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .HasConstraintName("fk_tickets_api_clients_created_by_api_client_id");
 
                     b.HasOne("Zelvo.Data.Identity.UserAccount", null)
                         .WithMany()

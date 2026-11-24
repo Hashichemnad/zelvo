@@ -23,6 +23,15 @@ public static class AiServiceCollectionExtensions
         });
         services.TryAddSingleton(TimeProvider.System);
         services.TryAddScoped<IAiGateway, AiGateway>();
+
+        // Customers' MCP servers (task E6): same outgoing-request policy as the providers.
+        services.TryAddSingleton(sp =>
+        {
+            var options = sp.GetRequiredService<AiOptions>();
+            return new McpServerConnector(options, sp.GetRequiredService<AiProviderClient>().Policy);
+        });
+        services.TryAddScoped<AiToolRunner>();
+        services.TryAddScoped<IAiToolRunner>(sp => sp.GetRequiredService<AiToolRunner>());
         return services;
     }
 

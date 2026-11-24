@@ -1,7 +1,7 @@
 import { defineConfig, devices } from "@playwright/test";
 
 /** Specs that change tenant-wide settings; each runs in its own project, one after another. */
-const tenantWide = [/settings\.spec\.ts/, /uae-pass\.spec\.ts/, /integrations\.spec\.ts/, /directory\.spec\.ts/, /sla\.spec\.ts/, /ai\.spec\.ts/, /knowledge\.spec\.ts/];
+const tenantWide = [/settings\.spec\.ts/, /uae-pass\.spec\.ts/, /integrations\.spec\.ts/, /directory\.spec\.ts/, /sla\.spec\.ts/, /ai\.spec\.ts/, /knowledge\.spec\.ts/, /mcp\.spec\.ts/];
 
 /** Demo mode needs the demo installation (`make demo`); `make e2e-demo` runs it with E2E_DEMO=1. */
 const demo = /demo\.spec\.ts/;
@@ -77,6 +77,13 @@ export default defineConfig({
           use: { ...devices["Desktop Chrome"] },
           testMatch: /knowledge\.spec\.ts/,
           dependencies: ["tenant-ai"],
+        },
+        // MCP server (task E6) turns the server on and adds an AI agent; after knowledge, on its own.
+        {
+          name: "tenant-mcp",
+          use: { ...devices["Desktop Chrome"] },
+          testMatch: /mcp\.spec\.ts/,
+          dependencies: ["knowledge"],
         },
       ],
 });

@@ -1,6 +1,6 @@
 # AI gateway and Settings → AI (task E4, module 9)
 
-Covers module 9 "AI providers (Settings → AI)" and the AI safety row of the non-functional requirements ("personal data masked before reaching the model; prompt-injection guards; human approval for actions"). The AI features themselves (triage, summaries, suggested replies, translation, duplicates, sentiment, virtual agent, article drafts) come in task E5; the MCP server comes in E6. Both use this gateway.
+Covers module 9 "AI providers (Settings → AI)" and the AI safety row of the non-functional requirements ("personal data masked before reaching the model; prompt-injection guards; human approval for actions"). The AI features themselves (triage, summaries, suggested replies, translation, duplicates, sentiment, virtual agent, article drafts) come in task E5; the MCP server and customers' MCP servers came in E6 (`mcp.md`), whose tool calls go through this gateway (`IAiToolRunner`).
 
 Product owner decisions (2026-11-23):
 

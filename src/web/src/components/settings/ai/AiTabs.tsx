@@ -9,6 +9,8 @@ const tabs = [
   { key: "usage", href: "/settings/ai/usage" },
   { key: "prices", href: "/settings/ai/prices" },
   { key: "log", href: "/settings/ai/log" },
+  { key: "mcp", href: "/settings/ai/mcp" },
+  { key: "mcpServers", href: "/settings/ai/mcp-servers" },
 ] as const;
 
 /** The pages of Settings → AI, with the current one marked. */
