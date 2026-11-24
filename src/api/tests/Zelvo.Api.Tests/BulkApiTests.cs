@@ -30,7 +30,7 @@ public sealed class BulkApiTests(DatabaseFixture database) : IAsyncDisposable
         Assert.EndsWith($".{format}", response.Content.Headers.ContentDisposition?.FileNameStar ?? response.Content.Headers.ContentDisposition?.FileName?.Trim('"'), StringComparison.Ordinal);
         var rows = TabularFile.Read(format == "csv" ? TabularFormat.Csv : TabularFormat.Xlsx, await response.Content.ReadAsStreamAsync(Ct), 100);
 
-        Assert.Equal(["email", "displayName", "emiratesId", "roles", "status"], rows[0]);
+        Assert.Equal(["email", "displayName", "emiratesId", "roles", "status", "department", "manager", "location", "employeeId", "phone"], rows[0]);
         Assert.Contains(rows, r => r[0] == agent.Email && r[3] == "agent" && r[4] == "Active");
         var audit = await database.AuditAsync(tenant);
         Assert.Contains(audit, a => a.Action == "bulk.users.exported" && a.Metadata!.Contains("email", StringComparison.Ordinal));
@@ -47,7 +47,8 @@ public sealed class BulkApiTests(DatabaseFixture database) : IAsyncDisposable
         using var agent = await _factory.ForTenant(tenant).SignedInAsync(database, tenant, "agent");
         using var response = await agent.GetAsync(new Uri("/api/v1/bulk/users/export", UriKind.Relative), Ct);
         var rows = TabularFile.Read(TabularFormat.Csv, await response.Content.ReadAsStreamAsync(Ct), 100);
-        Assert.Equal(["email", "displayName", "roles", "status"], rows[0]);
+        // Task C1: profile fields too; agents do not see phone numbers.
+        Assert.Equal(["email", "displayName", "roles", "status", "department", "manager", "location", "employeeId"], rows[0]);
 
         // Without a second factor, the agent's permissions do not apply yet.
         using var noMfa = _factory.ForTenant(tenant).As(await database.CreateUserAsync(tenant, "agent"), mfa: false);
@@ -171,7 +172,7 @@ public sealed class BulkApiTests(DatabaseFixture database) : IAsyncDisposable
 
         using var template = await admin.GetAsync(new Uri("/api/v1/bulk/users/template?format=xlsx", UriKind.Relative), Ct);
         var header = TabularFile.Read(TabularFormat.Xlsx, await template.Content.ReadAsStreamAsync(Ct), 10);
-        Assert.Equal(["email", "displayName", "emiratesId", "roles", "status"], header[0]);
+        Assert.Equal(["email", "displayName", "emiratesId", "roles", "status", "department", "manager", "location", "employeeId", "phone"], header[0]);
     }
 
     [Fact]

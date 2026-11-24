@@ -137,8 +137,7 @@ namespace Zelvo.Data.Migrations
                         name: "fk_field_sets_field_set_versions_published_version_id",
                         column: x => x.published_version_id,
                         principalTable: "field_set_versions",
-                        principalColumn: "id",
-                        onDelete: ReferentialAction.Restrict);
+                        principalColumn: "id");
                     table.ForeignKey(
                         name: "fk_field_sets_tenants_tenant_id",
                         column: x => x.tenant_id,
@@ -243,8 +242,7 @@ namespace Zelvo.Data.Migrations
                         name: "fk_forms_form_versions_published_version_id",
                         column: x => x.published_version_id,
                         principalTable: "form_versions",
-                        principalColumn: "id",
-                        onDelete: ReferentialAction.Restrict);
+                        principalColumn: "id");
                     table.ForeignKey(
                         name: "fk_forms_tenants_tenant_id",
                         column: x => x.tenant_id,

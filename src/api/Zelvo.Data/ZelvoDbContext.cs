@@ -406,7 +406,8 @@ public sealed class ZelvoDbContext(DbContextOptions<ZelvoDbContext> options) : D
             form.Property(f => f.Version).IsRowVersion();
             form.HasIndex(f => new { f.TenantId, f.Key }).IsUnique();
             form.HasIndex(f => f.CreatedById);
-            form.HasOne<FormVersion>().WithMany().HasForeignKey(f => f.PublishedVersionId).OnDelete(DeleteBehavior.Restrict);
+            // NO ACTION (checked at the end of each statement): deleting a form deletes its versions with it.
+            form.HasOne<FormVersion>().WithMany().HasForeignKey(f => f.PublishedVersionId).OnDelete(DeleteBehavior.NoAction);
             form.HasIndex(f => f.PublishedVersionId);
         });
 
@@ -444,7 +445,8 @@ public sealed class ZelvoDbContext(DbContextOptions<ZelvoDbContext> options) : D
             set.Property(f => f.Version).IsRowVersion();
             set.HasIndex(f => new { f.TenantId, f.Key }).IsUnique();
             set.HasIndex(f => f.CreatedById);
-            set.HasOne<FieldSetVersion>().WithMany().HasForeignKey(f => f.PublishedVersionId).OnDelete(DeleteBehavior.Restrict);
+            // NO ACTION (checked at the end of each statement): deleting a form deletes its versions with it.
+            set.HasOne<FieldSetVersion>().WithMany().HasForeignKey(f => f.PublishedVersionId).OnDelete(DeleteBehavior.NoAction);
             set.HasIndex(f => f.PublishedVersionId);
         });
 

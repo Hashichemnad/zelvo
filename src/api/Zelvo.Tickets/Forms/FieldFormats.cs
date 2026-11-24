@@ -82,7 +82,8 @@ public static class FieldFormats
             return null;
         }
 
-        if (international.StartsWith("971", StringComparison.Ordinal) && international.Length is not (11 or 12))
+        // UAE: mobile numbers (5x) have 9 digits after 971, landlines 8.
+        if (international.StartsWith("971", StringComparison.Ordinal) && international.Length != (international.Length > 3 && international[3] == '5' ? 12 : 11))
         {
             return null;
         }

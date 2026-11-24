@@ -13,7 +13,7 @@ using Zelvo.Data;
 namespace Zelvo.Data.Migrations
 {
     [DbContext(typeof(ZelvoDbContext))]
-    [Migration("20261124071849_Forms")]
+    [Migration("20261124073736_Forms")]
     partial class Forms
     {
         /// <inheritdoc />
@@ -4094,7 +4094,7 @@ namespace Zelvo.Data.Migrations
                     b.HasOne("Zelvo.Data.Forms.FieldSetVersion", null)
                         .WithMany()
                         .HasForeignKey("PublishedVersionId")
-                        .OnDelete(DeleteBehavior.Restrict)
+                        .OnDelete(DeleteBehavior.NoAction)
                         .HasConstraintName("fk_field_sets_field_set_versions_published_version_id");
 
                     b.HasOne("Zelvo.Data.Tenancy.Tenant", null)
@@ -4139,7 +4139,7 @@ namespace Zelvo.Data.Migrations
                     b.HasOne("Zelvo.Data.Forms.FormVersion", null)
                         .WithMany()
                         .HasForeignKey("PublishedVersionId")
-                        .OnDelete(DeleteBehavior.Restrict)
+                        .OnDelete(DeleteBehavior.NoAction)
                         .HasConstraintName("fk_forms_form_versions_published_version_id");
 
                     b.HasOne("Zelvo.Data.Tenancy.Tenant", null)

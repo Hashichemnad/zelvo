@@ -89,6 +89,12 @@ public static class FormAnswers
                     result.Errors.Add(new(field.Key, "required", "This field is required."));
                 }
 
+                // An unticked box is an answer too ("no"), kept when it was given.
+                if (state.Visible && field.Type == FieldType.Checkbox && FormDefinitionCheck.Kind(value) == JsonValueKind.False && !state.Required)
+                {
+                    result.Answers[field.Key] = false;
+                }
+
                 continue;
             }
 
