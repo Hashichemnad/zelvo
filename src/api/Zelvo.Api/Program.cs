@@ -10,6 +10,7 @@ using Zelvo.Api.Health;
 using Zelvo.Api.Identity;
 using Zelvo.Api.Incidents;
 using Zelvo.Api.Integrations;
+using Zelvo.Api.Knowledge;
 using Zelvo.Api.Localization;
 using Zelvo.Api.OpenApi;
 using Zelvo.Api.Platform;
@@ -76,6 +77,7 @@ builder.Services.AddZelvoRateLimiting(builder.Configuration);
 builder.Services.AddZelvoDemo();
 builder.Services.AddZelvoApiIntegrations(builder.Configuration);
 builder.Services.AddZelvoApiAi(builder.Configuration);
+builder.Services.AddZelvoKnowledge();
 
 var app = builder.Build();
 
@@ -119,6 +121,7 @@ v1.MapGroupEndpoints();
 v1.MapAssignmentRuleEndpoints();
 v1.MapIntegrationEndpoints();
 v1.MapAiEndpoints();
+v1.MapZelvoKnowledgeEndpoints();
 
 await app.RunAsync();
 return 0;

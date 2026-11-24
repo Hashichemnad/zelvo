@@ -69,6 +69,15 @@ internal static class Permissions
     /// limit, usage and the AI log. Never available to integrations themselves.
     /// </summary>
     public const string AiManage = "ai.manage";
+
+    /// <summary>Read internal knowledge articles and the drafts of others (module 7). External articles need no permission.</summary>
+    public const string KnowledgeRead = "knowledge.read";
+
+    /// <summary>Write and change knowledge articles and submit them for review.</summary>
+    public const string KnowledgeWrite = "knowledge.write";
+
+    /// <summary>Approve or send back articles written by others, and retire articles.</summary>
+    public const string KnowledgePublish = "knowledge.publish";
 }
 
 /// <summary>A field of a resource that field rules can hide or make read-only.</summary>
@@ -123,6 +132,9 @@ internal static class PermissionCatalog
         Permissions.DirectoryRead,
         Permissions.DirectoryManage,
         Permissions.AiManage,
+        Permissions.KnowledgeRead,
+        Permissions.KnowledgeWrite,
+        Permissions.KnowledgePublish,
     ];
 
     /// <summary>
@@ -186,17 +198,19 @@ internal static class PermissionCatalog
     [
         new(BuiltInRoles.Requester, new LocalizedText("Requester", "مقدّم الطلب"), [], new Dictionary<string, FieldAccess>()),
         new(BuiltInRoles.Agent, new LocalizedText("Agent", "موظف الدعم"),
-            [Permissions.UsersRead, Permissions.IncidentsRead, Permissions.IncidentsCreate, Permissions.IncidentsEdit, Permissions.IncidentsAssign, Permissions.DirectoryRead],
+            [Permissions.UsersRead, Permissions.IncidentsRead, Permissions.IncidentsCreate, Permissions.IncidentsEdit, Permissions.IncidentsAssign, Permissions.DirectoryRead,
+                Permissions.KnowledgeRead, Permissions.KnowledgeWrite],
             new Dictionary<string, FieldAccess> { ["users.email"] = FieldAccess.Read }),
         new(BuiltInRoles.TeamLead, new LocalizedText("Team lead", "قائد الفريق"),
-            [Permissions.UsersRead, Permissions.IncidentsRead, Permissions.IncidentsCreate, Permissions.IncidentsEdit, Permissions.IncidentsAssign, Permissions.IncidentsMajor, Permissions.DirectoryRead],
+            [Permissions.UsersRead, Permissions.IncidentsRead, Permissions.IncidentsCreate, Permissions.IncidentsEdit, Permissions.IncidentsAssign, Permissions.IncidentsMajor, Permissions.DirectoryRead,
+                Permissions.KnowledgeRead, Permissions.KnowledgeWrite, Permissions.KnowledgePublish],
             new Dictionary<string, FieldAccess> { ["users.email"] = FieldAccess.Read }),
         new(BuiltInRoles.Approver, new LocalizedText("Approver", "المعتمِد"), [], new Dictionary<string, FieldAccess>()),
         new(BuiltInRoles.TenantAdmin, new LocalizedText("Tenant administrator", "مسؤول الجهة"),
             All,
             new Dictionary<string, FieldAccess> { ["users.email"] = FieldAccess.Read, ["users.emiratesId"] = FieldAccess.Edit }),
         new(BuiltInRoles.ExecutiveAuditor, new LocalizedText("Executive / auditor", "تنفيذي / مدقق"),
-            [Permissions.AuditRead, Permissions.UsersRead, Permissions.IncidentsRead, Permissions.DirectoryRead],
+            [Permissions.AuditRead, Permissions.UsersRead, Permissions.IncidentsRead, Permissions.DirectoryRead, Permissions.KnowledgeRead],
             new Dictionary<string, FieldAccess> { ["users.email"] = FieldAccess.Read }),
     ];
 
