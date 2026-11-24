@@ -149,7 +149,7 @@ English and Arabic, right to left, WCAG 2.2 AA.
 
 ## Not in B2
 
-- Customer groups and SLA policies (B3); notifying groups or agents of new assignments (B5); the no-code workflow builder for assignment (C3), which will be able to call the same router.
+- Customer groups and SLA policies (B3); notifying groups or agents of new assignments (B5, now built: see `notifications.md`); the no-code workflow builder for assignment (C3), which will be able to call the same router.
 - Assignment by workload (fewest open tickets), working hours and out-of-office calendars: round-robin uses the availability switch only.
 - Bulk import of categories, locations, groups and members (bulk import stays users only, E1).
 - Webhook events for directory changes.

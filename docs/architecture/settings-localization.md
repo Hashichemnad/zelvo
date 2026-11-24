@@ -59,7 +59,7 @@ How the web app does it:
 
 ## Formal Arabic (GOV-8 base)
 
-`docs/guidelines/arabic-formal-correspondence.md` sets the tone, structure, terms and review checklist for Arabic templates. Task B5 builds the template engine on it, and F1 adds the entity letterhead.
+`docs/guidelines/arabic-formal-correspondence.md` sets the tone, structure, terms and review checklist for Arabic templates. Task B5 built the template engine on it (`notifications.md`), with the organisation's name as letterhead; F1 adds the logo.
 
 ## Tests
 
@@ -80,5 +80,5 @@ How the web app does it:
 ## Not in this task
 
 - Tenant time zone (dates use Asia/Dubai).
-- Template engine and letterhead (B5, F1).
+- Logo letterhead (F1); the template engine is built (B5, `notifications.md`).
 - Settings sections for users and roles (B2).
