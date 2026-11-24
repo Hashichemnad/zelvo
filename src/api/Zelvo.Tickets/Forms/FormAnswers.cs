@@ -198,7 +198,7 @@ public static class FormAnswers
                     number = value.GetValue<decimal>();
                 }
                 else if (FormDefinitionCheck.Kind(value) == JsonValueKind.String
-                    && decimal.TryParse(value.GetValue<string>(), NumberStyles.Number, CultureInfo.InvariantCulture, out var parsed))
+                    && decimal.TryParse(value.GetValue<string>(), NumberStyles.Float, CultureInfo.InvariantCulture, out var parsed))
                 {
                     number = parsed;
                 }

@@ -1,9 +1,12 @@
 "use client";
 
-import { useId, useState } from "react";
+import { useEffect, useId, useState } from "react";
 import { useLocale, useTranslations } from "next-intl";
 import { useRouter } from "@/i18n/navigation";
-import { ApiError, postJson } from "@/lib/client-api";
+import { ApiError, getJson, postJson } from "@/lib/client-api";
+import { FormRenderer } from "@/components/forms/FormRenderer";
+import { checkAnswers } from "@/lib/forms/check";
+import type { AnswerError, Answers, ResolvedForm } from "@/lib/forms/types";
 import { selectableNodes, textOf, type GroupSummary, type TreeNode } from "@/lib/directory";
 import { levelName, staffChannels, type Incident, type IncidentSettings, type Locale, type Person, type TicketChannel } from "@/lib/incidents";
 
@@ -48,7 +51,33 @@ export function ReportIncidentForm({ csrfToken, settings, basePath, staff, follo
   const [categoryId, setCategoryId] = useState("");
   const [locationId, setLocationId] = useState("");
   const [groupId, setGroupId] = useState("");
-  const [status, setStatus] = useState<"idle" | "saving" | "failed" | "invalid" | "rateLimited" | "notInGroup">("idle");
+  const [status, setStatus] = useState<"idle" | "saving" | "failed" | "invalid" | "rateLimited" | "notInGroup" | "formInvalid" | "formChanged">("idle");
+  // Task C1: the category's form, its answers and the problems found in them.
+  const [form, setForm] = useState<ResolvedForm | null>(null);
+  const [formAnswers, setFormAnswers] = useState<Answers>({});
+  const [formErrors, setFormErrors] = useState<AnswerError[]>([]);
+  const [formReload, setFormReload] = useState(0);
+
+  useEffect(() => {
+    let cancelled = false;
+    const query = new URLSearchParams({ recordType: "Incident", language: locale });
+    if (categoryId) query.set("categoryId", categoryId);
+    if (staff && requesterId) query.set("requesterId", requesterId);
+    getJson<ResolvedForm>(`/v1/forms/resolve?${query}`)
+      .then((resolved) => {
+        if (cancelled) return;
+        setForm(resolved.form ? resolved : null);
+        setFormErrors([]);
+        // Answers to fields that are still there are kept.
+        setFormAnswers((current) => Object.fromEntries(Object.entries(current).filter(([key]) => resolved.fields.some((f) => f.field.key === key))));
+      })
+      .catch(() => {
+        if (!cancelled) setForm(null);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [categoryId, requesterId, staff, locale, formReload]);
   const categories = selectableNodes(directory?.categories ?? []);
   const locations = selectableNodes(directory?.locations ?? []);
   const groups = staff?.assignees ? (directory?.groups ?? []).filter((g) => g.active) : [];
@@ -60,8 +89,19 @@ export function ReportIncidentForm({ csrfToken, settings, basePath, staff, follo
       setStatus("invalid");
       return;
     }
+    let formBody: { formVersionId: string; formAnswers: Answers } | null = null;
+    if (form?.form) {
+      const checked = checkAnswers(form.fields.map((f) => f.field), formAnswers, form.defaults);
+      setFormErrors(checked.errors);
+      if (checked.errors.length > 0) {
+        setStatus("formInvalid");
+        focusFirstError(checked.errors);
+        return;
+      }
+      formBody = { formVersionId: form.form.versionId, formAnswers: checked.toSend };
+    }
     setStatus("saving");
-    const body: Record<string, unknown> = { title: title.trim(), description: description.trim() || undefined, followUpOfId: followUpOf?.id };
+    const body: Record<string, unknown> = { title: title.trim(), description: description.trim() || undefined, followUpOfId: followUpOf?.id, ...formBody };
     if (categoryId) body.categoryId = categoryId;
     if (locationId) body.locationId = locationId;
     if (staff) {
@@ -72,6 +112,18 @@ export function ReportIncidentForm({ csrfToken, settings, basePath, staff, follo
       router.push(`${basePath}/${created.id}`);
     } catch (error) {
       const errors = error instanceof ApiError ? (error.details.errors as Record<string, unknown> | undefined) : undefined;
+      const answerErrors = error instanceof ApiError ? (error.details.formErrors as AnswerError[] | undefined) : undefined;
+      if (answerErrors?.length) {
+        setFormErrors(answerErrors);
+        setStatus("formInvalid");
+        focusFirstError(answerErrors);
+        return;
+      }
+      if (error instanceof ApiError && error.code === "form-changed") {
+        setStatus("formChanged");
+        setFormReload((n) => n + 1);
+        return;
+      }
       setStatus(
         error instanceof ApiError && error.rateLimited
           ? "rateLimited"
@@ -82,6 +134,15 @@ export function ReportIncidentForm({ csrfToken, settings, basePath, staff, follo
               : "failed",
       );
     }
+  }
+
+  function focusFirstError(errors: AnswerError[]) {
+    const key = errors[0]?.field.split(".")[0];
+    if (!key) return;
+    requestAnimationFrame(() => {
+      const target = document.querySelector<HTMLElement>(`[data-field="${CSS.escape(key)}"] input, [data-field="${CSS.escape(key)}"] select, [data-field="${CSS.escape(key)}"] textarea, [data-field="${CSS.escape(key)}"] button`);
+      target?.focus();
+    });
   }
 
   const levelSelect = (name: "impact" | "urgency", value: number, set: (v: number) => void) => (
@@ -179,6 +240,15 @@ export function ReportIncidentForm({ csrfToken, settings, basePath, staff, follo
           )}
         </div>
       )}
+      {form?.form && (
+        <section aria-labelledby={`${id}-form`} className="space-y-3 rounded-lg border border-line p-4">
+          <h2 id={`${id}-form`} className="text-lg font-semibold">{textOf(form.form.name, locale)}</h2>
+          {textOf(form.form.description, locale) && <p className="text-ink-muted">{textOf(form.form.description, locale)}</p>}
+          <FormRenderer fields={form.fields} answers={formAnswers} onChange={(answers) => { setFormAnswers(answers); if (status === "formInvalid") setStatus("idle"); }}
+            defaults={form.defaults} references={form.references} errors={formErrors} contentLocale={locale}
+            locations={directory?.locations ?? []} csrfToken={csrfToken} idPrefix={`${id}-answers`} />
+        </section>
+      )}
       {staff && (
         <fieldset className="grid gap-4 sm:grid-cols-2">
           <div className="space-y-1">
@@ -253,7 +323,7 @@ export function ReportIncidentForm({ csrfToken, settings, basePath, staff, follo
           {status === "saving" ? t("submitting") : staff ? t("submitStaff") : t("submit")}
         </button>
         <p role="status" aria-live="polite" className="text-bad">
-          {status === "invalid" ? t("titleRequired") : status === "notInGroup" ? t("notInGroup") : status === "failed" ? t("failed") : status === "rateLimited" ? tCommon("rateLimited") : ""}
+          {status === "invalid" ? t("titleRequired") : status === "formInvalid" ? t("formInvalid") : status === "formChanged" ? t("formChanged") : status === "notInGroup" ? t("notInGroup") : status === "failed" ? t("failed") : status === "rateLimited" ? tCommon("rateLimited") : ""}
         </p>
       </div>
     </form>

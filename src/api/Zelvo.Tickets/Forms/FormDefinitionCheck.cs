@@ -352,7 +352,7 @@ public static partial class FormDefinitionCheck
         {
             var fits = other.Type switch
             {
-                FieldType.Number => decimal.TryParse(condition.Value, NumberStyles.Number, CultureInfo.InvariantCulture, out _),
+                FieldType.Number => decimal.TryParse(condition.Value, NumberStyles.Float, CultureInfo.InvariantCulture, out _),
                 FieldType.Date => IsDate(condition.Value ?? string.Empty),
                 _ => false,
             };

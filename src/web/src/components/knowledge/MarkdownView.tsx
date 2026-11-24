@@ -9,7 +9,8 @@ import { imageScheme, imageUrl } from "@/lib/knowledge";
  * text is never rendered (react-markdown leaves it out), links get only safe protocols, and
  * images come only from the article's own scanned uploads.
  */
-export function MarkdownView({ markdown, articleId, lang, dir }: { markdown: string; articleId: string; lang?: string; dir?: "ltr" | "rtl" }) {
+/** `articleId` null (form answers, task C1): no images at all. */
+export function MarkdownView({ markdown, articleId, lang, dir }: { markdown: string; articleId: string | null; lang?: string; dir?: "ltr" | "rtl" }) {
   return (
     <div className="article-body max-w-none space-y-3" lang={lang} dir={dir}>
       <Markdown
@@ -17,7 +18,7 @@ export function MarkdownView({ markdown, articleId, lang, dir }: { markdown: str
         skipHtml
         urlTransform={(url, key) => {
           if (key === "src") {
-            return url.startsWith(imageScheme) && /^[0-9a-f-]{36}$/i.test(url.slice(imageScheme.length))
+            return articleId && url.startsWith(imageScheme) && /^[0-9a-f-]{36}$/i.test(url.slice(imageScheme.length))
               ? imageUrl(articleId, url.slice(imageScheme.length))
               : "";
           }

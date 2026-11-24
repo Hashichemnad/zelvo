@@ -36,6 +36,11 @@ function withIntl(node: React.ReactNode, locale: "en" | "ar" = "en") {
 
 const ok = (body: unknown, status = 200) => new Response(JSON.stringify(body), { status, headers: { "content-type": "application/json" } });
 const problem = (status: number, code: string) => new Response(JSON.stringify({ status, code }), { status });
+const noForm = { form: null, fields: [], defaults: {}, references: { users: {}, locations: {}, files: {} } };
+/** fetch that answers the form lookup (task C1) with `form` (none by default) and everything else with `response`. */
+const withForm = (response: () => Response, form: unknown = noForm) =>
+  vi.fn((url: string) => Promise.resolve(String(url).includes("/v1/forms/resolve") ? ok(form) : response()));
+const posts = (fetchMock: ReturnType<typeof vi.fn>) => fetchMock.mock.calls.filter((call) => (call[1] as RequestInit | undefined)?.method === "POST") as [string, RequestInit][];
 
 describe("bilingual helpers", () => {
   it("fall back to the other language and say so", () => {
@@ -47,7 +52,7 @@ describe("bilingual helpers", () => {
 
 describe("ReportIncidentForm", () => {
   it("lets a requester report an incident and opens it", async () => {
-    const fetchMock = vi.fn().mockResolvedValue(ok({ ...incident, id: "new-id" }, 201));
+    const fetchMock = withForm(() => ok({ ...incident, id: "new-id" }, 201));
     vi.stubGlobal("fetch", fetchMock);
     withIntl(<ReportIncidentForm csrfToken="csrf-1" settings={settings} basePath="/my-incidents" />);
 
@@ -56,7 +61,7 @@ describe("ReportIncidentForm", () => {
     fireEvent.click(screen.getByRole("button", { name: "Report incident" }));
 
     await waitFor(() => expect(push).toHaveBeenCalledWith("/my-incidents/new-id"));
-    const [url, init] = fetchMock.mock.calls[0] as [string, RequestInit];
+    const [url, init] = posts(fetchMock)[0]!;
     expect(url).toBe("/bff/api/v1/incidents");
     expect(new Headers(init.headers).get("X-CSRF-Token")).toBe("csrf-1");
     expect(JSON.parse(init.body as string)).toEqual({ title: "Printer jams", description: "Paper jam" });
@@ -64,7 +69,7 @@ describe("ReportIncidentForm", () => {
   });
 
   it("lets a requester choose an active category and location (task B2)", async () => {
-    const fetchMock = vi.fn().mockResolvedValue(ok({ ...incident, id: "cat-id" }, 201));
+    const fetchMock = withForm(() => ok({ ...incident, id: "cat-id" }, 201));
     vi.stubGlobal("fetch", fetchMock);
     const tree = (id: string, en: string, extra: Record<string, unknown> = {}) => ({
       id, parentId: null, depth: 1, position: 0, name: { en, ar: null }, path: { en, ar: null }, active: true, selectable: true, childCount: 0, ...extra,
@@ -86,11 +91,67 @@ describe("ReportIncidentForm", () => {
     fireEvent.click(screen.getByRole("button", { name: "Report incident" }));
 
     await waitFor(() => expect(push).toHaveBeenCalledWith("/my-incidents/cat-id"));
-    expect(JSON.parse((fetchMock.mock.calls[0] as [string, RequestInit])[1].body as string)).toEqual({ title: "Laptop is slow", categoryId: "c1", locationId: "l1" });
+    expect(JSON.parse(posts(fetchMock)[0]![1].body as string)).toEqual({ title: "Laptop is slow", categoryId: "c1", locationId: "l1" });
+    // The category's form is looked up when the category changes.
+    expect(fetchMock.mock.calls.some(([u]) => String(u).includes("categoryId=c1"))).toBe(true);
+  });
+
+  it("shows the category's form, checks it in the browser and sends the answers (task C1)", async () => {
+    const form = {
+      form: { id: "f1", key: "laptop", name: { en: "Laptop questions", ar: "أسئلة الحاسوب" }, description: { en: null, ar: null }, versionId: "v1", versionNumber: 1 },
+      fields: [
+        { field: { key: "addMonitor", type: "Checkbox", label: { en: "Add a monitor", ar: "إضافة شاشة" } } },
+        { field: { key: "size", type: "Dropdown", label: { en: "Monitor size", ar: "حجم الشاشة" }, options: [{ value: "27", label: { en: "27 inch", ar: "27 بوصة" } }],
+          rules: [{ action: "Show", match: "All", conditions: [{ field: "addMonitor", operator: "Checked" }] }, { action: "Require", match: "All", conditions: [{ field: "addMonitor", operator: "Checked" }] }] } },
+        { field: { key: "dept", type: "Text", label: { en: "Department", ar: "الإدارة" }, readOnly: true, profileDefault: "Department" } },
+      ],
+      defaults: { dept: "Finance" },
+      references: { users: {}, locations: {}, files: {} },
+    };
+    const fetchMock = withForm(() => ok({ ...incident, id: "form-id" }, 201), form);
+    vi.stubGlobal("fetch", fetchMock);
+    withIntl(<ReportIncidentForm csrfToken="x" settings={settings} basePath="/my-incidents" />);
+
+    expect(await screen.findByRole("heading", { name: "Laptop questions" })).toBeInTheDocument();
+    expect(screen.getByLabelText(/Department/)).toHaveValue("Finance");
+    expect(screen.getByLabelText(/Department/)).toHaveAttribute("readonly");
+    expect(screen.queryByLabelText(/Monitor size/)).not.toBeInTheDocument();
+    fireEvent.change(screen.getByLabelText("Title"), { target: { value: "New laptop" } });
+    fireEvent.click(screen.getByLabelText("Add a monitor"));
+    expect(screen.getByLabelText(/Monitor size/)).toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button", { name: "Report incident" }));
+
+    expect(await screen.findByText("This field is required.")).toBeInTheDocument();
+    expect(posts(fetchMock)).toHaveLength(0);
+    fireEvent.change(screen.getByLabelText(/Monitor size/), { target: { value: "27" } });
+    fireEvent.click(screen.getByRole("button", { name: "Report incident" }));
+
+    await waitFor(() => expect(push).toHaveBeenCalledWith("/my-incidents/form-id"));
+    expect(JSON.parse(posts(fetchMock)[0]![1].body as string)).toEqual({
+      title: "New laptop", formVersionId: "v1", formAnswers: { addMonitor: true, size: "27" },
+    });
+  });
+
+  it("shows the server's answer errors under the fields (task C1)", async () => {
+    const form = {
+      form: { id: "f1", key: "refund", name: { en: "Refund", ar: "استرداد" }, description: { en: null, ar: null }, versionId: "v1", versionNumber: 1 },
+      fields: [{ field: { key: "iban", type: "Text", label: { en: "IBAN", ar: "الآيبان" } } }],
+      defaults: {}, references: { users: {}, locations: {}, files: {} },
+    };
+    const refused = () => new Response(JSON.stringify({ status: 400, code: "validation-failed", formErrors: [{ field: "iban", code: "format-iban", message: "x" }] }), { status: 400 });
+    vi.stubGlobal("fetch", withForm(refused, form));
+    withIntl(<ReportIncidentForm csrfToken="x" settings={settings} basePath="/my-incidents" />, "ar");
+
+    fireEvent.change(await screen.findByLabelText("الآيبان"), { target: { value: "AE00" } });
+    fireEvent.change(screen.getByLabelText("العنوان"), { target: { value: "استرداد مبلغ" } });
+    fireEvent.click(screen.getByRole("button", { name: "تقديم البلاغ" }));
+
+    expect(await screen.findByText("يُرجى إدخال رقم آيبان صحيح، مثل AE07 0331 2345 6789 0123 456.")).toBeInTheDocument();
+    expect(screen.getByLabelText("الآيبان")).toHaveAttribute("aria-invalid", "true");
   });
 
   it("asks for a title before calling the API", () => {
-    const fetchMock = vi.fn();
+    const fetchMock = withForm(() => ok({}));
     vi.stubGlobal("fetch", fetchMock);
     withIntl(<ReportIncidentForm csrfToken="x" settings={settings} basePath="/my-incidents" />);
 
@@ -98,11 +159,11 @@ describe("ReportIncidentForm", () => {
 
     expect(screen.getByRole("status")).toHaveTextContent("Enter a title of at least 3 characters.");
     expect(screen.getByLabelText("Title")).toHaveAttribute("aria-invalid", "true");
-    expect(fetchMock).not.toHaveBeenCalled();
+    expect(posts(fetchMock)).toHaveLength(0);
   });
 
   it("lets staff choose requester, channel, impact and urgency and previews the priority", async () => {
-    const fetchMock = vi.fn().mockResolvedValue(ok({ ...incident, id: "staff-id" }, 201));
+    const fetchMock = withForm(() => ok({ ...incident, id: "staff-id" }, 201));
     vi.stubGlobal("fetch", fetchMock);
     withIntl(
       <ReportIncidentForm
@@ -122,7 +183,7 @@ describe("ReportIncidentForm", () => {
     fireEvent.click(screen.getByRole("button", { name: "Log incident" }));
 
     await waitFor(() => expect(push).toHaveBeenCalledWith("/incidents/staff-id"));
-    expect(JSON.parse((fetchMock.mock.calls[0] as [string, RequestInit])[1].body as string)).toMatchObject({
+    expect(JSON.parse(posts(fetchMock)[0]![1].body as string)).toMatchObject({
       requesterId: "r1",
       channel: "Phone",
       impact: 1,

@@ -3,8 +3,8 @@
 import { useId, useState } from "react";
 import { useLocale, useTranslations } from "next-intl";
 import { useRouter } from "@/i18n/navigation";
-import { patchJson, putJson } from "@/lib/client-api";
-import { languages, type DirectoryUser, type Language, type Role, type Skill, type UserStatus } from "@/lib/directory";
+import { getJson, patchJson, putJson } from "@/lib/client-api";
+import { languages, selectableNodes, textOf, type Department, type DirectoryUser, type Language, type Role, type Skill, type TreeNode, type UserStatus } from "@/lib/directory";
 import type { Locale } from "@/lib/incidents";
 import { Localized, SaveStatusLine, inputClass, primaryButton, useSaver } from "./common";
 
@@ -13,6 +13,9 @@ export interface UserEditFormProps {
   /** Roles to choose from; null when the caller may not list roles (then roles are shown by key). */
   roles: Role[] | null;
   skills: Skill[];
+  /** Task C1: departments and locations to choose from. */
+  departments?: Department[];
+  locations?: TreeNode[];
   csrfToken: string;
   /** users.manage */
   canManage: boolean;
@@ -25,7 +28,7 @@ const sameSet = (a: readonly string[], b: readonly string[]) => a.length === b.l
  * and availability for assignment (task B2). Fields the caller's roles hide are not shown; only
  * holders of users.manage change anything.
  */
-export function UserEditForm({ initial, roles, skills, csrfToken, canManage }: UserEditFormProps) {
+export function UserEditForm({ initial, roles, skills, departments = [], locations = [], csrfToken, canManage }: UserEditFormProps) {
   const t = useTranslations("directory.users");
   const tLanguages = useTranslations("directory.languages");
   const locale = useLocale() as Locale;
@@ -38,6 +41,13 @@ export function UserEditForm({ initial, roles, skills, csrfToken, canManage }: U
   const [userLanguages, setUserLanguages] = useState<Language[]>(initial.languages ?? []);
   const [skillIds, setSkillIds] = useState<string[]>(initial.skills?.map((s) => s.id) ?? []);
   const [available, setAvailable] = useState(initial.availableForAssignment ?? true);
+  const [departmentId, setDepartmentId] = useState(initial.department?.id ?? "");
+  const [manager, setManager] = useState(initial.manager ?? null);
+  const [managerQuery, setManagerQuery] = useState("");
+  const [managerResults, setManagerResults] = useState<{ id: string; displayName: string | null }[] | null>(null);
+  const [locationId, setLocationId] = useState(initial.location?.id ?? "");
+  const [employeeId, setEmployeeId] = useState(initial.employeeId ?? "");
+  const [phone, setPhone] = useState(initial.phone ?? "");
   const saver = useSaver();
   const readOnly = !canManage;
 
@@ -50,6 +60,11 @@ export function UserEditForm({ initial, roles, skills, csrfToken, canManage }: U
       if (initial.emiratesId !== undefined && emiratesId.trim() !== (initial.emiratesId ?? "")) patch.emiratesId = emiratesId.trim();
       if (initial.languages !== undefined && !sameSet(userLanguages, initial.languages)) patch.languages = userLanguages;
       if (initial.availableForAssignment !== undefined && available !== initial.availableForAssignment) patch.availableForAssignment = available;
+      if (initial.department !== undefined && departmentId !== (initial.department?.id ?? "")) patch.departmentId = departmentId;
+      if (initial.manager !== undefined && (manager?.id ?? "") !== (initial.manager?.id ?? "")) patch.managerId = manager?.id ?? "";
+      if (initial.location !== undefined && locationId !== (initial.location?.id ?? "")) patch.locationId = locationId;
+      if (initial.employeeId !== undefined && employeeId.trim() !== (initial.employeeId ?? "")) patch.employeeId = employeeId.trim();
+      if (initial.phone !== undefined && phone.trim() !== (initial.phone ?? "")) patch.phone = phone.trim();
       if (Object.keys(patch).length > 0) await patchJson(`/v1/users/${initial.id}`, patch, csrfToken);
       if (initial.roles !== undefined && !sameSet(roleKeys, initial.roles)) await putJson(`/v1/users/${initial.id}/roles`, { roles: roleKeys }, csrfToken);
       if (initial.skills !== undefined && !sameSet(skillIds, initial.skills.map((s) => s.id))) await putJson(`/v1/users/${initial.id}/skills`, { skillIds }, csrfToken);
@@ -90,6 +105,78 @@ export function UserEditForm({ initial, roles, skills, csrfToken, canManage }: U
             aria-describedby={`${id}-eid-hint`} onChange={(e) => setEmiratesId(e.target.value)} className={`${inputClass} max-w-xs`} />
           <p id={`${id}-eid-hint`} className="text-sm text-ink-muted">{t("emiratesIdHint")}</p>
         </div>
+      )}
+      {(initial.department !== undefined || initial.manager !== undefined || initial.location !== undefined || initial.employeeId !== undefined || initial.phone !== undefined) && (
+        <fieldset className="grid gap-4 sm:grid-cols-2">
+          <legend className="font-semibold">{t("profile")}</legend>
+          <p className="text-sm text-ink-muted sm:col-span-2">{t("profileHint")}</p>
+          {initial.department !== undefined && (
+            <div className="space-y-1">
+              <label htmlFor={`${id}-department`} className="block">{t("department")}</label>
+              <select id={`${id}-department`} value={departmentId} disabled={readOnly} onChange={(e) => setDepartmentId(e.target.value)} className={inputClass}>
+                <option value="">{t("none")}</option>
+                {initial.department && !departments.some((d) => d.id === initial.department!.id) && (
+                  <option value={initial.department.id}>{textOf(initial.department.name, locale)}</option>
+                )}
+                {departments.filter((d) => d.active || d.id === departmentId).map((d) => <option key={d.id} value={d.id}>{textOf(d.name, locale)}</option>)}
+              </select>
+            </div>
+          )}
+          {initial.location !== undefined && (
+            <div className="space-y-1">
+              <label htmlFor={`${id}-location`} className="block">{t("location")}</label>
+              <select id={`${id}-location`} value={locationId} disabled={readOnly} onChange={(e) => setLocationId(e.target.value)} className={inputClass}>
+                <option value="">{t("none")}</option>
+                {initial.location && !selectableNodes(locations).some((n) => n.id === initial.location!.id) && (
+                  <option value={initial.location.id}>{textOf(initial.location.path, locale)}</option>
+                )}
+                {selectableNodes(locations).map((n) => <option key={n.id} value={n.id}>{textOf(n.path, locale) || textOf(n.name, locale)}</option>)}
+              </select>
+            </div>
+          )}
+          {initial.employeeId !== undefined && (
+            <div className="space-y-1">
+              <label htmlFor={`${id}-employee`} className="block">{t("employeeId")}</label>
+              <input id={`${id}-employee`} dir="ltr" value={employeeId} maxLength={50} readOnly={readOnly} onChange={(e) => setEmployeeId(e.target.value)} className={inputClass} />
+            </div>
+          )}
+          {initial.phone !== undefined && (
+            <div className="space-y-1">
+              <label htmlFor={`${id}-phone`} className="block">{t("phone")}</label>
+              <input id={`${id}-phone`} dir="ltr" type="tel" autoComplete="off" value={phone} maxLength={30} readOnly={readOnly}
+                aria-describedby={`${id}-phone-hint`} onChange={(e) => setPhone(e.target.value)} className={inputClass} />
+              <p id={`${id}-phone-hint`} className="text-sm text-ink-muted">{t("phoneHint")}</p>
+            </div>
+          )}
+          {initial.manager !== undefined && (
+            <div className="space-y-1 sm:col-span-2">
+              <label htmlFor={`${id}-manager`} className="block">{t("manager")}</label>
+              <p>{manager?.displayName ?? (manager ? manager.id : t("none"))}</p>
+              {!readOnly && (
+                <div className="flex flex-wrap gap-2">
+                  <input id={`${id}-manager`} dir="auto" value={managerQuery} placeholder={t("managerSearch")} onChange={(e) => setManagerQuery(e.target.value)} className={`${inputClass} max-w-xs`} />
+                  <button type="button" className={primaryButton} disabled={managerQuery.trim().length < 2}
+                    onClick={async () => setManagerResults(await getJson<{ id: string; displayName: string | null }[]>(`/v1/forms/people?q=${encodeURIComponent(managerQuery.trim())}`).catch(() => []))}>
+                    {t("managerFind")}
+                  </button>
+                  {manager && <button type="button" className={primaryButton} onClick={() => setManager(null)}>{t("managerClear")}</button>}
+                </div>
+              )}
+              {managerResults && (
+                <ul className="space-y-1" aria-live="polite">
+                  {managerResults.length === 0 && <li>{t("managerNone")}</li>}
+                  {managerResults.filter((p) => p.id !== initial.id).map((p) => (
+                    <li key={p.id}>
+                      <button type="button" className="text-brand underline" onClick={() => { setManager(p); setManagerResults(null); setManagerQuery(""); }}>
+                        {t("managerPick", { name: p.displayName ?? p.id })}
+                      </button>
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </div>
+          )}
+        </fieldset>
       )}
       {initial.roles !== undefined && (
         <fieldset className="space-y-1">

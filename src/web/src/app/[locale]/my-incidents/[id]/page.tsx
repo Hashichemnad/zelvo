@@ -1,6 +1,7 @@
 import { notFound } from "next/navigation";
 import { getTranslations, setRequestLocale } from "next-intl/server";
 import { AttachmentsPanel } from "@/components/incidents/AttachmentsPanel";
+import { FormAnswersView } from "@/components/forms/FormAnswersView";
 import { IncidentFacts } from "@/components/incidents/IncidentFacts";
 import { MajorTimeline } from "@/components/incidents/MajorTimeline";
 import { ReopenButton } from "@/components/incidents/ReopenButton";
@@ -21,7 +22,7 @@ export default async function MyIncidentPage({ params }: PageProps<"/[locale]/my
   if (!isId(id)) notFound();
   const { session, tenant } = await requireSignedIn(locale, `/${locale}/my-incidents/${id}`);
   const t = await getTranslations({ locale, namespace: "incidents" });
-  const { incident, settings, attachments, attachmentSettings, updates, display } = await loadIncident(id, session.data.accessToken, tenant, locale, { staff: false });
+  const { incident, settings, attachments, attachmentSettings, updates, display, form } = await loadIncident(id, session.data.accessToken, tenant, locale, { staff: false });
   if (!incident) {
     return (
       <section className="space-y-4">
@@ -48,6 +49,7 @@ export default async function MyIncidentPage({ params }: PageProps<"/[locale]/my
         </h1>
       </header>
       <IncidentFacts incident={incident} settings={settings} display={display} basePath="/my-incidents" />
+      {form && <FormAnswersView view={form} attachmentBase={`/bff/api/v1/incidents/${incident.id}/attachments`} />}
       {incident.canReopen && <ReopenButton incidentId={incident.id} csrfToken={session.data.csrfToken} />}
       {closed && (
         <div className="space-y-2 rounded-lg border border-line p-4">
