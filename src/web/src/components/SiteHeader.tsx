@@ -5,6 +5,7 @@ import { getRequestAuthConfig } from "@/lib/auth/config";
 import { getSession } from "@/lib/auth/session";
 import { getDisplayFormat } from "@/lib/display";
 import { isKnowledgeStaff } from "@/lib/knowledge";
+import { canDecideAiActions } from "@/lib/mcp";
 import { formatDateTime } from "@/lib/format";
 import { sectionsFor } from "@/lib/settings-sections";
 import { AccountMenu } from "./AccountMenu";
@@ -16,6 +17,7 @@ export async function SiteHeader() {
   const t = await getTranslations("common");
   const tIncidents = await getTranslations("incidents.nav");
   const tKnowledge = await getTranslations("knowledge.nav");
+  const tApprovals = await getTranslations("aiApprovals");
   const config = await getRequestAuthConfig();
   const session = await getSession(config).catch(() => null);
   const user = session ? await getCurrentUser(session.data.accessToken, config.tenant) : null;
@@ -58,6 +60,13 @@ export async function SiteHeader() {
                     <li>
                       <Link href="/knowledge" className="text-brand underline-offset-4 hover:underline">
                         {tKnowledge("knowledge")}
+                      </Link>
+                    </li>
+                  )}
+                  {canDecideAiActions(user.permissions) && (
+                    <li>
+                      <Link href="/ai-approvals" className="text-brand underline-offset-4 hover:underline">
+                        {tApprovals("nav")}
                       </Link>
                     </li>
                   )}
