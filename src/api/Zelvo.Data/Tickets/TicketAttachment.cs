@@ -7,7 +7,7 @@ namespace Zelvo.Data.Tickets;
 /// A file attached to a ticket, or an image of a knowledge article (D1). Its content lives behind
 /// the attachment store (in PostgreSQL, <see cref="TicketAttachmentContent"/>); nobody can
 /// download it until the malware scan finds it clean (product owner decision 2026-11-22).
-/// Exactly one of <see cref="TicketId"/> and <see cref="ArticleId"/> is set.
+/// Exactly one of <see cref="TicketId"/>, <see cref="ArticleId"/> and <see cref="ServiceId"/> is set, except for form uploads not sent yet.
 /// </summary>
 public sealed class TicketAttachment : ITenantOwned, IAuditedEntity
 {
@@ -28,6 +28,9 @@ public sealed class TicketAttachment : ITenantOwned, IAuditedEntity
 
     /// <summary>The knowledge article, for article images.</summary>
     public Guid? ArticleId { get; init; }
+
+    /// <summary>Task C2: the catalog service, for its image and the templates of its required documents.</summary>
+    public Guid? ServiceId { get; init; }
 
     /// <summary>
     /// Task C1: the form field the file answers (a file upload or a drawn signature). Files are

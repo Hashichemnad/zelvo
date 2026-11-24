@@ -126,6 +126,10 @@ Admins build and change the whole service catalog themselves, with a drag-and-dr
 - Create catalogs per department or audience, organised by category and by a main service → sub-service hierarchy (any depth).
 - Draft, review, publish, suspend and retire services; copy a service to make a similar one; ready-made templates for common services.
 - Bulk import and export of service cards through Excel and the API.
+- Review (2026-11-24): a publisher other than the author approves each version (four-eyes, as for knowledge articles); changes to an active service are a new version that is reviewed while requesters keep seeing the active one.
+- Catalog managers (2026-11-24): tenant administrators manage the whole catalog; each catalog can name editors (users or groups) who write and submit that catalog's services.
+- Categories (2026-11-24): services use the category tree shared by all record types, several per service; catalogs group services per department or audience.
+- Templates (2026-11-24): Zelvo ships ready-made bilingual templates for common services, and administrators can save any service as a template.
 
 **Service card** — every service carries these fields, each in English and Arabic where it holds text:
 
@@ -153,6 +157,8 @@ Admins build and change the whole service catalog themselves, with a drag-and-dr
 - Choose who can see and request each service: everyone, public (no login), or only specific groups, roles, departments, locations or named users.
 - Hidden services do not appear in search, the catalog, the API or the virtual agent for anyone outside the allowed groups.
 - Option to request on behalf of someone else, limited to roles the admin allows.
+- Requests in Phase 1 task C2 (2026-11-24): requesters ask for a service with its form and required documents, for themselves or on behalf of someone; the request is a ticket (`REQ-000123`) routed by the assignment rules. Fulfilment (initial group, service SLAs, tasks, the step journey) comes with task C4.
+- Visitors (2026-11-24): visitors who are not signed in can read public services; they sign in to request them. Anonymous requests come with task C6.
 
 **Bundle services**
 

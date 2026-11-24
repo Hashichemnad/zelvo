@@ -23,6 +23,9 @@ describe("Settings sections", () => {
     // Task C1: forms and field sets need forms.manage.
     expect(sectionsFor(["forms.manage"]).map((s) => s.key)).toEqual(["forms", "fieldSets"]);
     expect(sectionsFor(["roles.manage"]).map((s) => s.key)).toEqual(["roles"]);
+    // Task C2: the catalog for managers and for publishers.
+    expect(sectionsFor(["catalog.manage"]).map((s) => s.key)).toEqual(["catalog"]);
+    expect(sectionsFor(["catalog.publish"]).map((s) => s.key)).toEqual(["catalog"]);
     expect(sectionsFor(["search.manage", "translations.read", "settings.manage"]).map((s) => s.key)).toEqual(["language", "incidents", "attachments", "knowledge", "search", "translations"]);
   });
 });

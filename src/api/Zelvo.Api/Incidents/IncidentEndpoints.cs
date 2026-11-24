@@ -418,7 +418,7 @@ internal static partial class IncidentEndpoints
         var ticket = new Ticket
         {
             Type = TicketType.Incident,
-            Number = TicketNumbers.Format(prefixes[TicketType.Incident], sequence),
+            Number = TicketNumbers.Format(TicketNumbers.PrefixOf(prefixes, TicketType.Incident), sequence),
             Sequence = sequence,
             Title = request.Title!.Trim(),
             Description = string.IsNullOrWhiteSpace(request.Description) ? null : request.Description.Trim(),

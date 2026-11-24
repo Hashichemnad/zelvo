@@ -277,10 +277,12 @@ public sealed partial class AttachmentScanJob(
                 attachment.ScanStatus = AttachmentScanStatus.Infected;
                 await store.RemoveAsync(attachment.Id, cancellationToken).ConfigureAwait(false);
                 // Task C1: files uploaded for a form that was not sent yet belong to no ticket.
-                var (action, entityType, entityId) = (attachment.TicketId, attachment.ArticleId) switch
+                var (action, entityType, entityId) = (attachment.TicketId, attachment.ArticleId, attachment.ServiceId) switch
                 {
-                    ({ } ticketId, _) => ("tickets.attachment.infected", "ticket", ticketId.ToString()),
-                    (_, { } articleId) => ("knowledge.image.infected", "kb_article", articleId.ToString()),
+                    ({ } ticketId, _, _) => ("tickets.attachment.infected", "ticket", ticketId.ToString()),
+                    (_, { } articleId, _) => ("knowledge.image.infected", "kb_article", articleId.ToString()),
+                    // Task C2: a service's image or document template.
+                    (_, _, { } serviceId) => ("catalog.file.infected", "catalog_service", serviceId.ToString()),
                     _ => ("forms.upload.infected", "ticket_attachment", attachment.Id.ToString()),
                 };
                 audit.Add(AuditCategory.Security, action, entityType, entityId,

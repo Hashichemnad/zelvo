@@ -1,4 +1,4 @@
-/** Which proxy paths visitors who are not signed in may use (the public knowledge base, D1). */
+/** Which proxy paths visitors who are not signed in may use (the public knowledge base, D1, and public catalog services, C2). */
 
 const uuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
@@ -17,6 +17,19 @@ export function isVisitorPath(method: string, path: string[]): boolean {
   }
   if (area === "settings" && kind === "knowledge" && id === undefined) {
     return method === "GET";
+  }
+  // Task C2: public catalog services, their cards and their images and document templates.
+  if (area === "catalog" && kind === "published") {
+    if (method !== "GET") {
+      return false;
+    }
+    if (id === undefined) {
+      return true;
+    }
+    if (!uuid.test(id)) {
+      return false;
+    }
+    return (sub === undefined && subId === undefined) || (sub === "files" && subId !== undefined && uuid.test(subId));
   }
   if (area !== "knowledge") {
     return false;

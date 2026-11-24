@@ -4,6 +4,7 @@ using Zelvo.Data.Ai;
 using Zelvo.Data.Auditing;
 using Zelvo.Data.Channels;
 using Zelvo.Data.Directory;
+using Zelvo.Data.Catalog;
 using Zelvo.Data.Forms;
 using Zelvo.Data.Identity;
 using Zelvo.Data.Integrations;
@@ -120,6 +121,24 @@ public sealed class ZelvoDbContext(DbContextOptions<ZelvoDbContext> options) : D
 
     /// <summary>Assignment rules, in order (task B2).</summary>
     public DbSet<AssignmentRule> AssignmentRules => Set<AssignmentRule>();
+
+    /// <summary>Service catalogs (task C2, module 2).</summary>
+    public DbSet<ServiceCatalog> ServiceCatalogs => Set<ServiceCatalog>();
+
+    /// <summary>Editors of service catalogs.</summary>
+    public DbSet<CatalogEditor> CatalogEditors => Set<CatalogEditor>();
+
+    /// <summary>Services of the catalog.</summary>
+    public DbSet<CatalogService> CatalogServices => Set<CatalogService>();
+
+    /// <summary>Versions of service cards.</summary>
+    public DbSet<CatalogServiceVersion> CatalogServiceVersions => Set<CatalogServiceVersion>();
+
+    /// <summary>Service templates saved by the tenant.</summary>
+    public DbSet<CatalogServiceTemplate> CatalogServiceTemplates => Set<CatalogServiceTemplate>();
+
+    /// <summary>Service details of service request tickets.</summary>
+    public DbSet<ServiceRequestDetails> ServiceRequests => Set<ServiceRequestDetails>();
 
     /// <summary>Knowledge articles (module 7).</summary>
     public DbSet<KbArticle> KbArticles => Set<KbArticle>();
@@ -323,6 +342,7 @@ public sealed class ZelvoDbContext(DbContextOptions<ZelvoDbContext> options) : D
         ConfigureForms(modelBuilder);
         ConfigureWorkspace(modelBuilder);
         ConfigureChannels(modelBuilder);
+        ConfigureCatalog(modelBuilder);
 
         modelBuilder.Entity<TenantDataKey>(key =>
         {
@@ -541,6 +561,128 @@ public sealed class ZelvoDbContext(DbContextOptions<ZelvoDbContext> options) : D
         });
     }
 
+    private static void ConfigureCatalog(ModelBuilder modelBuilder)
+    {
+        modelBuilder.Entity<ServiceCatalog>(catalog =>
+        {
+            catalog.ToTable("service_catalogs", table =>
+                table.HasCheckConstraint("ck_service_catalogs_key", "key ~ '^[a-z0-9]([a-z0-9-]{0,58}[a-z0-9])?$'"));
+            catalog.HasKey(c => c.Id);
+            catalog.Property(c => c.Id).ValueGeneratedNever();
+            catalog.HasOne<Tenant>().WithMany().HasForeignKey(c => c.TenantId).OnDelete(DeleteBehavior.Restrict);
+            catalog.HasOne<Department>().WithMany().HasForeignKey(c => c.DepartmentId).OnDelete(DeleteBehavior.Restrict);
+            catalog.Property(c => c.Key).HasMaxLength(ServiceCatalog.KeyMaxLength);
+            catalog.ConfigureLocalizedText(c => c.Name, "name", ServiceCatalog.NameMaxLength);
+            catalog.ConfigureLocalizedText(c => c.Description, "description", ServiceCatalog.DescriptionMaxLength);
+            catalog.Property(c => c.Version).IsRowVersion();
+            catalog.HasIndex(c => new { c.TenantId, c.Key }).IsUnique();
+            catalog.HasIndex(c => c.DepartmentId);
+            catalog.HasMany(c => c.Editors).WithOne().HasForeignKey(e => e.CatalogId).OnDelete(DeleteBehavior.Cascade);
+        });
+
+        modelBuilder.Entity<CatalogEditor>(editor =>
+        {
+            editor.ToTable("catalog_editors", table =>
+                table.HasCheckConstraint("ck_catalog_editors_one", "num_nonnulls(user_id, group_id) = 1"));
+            editor.HasKey(e => e.Id);
+            editor.Property(e => e.Id).ValueGeneratedNever();
+            editor.HasOne<Tenant>().WithMany().HasForeignKey(e => e.TenantId).OnDelete(DeleteBehavior.Restrict);
+            editor.HasOne<UserAccount>().WithMany().HasForeignKey(e => e.UserId).OnDelete(DeleteBehavior.Cascade);
+            editor.HasOne<SupportGroup>().WithMany().HasForeignKey(e => e.GroupId).OnDelete(DeleteBehavior.Cascade);
+            editor.HasIndex(e => new { e.CatalogId, e.UserId, e.GroupId }).IsUnique().AreNullsDistinct(false);
+            editor.HasIndex(e => e.TenantId);
+            editor.HasIndex(e => e.UserId);
+            editor.HasIndex(e => e.GroupId);
+        });
+
+        modelBuilder.Entity<CatalogService>(service =>
+        {
+            service.ToTable("catalog_services", table =>
+            {
+                table.HasCheckConstraint("ck_catalog_services_state", EnumCheck("state", Enum.GetNames<ServiceState>()));
+                table.HasCheckConstraint("ck_catalog_services_code", "code ~ '^[A-Z0-9][A-Z0-9-]{0,28}[A-Z0-9]$'");
+                table.HasCheckConstraint("ck_catalog_services_published", "state IN ('Draft', 'UnderReview') OR published_version_id IS NOT NULL");
+                table.HasCheckConstraint("ck_catalog_services_not_own_parent", "parent_id IS NULL OR parent_id <> id");
+            });
+            service.HasKey(s => s.Id);
+            service.Property(s => s.Id).ValueGeneratedNever();
+            service.HasOne<Tenant>().WithMany().HasForeignKey(s => s.TenantId).OnDelete(DeleteBehavior.Restrict);
+            service.HasOne<UserAccount>().WithMany().HasForeignKey(s => s.CreatedById).OnDelete(DeleteBehavior.SetNull);
+            // NO ACTION (checked at the end of each statement), so a tenant's catalog can be deleted together.
+            service.HasOne<CatalogService>().WithMany().HasForeignKey(s => s.ParentId).OnDelete(DeleteBehavior.NoAction);
+            // No foreign keys to the versions (as for knowledge articles): a service and its first
+            // version are inserted together, and versions belong to their service.
+            service.Property(s => s.Code).HasMaxLength(CatalogService.CodeMaxLength);
+            service.Property(s => s.State).HasConversion<string>().HasMaxLength(20);
+            service.ConfigureLocalizedText(s => s.Name, "name", CatalogService.NameMaxLength);
+            service.ConfigureLocalizedText(s => s.SuspendedMessage, "suspended_message", CatalogService.SuspendedMessageMaxLength);
+            service.Property(s => s.CatalogIds).HasColumnType("uuid[]").HasDefaultValueSql("'{}'");
+            service.Property(s => s.CategoryIds).HasColumnType("uuid[]").HasDefaultValueSql("'{}'");
+            service.Property(s => s.EditorCatalogIds).HasColumnType("uuid[]").HasDefaultValueSql("'{}'");
+            service.Property(s => s.Version).IsRowVersion();
+            service.HasIndex(s => new { s.TenantId, s.Code }).IsUnique();
+            service.HasIndex(s => new { s.TenantId, s.State });
+            service.HasIndex(s => s.ParentId);
+            service.HasIndex(s => s.PublishedVersionId);
+            service.HasIndex(s => s.WorkingVersionId);
+            service.HasIndex(s => s.CreatedById);
+        });
+
+        modelBuilder.Entity<CatalogServiceVersion>(version =>
+        {
+            version.ToTable("catalog_service_versions", table =>
+            {
+                table.HasCheckConstraint("ck_catalog_service_versions_state", EnumCheck("state", Enum.GetNames<ServiceVersionState>()));
+                table.HasCheckConstraint("ck_catalog_service_versions_number", "number >= 1");
+            });
+            version.HasKey(v => v.Id);
+            version.Property(v => v.Id).ValueGeneratedNever();
+            version.HasOne<Tenant>().WithMany().HasForeignKey(v => v.TenantId).OnDelete(DeleteBehavior.Restrict);
+            version.HasOne<CatalogService>().WithMany().HasForeignKey(v => v.ServiceId).OnDelete(DeleteBehavior.Cascade);
+            version.HasOne<UserAccount>().WithMany().HasForeignKey(v => v.CreatedById).OnDelete(DeleteBehavior.SetNull);
+            version.HasOne<UserAccount>().WithMany().HasForeignKey(v => v.LastEditedById).OnDelete(DeleteBehavior.SetNull);
+            version.HasOne<UserAccount>().WithMany().HasForeignKey(v => v.SubmittedById).OnDelete(DeleteBehavior.SetNull);
+            version.HasOne<UserAccount>().WithMany().HasForeignKey(v => v.ReviewedById).OnDelete(DeleteBehavior.SetNull);
+            version.Property(v => v.State).HasConversion<string>().HasMaxLength(20);
+            version.Property(v => v.Content).HasColumnType("jsonb");
+            version.Property(v => v.ChangeNote).HasMaxLength(CatalogServiceVersion.NoteMaxLength);
+            version.Property(v => v.ReviewComment).HasMaxLength(CatalogServiceVersion.NoteMaxLength);
+            version.Property(v => v.Version).IsRowVersion();
+            version.HasIndex(v => new { v.ServiceId, v.Number }).IsUnique();
+            version.HasIndex(v => new { v.TenantId, v.State });
+            version.HasIndex(v => v.CreatedById);
+            version.HasIndex(v => v.LastEditedById);
+            version.HasIndex(v => v.SubmittedById);
+            version.HasIndex(v => v.ReviewedById);
+        });
+
+        modelBuilder.Entity<CatalogServiceTemplate>(template =>
+        {
+            template.ToTable("catalog_service_templates");
+            template.HasKey(t => t.Id);
+            template.Property(t => t.Id).ValueGeneratedNever();
+            template.HasOne<Tenant>().WithMany().HasForeignKey(t => t.TenantId).OnDelete(DeleteBehavior.Restrict);
+            template.HasOne<UserAccount>().WithMany().HasForeignKey(t => t.CreatedById).OnDelete(DeleteBehavior.SetNull);
+            template.ConfigureLocalizedText(t => t.Name, "name", CatalogService.NameMaxLength);
+            template.ConfigureLocalizedText(t => t.Description, "description", ServiceCatalog.DescriptionMaxLength);
+            template.Property(t => t.Content).HasColumnType("jsonb");
+            template.HasIndex(t => t.TenantId);
+            template.HasIndex(t => t.CreatedById);
+        });
+
+        modelBuilder.Entity<ServiceRequestDetails>(request =>
+        {
+            request.ToTable("service_requests");
+            request.HasKey(r => r.TicketId);
+            request.HasOne<Tenant>().WithMany().HasForeignKey(r => r.TenantId).OnDelete(DeleteBehavior.Restrict);
+            request.HasOne<Ticket>().WithOne().HasForeignKey<ServiceRequestDetails>(r => r.TicketId).OnDelete(DeleteBehavior.Cascade);
+            request.HasOne<CatalogService>().WithMany().HasForeignKey(r => r.ServiceId).OnDelete(DeleteBehavior.Restrict);
+            request.HasOne<CatalogServiceVersion>().WithMany().HasForeignKey(r => r.ServiceVersionId).OnDelete(DeleteBehavior.Restrict);
+            request.HasIndex(r => new { r.TenantId, r.ServiceId });
+            request.HasIndex(r => r.ServiceVersionId);
+        });
+    }
+
     private static void ConfigureTree<TNode>(Microsoft.EntityFrameworkCore.Metadata.Builders.EntityTypeBuilder<TNode> node, string table)
         where TNode : TreeNode
     {
@@ -640,7 +782,7 @@ public sealed class ZelvoDbContext(DbContextOptions<ZelvoDbContext> options) : D
                 table.HasCheckConstraint("ck_ticket_attachments_scan_status", EnumCheck("scan_status", Enum.GetNames<AttachmentScanStatus>()));
                 table.HasCheckConstraint("ck_ticket_attachments_size", "size >= 0");
                 table.HasCheckConstraint("ck_ticket_attachments_sha256", "sha256 ~ '^[0-9a-f]{64}$'");
-                table.HasCheckConstraint("ck_ticket_attachments_owner", "num_nonnulls(ticket_id, article_id) = 1 OR (ticket_id IS NULL AND article_id IS NULL AND form_field_key IS NOT NULL)");
+                table.HasCheckConstraint("ck_ticket_attachments_owner", "num_nonnulls(ticket_id, article_id, service_id) = 1 OR (ticket_id IS NULL AND article_id IS NULL AND service_id IS NULL AND form_field_key IS NOT NULL)");
                 table.HasCheckConstraint("ck_ticket_attachments_form_field_key", "form_field_key ~ '^[a-z][a-zA-Z0-9]{0,59}$'");
                 table.HasCheckConstraint("ck_ticket_attachments_comment", "comment_id IS NULL OR ticket_id IS NOT NULL");
             });
@@ -648,8 +790,10 @@ public sealed class ZelvoDbContext(DbContextOptions<ZelvoDbContext> options) : D
             attachment.Property(a => a.Id).ValueGeneratedNever();
             attachment.HasOne<Ticket>().WithMany().HasForeignKey(a => a.TicketId).OnDelete(DeleteBehavior.Cascade);
             attachment.HasOne<KbArticle>().WithMany().HasForeignKey(a => a.ArticleId).OnDelete(DeleteBehavior.Cascade);
+            attachment.HasOne<CatalogService>().WithMany().HasForeignKey(a => a.ServiceId).OnDelete(DeleteBehavior.Cascade);
+            attachment.HasIndex(a => new { a.TenantId, a.ServiceId }).HasFilter("service_id IS NOT NULL");
             attachment.Property(a => a.FormFieldKey).HasMaxLength(TicketAttachment.FormFieldKeyMaxLength);
-            attachment.HasIndex(a => new { a.TenantId, a.UploadedAt }).HasFilter("ticket_id IS NULL AND article_id IS NULL").HasDatabaseName("ix_ticket_attachments_form_uploads");
+            attachment.HasIndex(a => new { a.TenantId, a.UploadedAt }).HasFilter("ticket_id IS NULL AND article_id IS NULL AND service_id IS NULL").HasDatabaseName("ix_ticket_attachments_form_uploads");
             // Comments are never removed, so the link never needs to change.
             attachment.HasOne<TicketComment>().WithMany().HasForeignKey(a => a.CommentId).OnDelete(DeleteBehavior.NoAction);
             attachment.HasIndex(a => a.CommentId).HasFilter("comment_id IS NOT NULL");

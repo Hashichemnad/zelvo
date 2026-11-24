@@ -272,7 +272,7 @@ internal sealed record IncidentSettingsResponse(
         return new(
             PriorityMatrixResponse.From(matrix),
             [.. reasons.Select(r => new OnHoldReasonResponse(r.Key, LocalizedTextDto.From(r.Name.ToText()), r.Active, r.Pauses))],
-            prefixes.ToDictionary(p => p.Key.ToString(), p => p.Value, StringComparer.Ordinal),
+            Enum.GetValues<TicketType>().ToDictionary(t => t.ToString(), t => TicketNumbers.PrefixOf(prefixes, t), StringComparer.Ordinal),
             days,
             businessDays,
             await store.LastChangedAsync(IncidentSettings.IncidentKeys, cancellationToken).ConfigureAwait(false));

@@ -69,7 +69,7 @@ internal static partial class FormUploadEndpoints
         }
 
         var me = user.Account!.Id;
-        if (await db.TicketAttachments.CountAsync(a => a.TicketId == null && a.ArticleId == null && a.UploadedById == me, cancellationToken) >= MaxPendingPerUser)
+        if (await db.TicketAttachments.CountAsync(a => a.TicketId == null && a.ArticleId == null && a.ServiceId == null && a.UploadedById == me, cancellationToken) >= MaxPendingPerUser)
         {
             return (ProblemHttpResult)ApiProblem.Create(StatusCodes.Status409Conflict, "too-many-uploads",
                 $"You have {MaxPendingPerUser} files waiting to be sent with a form; send or remove some first.");
@@ -141,7 +141,7 @@ internal static partial class FormUploadEndpoints
     }
 
     private static Task<TicketAttachment?> FindAsync(ZelvoDbContext db, CurrentUser user, Guid id, CancellationToken cancellationToken) =>
-        db.TicketAttachments.SingleOrDefaultAsync(a => a.Id == id && a.TicketId == null && a.ArticleId == null && a.UploadedById == user.Account!.Id, cancellationToken);
+        db.TicketAttachments.SingleOrDefaultAsync(a => a.Id == id && a.TicketId == null && a.ArticleId == null && a.ServiceId == null && a.UploadedById == user.Account!.Id, cancellationToken);
 
     private static ProblemHttpResult Refused(string code, string title) =>
         (ProblemHttpResult)ApiProblem.Create(StatusCodes.Status422UnprocessableEntity, code, title);

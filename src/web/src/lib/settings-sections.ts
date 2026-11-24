@@ -22,6 +22,7 @@ export interface SettingsSection {
     | "attachments"
     | "forms"
     | "fieldSets"
+    | "catalog"
     | "knowledge"
     | "notifications"
     | "cannedResponses"
@@ -36,6 +37,8 @@ export interface SettingsSection {
   href: string;
   /** Permission needed to open the section. */
   permission: string;
+  /** Other permissions that also open it. */
+  orPermissions?: readonly string[];
 }
 
 export const settingsSections: readonly SettingsSection[] = [
@@ -56,6 +59,8 @@ export const settingsSections: readonly SettingsSection[] = [
   { key: "attachments", href: "/settings/attachments", permission: "settings.manage" },
   { key: "forms", href: "/settings/forms", permission: "forms.manage" },
   { key: "fieldSets", href: "/settings/field-sets", permission: "forms.manage" },
+  // Task C2: managers build the catalog; publishers review and approve services.
+  { key: "catalog", href: "/settings/catalog", permission: "catalog.manage", orPermissions: ["catalog.publish"] },
   { key: "knowledge", href: "/settings/knowledge", permission: "settings.manage" },
   { key: "notifications", href: "/settings/notifications", permission: "notifications.manage" },
   // Task B4: everyone who works on incidents keeps their own; leads and administrators share them.
@@ -72,5 +77,5 @@ export const settingsSections: readonly SettingsSection[] = [
 /** Sections the user may open, in menu order. */
 export function sectionsFor(permissions: readonly string[]): SettingsSection[] {
   const held = new Set(permissions);
-  return settingsSections.filter((section) => held.has(section.permission));
+  return settingsSections.filter((section) => held.has(section.permission) || (section.orPermissions ?? []).some((p) => held.has(p)));
 }

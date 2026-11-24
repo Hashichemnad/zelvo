@@ -1,7 +1,7 @@
 import { defineConfig, devices } from "@playwright/test";
 
 /** Specs that change tenant-wide settings; each runs in its own project, one after another. */
-const tenantWide = [/settings\.spec\.ts/, /uae-pass\.spec\.ts/, /integrations\.spec\.ts/, /directory\.spec\.ts/, /sla\.spec\.ts/, /ai\.spec\.ts/, /knowledge\.spec\.ts/, /mcp\.spec\.ts/, /notifications\.spec\.ts/, /forms\.spec\.ts/, /channels\.spec\.ts/];
+const tenantWide = [/settings\.spec\.ts/, /uae-pass\.spec\.ts/, /integrations\.spec\.ts/, /directory\.spec\.ts/, /sla\.spec\.ts/, /ai\.spec\.ts/, /knowledge\.spec\.ts/, /mcp\.spec\.ts/, /notifications\.spec\.ts/, /forms\.spec\.ts/, /catalog\.spec\.ts/, /channels\.spec\.ts/, /workspace\.spec\.ts/];
 
 /** Demo mode needs the demo installation (`make demo`); `make e2e-demo` runs it with E2E_DEMO=1. */
 const demo = /demo\.spec\.ts/;
@@ -99,12 +99,29 @@ export default defineConfig({
           testMatch: /forms\.spec\.ts/,
           dependencies: ["notifications"],
         },
-        // Live chat (task E2) adds a group and a portal chat widget; after the form builder, on its own.
+        // Service catalog (task C2) adds a catalog with the team lead as editor and a service; after forms, on its own.
+        {
+          name: "catalog",
+          use: { ...devices["Desktop Chrome"] },
+          testMatch: /catalog\.spec\.ts/,
+          dependencies: ["forms"],
+        },
+        // Live chat (task E2) adds a group and a portal chat widget; after the service catalog, on its own.
         {
           name: "channels",
           use: { ...devices["Desktop Chrome"] },
           testMatch: /channels\.spec\.ts/,
-          dependencies: ["forms"],
+          dependencies: ["catalog"],
+        },
+        // Agent workspace (task B4) signs in as the agent with a second factor, like incidents.spec.ts;
+        // run at the same time, both set up the agent's authenticator on a fresh stack and one of them
+        // fails. Last, on its own, one test at a time.
+        {
+          name: "workspace",
+          use: { ...devices["Desktop Chrome"] },
+          testMatch: /workspace\.spec\.ts/,
+          fullyParallel: false,
+          dependencies: ["channels"],
         },
       ],
 });
