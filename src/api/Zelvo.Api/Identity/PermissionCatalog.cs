@@ -109,6 +109,25 @@ internal static class Permissions
     /// share views with their groups without it.
     /// </summary>
     public const string WorkspaceViewsShare = "workspace.views.share";
+
+    /// <summary>
+    /// Build the whole service catalog (task C2, module 2): catalogs and their editors, services in
+    /// every catalog, templates, bulk import and export. Editors named on a catalog write that
+    /// catalog's services without it.
+    /// </summary>
+    public const string CatalogManage = "catalog.manage";
+
+    /// <summary>Approve or send back service versions written by others (four-eyes), suspend, resume and retire services.</summary>
+    public const string CatalogPublish = "catalog.publish";
+
+    /// <summary>See every service request. Requesters always see their own without it.</summary>
+    public const string RequestsRead = "requests.read";
+
+    /// <summary>Work on service requests: change their state.</summary>
+    public const string RequestsEdit = "requests.edit";
+
+    /// <summary>Assign service requests to groups and agents.</summary>
+    public const string RequestsAssign = "requests.assign";
 }
 
 /// <summary>A field of a resource that field rules can hide or make read-only.</summary>
@@ -171,6 +190,11 @@ internal static class PermissionCatalog
         Permissions.FormsManage,
         Permissions.ResponsesManage,
         Permissions.WorkspaceViewsShare,
+        Permissions.CatalogManage,
+        Permissions.CatalogPublish,
+        Permissions.RequestsRead,
+        Permissions.RequestsEdit,
+        Permissions.RequestsAssign,
     ];
 
     /// <summary>
@@ -246,18 +270,18 @@ internal static class PermissionCatalog
         new(BuiltInRoles.Requester, new LocalizedText("Requester", "مقدّم الطلب"), [], new Dictionary<string, FieldAccess>()),
         new(BuiltInRoles.Agent, new LocalizedText("Agent", "موظف الدعم"),
             [Permissions.UsersRead, Permissions.IncidentsRead, Permissions.IncidentsCreate, Permissions.IncidentsEdit, Permissions.IncidentsAssign, Permissions.DirectoryRead,
-                Permissions.KnowledgeRead, Permissions.KnowledgeWrite],
+                Permissions.KnowledgeRead, Permissions.KnowledgeWrite, Permissions.RequestsRead, Permissions.RequestsEdit, Permissions.RequestsAssign],
             new Dictionary<string, FieldAccess> { ["users.email"] = FieldAccess.Read }),
         new(BuiltInRoles.TeamLead, new LocalizedText("Team lead", "قائد الفريق"),
             [Permissions.UsersRead, Permissions.IncidentsRead, Permissions.IncidentsCreate, Permissions.IncidentsEdit, Permissions.IncidentsAssign, Permissions.IncidentsMajor, Permissions.DirectoryRead,
-                Permissions.KnowledgeRead, Permissions.KnowledgeWrite, Permissions.KnowledgePublish],
+                Permissions.KnowledgeRead, Permissions.KnowledgeWrite, Permissions.KnowledgePublish, Permissions.RequestsRead, Permissions.RequestsEdit, Permissions.RequestsAssign],
             new Dictionary<string, FieldAccess> { ["users.email"] = FieldAccess.Read }),
         new(BuiltInRoles.Approver, new LocalizedText("Approver", "المعتمِد"), [], new Dictionary<string, FieldAccess>()),
         new(BuiltInRoles.TenantAdmin, new LocalizedText("Tenant administrator", "مسؤول الجهة"),
             All,
             new Dictionary<string, FieldAccess> { ["users.email"] = FieldAccess.Read, ["users.emiratesId"] = FieldAccess.Edit, ["users.phone"] = FieldAccess.Edit }),
         new(BuiltInRoles.ExecutiveAuditor, new LocalizedText("Executive / auditor", "تنفيذي / مدقق"),
-            [Permissions.AuditRead, Permissions.UsersRead, Permissions.IncidentsRead, Permissions.DirectoryRead, Permissions.KnowledgeRead],
+            [Permissions.AuditRead, Permissions.UsersRead, Permissions.IncidentsRead, Permissions.DirectoryRead, Permissions.KnowledgeRead, Permissions.RequestsRead],
             new Dictionary<string, FieldAccess> { ["users.email"] = FieldAccess.Read }),
     ];
 

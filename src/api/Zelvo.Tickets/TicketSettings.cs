@@ -109,18 +109,33 @@ public static partial class TicketNumbers
 {
     /// <summary>Default prefixes.</summary>
     public static IReadOnlyDictionary<TicketType, string> DefaultPrefixes { get; } =
-        new Dictionary<TicketType, string> { [TicketType.Incident] = "INC" };
+        new Dictionary<TicketType, string> { [TicketType.Incident] = "INC", [TicketType.ServiceRequest] = "REQ" };
 
     /// <summary>The number shown to people: prefix, a hyphen and at least six digits.</summary>
     public static string Format(string prefix, long sequence) =>
         $"{prefix}-{sequence.ToString("D6", System.Globalization.CultureInfo.InvariantCulture)}";
 
-    /// <summary>One prefix per record type, 1–10 capital letters or digits starting with a letter, all different.</summary>
-    public static bool AreValid(IReadOnlyDictionary<TicketType, string>? prefixes) =>
-        prefixes is not null
-        && Enum.GetValues<TicketType>().All(t => prefixes.TryGetValue(t, out var p) && p is not null && PrefixPattern().IsMatch(p))
-        && prefixes.Count == Enum.GetValues<TicketType>().Length
-        && prefixes.Values.Distinct(StringComparer.Ordinal).Count() == prefixes.Count;
+    /// <summary>
+    /// The prefix of <paramref name="type"/>: the tenant's, else the default. Record types added
+    /// after a tenant saved its prefixes (service requests in C2) start with their default.
+    /// </summary>
+    public static string PrefixOf(IReadOnlyDictionary<TicketType, string> prefixes, TicketType type) =>
+        prefixes.TryGetValue(type, out var prefix) ? prefix : DefaultPrefixes[type];
+
+    /// <summary>
+    /// 1–10 capital letters or digits starting with a letter for each record type given, and all
+    /// record types different once the defaults fill in those not given.
+    /// </summary>
+    public static bool AreValid(IReadOnlyDictionary<TicketType, string>? prefixes)
+    {
+        if (prefixes is null || prefixes.Count == 0 || prefixes.Any(p => !Enum.IsDefined(p.Key) || p.Value is null || !PrefixPattern().IsMatch(p.Value)))
+        {
+            return false;
+        }
+
+        var all = Enum.GetValues<TicketType>().Select(t => PrefixOf(prefixes, t)).ToList();
+        return all.Distinct(StringComparer.Ordinal).Count() == all.Count;
+    }
 
     /// <summary>
     /// Takes the next number of <paramref name="type"/> for the current tenant, inside the caller's

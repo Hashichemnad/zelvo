@@ -66,7 +66,7 @@ internal sealed class DemoIncidentsSeeder : IDemoSeeder
             var ticket = new Ticket
             {
                 Type = TicketType.Incident,
-                Number = TicketNumbers.Format(prefixes[TicketType.Incident], sequence),
+                Number = TicketNumbers.Format(TicketNumbers.PrefixOf(prefixes, TicketType.Incident), sequence),
                 Sequence = sequence,
                 Title = sample.Title,
                 Description = sample.Description,

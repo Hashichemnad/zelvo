@@ -146,6 +146,17 @@ internal static class FormSubmission
         Guid? formVersionId, JsonObject? submitted, Tickets.AttachmentPolicy policy, CancellationToken cancellationToken)
     {
         var form = await FormResolver.ForTicketAsync(db, recordType, categoryId, cancellationToken);
+        return await PrepareAsync(db, user, audit, form, requesterId, formVersionId, submitted, policy, cancellationToken);
+    }
+
+    /// <summary>
+    /// Checks the answers to <paramref name="form"/> (task C2: the form a catalog service names).
+    /// Returns nothing to save when there is no form and no answers were sent.
+    /// </summary>
+    public static async Task<(PreparedFormResponse? Prepared, IResult? Problem)> PrepareAsync(
+        ZelvoDbContext db, CurrentUser user, IAuditLog audit, ResolvedForm? form, Guid requesterId,
+        Guid? formVersionId, JsonObject? submitted, Tickets.AttachmentPolicy policy, CancellationToken cancellationToken)
+    {
         if (form is null)
         {
             return submitted is { Count: > 0 } || formVersionId is not null
@@ -199,7 +210,7 @@ internal static class FormSubmission
         foreach (var reference in result.Files)
         {
             var root = reference.Field.Split('.')[0];
-            if (!files.TryGetValue(reference.AttachmentId, out var file) || file.TicketId is not null || file.ArticleId is not null
+            if (!files.TryGetValue(reference.AttachmentId, out var file) || file.TicketId is not null || file.ArticleId is not null || file.ServiceId is not null
                 || file.UploadedById != user.Account?.Id || file.FormFieldKey != root)
             {
                 result.Errors.Add(new(reference.Field, "file-unknown", "Upload the file for this field again."));

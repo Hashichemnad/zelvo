@@ -138,6 +138,9 @@ public enum TicketType
 {
     /// <summary>Something is broken or not working as it should (module 1).</summary>
     Incident,
+
+    /// <summary>A request for a service of the catalog (module 2, task C2).</summary>
+    ServiceRequest,
 }
 
 /// <summary>Ticket states (module 1).</summary>

@@ -125,7 +125,7 @@ public sealed class DemoModeTests(DatabaseFixture database) : IAsyncDisposable
             Assert.True(await db.SupportGroups.AnyAsync(g => g.CalendarId != null, Ct));
             Assert.Equal(await db.Tickets.CountAsync(Ct) * 2, await db.TicketSlas.CountAsync(Ct));
             // Task B5: in the API, saving the sample incidents queued their notifications once.
-            Assert.Equal(await db.Tickets.CountAsync(Ct),
+            Assert.Equal(await db.Tickets.CountAsync(t => t.Type == Data.Tickets.TicketType.Incident, Ct),
                 await db.Notifications.CountAsync(n => n.EventType == Zelvo.Notifications.NotificationEvents.IncidentReceived, Ct));
             Assert.True(await db.TicketSlas.AnyAsync(c => c.TargetMinutes != null && c.State == Data.Sla.SlaClockState.Running, Ct));
             // Task B4: canned responses at every scope, shared and personal views, and conversations with a mention.
@@ -154,12 +154,14 @@ public sealed class DemoModeTests(DatabaseFixture database) : IAsyncDisposable
         Assert.Contains("c1-forms", ran);
         await using var db = TestData.AppContext(database, tenant);
         Assert.True(await db.TicketSlas.AnyAsync(Ct));
-        // Task B5: migrate has no notification interceptor; the seeder queues one "received" per sample incident.
-        Assert.Equal(await db.Tickets.CountAsync(Ct),
+        // Task B5: migrate has no notification interceptor; the seeder queues one "received" per sample incident
+        // (service requests of C2 get their notifications with C3 and C4).
+        Assert.Equal(await db.Tickets.CountAsync(t => t.Type == Data.Tickets.TicketType.Incident, Ct),
             await db.Notifications.CountAsync(n => n.EventType == Zelvo.Notifications.NotificationEvents.IncidentReceived, Ct));
 
-        // Task C1: published forms with a field set, bound to the default and to Laptops, and profile fields.
-        Assert.Equal(2, await db.Forms.CountAsync(f => f.State == Data.Forms.FormState.Published, Ct));
+        // Task C1: published forms with a field set, bound to the default and to Laptops, and profile fields
+        // (task C2 adds the laptop request form of the catalog).
+        Assert.Equal(3, await db.Forms.CountAsync(f => f.State == Data.Forms.FormState.Published, Ct));
         Assert.Equal(2, await db.FormBindings.CountAsync(Ct));
         Assert.True(await db.FieldSets.AnyAsync(s => s.State == Data.Forms.FormState.Published, Ct));
         Assert.True(await db.Users.AnyAsync(u => u.DepartmentId != null && u.ManagerId != null && u.Phone != null, Ct));
@@ -168,6 +170,22 @@ public sealed class DemoModeTests(DatabaseFixture database) : IAsyncDisposable
             var resolved = await Zelvo.Tickets.Forms.FormResolver.PublishedAsync(db, form.Id, Ct);
             Assert.Empty(Zelvo.Tickets.Forms.FormDefinitionCheck.Check([.. resolved!.PlainFields]));
         }
+
+        // Task C2: two catalogs, published services with every card having no problems, and service requests.
+        Assert.Contains("c2-catalog", ran);
+        Assert.Equal(2, await db.ServiceCatalogs.CountAsync(Ct));
+        Assert.True(await db.CatalogServices.CountAsync(s => s.State == Data.Catalog.ServiceState.Active, Ct) >= 8);
+        Assert.Single(await db.CatalogServices.Where(s => s.State == Data.Catalog.ServiceState.Suspended).ToListAsync(Ct));
+        Assert.Single(await db.CatalogServices.Where(s => s.State == Data.Catalog.ServiceState.UnderReview).ToListAsync(Ct));
+        var policy = Zelvo.Tickets.AttachmentPolicy.Default;
+        foreach (var service in await db.CatalogServices.ToListAsync(Ct))
+        {
+            var version = await db.CatalogServiceVersions.SingleAsync(v => v.Id == (service.PublishedVersionId ?? service.WorkingVersionId), Ct);
+            Assert.Empty(await Catalog.ServiceCardCheck.CheckAsync(db, service, Catalog.ServiceCards.Read(version.Content), policy, forPublishing: true, Ct));
+        }
+
+        Assert.Equal(2, await db.ServiceRequests.CountAsync(Ct));
+        Assert.All(await db.Tickets.Where(t => t.Type == Data.Tickets.TicketType.ServiceRequest).ToListAsync(Ct), t => Assert.StartsWith("REQ-", t.Number, StringComparison.Ordinal));
     }
 
     [Fact]
