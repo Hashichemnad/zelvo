@@ -56,7 +56,7 @@ export function RequestProgress({ request }: { request: ServiceRequest }) {
   return (
     <section aria-labelledby="request-progress" className="space-y-2" data-testid="request-progress">
       <h2 id="request-progress" className="text-xl font-semibold">{t("progress")}</h2>
-      <div role="progressbar" aria-valuemin={0} aria-valuemax={100} aria-valuenow={percent}
+      <div role="progressbar" aria-labelledby="request-progress" aria-valuemin={0} aria-valuemax={100} aria-valuenow={percent}
         aria-valuetext={current >= 0 ? t("stepOf", { current: current + 1, total: request.steps.length, name: textOf(request.steps[current]!.name, locale) }) : t("notStarted")}
         className="h-3 w-full overflow-hidden rounded-full bg-surface-muted">
         <div className="h-full bg-brand" style={{ width: `${percent}%` }} />

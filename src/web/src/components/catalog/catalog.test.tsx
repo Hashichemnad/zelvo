@@ -208,6 +208,8 @@ describe("RequestProgress", () => {
     } as unknown as ServiceRequest;
     wrap(<RequestProgress request={request} />, "ar");
     const bar = screen.getByRole("progressbar");
+    // The bar is named by its heading (axe: aria-progressbar-name).
+    expect(bar).toHaveAccessibleName(screen.getByRole("heading", { level: 2 }).textContent!);
     expect(bar).toHaveAttribute("aria-valuenow", "50");
     expect(bar).toHaveAttribute("aria-valuetext", "الخطوة 2 من 3: تنفيذ");
     expect(screen.getByText("تنفيذ").closest("li")).toHaveAttribute("aria-current", "step");
