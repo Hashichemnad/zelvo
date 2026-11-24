@@ -75,7 +75,8 @@ test.describe("agent workspace", () => {
     const bulk = agent.getByTestId("bulk-bar");
     await expect(bulk).toContainText("1 incident selected");
     await bulk.getByLabel("Action").selectOption("Assign");
-    await bulk.getByLabel("Agent").selectOption({ index: 1 });
+    // The second list of the bulk bar is the agent (the first is the action).
+    await bulk.getByRole("combobox").nth(1).selectOption({ index: 1 });
     await bulk.getByRole("button", { name: "Apply" }).click();
     await expect(bulk).toContainText("1 changed, 0 left as they were.");
 
