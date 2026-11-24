@@ -13,7 +13,7 @@ export async function generateMetadata({ params }: PageProps<"/[locale]/incident
   return { title: t("title") };
 }
 
-const filterKeys = ["state", "open", "priority", "assignee", "group", "major"] as const;
+const filterKeys = ["state", "open", "priority", "assignee", "group", "major", "sla", "sort"] as const;
 const selectClass =
   "rounded-md border border-line bg-surface px-3 py-2 text-ink focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand";
 
@@ -66,6 +66,11 @@ export default async function IncidentsPage({ params, searchParams }: PageProps<
         )}
       </div>
       <p>{t("intro")}</p>
+      <p>
+        <Link href="/incidents?sla=atRisk&open=true&sort=due" className="font-semibold text-brand underline-offset-4 hover:underline">
+          {t("filters.atRiskLink")}
+        </Link>
+      </p>
       <form method="get" aria-label={t("filters.label")} className="flex flex-wrap items-end gap-3 rounded-lg border border-line p-3">
         <label className="space-y-1 text-sm">
           <span className="block font-semibold">{t("filters.state")}</span>
@@ -108,6 +113,21 @@ export default async function IncidentsPage({ params, searchParams }: PageProps<
                 {inLanguage(g.name, locale as Locale).value}
               </option>
             ))}
+          </select>
+        </label>
+        <label className="space-y-1 text-sm">
+          <span className="block font-semibold">{t("filters.sla")}</span>
+          <select name="sla" defaultValue={query.sla ?? ""} className={selectClass}>
+            <option value="">{t("filters.anySla")}</option>
+            <option value="atRisk">{t("filters.slaAtRisk")}</option>
+            <option value="breached">{t("filters.slaBreached")}</option>
+          </select>
+        </label>
+        <label className="space-y-1 text-sm">
+          <span className="block font-semibold">{t("filters.sort")}</span>
+          <select name="sort" defaultValue={query.sort ?? ""} className={selectClass}>
+            <option value="">{t("filters.sortNewest")}</option>
+            <option value="due">{t("filters.sortDue")}</option>
           </select>
         </label>
         <label className="flex items-center gap-2 pb-2 text-sm">

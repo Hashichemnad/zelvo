@@ -2,6 +2,7 @@ import { useTranslations } from "next-intl";
 import { Link } from "@/i18n/navigation";
 import { formatDateTime, type DateDisplayOptions } from "@/lib/format";
 import { levelName, type Incident, type IncidentSettings, type Locale } from "@/lib/incidents";
+import { SlaCell } from "@/components/sla/SlaClocks";
 import { MajorBadge, StateBadge } from "./StateBadge";
 
 export interface IncidentTableProps {
@@ -31,6 +32,7 @@ export function IncidentTable({ incidents, settings, basePath, staff, display }:
             <th scope="col" className="px-3 py-2 text-start">{t("columns.priority")}</th>
             {staff && <th scope="col" className="px-3 py-2 text-start">{t("columns.requester")}</th>}
             {staff && <th scope="col" className="px-3 py-2 text-start">{t("columns.assignee")}</th>}
+            {staff && <th scope="col" className="px-3 py-2 text-start">{t("columns.sla")}</th>}
             <th scope="col" className="px-3 py-2 text-start">{t("columns.updated")}</th>
           </tr>
         </thead>
@@ -51,6 +53,11 @@ export function IncidentTable({ incidents, settings, basePath, staff, display }:
               <td className="px-3 py-2">{levelName(priorities, incident.priority, locale)}</td>
               {staff && <td className="px-3 py-2">{incident.requester?.displayName ?? "—"}</td>}
               {staff && <td className="px-3 py-2">{incident.assignee?.displayName ?? t("fields.unassigned")}</td>}
+              {staff && (
+                <td className="px-3 py-2">
+                  <SlaCell clocks={incident.sla} display={display} />
+                </td>
+              )}
               <td className="px-3 py-2">{formatDateTime(new Date(incident.updatedAt), display)}</td>
             </tr>
           ))}

@@ -3,6 +3,8 @@
  * and the requester pages ("My incidents"), which the self-service portal (D2) reuses.
  */
 
+import type { SlaClock } from "./sla";
+
 /** Bilingual text as the API returns it. */
 export interface Bilingual {
   en: string | null;
@@ -68,6 +70,10 @@ export interface Incident {
   updatedAt: string;
   resolvedAt: string | null;
   closedAt: string | null;
+  /** First response: work started or resolved (task B3). */
+  respondedAt?: string | null;
+  /** Response and resolution clocks (task B3, staff only). */
+  sla?: SlaClock[];
   version: number;
 }
 
@@ -87,6 +93,8 @@ export interface OnHoldReason {
   key: string;
   name: Bilingual;
   active: boolean;
+  /** Whether SLA clocks pause while waiting for this reason (task B3). */
+  pausesSla?: boolean;
 }
 
 /** The tenant's incident settings (GET /api/v1/settings/incidents). */
@@ -95,6 +103,8 @@ export interface IncidentSettings {
   onHoldReasons: OnHoldReason[];
   numberPrefixes: Record<string, string>;
   autoCloseDays: number;
+  /** Count the auto-close days as working days of the default business calendar (task B3). */
+  autoCloseBusinessDays?: boolean;
   updatedAt: string | null;
 }
 

@@ -64,6 +64,8 @@ export interface GroupMember {
 
 export interface Group extends GroupSummary {
   members: GroupMember[];
+  /** The team's business hours for SLA clocks (task B3); null: the policy's or the tenant default. */
+  calendarId?: string | null;
 }
 
 export type Language = "en" | "ar";

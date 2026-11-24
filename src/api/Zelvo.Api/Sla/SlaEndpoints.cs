@@ -58,7 +58,7 @@ internal static partial class SlaEndpoints
             .RequirePermission(Permissions.SlaManage).Produces<CalendarResponse>().ProducesValidationProblem();
         sla.MapDelete("/calendars/{id:guid}/holidays/{holidayId:guid}", DeleteHolidayAsync).WithName("DeleteCalendarHoliday")
             .WithSummary("Remove a holiday. Needs sla.manage; audited.")
-            .RequirePermission(Permissions.SlaManage).Produces<CalendarResponse>();
+            .RequirePermission(Permissions.SlaManage).Produces(StatusCodes.Status204NoContent);
 
         sla.MapGet("/customer-groups", ListCustomerGroupsAsync).WithName("ListCustomerGroups")
             .WithSummary("Customer groups with their email domains and requesters added by hand. Needs directory.read.")
@@ -247,7 +247,7 @@ internal static partial class SlaEndpoints
         return TypedResults.Ok((await CalendarsAsync(db, id, cancellationToken)).Single());
     }
 
-    internal static async Task<Results<Ok<CalendarResponse>, ProblemHttpResult>> DeleteHolidayAsync(
+    internal static async Task<Results<NoContent, ProblemHttpResult>> DeleteHolidayAsync(
         Guid id, Guid holidayId, ZelvoDbContext db, CancellationToken cancellationToken)
     {
         var holiday = await db.BusinessCalendarHolidays.SingleOrDefaultAsync(h => h.Id == holidayId && h.CalendarId == id, cancellationToken);
@@ -259,7 +259,7 @@ internal static partial class SlaEndpoints
         db.BusinessCalendarHolidays.Remove(holiday);
         await TouchCalendarAsync(db, id, cancellationToken);
         await SaveAndRecheckAsync(db, cancellationToken);
-        return TypedResults.Ok((await CalendarsAsync(db, id, cancellationToken)).Single());
+        return TypedResults.NoContent();
     }
 
     private static async Task TouchCalendarAsync(ZelvoDbContext db, Guid id, CancellationToken cancellationToken)

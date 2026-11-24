@@ -199,6 +199,18 @@
       "assignment": {
         "title": "Assignment",
         "description": "Rules that send tickets to groups and agents, and round-robin."
+      },
+      "slaPolicies": {
+        "title": "SLA policies",
+        "description": "Response and resolution targets per priority, escalations, and which tickets they apply to."
+      },
+      "businessCalendars": {
+        "title": "Business calendars",
+        "description": "Working hours, weekends and public holidays that SLA clocks count."
+      },
+      "customerGroups": {
+        "title": "Customer groups",
+        "description": "Groups of requesters with their own SLA policies, by email domain or by name."
       }
     },
     "missingWarning": "{count, plural, one {# text is} other {# texts are}} missing a translation.",
@@ -335,7 +347,9 @@
       "saving": "Saving…",
       "saved": "The incident settings are saved.",
       "failed": "The settings could not be saved. Check the values and try again.",
-      "inUse": "Incidents on hold use a reason you removed. Make it inactive instead."
+      "inUse": "Incidents on hold use a reason you removed. Make it inactive instead.",
+      "reasonPausesSla": "Pauses SLA clocks",
+      "autoCloseBusinessDays": "Count working days of the default business calendar"
     },
     "attachments": {
       "intro": "Files people attach to incidents. Every file's content must match its type.",
@@ -383,7 +397,8 @@
         "settings_manage": "Change organisation settings",
         "search_manage": "Search index status and rebuild",
         "demo_reset": "Reset the demo",
-        "integrations_manage": "Manage integrations"
+        "integrations_manage": "Manage integrations",
+        "sla_manage": "Change SLA policies and calendars"
       },
       "events": {
         "user_created": "A user was created",
@@ -392,7 +407,9 @@
         "role_created": "A role was added",
         "role_updated": "A role's name, permissions or field rules changed",
         "role_deleted": "A role was removed",
-        "webhook_test": "Test event"
+        "webhook_test": "Test event",
+        "ticket_sla_threshold": "A ticket reached an SLA escalation threshold",
+        "ticket_sla_breached": "A ticket passed an SLA target"
       },
       "clients": {
         "intro": "API keys are sent in the {header} header. OAuth clients get access tokens at the token URL with the client credentials grant.",
@@ -904,7 +921,15 @@
       "group": "Group",
       "anyGroup": "Any group",
       "myGroups": "My groups",
-      "noGroup": "No group"
+      "noGroup": "No group",
+      "sla": "SLA",
+      "anySla": "Any",
+      "slaAtRisk": "At risk",
+      "slaBreached": "Breached",
+      "sort": "Order",
+      "sortNewest": "Newest first",
+      "sortDue": "Soonest due first",
+      "atRiskLink": "Open incidents at risk of missing their SLA"
     },
     "columns": {
       "number": "Number",
@@ -913,7 +938,8 @@
       "priority": "Priority",
       "requester": "Requester",
       "assignee": "Assignee",
-      "updated": "Last updated"
+      "updated": "Last updated",
+      "sla": "SLA"
     },
     "pagination": {
       "label": "Pages",
@@ -1326,7 +1352,8 @@
         "demo": "Demo",
         "incidents": "Incidents",
         "integrations": "Integrations",
-        "directory": "Directory and assignment"
+        "directory": "Directory and assignment",
+        "sla": "SLA management"
       },
       "tenant_manage": "Change the organisation's name",
       "translations_read": "See missing translations",
@@ -1345,7 +1372,8 @@
       "incidents_major": "Manage major incidents",
       "integrations_manage": "Manage integrations",
       "directory_read": "See groups, skills and assignment rules",
-      "directory_manage": "Change categories, locations, skills, groups and assignment rules"
+      "directory_manage": "Change categories, locations, skills, groups and assignment rules",
+      "sla_manage": "Change SLA policies, business calendars and customer groups"
     },
     "assignment": {
       "intro": "The rules are checked in order and the first that matches decides where a new ticket goes. They run when a ticket is created and when an agent chooses \"Route again\"; they never move a ticket on their own later.",
@@ -1616,6 +1644,182 @@
       "button": "Turn into a knowledge article",
       "help": "Starts a draft from the description and resolution notes, with personal data replaced by placeholders.",
       "failed": "The article could not be created."
+    }
+  },
+  "sla": {
+    "days": {
+      "Monday": "Monday",
+      "Tuesday": "Tuesday",
+      "Wednesday": "Wednesday",
+      "Thursday": "Thursday",
+      "Friday": "Friday",
+      "Saturday": "Saturday",
+      "Sunday": "Sunday"
+    },
+    "clock": {
+      "title": "Service levels",
+      "metrics": {
+        "Response": "Response",
+        "Resolution": "Resolution"
+      },
+      "status": {
+        "None": "No target",
+        "Running": "On track",
+        "AtRisk": "At risk",
+        "Paused": "Paused",
+        "Met": "Met",
+        "Breached": "Breached"
+      },
+      "noPolicy": "No SLA policy applies to this incident.",
+      "target": "Target {target}",
+      "used": "used {used} ({percent} %)",
+      "progress": "{metric} time used",
+      "due": "Due {date}",
+      "breachedAt": "Target passed {date}",
+      "stoppedAt": "Stopped {date}",
+      "pausedHint": "Paused while waiting; the clock runs again when work continues.",
+      "policy": "Policy: {name}",
+      "calendar": "Business hours: {name}",
+      "allDay": "Counted around the clock"
+    },
+    "groupCalendar": {
+      "title": "Business hours",
+      "intro": "SLA clocks of this group's tickets count these hours. Without a calendar, the SLA policy's calendar or the organisation's default applies.",
+      "calendar": "Calendar",
+      "none": "None (use the policy's or the default)",
+      "save": "Save business hours"
+    },
+    "calendars": {
+      "intro": "SLA clocks count only working time: the hours of each day of the week, minus public holidays. Use a template for the UAE government week (Monday–Thursday 07:30–15:30, Friday 07:30–12:00) or office hours, then adjust.",
+      "none": "No business calendars yet. Until there is one, SLA clocks count around the clock.",
+      "default": "Default",
+      "edit": "Change {name}",
+      "delete": "Delete {name}",
+      "addCalendar": "Add a calendar",
+      "editCalendar": "Change the calendar",
+      "name": "Name",
+      "timeZone": "Time zone",
+      "timeZoneHint": "An IANA time zone, for example Asia/Dubai.",
+      "isDefault": "Default for the organisation",
+      "templates": "Start from a template",
+      "template": {
+        "uae-government": "UAE government week",
+        "uae-private": "UAE office hours",
+        "all-day": "Around the clock"
+      },
+      "week": "Working hours",
+      "weekHint": "Times are 24-hour (HH:mm); 24:00 is midnight at the end of the day. A day without hours is a day off.",
+      "day": "Day",
+      "periods": "Working periods",
+      "dayOff": "Day off",
+      "start": "From",
+      "end": "To",
+      "addPeriod": "Add hours on {day}",
+      "removePeriod": "Remove these hours on {day}",
+      "saveCalendar": "Save calendar",
+      "cancel": "Cancel",
+      "usedBy": "Used by {groups, plural, =0 {no groups} one {# group} other {# groups}} and {policies, plural, =0 {no policies} one {# policy} other {# policies}}.",
+      "holidays": "Public holidays and days off",
+      "noHolidays": "No holidays yet.",
+      "range": "{from} to {to}",
+      "removeHoliday": "Remove {name}",
+      "addHoliday": "Add a holiday",
+      "holidayName": "Holiday name",
+      "firstDay": "First day",
+      "lastDay": "Last day (optional)",
+      "holidayHint": "Islamic holidays depend on the moon sighting: add them when they are announced."
+    },
+    "customerGroups": {
+      "intro": "SLA policies can give some requesters their own targets. A requester belongs to a group when their email address is in one of its domains or when you add them by name.",
+      "none": "No customer groups yet.",
+      "inactive": "Inactive",
+      "edit": "Change {name}",
+      "delete": "Delete {name}",
+      "addGroup": "Add a customer group",
+      "editGroup": "Change the customer group",
+      "name": "Name",
+      "active": "Active",
+      "domains": "Email domains",
+      "domainsHint": "One per line or separated by commas, for example moi.gov.ae.",
+      "save": "Save customer group",
+      "cancel": "Cancel",
+      "noDomains": "No email domains.",
+      "domainsList": "Email domains: {domains}",
+      "usedBy": "Used by {count, plural, =0 {no policies} one {# policy} other {# policies}}.",
+      "members": "Added by name",
+      "noMembers": "Nobody added by name.",
+      "removeMember": "Remove {name}",
+      "findPerson": "Find a person",
+      "search": "Search",
+      "person": "Person",
+      "choosePerson": "Choose a person",
+      "nobodyFound": "Nobody found",
+      "addMember": "Add to the group"
+    },
+    "policies": {
+      "intro": "SLA policies set how quickly incidents get a first response and a resolution, counted in business time. Each change applies to open incidents within moments.",
+      "list": "Policies",
+      "listIntro": "Policies are checked in order and the first that matches applies. Put the most specific first and a policy without conditions last.",
+      "noCatchAll": "No active policy without conditions: incidents no policy matches have no targets.",
+      "none": "No SLA policies yet.",
+      "inactive": "Inactive",
+      "moveUp": "Move {name} up",
+      "moveDown": "Move {name} down",
+      "edit": "Change {name}",
+      "delete": "Delete {name}",
+      "addPolicy": "Add a policy",
+      "editPolicy": "Change the policy",
+      "name": "Name",
+      "active": "Active",
+      "when": "Applies to",
+      "category": "Category",
+      "anyCategory": "Any category",
+      "customerGroup": "Customer group",
+      "anyCustomer": "Any requester",
+      "calendar": "Business hours",
+      "defaultCalendar": "The organisation's default",
+      "whenHint": "A policy on a category also covers the categories below it. A group with its own business hours uses them instead of these.",
+      "targets": "Targets in business time",
+      "targetsHint": "The response target ends when work starts (In progress) or when the incident is resolved; the resolution target when it is resolved. Leave a priority empty for no target.",
+      "priority": "Priority",
+      "hoursLabel": "{metric} hours for {priority}",
+      "minutesLabel": "{metric} minutes for {priority}",
+      "h": "h",
+      "min": "min",
+      "escalations": "Escalations",
+      "escalationsHint": "At each share of a target, an alert is recorded on the incident for the people you choose; notifications deliver it. 100 % is the breach.",
+      "percent": "At (%)",
+      "appliesTo": "Target",
+      "bothTargets": "Both",
+      "notifyAssignee": "Alert the assignee",
+      "notifyLeads": "Alert the group's team leads",
+      "notifyGroup": "Also alert",
+      "noOtherGroup": "No other group",
+      "removeEscalation": "Remove the {percent} % escalation",
+      "addEscalation": "Add an escalation",
+      "save": "Save policy",
+      "cancel": "Cancel",
+      "summary": {
+        "always": "Every incident",
+        "category": "category {name}",
+        "customerGroup": "customer group {name}",
+        "targets": "respond {response}, resolve {resolution}",
+        "calendar": "Business hours: {name}",
+        "defaultCalendar": "Default business hours",
+        "escalations": "Escalations at {thresholds}"
+      },
+      "try": "Try the policies",
+      "tryIntro": "See which policy, business hours and due times an incident with these details would get now. Nothing is changed.",
+      "noCategory": "No category",
+      "group": "Group",
+      "noGroup": "No group",
+      "tryButton": "Try",
+      "result": "Policy {policy}, business hours: {calendar}.",
+      "resultTarget": "{metric} within {target}, due {due}.",
+      "responseShort": "Response",
+      "resolutionShort": "Resolution",
+      "resultNone": "No policy applies: the incident would have no targets.",
+      "allDay": "around the clock"
     }
   }
 }

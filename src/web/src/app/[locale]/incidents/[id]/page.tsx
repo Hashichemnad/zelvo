@@ -2,6 +2,7 @@ import { notFound } from "next/navigation";
 import { getTranslations, setRequestLocale } from "next-intl/server";
 import { AttachmentsPanel } from "@/components/incidents/AttachmentsPanel";
 import { IncidentFacts } from "@/components/incidents/IncidentFacts";
+import { SlaClocks } from "@/components/sla/SlaClocks";
 import { IncidentHistory } from "@/components/incidents/IncidentHistory";
 import { IncidentWorkPanel } from "@/components/incidents/IncidentWorkPanel";
 import { MajorTimeline } from "@/components/incidents/MajorTimeline";
@@ -62,6 +63,7 @@ export default async function IncidentPage({ params }: PageProps<"/[locale]/inci
         </h1>
       </header>
       <IncidentFacts incident={incident} settings={settings} display={display} basePath="/incidents" />
+      {incident.sla && <SlaClocks clocks={incident.sla} display={display} />}
       <IncidentWorkPanel incident={incident} settings={settings} csrfToken={session.data.csrfToken} permissions={permissions} assignees={assignees} directory={directory} />
       {(incident.state === "Resolved" || closed) && permissions.includes("knowledge.write") && (
         <CreateArticleFromIncident incidentId={incident.id} csrfToken={session.data.csrfToken} />
