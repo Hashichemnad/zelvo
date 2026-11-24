@@ -50,7 +50,8 @@ test.describe("settings and localization", () => {
       await page.getByRole("link", { name: "Settings" }).click();
       await expect(page).toHaveURL(/\/en\/settings$/);
       const menu = page.getByRole("navigation", { name: "Settings sections" });
-      await expect(menu.getByRole("link")).toHaveText([
+      // The sections an administrator always has; new Settings pages may add more (B5 added Notifications).
+      for (const name of [
         "Language and region",
         "Sign-in",
         "Users",
@@ -71,7 +72,10 @@ test.describe("settings and localization", () => {
         "AI",
         "Import and export",
         "Missing translations",
-      ]);
+        "Notifications",
+      ]) {
+        await expect(menu.getByRole("link", { name, exact: true })).toBeVisible();
+      }
       await expectAccessible(page);
 
       await menu.getByRole("link", { name: "Language and region" }).click();
