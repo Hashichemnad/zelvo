@@ -24,6 +24,7 @@
     <ProjectReference Include="..\Zelvo.Search\Zelvo.Search.csproj" />
     <ProjectReference Include="..\Zelvo.Tickets\Zelvo.Tickets.csproj" />
     <ProjectReference Include="..\Zelvo.Integrations\Zelvo.Integrations.csproj" />
+    <ProjectReference Include="..\Zelvo.Notifications\Zelvo.Notifications.csproj" />
     <ProjectReference Include="..\Zelvo.Ai\Zelvo.Ai.csproj" />
     <ProjectReference Include="..\Zelvo.Secrets\Zelvo.Secrets.csproj" />
     <ProjectReference Include="..\Zelvo.Observability\Zelvo.Observability.csproj" />
