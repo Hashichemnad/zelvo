@@ -42,6 +42,7 @@ internal static class SearchEndpoints
         [AsParameters] SearchRequestQuery request,
         [AsParameters] PageQuery paging,
         CurrentUser user,
+        Data.ZelvoDbContext db,
         IEnumerable<SearchTypeRegistration> registrations,
         SearchService search,
         CancellationToken cancellationToken)
@@ -69,7 +70,9 @@ internal static class SearchEndpoints
             return UserEndpoints.Validation("page", $"Results beyond the first {SearchService.MaxResultWindow} are not available; refine the search.");
         }
 
-        var readers = SearchReaders.ForCaller(user.Account?.Id, user.ActiveRoles.Select(r => r.Key));
+        // Task C2: services shown to groups, departments and locations; the caller is a reader of their
+        // groups, department and location with the locations above it.
+        var readers = (await Catalog.CatalogScope.OfAsync(db, user, cancellationToken)).Readers;
         try
         {
             var results = await search.SearchAsync(

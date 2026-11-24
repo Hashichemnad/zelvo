@@ -17,8 +17,9 @@ async function expectAccessible(page: Page) {
 }
 
 test.describe("agent workspace", () => {
-  // Sign-ins with a second factor share one authenticator secret per user; run on one project.
-  test.beforeEach(() => test.skip(test.info().project.name !== "desktop", "Runs once, on the desktop project."));
+  // Sign-ins with a second factor share one authenticator secret per user; runs in its own
+  // "workspace" project (playwright.config.ts), after every other spec that signs in as the agent.
+  test.beforeEach(() => test.skip(test.info().project.name !== "workspace", "Runs once, in the workspace project."));
   test.setTimeout(300_000);
 
   test("an agent works an incident in one screen with live updates", async ({ page, browser }) => {
