@@ -36,7 +36,7 @@ The home page's search. It is open to visitors (through the web app's visitor pa
 - **progress**:
   - service requests use their service's own steps, with the current step as on the request page (C2);
   - every other ticket uses received → being handled → resolved → closed;
-- **team**: the group that has it, never the person. Module 4's story asks to see "who has it". The requester's own pages (B1, C2) still show neither group nor assignee, for the product owner's confirmation.
+- **team**: the group that has it, never the person (product owner decision 2026-11-24, module 4's "who has it"). The ticket's own page shows the same team to its requester: incidents, service requests and customer voice records now give requesters `group`, never `assignee`.
 - **path**: the portal page that opens it: `/my-incidents/{id}`, `/my-requests/{id}` or `/my-voice/{id}`.
 
 ## Search documents for service requests

@@ -9,6 +9,7 @@ using Zelvo.Api.Forms;
 using Zelvo.Api.Identity;
 using Zelvo.Api.Incidents;
 using Zelvo.Api.Integrations;
+using Zelvo.Api.Security.RateLimiting;
 using Zelvo.Api.Settings;
 using Zelvo.Api.Tenancy;
 using Zelvo.Data;
@@ -30,6 +31,19 @@ namespace Zelvo.Api.Voice;
 /// </summary>
 internal static class VoicePublicEndpoints
 {
+    /// <summary>Anonymous submissions per client address and hour (on top of the API's general limits).</summary>
+    public const int SubmissionsPerHour = 5;
+
+    /// <summary>Tracking calls per client address in ten minutes, and per record number in ten minutes (against guessing codes).</summary>
+    public const int TrackingPerTenMinutes = 30;
+
+    private static async Task<IResult?> LimitedAsync(IRateLimitStore limits, HttpContext http, string kind, int permits, TimeSpan window, CancellationToken cancellationToken, string? number = null)
+    {
+        var byAddress = await Channels.ChatEndpoints.LimitedAsync(limits, http, kind, http.Connection.RemoteIpAddress?.ToString(), permits, window, cancellationToken);
+        return byAddress ?? (number is null ? null
+            : await Channels.ChatEndpoints.LimitedAsync(limits, http, $"{kind}-number", number.Trim().ToUpperInvariant(), permits, window, cancellationToken));
+    }
+
     public static RouteGroupBuilder MapVoicePublicEndpoints(this RouteGroupBuilder group)
     {
         var anonymous = group.MapGroup("/public/customer-voice").WithTags("Customer voice").RequireTenant();
@@ -63,8 +77,13 @@ internal static class VoicePublicEndpoints
 
     internal static async Task<IResult> SubmitAsync(
         AnonymousSubmissionRequest request, HttpContext http, ZelvoDbContext db, CurrentUser user, ITenantContext tenant, TenantSettingsStore settings,
-        IAuditLog audit, ISearchIndexer indexer, CancellationToken cancellationToken)
+        IAuditLog audit, ISearchIndexer indexer, IRateLimitStore limits, CancellationToken cancellationToken)
     {
+        if (await LimitedAsync(limits, http, "voice-submit", SubmissionsPerHour, TimeSpan.FromHours(1), cancellationToken) is { } limited)
+        {
+            return limited;
+        }
+
         var voiceSettings = await settings.GetAsync(VoiceSettings.Voice, cancellationToken);
         if (!voiceSettings.AnonymousEnabled)
         {
@@ -96,15 +115,25 @@ internal static class VoicePublicEndpoints
     }
 
     internal static async Task<IResult> TrackAsync(
-        TrackRequest request, HttpContext http, ZelvoDbContext db, CurrentUser user, TenantSettingsStore settings, CancellationToken cancellationToken)
+        TrackRequest request, HttpContext http, ZelvoDbContext db, CurrentUser user, TenantSettingsStore settings, IRateLimitStore limits, CancellationToken cancellationToken)
     {
+        if (await LimitedAsync(limits, http, "voice-track", TrackingPerTenMinutes, TimeSpan.FromMinutes(10), cancellationToken, request.Number) is { } limited)
+        {
+            return limited;
+        }
+
         var ticket = await FindTrackedAsync(db, request, tracked: false, cancellationToken);
         return ticket is null ? NotTracked() : TypedResults.Ok(await TrackedAsync(db, user, settings, ticket.Id, cancellationToken));
     }
 
     internal static async Task<IResult> TrackCommentAsync(
-        TrackCommentRequest request, HttpContext http, ZelvoDbContext db, TenantSettingsStore settings, CancellationToken cancellationToken)
+        TrackCommentRequest request, HttpContext http, ZelvoDbContext db, TenantSettingsStore settings, IRateLimitStore limits, CancellationToken cancellationToken)
     {
+        if (await LimitedAsync(limits, http, "voice-track", TrackingPerTenMinutes, TimeSpan.FromMinutes(10), cancellationToken, request.Number) is { } limited)
+        {
+            return limited;
+        }
+
         var ticket = await FindTrackedAsync(db, request, tracked: true, cancellationToken);
         if (ticket is null)
         {
@@ -117,8 +146,13 @@ internal static class VoicePublicEndpoints
 
     internal static async Task<IResult> TrackConfirmAsync(
         TrackConfirmRequest request, HttpContext http, ZelvoDbContext db, CurrentUser user, TenantSettingsStore settings, ISearchIndexer indexer,
-        CancellationToken cancellationToken)
+        IRateLimitStore limits, CancellationToken cancellationToken)
     {
+        if (await LimitedAsync(limits, http, "voice-track", TrackingPerTenMinutes, TimeSpan.FromMinutes(10), cancellationToken, request.Number) is { } limited)
+        {
+            return limited;
+        }
+
         var ticket = await FindTrackedAsync(db, request, tracked: true, cancellationToken);
         if (ticket is null)
         {
@@ -134,8 +168,13 @@ internal static class VoicePublicEndpoints
     }
 
     internal static async Task<IResult> TrackRateAsync(
-        TrackRateRequest request, ZelvoDbContext db, TenantSettingsStore settings, CancellationToken cancellationToken)
+        TrackRateRequest request, HttpContext http, ZelvoDbContext db, TenantSettingsStore settings, IRateLimitStore limits, CancellationToken cancellationToken)
     {
+        if (await LimitedAsync(limits, http, "voice-track", TrackingPerTenMinutes, TimeSpan.FromMinutes(10), cancellationToken, request.Number) is { } limited)
+        {
+            return limited;
+        }
+
         var ticket = await FindTrackedAsync(db, request, tracked: false, cancellationToken);
         return ticket is null ? NotTracked() : await AddTicketRatingAsync(db, settings, ticket, null, request.Score, request.Comment, cancellationToken);
     }

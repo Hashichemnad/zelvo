@@ -102,8 +102,8 @@ test.describe("customer voice", () => {
     const code = (await visitor.getByTestId("anonymous-code").textContent())!.trim();
     await expectAccessible(visitor);
     await visitor.goto("/en/track");
-    await visitor.getByLabel("Number").fill(number);
-    await visitor.getByLabel("Tracking code").fill(code);
+    await visitor.getByLabel("Tracking reference").fill(number);
+    await visitor.getByLabel("Private access code").fill(code);
     await visitor.getByRole("button", { name: "Show" }).click();
     await expect(visitor.getByTestId("tracked-record").getByText(`Evening hours ${stamp}`)).toBeVisible();
     await expect(visitor.getByText("Under review").first()).toBeVisible();

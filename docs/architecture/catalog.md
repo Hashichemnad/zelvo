@@ -176,7 +176,7 @@ The ticket is created as follows:
 | Endpoint | What |
 | --- | --- |
 | `GET /service-requests` | Own requests (also made for you), or all with `requests.read`; filters mine, open, state, service, number, assignee, group |
-| `GET /service-requests/{id}` | The request with its service, steps and current step (the last step whose stage the ticket reached). Requesters do not see the assignee, group or SLA clocks |
+| `GET /service-requests/{id}` | The request with its service, steps and current step (the last step whose stage the ticket reached). Requesters see the team (group) that has it, never the assignee (decision 2026-11-24), nor the SLA clocks |
 | `GET /service-requests/{id}/form`, `/attachments`, `/attachments/{id}/content` | Answers (personal answers' staff views audited), documents with their document key, downloads once clean (audited) |
 | `POST /service-requests/{id}/transitions` | States of the ticket core; requesters may reopen their resolved requests |
 | `PUT /service-requests/{id}/assignment`, `POST …/route` | Group and assignee (`requests.assign`) |

@@ -1,7 +1,10 @@
 using System.Net;
 using System.Text.Json.Nodes;
 using Microsoft.EntityFrameworkCore;
+using System.Collections.Concurrent;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.DependencyInjection.Extensions;
+using Zelvo.Api.Security.RateLimiting;
 using Zelvo.Data.Identity;
 using Zelvo.Tickets;
 
@@ -293,6 +296,68 @@ public sealed class CustomerVoiceApiTests(DatabaseFixture database) : IAsyncDisp
         Assert.StartsWith("month,complaints", (await csv.Content.ReadAsStringAsync(Ct)).TrimStart('﻿'), StringComparison.Ordinal);
         using var tooLong = await executive.SendAsync(HttpMethod.Get, "/api/v1/customer-voice/report?from=2020-01-01&to=2026-01-01");
         Assert.Equal(HttpStatusCode.BadRequest, tooLong.StatusCode);
+    }
+
+    [Fact]
+    public async Task Anonymous_submission_and_tracking_have_their_own_rate_limits()
+    {
+        await using var factory = _factory.WithServices(services =>
+        {
+            services.RemoveAll<IRateLimitStore>();
+            services.AddSingleton<IRateLimitStore, CountingRateLimitStore>();
+        });
+        var tenant = await database.CreateTenantAsync("cv");
+        using var admin = await factory.ForTenant(tenant).SignedInAsync(database, tenant, BuiltInRoles.TenantAdmin);
+        await admin.SendOkAsync(HttpMethod.Put, "/api/v1/settings/customer-voice", new { anonymousEnabled = true });
+        using var visitor = factory.ForTenant(tenant);
+
+        string? number = null;
+        for (var i = 0; i < Voice.VoicePublicEndpoints.SubmissionsPerHour; i++)
+        {
+            number = (string?)(await visitor.SendOkAsync(HttpMethod.Post, "/api/v1/public/customer-voice", new { type = "Suggestion", title = $"Idea {i}" }, HttpStatusCode.Created))["number"];
+        }
+
+        using var tooMany = await visitor.SendAsync(HttpMethod.Post, "/api/v1/public/customer-voice", new { type = "Suggestion", title = "One more" });
+        Assert.Equal(HttpStatusCode.TooManyRequests, tooMany.StatusCode);
+
+        // Guessing codes for a number stops after the limit, with a wrong code answering 404 until then.
+        for (var i = 0; i < Voice.VoicePublicEndpoints.TrackingPerTenMinutes; i++)
+        {
+            using var wrong = await visitor.SendAsync(HttpMethod.Post, "/api/v1/public/customer-voice/track", new { number, code = "ABCDEFGHJKMN" });
+            Assert.Equal(HttpStatusCode.NotFound, wrong.StatusCode);
+        }
+
+        using var stopped = await visitor.SendAsync(HttpMethod.Post, "/api/v1/public/customer-voice/track", new { number, code = "ABCDEFGHJKMN" });
+        Assert.Equal(HttpStatusCode.TooManyRequests, stopped.StatusCode);
+        Assert.True(stopped.Headers.Contains("Retry-After"));
+    }
+
+    [Fact]
+    public async Task Requesters_see_the_team_that_has_their_record_but_never_the_agent()
+    {
+        var tenant = await database.CreateTenantAsync("cv");
+        using var admin = await _factory.ForTenant(tenant).SignedInAsync(database, tenant, BuiltInRoles.TenantAdmin);
+        using var requester = await _factory.ForTenant(tenant).SignedInAsync(database, tenant, BuiltInRoles.Requester);
+        var agent = await database.CreateUserAsync(tenant, BuiltInRoles.Agent);
+        var desk = await admin.GroupAsync("Service desk", agent);
+        await admin.SendOkAsync(HttpMethod.Put, "/api/v1/assignment-rules/default", new { groupId = desk, method = "GroupQueue" });
+        var id = (await SendAsync(requester, "Complaint")).Id();
+        await admin.SendOkAsync(HttpMethod.Put, Of(id, "assignment"), new { groupId = desk, assigneeId = agent.Id });
+
+        var seen = await requester.SendOkAsync(HttpMethod.Get, Of(id));
+        Assert.Equal(desk.ToString(), (string?)seen["group"]!["id"]);
+        Assert.Null(seen["assignee"]);
+        var ticket = (await requester.SendOkAsync(HttpMethod.Get, "/api/v1/me/tickets"))["items"]![0]!;
+        Assert.Equal(desk.ToString(), (string?)ticket["team"]!["id"]);
+        Assert.DoesNotContain(agent.Id.ToString(), ticket.ToJsonString(), StringComparison.Ordinal);
+    }
+
+    private sealed class CountingRateLimitStore : IRateLimitStore
+    {
+        private readonly ConcurrentDictionary<string, long> _counts = new(StringComparer.Ordinal);
+
+        public Task<RateLimitCount?> HitAsync(string key, TimeSpan window, CancellationToken cancellationToken) =>
+            Task.FromResult<RateLimitCount?>(new RateLimitCount(_counts.AddOrUpdate(key, 1, (_, c) => c + 1), window));
     }
 }
 

@@ -32,8 +32,11 @@ namespace Zelvo.Api.Incidents;
 /// </summary>
 internal static partial class IncidentEndpoints
 {
-    /// <summary>Fields left out of the requester's view of their own incident.</summary>
-    private static readonly string[] RequesterHidden = ["assignee", "impact", "urgency", "channel", "parent", "children", "nextStates", "group", "routingRule", "sla"];
+    /// <summary>
+    /// Fields left out of the requester's view of their own incident. The team (group) that has it is
+    /// shown, never the person (product owner decision 2026-11-24).
+    /// </summary>
+    private static readonly string[] RequesterHidden = ["assignee", "impact", "urgency", "channel", "parent", "children", "nextStates", "routingRule", "sla"];
 
     private static readonly JsonSerializerOptions Json = new(JsonSerializerDefaults.Web) { Converters = { new JsonStringEnumConverter() } };
 

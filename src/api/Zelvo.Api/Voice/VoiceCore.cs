@@ -348,7 +348,7 @@ internal sealed record VoiceCommentResponse(Guid Id, CommentVisibility Visibilit
 internal sealed record RatingResponse(int Score, int Points, string? Comment, DateTimeOffset CreatedAt);
 
 /// <summary>
-/// A complaint, inquiry or suggestion. Requesters do not see the assignee, group, SLA clocks or
+/// A complaint, inquiry or suggestion. Requesters see the team (group) but not the assignee, SLA clocks or
 /// internal links; anonymous ones have no requester.
 /// </summary>
 internal sealed record VoiceResponse(
@@ -427,7 +427,8 @@ internal sealed class VoiceResponseContext
             voice.Anonymous,
             t.CreatedById is { } by && by != t.RequesterId && _staff ? new PersonResponse(by, _names.GetValueOrDefault(by)) : null,
             _staff && t.AssigneeId is { } a ? new PersonResponse(a, _names.GetValueOrDefault(a)) : null,
-            _staff ? _refs.Group(t.GroupId) : null,
+            // The team that has it, also for requesters; never the person (decision 2026-11-24).
+            _refs.Group(t.GroupId),
             _refs.Categories.RefOf(t.CategoryId),
             service, voice.Priority, voice.Severity, voice.RootCauseKey,
             voice.Confirmation, voice.ConfirmationAt, voice.ConfirmationComment,

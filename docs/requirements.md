@@ -213,7 +213,7 @@ Admins build and change the whole service catalog themselves, with a drag-and-dr
 - Inquiries: fast answer flow with knowledge suggestions; convert to a request or complaint when needed.
 - Suggestions: review states (Under review, Accepted, Implemented, Declined) with feedback to the submitter.
 - Anonymous submission option, configurable per tenant.
-- Anonymous submission (2026-11-24): complaints, inquiries and suggestions only (not service requests); the visitor gets the number and a one-time tracking code to follow status and replies in the portal.
+- Anonymous submission (2026-11-24): complaints, inquiries and suggestions only (not service requests). No email or other personal details are asked. The visitor gets a tracking reference (the number) and a private access code, shown once, to check status, reply and confirm closure in the portal without signing in. The code is stored only as a hash, and submission and tracking are rate-limited.
 - Unanswered complaints (2026-11-24): a resolved complaint the customer does not confirm closes after the tenant's auto-close period and is recorded as "not confirmed by the customer"; until then the customer can reject the resolution, which reopens it.
 - *Story:* As a citizen, I want to track my complaint and be told how it was resolved, so that I trust the entity listened.
 
@@ -223,6 +223,7 @@ Admins build and change the whole service catalog themselves, with a drag-and-dr
 - My tickets, my approvals, status tracking with a visual progress bar.
 - Login by UAE PASS, single sign-on, email + one-time code, or anonymous for public complaints.
 - Tenant branding: logo, colors, domain; fully responsive on mobile.
+- Who has it (2026-11-24): requesters see the team that has their ticket, on My tickets and on the ticket's own page, never an individual agent's name.
 - My approvals (2026-11-24): comes with the approvals of task C3; task D2 builds the search-first home and My tickets with progress.
 - *Story:* As a user, I want to see exactly where my request is and who has it, so that I don't need to call.
 
@@ -298,7 +299,7 @@ Admins build and change the whole service catalog themselves, with a drag-and-dr
 ### 10. Notifications, reporting and administration
 
 - Notifications by email, SMS, WhatsApp, Teams and in-app, in the recipient's language.
-- Notification events of Phase 1 task B5 (2026-11-24): requesters hear about their own incidents (received, waiting for them, resolved, closed, major-incident updates for requesters); staff hear about incidents assigned to them or arriving in their group's queue; SLA alerts go to the recipients of each threshold; publishers hear about articles waiting for review. Administrators switch each event on or off, with or without email, and change its wording in English and Arabic. The workflow builder adds more rules later.
+- Notification events of Phase 1 task B5 (2026-11-24): requesters hear about their own incidents (received, waiting for them, resolved, closed, major-incident updates for requesters); staff hear about incidents assigned to them or arriving in their group's queue; SLA alerts go to the recipients of each threshold; publishers hear about articles waiting for review. Administrators switch each event on or off, with or without email, and change its wording in English and Arabic. Customer voice events of task C6 (2026-11-24): requesters hear when their complaint, inquiry or suggestion is received, replied to, resolved (complaints ask them to confirm), answered (inquiries) or reviewed (suggestions, with the feedback); staff hear when one is assigned to them or arrives in their group's queue. They follow the same rules: the recipient's language, switched on or off by administrators. The workflow builder adds more rules later.
 - People's choices (2026-11-24): in-app notifications are always on; each person can turn off the email of an event in their account; SLA alerts always send email.
 - Mail server (2026-11-24): one per installation, set by the operator; emails carry the organisation's name as sender. The organisation's own sender domain comes with white-label branding (module 11).
 - Dashboards: volumes, backlog, SLA compliance, agent performance, happiness scores; scheduled reports to email.

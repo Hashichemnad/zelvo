@@ -106,6 +106,7 @@ export function VoiceFacts({ record, display, settings, incidentSettings, staff 
       <div><dt className="font-semibold">{t("fields.type")}</dt><dd>{t(`types.${record.type}`)}</dd></div>
       <div><dt className="font-semibold">{t("fields.state")}</dt><dd><StateBadge state={record.state} />{reason && <span className="ms-2"><Localized text={reason.name} locale={locale} /></span>}</dd></div>
       {staff && <div><dt className="font-semibold">{t("fields.requester")}</dt><dd>{record.anonymous ? t("anonymous") : record.requester?.displayName}</dd></div>}
+      {!staff && <div><dt className="font-semibold">{t("fields.team")}</dt><dd>{record.group ? <Localized text={record.group.name} locale={locale} /> : t("noTeamYet")}</dd></div>}
       {staff && <div><dt className="font-semibold">{t("fields.assignee")}</dt><dd>{record.assignee?.displayName ?? t("nobody")}{record.group && <> · <Localized text={record.group.name} locale={locale} /></>}</dd></div>}
       <div><dt className="font-semibold">{t("fields.created")}</dt><dd>{date(record.createdAt)}</dd></div>
       {record.resolvedAt && <div><dt className="font-semibold">{t("fields.resolved")}</dt><dd>{date(record.resolvedAt)}</dd></div>}

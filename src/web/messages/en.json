@@ -1243,7 +1243,9 @@
       "category": "Category",
       "location": "Location",
       "notSet": "Not set",
-      "routingRule": "Routed by rule"
+      "routingRule": "Routed by rule",
+      "team": "Team handling it",
+      "noTeamYet": "Waiting for a team"
     },
     "form": {
       "title": "Title",
@@ -3361,7 +3363,9 @@
       "myGroups": "My groups",
       "applyFilters": "Show",
       "empty": "No requests match.",
-      "backToList": "Back to the requests"
+      "backToList": "Back to the requests",
+      "team": "Team handling it",
+      "noTeamYet": "Waiting for a team"
     }
   },
   "channels": {
@@ -3723,7 +3727,8 @@
       "description": "Details",
       "feedback": "Feedback",
       "answer": "Answer",
-      "resolution": "How it was resolved"
+      "resolution": "How it was resolved",
+      "team": "Team handling it"
     },
     "nav": {
       "contact": "Contact us",
@@ -3772,12 +3777,12 @@
     "form": {
       "suggestions": "These articles may answer your question",
       "sentHeading": "Thank you, we have received your message",
-      "sentIntro": "Keep this number and tracking code to follow your message. You will not see the code again.",
-      "number": "Number",
-      "code": "Tracking code",
+      "sentIntro": "Keep this tracking reference and private access code to follow your message: check its status, reply and confirm its closure. You will not see the code again, and nobody can recover it.",
+      "number": "Tracking reference",
+      "code": "Private access code",
       "keepCode": "Write the code down or take a screenshot now.",
       "trackLink": "Follow your message",
-      "anonymousNotice": "You are not signed in, so your message is sent anonymously. Nothing identifies you; you follow it with the number and tracking code you get next.",
+      "anonymousNotice": "You are not signed in, so your message is sent anonymously: we ask for no name, email or other personal details. You follow it with the tracking reference and private access code you get next.",
       "title": {
         "Complaint": "What is your complaint about?",
         "Inquiry": "What would you like to know?",
@@ -3836,11 +3841,11 @@
     },
     "track": {
       "title": "Follow an anonymous message",
-      "intro": "Enter the number and tracking code you got when you sent your complaint, inquiry or suggestion.",
-      "number": "Number",
-      "code": "Tracking code",
+      "intro": "Enter the tracking reference and private access code you got when you sent your complaint, inquiry or suggestion.",
+      "number": "Tracking reference",
+      "code": "Private access code",
       "show": "Show",
-      "notFound": "No message matches this number and tracking code.",
+      "notFound": "No message matches this tracking reference and access code.",
       "failed": "This did not work. Please try again."
     },
     "settings": {
@@ -3980,7 +3985,8 @@
       "group": "Group",
       "byService": "By service",
       "service": "Service"
-    }
+    },
+    "noTeamYet": "Waiting for a team"
   },
   "portal": {
     "heading": "How can we help?",

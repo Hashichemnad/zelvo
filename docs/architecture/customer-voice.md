@@ -13,7 +13,9 @@ Product owner decisions (2026-11-24):
 - **Anonymous submission.** Complaints, inquiries and suggestions only; anonymous service requests stay out. The visitor gets the number and a one-time tracking code and follows the record with them in the portal.
 - **Unanswered complaints.** A resolved complaint the customer does not confirm closes after the tenant's auto-close period and is recorded as "not confirmed by the customer". Until then the customer can reject the resolution, which reopens it.
 
-Left for the product owner: the option chosen for anonymous submission mentioned an optional email. It is **not built**. An address on an anonymous record would identify the person, and notifications go to people's accounts. People who want email updates sign in (email code, UAE PASS) and send normally. See "Left out".
+- **No email for anonymous senders** (2026-11-24). Anonymous submissions ask for no email or other personal details. The tracking reference (the number) and the private access code, shown once, are how the person checks status, replies and confirms closure. The code is stored only as a hash; submission and tracking are rate-limited.
+- **Notifications approved** (2026-11-24): the seven events below, in the recipient's language, each switchable by administrators.
+- **The team, never the agent** (2026-11-24): requesters see the team that has their record, on My tickets and on the record's page, never an agent's name.
 
 ## Code
 
@@ -39,7 +41,7 @@ The three record types share the ticket core: numbers per type (prefixes in the 
 - **Who sees what.** As for service requests:
   - staff with `voice.read` see every record;
   - requesters see their own (and those logged for them), everyone else gets 404;
-  - requesters do not see the assignee, group, SLA clocks or root cause.
+  - requesters see the team (group) that has it, never the assignee (decision 2026-11-24); they do not see SLA clocks or the root cause.
 
 ### Closure flows
 
@@ -57,7 +59,7 @@ The three record types share the ticket core: numbers per type (prefixes in the 
 - **The answer.** The number and a **tracking code**: 12 characters from 31 unambiguous symbols, about 59 bits, from `RandomNumberGenerator`. Only its SHA-256 is stored, and the code is shown once.
 - **Following it.** `POST /public/customer-voice/track` with number and code (case, spaces and hyphens are ignored) answers the record and its public replies. Wrong pairs answer 404 alike and are compared in constant time.
   - With the same pair the visitor replies (`/track/comments`), confirms or rejects a complaint's resolution (`/track/confirmation`) and rates it (`/track/happiness`).
-  - Rate limits per address apply as everywhere.
+  - **Rate limits** of their own, on top of the API's general ones: 5 submissions per client address and hour, and 30 tracking calls in ten minutes per client address and per number (so a code cannot be guessed for one record from many addresses either). Over the limit: 429 `rate-limited` with `Retry-After`.
 - **Notifications.** Nobody is notified on the requester side of an anonymous record.
 - **Web proxy.** Visitors reach these paths, `GET /settings/customer-voice` and `POST /happiness/portal` through the visitor paths.
 
@@ -123,7 +125,7 @@ New events, each with bilingual templates (formal Arabic, approved terms شكو�
 
 - Links go to `/my-voice/{id}` for requesters and `/customer-voice/{id}` for staff.
 - Placeholders `ticket.type` and `review.state` are words in the recipient's language.
-- These are needed by module 3's feedback to the submitter. They are added to B5's list for the product owner's approval.
+- Approved by the product owner on 2026-11-24 and listed with B5's events in `notifications.md`.
 
 ## Permissions
 
@@ -159,7 +161,6 @@ Seeder `c6-customer-voice` (order 160) creates, for each sample organisation:
 
 ## Left out
 
-- **An email for anonymous submitters** (see above).
 - **Anonymous submissions with a form.** Visitors send title and description; staff classify them.
 - **Customer voice in the agent workspace (B4).** Staff work on these records on their own pages; the workspace is for incidents.
 - **AI.** Duplicate and sentiment detection and suggested replies come with E5.
