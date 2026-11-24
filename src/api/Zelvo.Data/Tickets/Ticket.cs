@@ -104,6 +104,9 @@ public sealed class Ticket : ITenantOwned, IAuditedEntity
     /// <summary>Who logged it (the requester, or an agent on their behalf).</summary>
     public Guid? CreatedById { get; init; }
 
+    /// <summary>The integration that logged it, when an AI agent raised it through MCP (module 9); <see cref="CreatedById"/> is then empty.</summary>
+    public Guid? CreatedByApiClientId { get; init; }
+
     /// <summary>When it was logged.</summary>
     public DateTimeOffset CreatedAt { get; init; } = DateTimeOffset.UtcNow;
 
@@ -182,6 +185,9 @@ public enum TicketChannel
 
     /// <summary>An integration, through the API.</summary>
     Api,
+
+    /// <summary>An AI agent, through Zelvo's MCP server (module 9).</summary>
+    AiAgent,
 }
 
 /// <summary>Incident details of a ticket: impact, urgency, priority and the major-incident flag.</summary>
