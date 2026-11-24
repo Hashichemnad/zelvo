@@ -39,7 +39,7 @@ export function isVisitorPath(method: string, path: string[]): boolean {
 
 /**
  * Live chat (task E2): the portal's widget, a widget's public details, starting a chat, leaving a
- * message, the visitor's own chat (the API checks its token), watch keys and the hub's signals.
+ * message and the visitor's own chat (the API checks its token).
  */
 function isChatVisitorPath(method: string, kind?: string, id?: string, sub?: string, subId?: string): boolean {
   if (subId !== undefined) {
@@ -47,13 +47,6 @@ function isChatVisitorPath(method: string, kind?: string, id?: string, sub?: str
   }
   if (kind === "portal-widget") {
     return method === "GET" && id === undefined;
-  }
-  if (kind === "watch") {
-    return method === "POST" && id === undefined;
-  }
-  if (kind === "hub") {
-    // SignalR: negotiate, then the server-sent events stream (GET) or long polling, and sends (POST).
-    return (id === undefined && (method === "GET" || method === "POST")) || (id === "negotiate" && method === "POST" && sub === undefined);
   }
   if (id === undefined || !uuid.test(id)) {
     return false;

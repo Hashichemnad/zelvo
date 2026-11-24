@@ -4,7 +4,9 @@ using System.Text.Json.Nodes;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging.Abstractions;
+using Npgsql;
 using Zelvo.Api.Channels;
+using Zelvo.Data.Live;
 using Zelvo.Channels;
 using Zelvo.Data.Channels;
 using Zelvo.Data.Identity;
@@ -122,7 +124,7 @@ public sealed class ChatChannelTests(DatabaseFixture database) : IAsyncDisposabl
         var incident = await agent.GetIncidentAsync(ticketId);
         Assert.Equal(("Chat", "Card payment failed"), ((string?)incident["channel"], (string?)incident["title"]));
         Assert.Equal(agentUser.Id.ToString(), (string?)incident["assignee"]!["id"]);
-        var transcript = (await agent.SendOkAsync(HttpMethod.Get, $"/api/v1/incidents/{ticketId}/messages"))["items"]!.AsArray();
+        var transcript = (await agent.SendOkAsync(HttpMethod.Get, $"/api/v1/incidents/{ticketId}/comments"))["items"]!.AsArray();
         Assert.Equal(["My card payment failed.", "Which card did you use?", "A debit card."], transcript.Select(m => (string)m!["body"]!));
         Assert.Equal("chat-has-ticket", (await (await agent.SendAsync(HttpMethod.Post, $"/api/v1/chat/sessions/{session}/ticket", new { })).ProblemAsync()).Code);
         await using (var db = TestData.AppContext(database, tenant))
@@ -130,7 +132,9 @@ public sealed class ChatChannelTests(DatabaseFixture database) : IAsyncDisposabl
             var requester = await db.Users.SingleAsync(u => u.Email == "sara@visitors.example.org", Ct);
             Assert.Equal(("ar", requester.Id), (requester.PreferredLanguage, (await db.Tickets.SingleAsync(t => t.Id == ticketId, Ct)).RequesterId));
             // The transcript's copy raises no reply notifications: both sides saw it live.
-            Assert.False(await db.Notifications.AnyAsync(n => n.EventType == "incident.reply", Ct));
+            Assert.False(await db.Notifications.AnyAsync(n => n.EventType == "incident.replied", Ct));
+            Assert.All(await db.TicketComments.Where(c => c.TicketId == ticketId).ToListAsync(Ct), c => Assert.Equal((CommentSource.Chat, session, "ar"), (c.Source, c.ChatSessionId, c.Language)));
+            Assert.NotNull((await db.Tickets.SingleAsync(t => t.Id == ticketId, Ct)).RespondedAt);
         }
 
         // The visitor ends the chat; nothing more can be written.
@@ -181,27 +185,36 @@ public sealed class ChatChannelTests(DatabaseFixture database) : IAsyncDisposabl
     }
 
     [Fact]
-    public async Task Watch_keys_name_only_what_the_caller_may_follow_and_work_once()
+    public async Task Chat_changes_are_announced_to_agents_on_the_live_channel_with_ids_only()
     {
-        var tenant = await database.CreateTenantAsync("e2watch");
+        var tenant = await database.CreateTenantAsync("e2live");
         using var admin = await _factory.ForTenant(tenant).SignedInAsync(database, tenant, BuiltInRoles.TenantAdmin);
         var agentUser = await database.CreateUserAsync(tenant, BuiltInRoles.Agent);
-        using var agent = _factory.ForTenant(tenant).As(agentUser);
         using var visitor = _factory.ForTenant(tenant);
         var group = await admin.GroupAsync("Desk", agentUser);
         var widget = (await admin.SendOkAsync(HttpMethod.Post, "/api/v1/chat/widgets", new { name = new { en = "Help" }, groupId = group, onPortal = true }, HttpStatusCode.Created)).Id();
-        var start = await JsonAsync(await visitor.SendAsync(HttpMethod.Post, $"/api/v1/chat/widgets/{widget}/sessions", new { name = "V", email = "v@visitors.example.org" }));
-        var session = Guid.Parse((string)start["sessionId"]!);
-        var signals = _factory.Services.GetRequiredService<ChatSignals>();
 
-        var agentKey = (string)(await agent.SendOkAsync(HttpMethod.Post, "/api/v1/chat/watch", new { }))["key"]!;
-        Assert.Equal([ChatSignals.AgentGroup(tenant.Id, agentUser.Id), ChatSignals.QueueGroup(tenant.Id, group)], await signals.RedeemAsync(agentKey));
-        Assert.Empty(await signals.RedeemAsync(agentKey));
+        await using var listener = new NpgsqlConnection(database.AppConnectionString);
+        await listener.OpenAsync(Ct);
+        var received = new List<string>();
+        listener.Notification += (_, e) => { lock (received) received.Add(e.Payload); };
+        await using (var listen = new NpgsqlCommand($"LISTEN {LiveUpdateInterceptor.Channel}", listener))
+        {
+            await listen.ExecuteNonQueryAsync(Ct);
+        }
 
-        var visitorKey = (string)(await JsonAsync(await visitor.SendAsync(HttpMethod.Post, "/api/v1/chat/watch", new { sessionId = session, token = (string)start["token"]! })))["key"]!;
-        Assert.Equal([ChatSignals.ChatGroup(tenant.Id, session)], await signals.RedeemAsync(visitorKey));
-        Assert.Equal(HttpStatusCode.NotFound, (await visitor.SendAsync(HttpMethod.Post, "/api/v1/chat/watch", new { sessionId = session, token = "wrong" })).StatusCode);
-        Assert.Equal(HttpStatusCode.Forbidden, (await visitor.SendAsync(HttpMethod.Post, "/api/v1/chat/watch", new { })).StatusCode);
+        var start = await JsonAsync(await visitor.SendAsync(HttpMethod.Post, $"/api/v1/chat/widgets/{widget}/sessions",
+            new { name = "Visitor name", email = "v@visitors.example.org", message = "Private question text" }));
+        using var wait = CancellationTokenSource.CreateLinkedTokenSource(Ct);
+        wait.CancelAfter(TimeSpan.FromSeconds(5));
+        while (!received.Any(p => p.Contains("\"chat\"", StringComparison.Ordinal)))
+        {
+            await listener.WaitAsync(wait.Token);
+        }
+
+        var live = received.Select(LiveEvent.Parse).First(e => e?.Kind == LiveEvent.Chat)!;
+        Assert.Equal((tenant.Id, Guid.Parse((string)start["sessionId"]!)), (live.Tenant, live.Id));
+        Assert.DoesNotContain(received, p => p.Contains("Private", StringComparison.Ordinal) || p.Contains("visitors.example.org", StringComparison.Ordinal));
     }
 
     [Fact]

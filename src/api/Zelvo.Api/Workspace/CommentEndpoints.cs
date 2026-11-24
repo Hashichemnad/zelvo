@@ -11,6 +11,7 @@ using Zelvo.Data;
 using Zelvo.Data.Identity;
 using Zelvo.Data.Localization;
 using Zelvo.Data.Tickets;
+using Zelvo.Tickets;
 using Zelvo.Tickets.Sla;
 
 namespace Zelvo.Api.Workspace;
@@ -124,6 +125,11 @@ internal static class CommentEndpoints
         }
 
         var now = DateTimeOffset.UtcNow;
+        // Task E2: a staff reply on a ticket that came in by email goes out from its mailbox, in the
+        // same thread; its Message-ID is fixed now, because comments never change.
+        var email = byStaff && visibility == CommentVisibility.Public && ticket.MailboxId is { } mailboxId
+            ? await EmailThread.ReplyHeadersAsync(db, ticket.Id, mailboxId, cancellationToken)
+            : null;
         var comment = new TicketComment
         {
             TicketId = ticket.Id,
@@ -133,6 +139,9 @@ internal static class CommentEndpoints
             AuthorId = me.Id,
             ByStaff = byStaff,
             CannedResponseId = request.CannedResponseId,
+            MailboxId = email?.MailboxId,
+            EmailMessageId = email?.MessageId,
+            EmailInReplyTo = email?.InReplyTo,
             CreatedAt = now,
         };
         db.TicketComments.Add(comment);
@@ -149,6 +158,13 @@ internal static class CommentEndpoints
             {
                 ticket.RespondedAt = now;
                 ticket.UpdatedAt = now;
+                await http.RequestServices.GetRequiredService<SlaTracker>().UpdateAsync([ticket], now, cancellationToken);
+            }
+            else if (ticket.RequesterId == me.Id && ticket is { State: TicketState.OnHold, OnHoldReason: OnHoldReason.AwaitingRequester }
+                && TicketWorkflow.Check(ticket, TicketState.InProgress, null, null) == TransitionError.None)
+            {
+                // Task E2, as for answers by email: the requester's answer moves a ticket waiting for them back to work.
+                TicketWorkflow.Apply(ticket, TicketState.InProgress, null, null, now);
                 await http.RequestServices.GetRequiredService<SlaTracker>().UpdateAsync([ticket], now, cancellationToken);
             }
 
@@ -175,11 +191,22 @@ internal static class CommentEndpoints
             ? (await db.TicketCommentMentions.AsNoTracking().Where(m => ids.Contains(m.CommentId)).ToListAsync(cancellationToken)).ToLookup(m => m.CommentId, m => m.UserId)
             : Enumerable.Empty<TicketCommentMention>().ToLookup(m => m.CommentId, m => m.UserId);
         var names = await IncidentEndpoints.Names(db, rows.Select(c => c.AuthorId).Concat(mentions.SelectMany(m => m)), cancellationToken);
+        // Task E2: files that came with an email, and how the email of a staff reply went (staff only).
+        var files = (await db.TicketAttachments.AsNoTracking().Where(a => a.CommentId != null && ids.Contains(a.CommentId.Value))
+            .Select(a => new { a.CommentId, a.Id, a.FileName }).ToListAsync(cancellationToken)).ToLookup(a => a.CommentId!.Value);
+        var deliveries = staff
+            ? (await db.OutboundEmails.AsNoTracking().Where(e => e.CommentId != null && ids.Contains(e.CommentId.Value))
+                .Select(e => new { e.CommentId, e.Status }).ToListAsync(cancellationToken)).ToDictionary(e => e.CommentId!.Value, e => e.Status)
+            : [];
         return [.. rows.Select(c => new CommentResponse(
             c.Id, c.TicketId, c.Visibility, c.Body, c.Language,
             new PersonResponse(c.AuthorId, names.GetValueOrDefault(c.AuthorId)), c.ByStaff,
             [.. mentions[c.Id].Select(u => new PersonResponse(u, names.GetValueOrDefault(u)))],
-            staff ? c.CannedResponseId : null, c.CreatedAt))];
+            staff ? c.CannedResponseId : null, c.CreatedAt, c.Source,
+            [.. files[c.Id].Select(f => new CommentAttachmentResponse(f.Id, f.FileName))],
+            staff && c.EmailMessageId is not null && c.ByStaff && c.Source == CommentSource.Web
+                ? deliveries.TryGetValue(c.Id, out var status) ? status.ToString() : "Pending"
+                : null))];
     }
 }
 
@@ -194,9 +221,16 @@ internal static class CommentEndpoints
 /// <param name="Mentions">Staff mentioned (staff only).</param>
 /// <param name="CannedResponseId">The canned response it started from (staff only).</param>
 /// <param name="CreatedAt">When it was written.</param>
+/// <param name="Source">Task E2: Web (in Zelvo), Email or Chat (a live chat's transcript).</param>
+/// <param name="Attachments">Task E2: files that came with an email.</param>
+/// <param name="EmailDelivery">Task E2, staff only: for a staff reply sent from the ticket's mailbox, Pending, Sent or Failed.</param>
 internal sealed record CommentResponse(
     Guid Id, Guid TicketId, CommentVisibility Visibility, string Body, string Language, PersonResponse Author, bool ByStaff,
-    IReadOnlyList<PersonResponse> Mentions, Guid? CannedResponseId, DateTimeOffset CreatedAt);
+    IReadOnlyList<PersonResponse> Mentions, Guid? CannedResponseId, DateTimeOffset CreatedAt,
+    CommentSource Source, IReadOnlyList<CommentAttachmentResponse> Attachments, string? EmailDelivery);
+
+/// <summary>A file that came with a comment (the attachments of an email).</summary>
+internal sealed record CommentAttachmentResponse(Guid Id, string FileName);
 
 /// <summary>A new public reply or internal note.</summary>
 public sealed class CreateCommentRequest

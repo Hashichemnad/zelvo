@@ -3,7 +3,8 @@
 import { useCallback, useEffect, useId, useState, type FormEvent } from "react";
 import { useLocale, useTranslations } from "next-intl";
 import { Link } from "@/i18n/navigation";
-import { useChatSignals } from "@/lib/chat-signals";
+import { useLive } from "@/lib/live";
+import { usePolling } from "@/lib/use-polling";
 import { ApiError, getJson, postJson, putJson } from "@/lib/client-api";
 import { formatDateTime, type DateDisplayOptions } from "@/lib/format";
 import { mergeMessages, textIn, type AgentChat, type ChatMessage, type ChatQueue, type ChatSummary } from "@/lib/channels";
@@ -43,7 +44,9 @@ export function AgentChats({
     }
   }, []);
 
-  useChatSignals({ csrfToken, onChange: () => void reload() });
+  // Chat changes arrive on the live channel (B4) as ids only; without it the queue is polled.
+  const live = useLive(csrfToken, { chatChanged: () => void reload() });
+  usePolling(() => void reload(), 5000, live !== "live");
 
   async function accept(chat: ChatSummary) {
     setError(null);
@@ -209,7 +212,12 @@ function ChatPanel({
       .catch(() => setGroups([]));
   }, [groupId]);
 
-  useChatSignals({ sessionId, csrfToken, onChange: () => void load(), enabled: chat?.state !== "Ended" });
+  const live = useLive(csrfToken, {
+    chatChanged: (changed) => {
+      if ((changed as { chatId?: string } | null)?.chatId === sessionId) void load();
+    },
+  });
+  usePolling(() => void load(), 5000, live !== "live" && chat?.state !== "Ended");
 
   async function act(action: () => Promise<unknown>) {
     setError(null);
@@ -248,7 +256,7 @@ function ChatPanel({
         <p className="text-sm">{t(`states.${chat.state}`)}</p>
         {chat.ticketId && (
           <p>
-            <Link href={`/incidents/${chat.ticketId}`} className="font-semibold text-brand underline">{t("ticket", { number: chat.ticketNumber ?? "" })}</Link>
+            <Link href={`/workspace/${chat.ticketId}`} className="font-semibold text-brand underline">{t("ticket", { number: chat.ticketNumber ?? "" })}</Link>
           </p>
         )}
       </header>

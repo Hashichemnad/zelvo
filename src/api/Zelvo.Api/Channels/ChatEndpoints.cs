@@ -146,11 +146,6 @@ internal static partial class ChatEndpoints
             .RequirePermission(Permissions.ChatHandle)
             .Produces<AgentChatResponse>()
             .ProducesValidationProblem();
-        agent.MapPost("/watch", WatchAsync)
-            .WithName("WatchChat")
-            .WithSummary("A watch key for the live chat hub (/api/v1/chat/hub, method Watch): agents get their queues and chats, visitors their chat (with its token). The hub only says that something changed; clients reload through this API.")
-            .AllowAnonymousAccess()
-            .Produces<ChatWatchResponse>();
         return group;
     }
 
@@ -330,7 +325,7 @@ internal static partial class ChatEndpoints
             await OnlineAsync(db, widget.GroupId, cancellationToken), origin is null ? widget.OnPortal : IsAllowedOrigin(widget, origin), widget.AllowedOrigins);
 
     internal static async Task<IResult> StartAsync(
-        Guid id, StartChatRequest request, HttpContext http, ZelvoDbContext db, CurrentUser user, IRateLimitStore limits, ChatSignals signals,
+        Guid id, StartChatRequest request, HttpContext http, ZelvoDbContext db, CurrentUser user, IRateLimitStore limits,
         CancellationToken cancellationToken)
     {
         var widget = await db.ChatWidgets.AsNoTracking().SingleOrDefaultAsync(w => w.Id == id && w.Active, cancellationToken);
@@ -389,7 +384,6 @@ internal static partial class ChatEndpoints
         }
 
         await db.SaveChangesAsync(cancellationToken);
-        await SignalAsync(signals, db, session, cancellationToken);
         return TypedResults.Created($"/api/v1/chat/sessions/{session.Id}", new StartChatResponse(session.Id, token));
     }
 
@@ -460,7 +454,7 @@ internal static partial class ChatEndpoints
     }
 
     internal static async Task<IResult> VisitorWriteAsync(
-        Guid id, ChatMessageRequest request, HttpContext http, ZelvoDbContext db, CurrentUser user, IRateLimitStore limits, ChatSignals signals,
+        Guid id, ChatMessageRequest request, HttpContext http, ZelvoDbContext db, CurrentUser user, IRateLimitStore limits,
         CancellationToken cancellationToken)
     {
         var session = await VisitorSessionAsync(db, http, user, id, cancellationToken, track: true);
@@ -490,11 +484,10 @@ internal static partial class ChatEndpoints
         db.ChatMessages.Add(message);
         session.LastVisitorActivityAt = now;
         await db.SaveChangesAsync(cancellationToken);
-        await SignalAsync(signals, db, session, cancellationToken);
         return TypedResults.Created($"/api/v1/chat/sessions/{id}", ChatMessageResponse.From(message, null));
     }
 
-    internal static async Task<IResult> VisitorEndAsync(Guid id, HttpContext http, ZelvoDbContext db, CurrentUser user, ChatSignals signals, CancellationToken cancellationToken)
+    internal static async Task<IResult> VisitorEndAsync(Guid id, HttpContext http, ZelvoDbContext db, CurrentUser user, CancellationToken cancellationToken)
     {
         var session = await VisitorSessionAsync(db, http, user, id, cancellationToken, track: true);
         if (session is null)
@@ -506,7 +499,6 @@ internal static partial class ChatEndpoints
         {
             End(db, session, ChatEndedBy.Visitor, null);
             await db.SaveChangesAsync(cancellationToken);
-            await SignalAsync(signals, db, session, cancellationToken);
         }
 
         return TypedResults.Ok(await VisitorViewAsync(db, session, null, cancellationToken));
@@ -560,7 +552,7 @@ internal static partial class ChatEndpoints
         return TypedResults.Ok(await AgentViewAsync(db, session, after, cancellationToken));
     }
 
-    internal static async Task<IResult> AcceptAsync(Guid id, ZelvoDbContext db, CurrentUser user, ChatSignals signals, CancellationToken cancellationToken)
+    internal static async Task<IResult> AcceptAsync(Guid id, ZelvoDbContext db, CurrentUser user, CancellationToken cancellationToken)
     {
         var session = await AgentSessionAsync(db, user, id, cancellationToken, track: true);
         if (session is null)
@@ -600,13 +592,11 @@ internal static partial class ChatEndpoints
         {
             return ApiProblem.Create(StatusCodes.Status409Conflict, "chat-taken", "Another agent accepted the chat, or it ended.");
         }
-
-        await SignalAsync(signals, db, session, cancellationToken);
         return TypedResults.Ok(await AgentViewAsync(db, session, null, cancellationToken));
     }
 
     internal static async Task<IResult> AgentWriteAsync(
-        Guid id, ChatMessageRequest request, ZelvoDbContext db, CurrentUser user, ChatSignals signals, CancellationToken cancellationToken)
+        Guid id, ChatMessageRequest request, ZelvoDbContext db, CurrentUser user, CancellationToken cancellationToken)
     {
         var session = await AgentSessionAsync(db, user, id, cancellationToken, track: true);
         if (session is null)
@@ -628,12 +618,11 @@ internal static partial class ChatEndpoints
         var message = new ChatMessage { SessionId = session.Id, Sender = ChatSender.Agent, AuthorId = user.Account.Id, Body = body, CreatedAt = DateTimeOffset.UtcNow };
         db.ChatMessages.Add(message);
         await db.SaveChangesAsync(cancellationToken);
-        await SignalAsync(signals, db, session, cancellationToken);
         return TypedResults.Created($"/api/v1/chat/sessions/{id}", ChatMessageResponse.From(message, user.Account.DisplayName));
     }
 
     internal static async Task<IResult> TransferAsync(
-        Guid id, TransferChatRequest request, ZelvoDbContext db, CurrentUser user, ChatSignals signals, CancellationToken cancellationToken)
+        Guid id, TransferChatRequest request, ZelvoDbContext db, CurrentUser user, CancellationToken cancellationToken)
     {
         var session = await AgentSessionAsync(db, user, id, cancellationToken, track: true);
         if (session is null)
@@ -651,8 +640,6 @@ internal static partial class ChatEndpoints
             return UserEndpoints.Validation("userId", "Choose a colleague or a group.");
         }
 
-        var previousGroup = session.GroupId;
-        var previousAgent = session.AgentId;
         var now = DateTimeOffset.UtcNow;
         if (request.UserId is { } colleague)
         {
@@ -679,11 +666,10 @@ internal static partial class ChatEndpoints
 
         db.ChatMessages.Add(new ChatMessage { SessionId = session.Id, Sender = ChatSender.System, AuthorId = session.AgentId, Body = string.Empty, Event = ChatEvents.Transferred, CreatedAt = now });
         await db.SaveChangesAsync(cancellationToken);
-        await SignalAsync(signals, db, session, cancellationToken, previousGroup, previousAgent);
         return TypedResults.Ok(await AgentViewAsync(db, session, null, cancellationToken));
     }
 
-    internal static async Task<IResult> AgentEndAsync(Guid id, ZelvoDbContext db, CurrentUser user, ChatSignals signals, CancellationToken cancellationToken)
+    internal static async Task<IResult> AgentEndAsync(Guid id, ZelvoDbContext db, CurrentUser user, CancellationToken cancellationToken)
     {
         var session = await AgentSessionAsync(db, user, id, cancellationToken, track: true);
         if (session is null)
@@ -695,15 +681,13 @@ internal static partial class ChatEndpoints
         {
             End(db, session, ChatEndedBy.Agent, user.Account!.Id);
             await db.SaveChangesAsync(cancellationToken);
-            await SignalAsync(signals, db, session, cancellationToken);
         }
 
         return TypedResults.Ok(await AgentViewAsync(db, session, null, cancellationToken));
     }
 
     internal static async Task<IResult> CreateTicketAsync(
-        Guid id, ChatTicketRequest request, ZelvoDbContext db, CurrentUser user, IncidentIntake intake, ITenantContext tenant, IAuditLog audit,
-        ChatSignals signals, CancellationToken cancellationToken)
+        Guid id, ChatTicketRequest request, ZelvoDbContext db, CurrentUser user, IncidentIntake intake, ITenantContext tenant, IAuditLog audit, CancellationToken cancellationToken)
     {
         if (!user.Has(Permissions.IncidentsCreate))
         {
@@ -741,18 +725,20 @@ internal static partial class ChatEndpoints
         var ticket = await intake.CreateAsync(tenant.TenantId!.Value, new IncidentIntakeRequest(
             title.Length <= 120 ? title : $"{title[..119]}…", request.Description, TicketChannel.Chat, requester.Id, CreatedById: me,
             CategoryId: widget.CategoryId, GroupId: session.GroupId, AssigneeId: assignee), now, cancellationToken);
+        // The new ticket's clocks exist once saved; the transcript's response then moves them.
+        await db.SaveChangesAsync(cancellationToken);
         CopyTranscript(db, ticket, session, requester.Id, transcript);
+        await intake.UpdateClocksAsync([ticket], now, cancellationToken);
         session.TicketId = ticket.Id;
         session.VisitorUserId ??= requester.Id;
         db.ChatMessages.Add(new ChatMessage { SessionId = session.Id, Sender = ChatSender.System, AuthorId = me, Body = ticket.Number, Event = ChatEvents.Ticket, CreatedAt = now });
         await db.SaveChangesAsync(cancellationToken);
         await transaction.CommitAsync(cancellationToken);
-        await SignalAsync(signals, db, session, cancellationToken);
         return TypedResults.Ok(await AgentViewAsync(db, session, null, cancellationToken));
     }
 
     internal static async Task<IResult> LinkTicketAsync(
-        Guid id, LinkChatRequest request, ZelvoDbContext db, CurrentUser user, IAuditLog audit, ChatSignals signals, CancellationToken cancellationToken)
+        Guid id, LinkChatRequest request, ZelvoDbContext db, CurrentUser user, IncidentIntake intake, IAuditLog audit, CancellationToken cancellationToken)
     {
         if (!user.Has(Permissions.IncidentsEdit))
         {
@@ -786,44 +772,14 @@ internal static partial class ChatEndpoints
         var transcript = await db.ChatMessages.AsNoTracking().Where(m => m.SessionId == session.Id).OrderBy(m => m.Sequence).ToListAsync(cancellationToken);
         CopyTranscript(db, ticket, session, ticket.RequesterId, transcript);
         ticket.UpdatedAt = DateTimeOffset.UtcNow;
+        await intake.UpdateClocksAsync([ticket], ticket.UpdatedAt, cancellationToken);
         session.TicketId = ticket.Id;
         session.VisitorUserId ??= ticket.RequesterId;
         db.ChatMessages.Add(new ChatMessage { SessionId = session.Id, Sender = ChatSender.System, AuthorId = user.Account!.Id, Body = ticket.Number, Event = ChatEvents.Ticket, CreatedAt = DateTimeOffset.UtcNow });
         audit.Add(AuditCategory.Change, "channels.chat.linked", "ticket", ticket.Id.ToString(),
             new Dictionary<string, object?>(StringComparer.Ordinal) { ["details"] = new Dictionary<string, object?>(StringComparer.Ordinal) { ["chatSessionId"] = session.Id.ToString() } });
         await db.SaveChangesAsync(cancellationToken);
-        await SignalAsync(signals, db, session, cancellationToken);
         return TypedResults.Ok(await AgentViewAsync(db, session, null, cancellationToken));
-    }
-
-    internal static async Task<IResult> WatchAsync(
-        WatchChatRequest request, HttpContext http, ZelvoDbContext db, CurrentUser user, ITenantContext tenant, ChatSignals signals, CancellationToken cancellationToken)
-    {
-        var tenantId = tenant.TenantId!.Value;
-        var groups = new List<string>();
-        if (request.SessionId is { } sessionId)
-        {
-            var session = user.Has(Permissions.ChatHandle) ? await AgentSessionAsync(db, user, sessionId, cancellationToken) : null;
-            session ??= await VisitorSessionAsync(db, http, user, sessionId, cancellationToken, token: request.Token);
-            if (session is null)
-            {
-                return ChatNotFound();
-            }
-
-            groups.Add(ChatSignals.ChatGroup(tenantId, session.Id));
-        }
-        else if (user.Has(Permissions.ChatHandle) && user.Account is { } account)
-        {
-            groups.Add(ChatSignals.AgentGroup(tenantId, account.Id));
-            groups.AddRange((await db.SupportGroupMembers.AsNoTracking().Where(m => m.UserId == account.Id).Select(m => m.GroupId).ToListAsync(cancellationToken))
-                .Select(g => ChatSignals.QueueGroup(tenantId, g)));
-        }
-        else
-        {
-            return ApiProblem.Create(StatusCodes.Status403Forbidden, "forbidden", "Name a chat, or handle chats.");
-        }
-
-        return TypedResults.Ok(new ChatWatchResponse(await signals.IssueAsync(groups)));
     }
 
     // --- Helpers ---
@@ -909,20 +865,33 @@ internal static partial class ChatEndpoints
         db.ChatMessages.Add(new ChatMessage { SessionId = session.Id, Sender = ChatSender.System, AuthorId = agentId, Body = string.Empty, Event = ChatEvents.Ended, CreatedAt = now });
     }
 
+    /// <summary>
+    /// Adds the chat's messages to the ticket's conversation as public comments (task B4's thread)
+    /// with the chat's language. They raise no reply notifications: both sides saw them live. A
+    /// chat answered by an agent counts as the ticket's response.
+    /// </summary>
     private static void CopyTranscript(ZelvoDbContext db, Ticket ticket, ChatSession session, Guid requesterId, List<ChatMessage> transcript)
     {
         foreach (var message in transcript.Where(m => m.Sender != ChatSender.System && m.Body.Length > 0))
         {
-            db.TicketMessages.Add(new TicketMessage
+            var byAgent = message.Sender == ChatSender.Agent && message.AuthorId is not null;
+            db.TicketComments.Add(new TicketComment
             {
                 TicketId = ticket.Id,
-                AuthorKind = message.Sender == ChatSender.Visitor ? MessageAuthorKind.Requester : MessageAuthorKind.Staff,
-                AuthorId = message.Sender == ChatSender.Visitor ? requesterId : message.AuthorId,
-                Channel = TicketChannel.Chat,
-                Body = message.Body,
+                Visibility = CommentVisibility.Public,
+                Body = IncidentIntake.Clean(message.Body, TicketComment.BodyMaxLength),
+                Language = session.Language,
+                AuthorId = byAgent ? message.AuthorId!.Value : requesterId,
+                ByStaff = byAgent,
+                Source = CommentSource.Chat,
                 ChatSessionId = session.Id,
                 CreatedAt = message.CreatedAt,
             });
+        }
+
+        if (transcript.FirstOrDefault(m => m.Sender == ChatSender.Agent) is { } answered && ticket.RespondedAt is null)
+        {
+            ticket.RespondedAt = answered.CreatedAt < ticket.CreatedAt ? ticket.CreatedAt : answered.CreatedAt;
         }
     }
 
@@ -936,18 +905,6 @@ internal static partial class ChatEndpoints
         var created = await ContactAccounts.CreateAsync(db, email, name, language, cancellationToken);
         audit.Add(AuditCategory.Create, "channels.chat.requester-created", "user", created.Id.ToString());
         return created;
-    }
-
-    private static async Task SignalAsync(
-        ChatSignals signals, ZelvoDbContext db, ChatSession session, CancellationToken cancellationToken, Guid? previousGroup = null, Guid? previousAgent = null)
-    {
-        var tenantId = session.TenantId != Guid.Empty ? session.TenantId : (await db.Tenants.AsNoTracking().Select(t => t.Id).FirstAsync(cancellationToken));
-        var groups = new List<string> { ChatSignals.ChatGroup(tenantId, session.Id), ChatSignals.QueueGroup(tenantId, session.GroupId) };
-        if (previousGroup is { } g && g != session.GroupId) groups.Add(ChatSignals.QueueGroup(tenantId, g));
-        if (session.AgentId is { } a) groups.Add(ChatSignals.AgentGroup(tenantId, a));
-        if (previousAgent is { } p && p != session.AgentId) groups.Add(ChatSignals.AgentGroup(tenantId, p));
-        await signals.SendAsync(ChatSignals.ChatChanged, session.Id, groups.Take(1));
-        await signals.SendAsync(ChatSignals.QueueChanged, session.Id, groups.Skip(1));
     }
 
     private static async Task<VisitorChatResponse> VisitorViewAsync(ZelvoDbContext db, ChatSession session, long? after, CancellationToken cancellationToken)
@@ -1140,17 +1097,6 @@ public sealed class LinkChatRequest
     public Guid? TicketId { get; init; }
 }
 
-/// <summary>What to watch on the live chat hub.</summary>
-public sealed class WatchChatRequest
-{
-    /// <summary>One chat (visitors: with its token); none: the agent's queues and chats.</summary>
-    public Guid? SessionId { get; init; }
-
-    /// <summary>Visitors: the chat token.</summary>
-    [StringLength(128)]
-    public string? Token { get; init; }
-}
-
 /// <summary>A chat widget as administrators see it.</summary>
 internal sealed record ChatWidgetResponse(
     Guid Id, LocalizedTextDto Name, LocalizedTextDto Greeting, Guid GroupId, Guid? CategoryId, IReadOnlyList<string> AllowedOrigins, bool OnPortal, bool Active,
@@ -1201,6 +1147,3 @@ internal sealed record ChatSummaryResponse(
 /// <param name="Available">Whether the agent is available (B2); unavailable agents accept no chats.</param>
 internal sealed record ChatQueueResponse(
     IReadOnlyList<ChatSummaryResponse> Waiting, IReadOnlyList<ChatSummaryResponse> Mine, IReadOnlyList<ChatSummaryResponse> Recent, int Limit, bool Available);
-
-/// <summary>A key for the hub's Watch method, valid two minutes and once.</summary>
-internal sealed record ChatWatchResponse(string Key);

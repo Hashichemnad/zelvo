@@ -1,21 +1,5 @@
 /** Email and live chat (module 6, task E2): types of the API's answers. */
 
-export type MessageAuthorKind = "Requester" | "Staff" | "System";
-export type MessageDelivery = "None" | "Pending" | "Sent" | "Failed";
-export type TicketChannel = "Portal" | "Email" | "Chat" | "Phone" | "WhatsApp" | "Teams" | "Api" | "AiAgent";
-
-export interface TicketMessage {
-  id: string;
-  authorKind: MessageAuthorKind;
-  author: { id: string; displayName: string | null } | null;
-  channel: TicketChannel;
-  body: string;
-  /** Staff only. */
-  delivery?: MessageDelivery | null;
-  createdAt: string;
-  attachments: { id: string; fileName: string; scanStatus: string }[];
-}
-
 export type MailboxProvider = "Imap" | "Microsoft365" | "Gmail";
 export type MailboxAuth = "Password" | "ClientSecret" | "ServiceAccount" | "OAuthSignIn";
 export type MailSecurity = "Auto" | "SslOnConnect" | "StartTls" | "None";

@@ -28,7 +28,8 @@ public sealed record NotificationRequest(
     string? LinkPath,
     Guid? TicketId = null,
     Guid? ArticleId = null,
-    Guid? SlaAlertId = null);
+    Guid? SlaAlertId = null,
+    Guid? CommentId = null);
 
 /// <summary>Finds notifications in the pending changes of a save. Each module registers one.</summary>
 public interface INotificationSource
@@ -101,6 +102,7 @@ public sealed class NotificationInterceptor(IEnumerable<INotificationSource> sou
                             TicketId = request.TicketId,
                             ArticleId = request.ArticleId,
                             SlaAlertId = request.SlaAlertId,
+                            CommentId = request.CommentId,
                             CreatedAt = now,
                         });
                     }
@@ -446,7 +448,9 @@ public sealed class CommentNotificationSource : INotificationSource
     public async Task<IReadOnlyList<NotificationRequest>> CollectAsync(ZelvoDbContext db, Guid? actorId, CancellationToken cancellationToken)
     {
         ArgumentNullException.ThrowIfNull(db);
-        var comments = db.ChangeTracker.Entries<TicketComment>().Where(e => e.State == EntityState.Added).Select(e => e.Entity).ToList();
+        // Task E2: a chat's transcript added to a ticket raises nothing; both sides saw it live.
+        var comments = db.ChangeTracker.Entries<TicketComment>().Where(e => e.State == EntityState.Added && e.Entity.Source != CommentSource.Chat)
+            .Select(e => e.Entity).ToList();
         if (comments.Count == 0)
         {
             return [];
@@ -474,7 +478,8 @@ public sealed class CommentNotificationSource : INotificationSource
 
             if (comment.Visibility == CommentVisibility.Public && comment.ByStaff && ticket.RequesterId != comment.AuthorId && ticket.RequesterId != actorId)
             {
-                result.Add(new(NotificationEvents.IncidentReplied, [ticket.RequesterId], values, SourceLookups.RequesterPath(ticket), TicketId: ticket.Id));
+                result.Add(new(NotificationEvents.IncidentReplied, [ticket.RequesterId], values, SourceLookups.RequesterPath(ticket), TicketId: ticket.Id,
+                    CommentId: comment.Id));
             }
 
             var mentioned = mentions[comment.Id].Where(u => u != comment.AuthorId && u != actorId).Distinct().ToList();

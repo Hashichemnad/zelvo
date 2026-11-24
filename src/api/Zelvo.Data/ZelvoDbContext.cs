@@ -207,9 +207,6 @@ public sealed class ZelvoDbContext(DbContextOptions<ZelvoDbContext> options) : D
 
     /// <summary>Saved views of the agent workspace.</summary>
     public DbSet<SavedView> SavedViews => Set<SavedView>();
-    /// <summary>Public messages of tickets' conversations (task E2).</summary>
-    public DbSet<TicketMessage> TicketMessages => Set<TicketMessage>();
-
     /// <summary>Mailboxes that turn emails into tickets (module 6).</summary>
     public DbSet<Mailbox> Mailboxes => Set<Mailbox>();
 
@@ -645,8 +642,7 @@ public sealed class ZelvoDbContext(DbContextOptions<ZelvoDbContext> options) : D
                 table.HasCheckConstraint("ck_ticket_attachments_sha256", "sha256 ~ '^[0-9a-f]{64}$'");
                 table.HasCheckConstraint("ck_ticket_attachments_owner", "num_nonnulls(ticket_id, article_id) = 1 OR (ticket_id IS NULL AND article_id IS NULL AND form_field_key IS NOT NULL)");
                 table.HasCheckConstraint("ck_ticket_attachments_form_field_key", "form_field_key ~ '^[a-z][a-zA-Z0-9]{0,59}$'");
-                table.HasCheckConstraint("ck_ticket_attachments_owner", "(ticket_id IS NULL) <> (article_id IS NULL)");
-                table.HasCheckConstraint("ck_ticket_attachments_message", "message_id IS NULL OR ticket_id IS NOT NULL");
+                table.HasCheckConstraint("ck_ticket_attachments_comment", "comment_id IS NULL OR ticket_id IS NOT NULL");
             });
             attachment.HasKey(a => a.Id);
             attachment.Property(a => a.Id).ValueGeneratedNever();
@@ -654,8 +650,9 @@ public sealed class ZelvoDbContext(DbContextOptions<ZelvoDbContext> options) : D
             attachment.HasOne<KbArticle>().WithMany().HasForeignKey(a => a.ArticleId).OnDelete(DeleteBehavior.Cascade);
             attachment.Property(a => a.FormFieldKey).HasMaxLength(TicketAttachment.FormFieldKeyMaxLength);
             attachment.HasIndex(a => new { a.TenantId, a.UploadedAt }).HasFilter("ticket_id IS NULL AND article_id IS NULL").HasDatabaseName("ix_ticket_attachments_form_uploads");
-            attachment.HasOne<TicketMessage>().WithMany().HasForeignKey(a => a.MessageId).OnDelete(DeleteBehavior.SetNull);
-            attachment.HasIndex(a => a.MessageId).HasFilter("message_id IS NOT NULL");
+            // Comments are never removed, so the link never needs to change.
+            attachment.HasOne<TicketComment>().WithMany().HasForeignKey(a => a.CommentId).OnDelete(DeleteBehavior.NoAction);
+            attachment.HasIndex(a => a.CommentId).HasFilter("comment_id IS NOT NULL");
             attachment.HasIndex(a => new { a.TenantId, a.ArticleId }).HasFilter("article_id IS NOT NULL");
             attachment.HasOne<UserAccount>().WithMany().HasForeignKey(a => a.UploadedById).OnDelete(DeleteBehavior.Restrict);
             attachment.Property(a => a.FileName).HasMaxLength(TicketAttachment.FileNameMaxLength);
@@ -700,6 +697,9 @@ public sealed class ZelvoDbContext(DbContextOptions<ZelvoDbContext> options) : D
                 table.HasCheckConstraint("ck_ticket_comments_language", "language IN ('en', 'ar')");
                 // Requesters write public replies only.
                 table.HasCheckConstraint("ck_ticket_comments_internal_by_staff", "visibility = 'Public' OR by_staff");
+                // Task E2: email and chat messages are public; only Zelvo writes them.
+                table.HasCheckConstraint("ck_ticket_comments_source", EnumCheck("source", Enum.GetNames<CommentSource>()));
+                table.HasCheckConstraint("ck_ticket_comments_channel_public", "source = 'Web' OR visibility = 'Public'");
             });
             comment.HasKey(c => c.Id);
             comment.Property(c => c.Id).ValueGeneratedNever();
@@ -710,6 +710,11 @@ public sealed class ZelvoDbContext(DbContextOptions<ZelvoDbContext> options) : D
             comment.Property(c => c.Body).HasMaxLength(TicketComment.BodyMaxLength);
             comment.Property(c => c.Language).HasMaxLength(2);
             comment.HasIndex(c => new { c.TenantId, c.TicketId, c.CreatedAt });
+            comment.Property(c => c.Source).HasConversion<string>().HasMaxLength(20).HasDefaultValue(CommentSource.Web).HasSentinel(CommentSource.Web);
+            comment.Property(c => c.EmailMessageId).HasMaxLength(TicketComment.MessageIdMaxLength);
+            comment.Property(c => c.EmailInReplyTo).HasMaxLength(TicketComment.MessageIdMaxLength);
+            // Threading (task E2): replies name earlier Message-IDs in In-Reply-To and References.
+            comment.HasIndex(c => new { c.TenantId, c.EmailMessageId }).HasFilter("email_message_id IS NOT NULL");
         });
 
         modelBuilder.Entity<TicketCommentMention>(mention =>
@@ -1485,31 +1490,6 @@ public sealed class ZelvoDbContext(DbContextOptions<ZelvoDbContext> options) : D
 
     private static void ConfigureChannels(ModelBuilder modelBuilder)
     {
-        modelBuilder.Entity<TicketMessage>(message =>
-        {
-            message.ToTable("ticket_messages", table =>
-            {
-                table.HasCheckConstraint("ck_ticket_messages_author_kind", EnumCheck("author_kind", Enum.GetNames<MessageAuthorKind>()));
-                table.HasCheckConstraint("ck_ticket_messages_channel", EnumCheck("channel", Enum.GetNames<TicketChannel>()));
-                table.HasCheckConstraint("ck_ticket_messages_delivery", EnumCheck("delivery", Enum.GetNames<MessageDelivery>()));
-            });
-            message.HasKey(m => m.Id);
-            message.Property(m => m.Id).ValueGeneratedNever();
-            message.HasOne<Tenant>().WithMany().HasForeignKey(m => m.TenantId).OnDelete(DeleteBehavior.Restrict);
-            message.HasOne<Ticket>().WithMany().HasForeignKey(m => m.TicketId).OnDelete(DeleteBehavior.Cascade);
-            message.HasOne(m => m.Author).WithMany().HasForeignKey(m => m.AuthorId).OnDelete(DeleteBehavior.Restrict);
-            message.HasOne<Mailbox>().WithMany().HasForeignKey(m => m.MailboxId).OnDelete(DeleteBehavior.SetNull);
-            message.HasOne<ChatSession>().WithMany().HasForeignKey(m => m.ChatSessionId).OnDelete(DeleteBehavior.SetNull);
-            message.Property(m => m.AuthorKind).HasConversion<string>().HasMaxLength(20);
-            message.Property(m => m.Channel).HasConversion<string>().HasMaxLength(20);
-            message.Property(m => m.Delivery).HasConversion<string>().HasMaxLength(20);
-            message.Property(m => m.Body).HasMaxLength(TicketMessage.BodyMaxLength);
-            message.Property(m => m.EmailMessageId).HasMaxLength(TicketMessage.MessageIdMaxLength);
-            message.HasIndex(m => new { m.TenantId, m.TicketId, m.CreatedAt });
-            // Threading: replies name earlier Message-IDs in In-Reply-To and References.
-            message.HasIndex(m => new { m.TenantId, m.EmailMessageId }).HasFilter("email_message_id IS NOT NULL");
-        });
-
         modelBuilder.Entity<Mailbox>(mailbox =>
         {
             mailbox.ToTable("mailboxes", table =>
@@ -1558,9 +1538,9 @@ public sealed class ZelvoDbContext(DbContextOptions<ZelvoDbContext> options) : D
             email.HasOne<Tenant>().WithMany().HasForeignKey(e => e.TenantId).OnDelete(DeleteBehavior.Restrict);
             email.HasOne<Mailbox>().WithMany().HasForeignKey(e => e.MailboxId).OnDelete(DeleteBehavior.Cascade);
             email.HasOne<Ticket>().WithMany().HasForeignKey(e => e.TicketId).OnDelete(DeleteBehavior.SetNull);
-            email.HasOne<TicketMessage>().WithMany().HasForeignKey(e => e.TicketMessageId).OnDelete(DeleteBehavior.SetNull);
+            email.HasOne<TicketComment>().WithMany().HasForeignKey(e => e.CommentId).OnDelete(DeleteBehavior.NoAction);
             email.Property(e => e.ProviderMessageId).HasMaxLength(InboundEmail.ProviderIdMaxLength);
-            email.Property(e => e.MessageId).HasMaxLength(TicketMessage.MessageIdMaxLength);
+            email.Property(e => e.MessageId).HasMaxLength(TicketComment.MessageIdMaxLength);
             email.Property(e => e.FromAddress).HasMaxLength(Mailbox.AddressMaxLength);
             email.Property(e => e.Subject).HasMaxLength(InboundEmail.SubjectMaxLength);
             email.Property(e => e.Outcome).HasConversion<string>().HasMaxLength(20);
@@ -1580,13 +1560,13 @@ public sealed class ZelvoDbContext(DbContextOptions<ZelvoDbContext> options) : D
             email.HasOne<Tenant>().WithMany().HasForeignKey(e => e.TenantId).OnDelete(DeleteBehavior.Restrict);
             email.HasOne<Mailbox>().WithMany().HasForeignKey(e => e.MailboxId).OnDelete(DeleteBehavior.Cascade);
             email.HasOne<Ticket>().WithMany().HasForeignKey(e => e.TicketId).OnDelete(DeleteBehavior.Cascade);
-            email.HasOne<TicketMessage>().WithMany().HasForeignKey(e => e.TicketMessageId).OnDelete(DeleteBehavior.Cascade);
+            email.HasOne<TicketComment>().WithMany().HasForeignKey(e => e.CommentId).OnDelete(DeleteBehavior.NoAction);
             email.HasOne<Notification>().WithMany().HasForeignKey(e => e.NotificationId).OnDelete(DeleteBehavior.SetNull);
             email.HasIndex(e => e.NotificationId).IsUnique().HasFilter("notification_id IS NOT NULL");
             email.Property(e => e.ToAddress).HasMaxLength(Mailbox.AddressMaxLength);
             email.Property(e => e.Subject).HasMaxLength(OutboundEmail.SubjectMaxLength);
-            email.Property(e => e.MessageId).HasMaxLength(TicketMessage.MessageIdMaxLength);
-            email.Property(e => e.InReplyTo).HasMaxLength(TicketMessage.MessageIdMaxLength);
+            email.Property(e => e.MessageId).HasMaxLength(TicketComment.MessageIdMaxLength);
+            email.Property(e => e.InReplyTo).HasMaxLength(TicketComment.MessageIdMaxLength);
             email.Property(e => e.References).HasMaxLength(OutboundEmail.ReferencesMaxLength);
             email.Property(e => e.Language).HasMaxLength(5);
             email.Property(e => e.Status).HasConversion<string>().HasMaxLength(20);

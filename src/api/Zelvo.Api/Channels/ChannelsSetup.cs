@@ -12,25 +12,16 @@ internal static class ChannelsSetup
 {
     public static IServiceCollection AddZelvoApiChannels(this IServiceCollection services, IConfiguration configuration)
     {
+        // Live chat changes reach agents through the agent workspace's live updates (task B4).
         services.AddZelvoChannels(configuration);
-        services.AddSignalR(options =>
-        {
-            options.EnableDetailedErrors = false;
-            options.MaximumReceiveMessageSize = 4 * 1024;
-        });
-        services.AddSingleton<ChatSignals>();
-        services.AddHostedService(sp => sp.GetRequiredService<ChatSignals>());
         services.AddSingleton<IMissingTranslationSource, ChatMissingTranslations>();
         return services;
     }
 
     public static RouteGroupBuilder MapZelvoChannels(this RouteGroupBuilder group)
     {
-        group.MapTicketMessageEndpoints();
         group.MapMailboxEndpoints();
         group.MapChatEndpoints();
-        // Signals only (see ChatHub); anyone may connect, joining groups needs a watch key.
-        group.MapHub<ChatHub>("/chat/hub").RequireTenant().AllowAnonymousAccess();
         return group;
     }
 }

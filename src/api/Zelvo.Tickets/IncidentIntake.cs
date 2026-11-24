@@ -87,6 +87,10 @@ public sealed class IncidentIntake(ZelvoDbContext db, ISearchIndexer indexer, Sl
         return ticket;
     }
 
+    /// <summary>Moves the tickets' SLA clocks after a change (state, response); saving is the caller's.</summary>
+    public Task UpdateClocksAsync(IReadOnlyCollection<Ticket> tickets, DateTimeOffset now, CancellationToken cancellationToken) =>
+        sla.UpdateAsync(tickets, now, cancellationToken);
+
     /// <summary>Writes the tickets' search documents (with the change; the outbox relays them).</summary>
     public async Task IndexAsync(IEnumerable<Ticket> tickets, CancellationToken cancellationToken)
     {

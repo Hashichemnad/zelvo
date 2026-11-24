@@ -3,11 +3,12 @@ import { NextIntlClientProvider } from "next-intl";
 import type { AnchorHTMLAttributes, ReactNode } from "react";
 import ar from "../../../messages/ar.json";
 import en from "../../../messages/en.json";
-import { mergeMessages, type ChatMessage, type ChatWidget, type Mailbox, type PublicChatWidget, type TicketMessage } from "@/lib/channels";
+import { mergeMessages, type ChatMessage, type ChatWidget, type Mailbox, type PublicChatWidget } from "@/lib/channels";
+import type { Comment } from "@/lib/workspace";
 import { isVisitorPath } from "@/lib/visitor-paths";
 import { ChatWidgetsPanel, embedCode } from "./ChatWidgetsPanel";
 import { ChatWindow } from "./ChatWindow";
-import { Conversation } from "./Conversation";
+import { ConversationList } from "../workspace/Conversation";
 import { MailboxForm } from "./MailboxForm";
 
 vi.mock("@/i18n/navigation", () => ({
@@ -16,8 +17,8 @@ vi.mock("@/i18n/navigation", () => ({
   Link: ({ href, ...rest }: AnchorHTMLAttributes<HTMLAnchorElement>) => <a href={`/en${href}`} {...rest} />,
 }));
 
-// The hub is not reachable in tests; polling is enough.
-vi.mock("@/lib/chat-signals", () => ({ useChatSignals: () => undefined, pollIntervalMs: 5000 }));
+// The live channel is not reachable in tests; polling is enough.
+vi.mock("@/lib/live", () => ({ useLive: () => "offline" }));
 
 const display = { locale: "en", calendar: "gregory", digits: "latn", timeZone: "Asia/Dubai" } as const;
 
@@ -31,15 +32,15 @@ function renderIn(locale: "en" | "ar", node: ReactNode) {
 
 const json = (body: unknown, status = 200) => new Response(JSON.stringify(body), { status, headers: { "Content-Type": "application/json" } });
 
-const messages: TicketMessage[] = [
-  {
-    id: "m1", authorKind: "Requester", author: { id: "u1", displayName: "Layla Ahmed" }, channel: "Email", body: "The printer is jammed.",
-    delivery: null, createdAt: "2026-11-24T08:00:00Z", attachments: [{ id: "f1", fileName: "photo.png", scanStatus: "Clean" }],
-  },
-  {
-    id: "m2", authorKind: "Staff", author: { id: "u2", displayName: "Omar" }, channel: "Portal", body: "A technician is on the way.",
-    delivery: "Sent", createdAt: "2026-11-24T08:10:00Z", attachments: [],
-  },
+const comment = (over: Partial<Comment>): Comment => ({
+  id: "m1", visibility: "Public", byStaff: false, language: "en", body: "The printer is jammed.",
+  author: { id: "u1", displayName: "Layla Ahmed" }, mentions: [], createdAt: "2026-11-24T08:00:00Z", ...over,
+} as Comment);
+
+const comments: Comment[] = [
+  comment({ source: "Email", attachments: [{ id: "f1", fileName: "photo.png" }] }),
+  comment({ id: "m2", byStaff: true, author: { id: "u2", displayName: "Omar" }, body: "A technician is on the way.", source: "Web", emailDelivery: "Sent" }),
+  comment({ id: "m3", language: "ar", body: "شكرًا لكم", source: "Chat" }),
 ];
 
 afterEach(() => {
@@ -47,33 +48,22 @@ afterEach(() => {
   sessionStorage.clear();
 });
 
-describe("Conversation", () => {
-  it("shows who wrote each message, how it came in and, for staff, whether the email went out", () => {
-    renderIn("en", <Conversation incidentId="i1" initial={messages} staff canWrite emailTicket csrfToken="c" display={display} />);
-    const items = screen.getAllByTestId("conversation-message");
-    expect(items).toHaveLength(2);
-    expect(within(items[0]!).getByText(/by email/)).toBeInTheDocument();
-    expect(within(items[0]!).getByText(/1 file: photo.png/)).toBeInTheDocument();
-    expect(within(items[1]!).getByText(/email sent/)).toBeInTheDocument();
-    expect(screen.getByText(/your reply goes from its mailbox/)).toBeInTheDocument();
+describe("the ticket conversation with email and chat (B4's thread)", () => {
+  it("shows how each comment came in, its files and, for staff, whether the email went out", () => {
+    renderIn("en", <ConversationList comments={comments} display={display} staff />);
+    const items = screen.getAllByTestId("comment");
+    expect(items).toHaveLength(3);
+    expect(within(items[0]!).getByText("By email")).toBeInTheDocument();
+    expect(within(items[0]!).getByText(/1 file/)).toBeInTheDocument();
+    expect(within(items[0]!).getByText("photo.png")).toBeInTheDocument();
+    expect(within(items[1]!).getByText("Email sent")).toBeInTheDocument();
+    expect(within(items[2]!).getByText("From a chat")).toBeInTheDocument();
   });
 
-  it("lets the requester answer in Arabic and reloads the thread", async () => {
-    const fetchMock = vi.fn(async (url: string, init?: RequestInit) => {
-      if (init?.method === "POST") return json({ id: "m3" }, 201);
-      return json([...messages, { ...messages[0]!, id: "m3", body: "شكرًا لكم" }]);
-    });
-    vi.stubGlobal("fetch", fetchMock);
-    renderIn("ar", <Conversation incidentId="i1" initial={messages} staff={false} canWrite emailTicket={false} csrfToken="csrf-1" display={{ ...display, locale: "ar" }} />);
-    // Requesters never see delivery details.
-    expect(screen.queryByText(/تم إرسال البريد/)).not.toBeInTheDocument();
-    fireEvent.change(screen.getByLabelText("إضافة رسالة"), { target: { value: "شكرًا لكم" } });
-    fireEvent.click(screen.getByRole("button", { name: "إرسال الرسالة" }));
-    await waitFor(() => expect(screen.getAllByTestId("conversation-message")).toHaveLength(3));
-    const post = fetchMock.mock.calls.find(([, init]) => init?.method === "POST")!;
-    expect(post[0]).toBe("/bff/api/v1/incidents/i1/messages");
-    expect((post[1]!.headers as Record<string, string>)["X-CSRF-Token"]).toBe("csrf-1");
-    expect(screen.getByRole("status")).toHaveTextContent("تم إرسال رسالتكم.");
+  it("never shows requesters whether an email went out, in Arabic too", () => {
+    renderIn("ar", <ConversationList comments={comments} display={{ ...display, locale: "ar" }} staff={false} />);
+    expect(screen.queryByText(ar.workspace.conversation.delivery.Sent)).not.toBeInTheDocument();
+    expect(screen.getByText(ar.workspace.conversation.sources.Email)).toBeInTheDocument();
   });
 });
 
@@ -191,9 +181,9 @@ describe("visitor paths of live chat", () => {
     ["GET", ["v1", "chat", "sessions", id], true],
     ["POST", ["v1", "chat", "sessions", id, "messages"], true],
     ["POST", ["v1", "chat", "sessions", id, "end"], true],
-    ["POST", ["v1", "chat", "watch"], true],
-    ["POST", ["v1", "chat", "hub", "negotiate"], true],
-    ["GET", ["v1", "chat", "hub"], true],
+    // The chat hub and watch keys are gone: chats reload through the API.
+    ["POST", ["v1", "chat", "watch"], false],
+    ["POST", ["v1", "chat", "hub", "negotiate"], false],
     // Agents' and administrators' paths stay closed to visitors.
     ["GET", ["v1", "chat", "queue"], false],
     ["POST", ["v1", "chat", "sessions", id, "accept"], false],

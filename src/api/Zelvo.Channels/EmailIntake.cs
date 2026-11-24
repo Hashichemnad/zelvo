@@ -73,7 +73,7 @@ public sealed partial class EmailIntake(
 
         // The same email sent to two of the tenant's mailboxes becomes one ticket.
         if (email.MessageId is { } messageId
-            && (await db.TicketMessages.AnyAsync(m => m.EmailMessageId == messageId, cancellationToken).ConfigureAwait(false)
+            && (await db.TicketComments.AnyAsync(c => c.EmailMessageId == messageId, cancellationToken).ConfigureAwait(false)
                 || await db.InboundEmails.AnyAsync(e => e.MessageId == messageId && e.Id != entry.Id
                     && (e.Outcome == InboundEmailOutcome.Created || e.Outcome == InboundEmailOutcome.Added || e.Outcome == InboundEmailOutcome.FollowUp), cancellationToken).ConfigureAwait(false)))
         {
@@ -92,30 +92,41 @@ public sealed partial class EmailIntake(
         if (thread is { State: not TicketState.Closed })
         {
             var staff = sender!.Id != thread.RequesterId;
-            var reply = new TicketMessage
+            // The email becomes a public reply of the ticket's conversation (task B4's thread).
+            var reply = new TicketComment
             {
                 TenantId = mailbox.TenantId,
                 TicketId = thread.Id,
-                AuthorKind = staff ? MessageAuthorKind.Staff : MessageAuthorKind.Requester,
-                AuthorId = sender.Id,
-                Channel = TicketChannel.Email,
+                Visibility = CommentVisibility.Public,
                 Body = BodyOf(email),
+                Language = email.Language,
+                AuthorId = sender.Id,
+                ByStaff = staff,
+                Source = CommentSource.Email,
                 MailboxId = mailbox.Id,
                 EmailMessageId = email.MessageId,
+                EmailInReplyTo = email.ThreadIds.Count > 0 ? email.ThreadIds[0] : null,
                 CreatedAt = now,
             };
-            db.TicketMessages.Add(reply);
+            db.TicketComments.Add(reply);
             thread.MailboxId ??= mailbox.Id;
             thread.UpdatedAt = now;
-            if (!staff)
+            if (staff)
+            {
+                // As for replies in Zelvo (task B4): a staff member's first public reply is the response.
+                thread.RespondedAt ??= now;
+            }
+            else
             {
                 await ResumeAsync(thread, now, cancellationToken).ConfigureAwait(false);
             }
 
+            await incidents.UpdateClocksAsync([thread], now, cancellationToken).ConfigureAwait(false);
+
             skipped = await AttachAsync(thread, reply.Id, sender.Id, email.Files, cancellationToken).ConfigureAwait(false);
             await incidents.IndexAsync([thread], cancellationToken).ConfigureAwait(false);
             entry.TicketId = thread.Id;
-            entry.TicketMessageId = reply.Id;
+            entry.CommentId = reply.Id;
             await FinishAsync(entry, InboundEmailOutcome.Added, skipped, cancellationToken).ConfigureAwait(false);
             await transaction.CommitAsync(cancellationToken).ConfigureAwait(false);
             return entry;
@@ -206,7 +217,7 @@ public sealed partial class EmailIntake(
         foreach (var id in email.ThreadIds)
         {
             ticketId = MessageIds.TicketOf(id)
-                ?? await db.TicketMessages.Where(m => m.EmailMessageId == id).Select(m => (Guid?)m.TicketId).FirstOrDefaultAsync(cancellationToken).ConfigureAwait(false)
+                ?? await db.TicketComments.Where(c => c.EmailMessageId == id).Select(c => (Guid?)c.TicketId).FirstOrDefaultAsync(cancellationToken).ConfigureAwait(false)
                 ?? await db.InboundEmails.Where(e => e.MessageId == id && e.TicketId != null).OrderByDescending(e => e.Id).Select(e => e.TicketId)
                     .FirstOrDefaultAsync(cancellationToken).ConfigureAwait(false)
                 ?? await db.OutboundEmails.Where(e => e.MessageId == id).Select(e => (Guid?)e.TicketId).FirstOrDefaultAsync(cancellationToken).ConfigureAwait(false);
@@ -251,7 +262,7 @@ public sealed partial class EmailIntake(
     }
 
     /// <summary>Attaches the files the tenant accepts; returns a note of those left out, or null.</summary>
-    private async Task<string?> AttachAsync(Ticket ticket, Guid? messageId, Guid uploaderId, IReadOnlyList<EmailFile> files, CancellationToken cancellationToken)
+    private async Task<string?> AttachAsync(Ticket ticket, Guid? commentId, Guid uploaderId, IReadOnlyList<EmailFile> files, CancellationToken cancellationToken)
     {
         if (files.Count == 0)
         {
@@ -275,7 +286,7 @@ public sealed partial class EmailIntake(
             {
                 TenantId = ticket.TenantId,
                 TicketId = ticket.Id,
-                MessageId = messageId,
+                CommentId = commentId,
                 FileName = name,
                 ContentType = type.ContentType,
                 Size = file.Content.LongLength,
@@ -320,7 +331,7 @@ public sealed partial class EmailIntake(
     }
 
     private static string BodyOf(ParsedEmail email) =>
-        IncidentIntake.Clean(email.Text.Length > 0 ? email.Text : email.FullText, TicketMessage.BodyMaxLength) is { Length: > 0 } body ? body : "…";
+        IncidentIntake.Clean(email.Text.Length > 0 ? email.Text : email.FullText, TicketComment.BodyMaxLength) is { Length: > 0 } body ? body : "…";
 
     private static string Cut(string value, int max) => value.Length <= max ? value : value[..max];
 

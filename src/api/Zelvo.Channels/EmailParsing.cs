@@ -221,7 +221,7 @@ public static partial class EmailParsing
     public static string? Clean(string? messageId)
     {
         var value = messageId?.Trim().Trim('<', '>').Trim();
-        return value is { Length: > 0 and <= Data.Channels.TicketMessage.MessageIdMaxLength } && !value.Any(char.IsWhiteSpace) ? value : null;
+        return value is { Length: > 0 and <= Data.Tickets.TicketComment.MessageIdMaxLength } && !value.Any(char.IsWhiteSpace) ? value : null;
     }
 
     /// <summary>Whether most letters of <paramref name="text"/> are Arabic.</summary>

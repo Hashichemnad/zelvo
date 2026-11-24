@@ -58,8 +58,8 @@ public sealed class Notification : ITenantOwned
     /// <summary>The ticket it is about.</summary>
     public Guid? TicketId { get; init; }
 
-    /// <summary>The conversation message it is about (task E2: replies).</summary>
-    public Guid? MessageId { get; init; }
+    /// <summary>The comment it is about (task E2: a staff reply going out from the ticket's mailbox).</summary>
+    public Guid? CommentId { get; init; }
 
     /// <summary>The knowledge article it is about.</summary>
     public Guid? ArticleId { get; init; }

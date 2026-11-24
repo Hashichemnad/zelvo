@@ -62,7 +62,7 @@ public sealed partial class NotificationProcessor(
         var mailbox = definition?.Audience == NotificationAudience.Requester && notification.TicketId is { } ticketId
             ? await MailboxOfAsync(ticketId, cancellationToken).ConfigureAwait(false)
             : null;
-        var conversation = mailbox is not null && definition!.Type == NotificationEvents.IncidentReply;
+        var conversation = mailbox is not null && definition!.Type == NotificationEvents.IncidentReplied;
         if (definition is null || recipient is not { Status: UserStatus.Active } || (!setting.Enabled && !conversation))
         {
             notification.Status = NotificationStatus.Suppressed;
@@ -136,13 +136,13 @@ public sealed partial class NotificationProcessor(
         CancellationToken cancellationToken)
     {
         var ticket = await db.Tickets.AsNoTracking().Where(t => t.Id == notification.TicketId).Select(t => new { t.Id, t.Number }).SingleAsync(cancellationToken).ConfigureAwait(false);
-        var earlier = await db.TicketMessages.AsNoTracking()
-            .Where(m => m.TicketId == ticket.Id && m.EmailMessageId != null)
-            .OrderBy(m => m.CreatedAt).Select(m => m.EmailMessageId!).ToListAsync(cancellationToken).ConfigureAwait(false);
-        var first = await db.InboundEmails.AsNoTracking()
-            .Where(e => e.TicketId == ticket.Id && e.MessageId != null && e.Outcome != Data.Channels.InboundEmailOutcome.Added)
-            .OrderBy(e => e.Id).Select(e => e.MessageId!).FirstOrDefaultAsync(cancellationToken).ConfigureAwait(false);
-        var thread = (first is null ? earlier : [first, .. earlier]).Distinct(StringComparer.Ordinal).ToList();
+        // A staff reply carries the Message-ID and In-Reply-To fixed when it was written; other
+        // notifications get new ones and answer the thread's last email.
+        var reply = notification.CommentId is { } commentId
+            ? await db.TicketComments.AsNoTracking().Where(c => c.Id == commentId).Select(c => new { c.EmailMessageId, c.EmailInReplyTo }).FirstOrDefaultAsync(cancellationToken).ConfigureAwait(false)
+            : null;
+        var thread = (await EmailThread.IdsAsync(db, ticket.Id, cancellationToken).ConfigureAwait(false))
+            .Where(id => !string.Equals(id, reply?.EmailMessageId, StringComparison.Ordinal)).ToList();
         var references = string.Join(' ', thread.TakeLast(20).Select(r => $"<{r}>"));
         var token = $"[{ticket.Number}]";
         var subject = rendered.Subject.Contains(token, StringComparison.Ordinal) ? rendered.Subject : $"{rendered.Subject} {token}";
@@ -151,12 +151,12 @@ public sealed partial class NotificationProcessor(
             TenantId = notification.TenantId,
             MailboxId = mailbox.Id,
             TicketId = ticket.Id,
-            TicketMessageId = notification.MessageId,
+            CommentId = reply is not null ? notification.CommentId : null,
             NotificationId = notification.Id,
             ToAddress = address,
             Subject = subject.Length <= Data.Channels.OutboundEmail.SubjectMaxLength ? subject : subject[..Data.Channels.OutboundEmail.SubjectMaxLength],
-            MessageId = MessageIds.Create(ticket.Id, mailbox.Address),
-            InReplyTo = thread.Count > 0 ? thread[^1] : null,
+            MessageId = reply?.EmailMessageId ?? MessageIds.Create(ticket.Id, mailbox.Address),
+            InReplyTo = reply?.EmailInReplyTo ?? (thread.Count > 0 ? thread[^1] : null),
             References = references.Length == 0 ? null : references.Length <= Data.Channels.OutboundEmail.ReferencesMaxLength ? references : references[^Data.Channels.OutboundEmail.ReferencesMaxLength..].TrimStart(),
             Language = language,
             HtmlBody = rendered.Html,

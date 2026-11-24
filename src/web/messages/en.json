@@ -231,6 +231,14 @@
       "cannedResponses": {
         "title": "Canned responses",
         "description": "Reply wording in English and Arabic for you, your groups or everyone."
+      },
+      "mailboxes": {
+        "title": "Mailboxes",
+        "description": "Mailboxes that turn emails into incidents, who may write in, and the mailbox log."
+      },
+      "liveChat": {
+        "title": "Live chat",
+        "description": "Chat widgets for the portal and your websites, and the group that answers."
       }
     },
     "missingWarning": "{count, plural, one {# text is} other {# texts are}} missing a translation.",
@@ -434,7 +442,9 @@
         "notifications_manage": "Change notifications and see the email delivery log",
         "forms_manage": "Change forms, field sets and which form each category uses",
         "responses_manage": "Keep canned responses for everyone",
-        "workspace_views_share": "Share workspace views with everyone"
+        "workspace_views_share": "Share workspace views with everyone",
+        "channels_manage": "Set up mailboxes and live chat widgets",
+        "chat_handle": "Answer live chats of their groups"
       },
       "events": {
         "user_created": "A user was created",
@@ -1595,7 +1605,9 @@
         "notifications": "Notifications",
         "forms": "Forms",
         "responses": "Canned responses",
-        "workspace": "Agent workspace"
+        "workspace": "Agent workspace",
+        "channels": "Email and chat",
+        "chat": "Live chat"
       },
       "tenant_manage": "Change the organisation's name",
       "translations_read": "See missing translations",
@@ -1623,7 +1635,9 @@
       "notifications_manage": "Change notifications and see the email delivery log",
       "forms_manage": "Build and publish forms and field sets, and choose which form each category uses",
       "responses_manage": "Keep canned responses for everyone",
-      "workspace_views_share": "Share workspace views with everyone"
+      "workspace_views_share": "Share workspace views with everyone",
+      "channels_manage": "Set up mailboxes and live chat widgets",
+      "chat_handle": "Answer live chats of their groups"
     },
     "assignment": {
       "intro": "The rules are checked in order and the first that matches decides where a new ticket goes. They run when a ticket is created and when an agent chooses \"Route again\"; they never move a ticket on their own later.",
@@ -2617,7 +2631,17 @@
       "publicReply": "Public reply",
       "fromRequester": "From the requester",
       "writtenIn": "Written in {language}",
-      "mentioned": "Mentioned: {names}"
+      "mentioned": "Mentioned: {names}",
+      "sources": {
+        "Email": "By email",
+        "Chat": "From a chat"
+      },
+      "delivery": {
+        "Pending": "Email waiting to be sent",
+        "Sent": "Email sent",
+        "Failed": "Email not sent"
+      },
+      "files": "{count, plural, one {# file} other {# files}}"
     },
     "composer": {
       "noteHeading": "Internal note",
@@ -2798,6 +2822,304 @@
         "group": "Choose the group.",
         "failed": "It could not be saved. Try again."
       }
+    }
+  },
+  "channels": {
+    "chat": {
+      "open": "Chat with us",
+      "close": "Close chat",
+      "dialog": "Live chat",
+      "startIntro": "Tell us how we can help and someone from our team will answer.",
+      "offlineIntro": "Nobody can chat right now. Leave a message and we will answer by email.",
+      "name": "Your name",
+      "email": "Your email address",
+      "emailHelp": "We use it to answer you if the chat ends, and for any ticket we open for you.",
+      "firstMessage": "How can we help?",
+      "offlineMessage": "Your message",
+      "start": "Start chat",
+      "send": "Send",
+      "left": "Thank you. Your message is recorded as {number}; we will answer by email.",
+      "again": "Start a new chat",
+      "with": "You are chatting with {agent}.",
+      "ended": "The chat has ended.",
+      "waiting": "Waiting for someone from our team…",
+      "messages": "Chat messages",
+      "events": {
+        "accepted": "{agent} joined the chat.",
+        "transferred": "The chat was passed to a colleague.",
+        "ended": "The chat ended.",
+        "ticket": "Ticket {number} was opened for this chat.",
+        "other": "The chat changed."
+      },
+      "you": "You",
+      "agent": "Service desk",
+      "yourMessage": "Write a message",
+      "end": "End chat",
+      "rateLimited": "Too many messages in a short time. Please wait a moment.",
+      "invalid": "Please check your name, email address and message.",
+      "failed": "That did not work. Please try again.",
+      "unavailableWidget": "This chat is not available here."
+    },
+    "agent": {
+      "nav": "Chats",
+      "title": "Live chats",
+      "noAccess": "You do not answer live chats.",
+      "unavailable": "Chats cannot be shown right now. Please try again later.",
+      "available": "You are available and can answer up to {limit} chats at a time.",
+      "unavailableNote": "You are not available: you accept no new chats.",
+      "goAway": "Set me as away",
+      "goAvailable": "Set me as available",
+      "waiting": "Waiting",
+      "noneWaiting": "No chats are waiting.",
+      "accept": "Accept",
+      "mine": "Your chats ({count} of {limit})",
+      "noneMine": "You are not in a chat.",
+      "open": "Open",
+      "recent": "Ended recently",
+      "noneRecent": "No chats ended recently.",
+      "view": "View",
+      "pick": "Accept a waiting chat or open one of yours.",
+      "loading": "Loading the chat…",
+      "languages": {
+        "en": "English",
+        "ar": "Arabic"
+      },
+      "states": {
+        "Waiting": "Waiting for an agent",
+        "Active": "In progress",
+        "Ended": "Ended"
+      },
+      "ticket": "Ticket {number}",
+      "answer": "Your answer",
+      "transferTo": "Pass the chat to",
+      "choose": "Choose…",
+      "colleagues": "Colleagues in this group",
+      "groups": "Another group's queue",
+      "transfer": "Pass on",
+      "end": "End chat",
+      "ticketTitle": "Ticket title",
+      "ticketHelp": "Makes an incident for the visitor, assigned to you, with this chat as its conversation.",
+      "makeTicket": "Make a ticket",
+      "errors": {
+        "chat-taken": "Another agent accepted this chat, or it ended.",
+        "chat-limit-reached": "You are answering as many chats as your group allows. End one first.",
+        "agent-unavailable": "Set yourself as available to accept chats.",
+        "chat-not-yours": "Accept the chat before answering it.",
+        "chat-ended": "The chat has ended.",
+        "chat-has-ticket": "This chat already has a ticket.",
+        "requester-disabled": "The visitor's account is disabled.",
+        "other": "That did not work. Please try again."
+      }
+    },
+    "mailboxes": {
+      "title": "Mailboxes",
+      "intro": "Emails to these mailboxes become incidents, and replies to them are added to the incident's conversation. Zelvo reads each mailbox every 30 seconds, processes unread emails and marks them read. Staff replies go out from the incident's mailbox.",
+      "empty": "No mailboxes yet.",
+      "unavailable": "Mailboxes cannot be shown right now. Please try again later.",
+      "addTitle": "Add a mailbox",
+      "add": "Add mailbox",
+      "save": "Save mailbox",
+      "saved": "The mailbox is saved.",
+      "failed": "That did not work. Please try again.",
+      "invalid": "Please check: {fields}.",
+      "back": "All mailboxes",
+      "never": "Not read yet",
+      "lastRead": "Last read",
+      "lastReadAt": "Last read {at}",
+      "signedInAs": "Signed in as",
+      "statuses": {
+        "Active": "Read by Zelvo",
+        "Disabled": "Turned off"
+      },
+      "providers": {
+        "Imap": "IMAP and SMTP (Exchange on-premises, other mail servers)",
+        "Microsoft365": "Microsoft 365",
+        "Gmail": "Gmail (Google Workspace)"
+      },
+      "auths": {
+        "Password": "User name and password",
+        "ClientSecret": "App registration with a client secret",
+        "ServiceAccount": "Service account with domain-wide delegation",
+        "OAuthSignIn": "An administrator signs in"
+      },
+      "securities": {
+        "Auto": "Automatic (TLS, never in clear)",
+        "SslOnConnect": "TLS from the start",
+        "StartTls": "STARTTLS",
+        "None": "No TLS (same network only)"
+      },
+      "fields": {
+        "name": "Name",
+        "address": "Email address",
+        "provider": "Mail service",
+        "auth": "How Zelvo signs in",
+        "imapHost": "IMAP server",
+        "imapPort": "IMAP port",
+        "imapSecurity": "IMAP security",
+        "smtpHost": "SMTP server",
+        "smtpPort": "SMTP port",
+        "smtpSecurity": "SMTP security",
+        "username": "User name",
+        "clientId": "Client (application) ID",
+        "directoryId": "Directory (tenant) ID",
+        "credential": "Credential",
+        "newSenders": "Who may raise tickets by email",
+        "allowedDomains": "Allowed email domains",
+        "categoryId": "Category of new incidents",
+        "groupId": "Group of new incidents"
+      },
+      "addressHelp": "Replies to requesters come from this address.",
+      "serverTitle": "Mail server",
+      "appTitle": "App",
+      "directoryHelp": "Needed with a client secret; for a sign-in, leave it empty to allow any work account.",
+      "setupHelp": {
+        "Microsoft365": {
+          "ClientSecret": "Register an app in your Entra ID with the application permissions Mail.ReadWrite and Mail.Send, and limit it to this mailbox with an application access policy.",
+          "OAuthSignIn": "Register an app in your Entra ID with the delegated permissions Mail.ReadWrite, Mail.Send and offline_access, add the redirect address below, then sign in as the mailbox."
+        },
+        "Gmail": {
+          "ServiceAccount": "Create a service account, allow it domain-wide delegation for the scope https://www.googleapis.com/auth/gmail.modify, and paste its JSON key below.",
+          "OAuthSignIn": "Create an OAuth client of type web application with the redirect address below, then sign in as the mailbox."
+        }
+      },
+      "redirectUri": "Redirect address to register with the app:",
+      "credentials": {
+        "Password": "Password",
+        "ClientSecret": "Client secret",
+        "ServiceAccount": "Service account key (JSON)",
+        "OAuthSignIn": "Client secret"
+      },
+      "credentialKept": "A credential is stored and never shown. Leave this empty to keep it; a new server, app or address needs it again.",
+      "credentialHelp": {
+        "Password": "The password of the mailbox, or an app password. Stored encrypted.",
+        "ClientSecret": "The app's client secret. Stored encrypted.",
+        "ServiceAccount": "The whole JSON key file of the service account. Stored encrypted.",
+        "OAuthSignIn": "The app's client secret. Stored encrypted; after saving, sign in as the mailbox."
+      },
+      "policies": {
+        "Anyone": "Anyone; senders without an account become requesters",
+        "AllowedDomains": "People with an account, and senders from the domains below",
+        "KnownUsers": "Only people who already have an account"
+      },
+      "domainsHelp": "Separate domains with commas, for example entity.gov.ae, partner.ae.",
+      "rejectedHelp": "Emails from other senders get no reply and are listed as rejected in the mailbox log.",
+      "none": "None",
+      "byRules": "Use the assignment rules",
+      "groupHelp": "With a group, new incidents go to its queue; otherwise the assignment rules route them.",
+      "errors": {
+        "sign-in-failed": "The mail service refused the sign-in. Check the user name, password or app details.",
+        "sign-in-expired": "The sign-in expired. Sign in to the mailbox again.",
+        "sign-in-needed": "Sign in to the mailbox to give Zelvo access.",
+        "no-refresh-token": "The mail service gave no lasting access. Allow offline access for the app and sign in again.",
+        "access-denied": "The app may not use this mailbox. Check its permissions.",
+        "mailbox-not-found": "The mail service does not know this mailbox.",
+        "unreachable": "The mail server could not be reached.",
+        "timeout": "The mail server did not answer in time.",
+        "tls-failed": "The secure connection to the mail server failed.",
+        "address-not-allowed": "Zelvo may not connect to this server. The installation's operator can allow internal networks.",
+        "credential-missing": "Enter the mailbox's credential.",
+        "credential-unreadable": "The stored credential cannot be read. Enter it again.",
+        "credential-invalid": "The credential is not valid.",
+        "imap-missing": "Enter the IMAP server.",
+        "smtp-missing": "Enter the SMTP server.",
+        "rate-limited": "The mail service asked Zelvo to slow down; it tries again later.",
+        "mailbox-changed": "The mailbox was rebuilt on the server; its emails are read again.",
+        "other": "Reading the mailbox failed. Try again or check its settings."
+      },
+      "signedIn": "Signed in. Zelvo reads the mailbox now.",
+      "signInFailed": "The sign-in did not work. Sign in as the mailbox's own account and try again.",
+      "signInNeedsSecret": "Enter and save the app's client ID and client secret first.",
+      "testOk": "Connected. {count, plural, =0 {No unread emails} one {# unread email} other {# unread emails}} in the inbox.",
+      "checkQueued": "Zelvo reads the mailbox within a few seconds.",
+      "test": "Test connection",
+      "checkNow": "Read now",
+      "signIn": {
+        "Microsoft365": "Sign in with Microsoft",
+        "Gmail": "Sign in with Google"
+      },
+      "disable": "Turn off",
+      "enable": "Turn on",
+      "delete": "Remove mailbox",
+      "deleteConfirm": "Remove the mailbox {name} and its log? Its incidents stay.",
+      "settingsTitle": "Settings",
+      "logTitle": "Mailbox log",
+      "logIntro": "What became of each email, newest first. Sender addresses are masked. Kept 90 days.",
+      "logEmpty": "No emails read yet.",
+      "columns": {
+        "received": "Received",
+        "from": "From",
+        "subject": "Subject",
+        "outcome": "Result",
+        "created": "Queued",
+        "to": "To",
+        "status": "Status"
+      },
+      "outcomes": {
+        "Created": "New incident",
+        "Added": "Added to an incident",
+        "FollowUp": "Follow-up of a closed incident",
+        "Rejected": "Rejected",
+        "Ignored": "Left alone",
+        "Failed": "Failed; tried again"
+      },
+      "reasons": {
+        "too-large": "Too large to read",
+        "no-sender": "No single sender",
+        "auto-reply": "Automatic reply",
+        "bulk": "Bulk or list mail",
+        "delivery-report": "Delivery report",
+        "own-mail": "Sent by Zelvo or one of your mailboxes",
+        "dmarc-failed": "The sender's domain did not pass DMARC",
+        "duplicate": "Already received through another mailbox",
+        "sender-disabled": "The sender's account is disabled",
+        "sender-not-allowed": "The sender may not raise tickets by email",
+        "empty": "No subject and no text",
+        "files-skipped": "Some files were not accepted (type or size)",
+        "processing-error": "Zelvo could not process it",
+        "database-error": "Zelvo could not save it"
+      },
+      "outgoingTitle": "Sent from this mailbox",
+      "outgoingEmpty": "Nothing sent yet.",
+      "kinds": {
+        "reply": "Staff reply",
+        "notification": "Notification"
+      },
+      "sendStatuses": {
+        "Pending": "Waiting",
+        "Sent": "Sent",
+        "Failed": "Not sent"
+      },
+      "resend": "Send again"
+    },
+    "widgets": {
+      "title": "Live chat",
+      "intro": "Chat widgets for the portal and for your other websites. Chats go to the widget's group: members who are available and may answer chats accept them, up to the group's limit. With nobody available, visitors leave a message, which becomes an incident.",
+      "unavailable": "Chat widgets cannot be shown right now. Please try again later.",
+      "add": "Add a chat widget",
+      "edit": "Change widget",
+      "save": "Save widget",
+      "cancel": "Cancel",
+      "active": "Accepts chats",
+      "inactive": "Turned off",
+      "onPortal": "shown on the portal",
+      "websites": "Websites that may show it",
+      "embed": "Code to add to those websites",
+      "embedHelp": "Put it before the end of the page's body. The chat opens in a frame from Zelvo, so the website cannot read it.",
+      "noWebsites": "Not on other websites. List their addresses to get the code to embed it.",
+      "nameEn": "Name (English)",
+      "nameAr": "Name (Arabic)",
+      "greetingEn": "Greeting (English)",
+      "greetingAr": "Greeting (Arabic)",
+      "group": "Group that answers",
+      "groupHelp": "Set how many chats each member answers at a time under Settings → Groups.",
+      "category": "Category of tickets from chats",
+      "none": "None",
+      "websitesHelp": "One address per line, such as https://www.entity.gov.ae.",
+      "showOnPortal": "Show on the portal",
+      "acceptsChats": "Accepts chats",
+      "originsInvalid": "Enter website addresses such as https://www.entity.gov.ae, without paths.",
+      "invalid": "Please check the name and group.",
+      "failed": "That did not work. Please try again."
     }
   }
 }

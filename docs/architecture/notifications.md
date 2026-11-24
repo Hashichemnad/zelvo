@@ -34,10 +34,8 @@ worker NotificationDispatcher (every 2 s, per tenant, lease + SKIP LOCKED)  ▼
    | `incident.assigned` | The new assignee | The assignee changes (on creation too), unless they assigned themselves |
    | `incident.queued` | Members of the group | An incident arrives in a group with nobody assigned (created, or moved to another group) |
    | `sla.threshold`, `sla.breached` | The recipients B3 recorded on the `sla_alerts` row | A threshold is reached; 100 % is the breach |
-   | `incident.reply` | The requester | Staff write in the incident's conversation (task E2) |
-   | `incident.requester-replied` | The assignee, else the group's members | The requester writes in the conversation (portal, email or chat; task E2) |
    | `knowledge.review-requested` | Active people with `knowledge.publish`, except the version's creator, last editor and submitter (four-eyes rule) | A version is submitted for review |
-   | `incident.replied` (B4) | The requester | A staff member posts a public reply on their incident |
+   | `incident.replied` (B4) | The requester | A staff member posts a public reply on their incident (from the workspace or by email; not for chat transcripts) |
    | `incident.mentioned` (B4) | The people mentioned | Someone @mentions them in a reply or internal note (links to the workspace) |
 
 3. **Rendered for the recipient** (`NotificationProcessor`, in the worker). The event must be on and the recipient active, otherwise the notification is *Suppressed*. The language is the recipient's own, then the tenant default, then English (LANG-2, LANG-6); calendar and digits likewise (LANG-8); dates are shown in the time zone of the tenant's default business calendar (`Asia/Dubai` without one). The wording is the tenant's template for that language, field by field, else Zelvo's default. The in-app title and text are stored in the recipient's language; later language changes do not rewrite old notifications, so the list marks them with their own language and direction.
@@ -112,7 +110,7 @@ Seeder `b5-notifications` queues "received" for each sample incident's requester
 
 ## Email tickets (task E2)
 
-Requester notifications of tickets that came in by email go out **from the ticket's mailbox** in the same email thread (`outbound_emails`, sent by the worker's mail job) instead of the installation's mail server, with the same wording in the requester's language; staff replies to them go out even when `incident.reply` is switched off. See `channels.md`.
+Requester notifications of tickets that came in by email go out **from the ticket's mailbox** in the same email thread (`outbound_emails`, sent by the worker's mail job) instead of the installation's mail server, with the same wording in the requester's language; staff replies (`incident.replied`) go out with the reply's own `Message-ID` even when that event's email is switched off. See `channels.md`.
 
 ## Channels later
 

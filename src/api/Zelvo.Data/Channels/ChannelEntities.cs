@@ -5,89 +5,6 @@ using Zelvo.Data.Tickets;
 
 namespace Zelvo.Data.Channels;
 
-/// <summary>Who wrote a message of a ticket's conversation.</summary>
-public enum MessageAuthorKind
-{
-    /// <summary>The requester (or a visitor of a chat turned into the ticket).</summary>
-    Requester,
-
-    /// <summary>A staff member.</summary>
-    Staff,
-
-    /// <summary>Zelvo itself, for example "This incident follows up INC-000123".</summary>
-    System,
-}
-
-/// <summary>Where a public message of a ticket's conversation stands when it goes out by email.</summary>
-public enum MessageDelivery
-{
-    /// <summary>Nothing to send (it came in, or it is shown in the portal only).</summary>
-    None,
-
-    /// <summary>Queued to go out from the ticket's mailbox.</summary>
-    Pending,
-
-    /// <summary>Sent.</summary>
-    Sent,
-
-    /// <summary>Could not be sent; see the mailbox's outgoing log.</summary>
-    Failed,
-}
-
-/// <summary>
-/// One public message of a ticket's conversation (task E2, product owner decision 2026-11-24: the
-/// shared thread that email, chat and the portal write to; B4 adds internal notes, mentions and
-/// canned responses). Audited with the body's length only.
-/// </summary>
-public sealed class TicketMessage : ITenantOwned, IAuditedEntity
-{
-    /// <summary>Maximum length of <see cref="Body"/>.</summary>
-    public const int BodyMaxLength = 50_000;
-
-    /// <summary>Maximum length of an email <c>Message-ID</c>.</summary>
-    public const int MessageIdMaxLength = 500;
-
-    /// <summary>Unique id (UUID version 7).</summary>
-    public Guid Id { get; init; } = Guid.CreateVersion7();
-
-    /// <inheritdoc />
-    public Guid TenantId { get; set; }
-
-    /// <summary>The ticket.</summary>
-    public Guid TicketId { get; init; }
-
-    /// <summary>Who wrote it.</summary>
-    public MessageAuthorKind AuthorKind { get; init; }
-
-    /// <summary>The person who wrote it, when known.</summary>
-    public Guid? AuthorId { get; init; }
-
-    /// <summary>The author (navigation).</summary>
-    public Identity.UserAccount? Author { get; init; }
-
-    /// <summary>How it was written: Portal (the web app), Email or Chat.</summary>
-    public TicketChannel Channel { get; init; }
-
-    /// <summary>The text (plain text; quoted earlier emails removed). Only the length is audited.</summary>
-    [AuditLengthOnly]
-    public required string Body { get; init; }
-
-    /// <summary>The mailbox it came in through or went out from.</summary>
-    public Guid? MailboxId { get; init; }
-
-    /// <summary>Its email <c>Message-ID</c> (without angle brackets), for threading.</summary>
-    public string? EmailMessageId { get; init; }
-
-    /// <summary>The chat it was written in.</summary>
-    public Guid? ChatSessionId { get; init; }
-
-    /// <summary>Whether it goes out by email, and how that went.</summary>
-    public MessageDelivery Delivery { get; set; }
-
-    /// <summary>When it was written (for emails, when Zelvo received it).</summary>
-    public DateTimeOffset CreatedAt { get; init; } = DateTimeOffset.UtcNow;
-}
-
 /// <summary>How Zelvo reaches a mailbox.</summary>
 public enum MailboxProvider
 {
@@ -363,8 +280,8 @@ public sealed class InboundEmail : ITenantOwned
     /// <summary>The ticket it created or was added to.</summary>
     public Guid? TicketId { get; set; }
 
-    /// <summary>The conversation message it became.</summary>
-    public Guid? TicketMessageId { get; set; }
+    /// <summary>The comment it became on the ticket's conversation.</summary>
+    public Guid? CommentId { get; set; }
 
     /// <summary>When Zelvo read it.</summary>
     public DateTimeOffset ReceivedAt { get; init; } = DateTimeOffset.UtcNow;
@@ -412,8 +329,8 @@ public sealed class OutboundEmail : ITenantOwned
     /// <summary>The ticket.</summary>
     public Guid TicketId { get; init; }
 
-    /// <summary>The conversation message it sends; empty for other requester notifications (received, resolved, …).</summary>
-    public Guid? TicketMessageId { get; init; }
+    /// <summary>The staff reply (comment) it sends; empty for other requester notifications (received, resolved, …).</summary>
+    public Guid? CommentId { get; init; }
 
     /// <summary>The notification it delivers (task B5 wording, in the requester's language).</summary>
     public Guid? NotificationId { get; init; }

@@ -5,7 +5,7 @@ import { completeSecondFactor, devUser, signInWithPassword } from "../support/id
 /**
  * Live chat and the ticket conversation (task E2, module 6): an administrator makes a group with the
  * agent and a portal chat widget; the requester chats on the portal; the agent accepts the chat on
- * the Chats page, answers and makes a ticket of it; the transcript is the incident's conversation,
+ * the Chats page, answers and makes a ticket of it; the transcript is the incident's conversation in the workspace,
  * where the agent replies. Pages are checked for accessibility in English and Arabic. Runs in its
  * own project: it adds a widget shown on the portal.
  */
@@ -97,12 +97,13 @@ test.describe("live chat", () => {
     await panel.getByRole("button", { name: "Make a ticket" }).click();
     await panel.getByRole("link", { name: /^Ticket INC-\d{6,}$/ }).click();
 
-    // The transcript is the incident's conversation; the agent replies there.
-    const conversation = agent.getByTestId("conversation");
-    await expect(conversation.getByTestId("conversation-message")).toHaveCount(3);
-    await conversation.getByLabel("Reply to the requester").fill("A new badge is ready at reception.");
-    await conversation.getByRole("button", { name: "Send reply" }).click();
-    await expect(conversation.getByTestId("conversation-message")).toHaveCount(4);
+    // The transcript is the incident's conversation in the workspace (B4); the agent replies there.
+    const detail = agent.getByTestId("workspace-detail");
+    await expect(detail.getByTestId("comment")).toHaveCount(3);
+    await expect(detail.getByTestId("comment").first()).toContainText("From a chat");
+    await agent.getByTestId("composer-body").fill("A new badge is ready at reception.");
+    await agent.getByRole("button", { name: "Send reply" }).click();
+    await expect(detail.getByTestId("comment")).toHaveCount(4);
     await expectAccessible(agent);
 
     await chat.getByRole("button", { name: "End chat" }).click();

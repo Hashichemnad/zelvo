@@ -299,11 +299,6 @@ internal static partial class MailboxEndpoints
             email.Attempts = 0;
             email.NextAttemptAt = DateTimeOffset.UtcNow;
             email.LastError = null;
-            if (email.TicketMessageId is { } messageId)
-            {
-                await db.TicketMessages.Where(m => m.Id == messageId).ExecuteUpdateAsync(set => set.SetProperty(m => m.Delivery, MessageDelivery.Pending), cancellationToken);
-            }
-
             audit.Add(AuditCategory.Admin, "channels.mailbox.email-resent", "mailbox", id.ToString(),
                 new Dictionary<string, object?>(StringComparer.Ordinal) { ["emailId"] = emailId });
             await db.SaveChangesAsync(cancellationToken);
@@ -761,6 +756,6 @@ internal sealed record OutboundEmailResponse(
     DateTimeOffset? NextAttemptAt, DateTimeOffset CreatedAt, DateTimeOffset? SentAt)
 {
     public static OutboundEmailResponse From(OutboundEmail e, string? number) => new(
-        e.Id, NotificationEndpoints.Mask(e.ToAddress), e.Subject, e.TicketId, number, e.TicketMessageId is not null, e.Status, e.Attempts, e.LastError,
+        e.Id, NotificationEndpoints.Mask(e.ToAddress), e.Subject, e.TicketId, number, e.CommentId is not null, e.Status, e.Attempts, e.LastError,
         e.NextAttemptAt, e.CreatedAt, e.SentAt);
 }

@@ -213,31 +213,24 @@ public sealed partial class OutboundEmailSender(
         email.Attempts++;
         email.LeaseUntil = null;
         email.LastError = error;
-        MessageDelivery? delivery = null;
         if (error is null)
         {
             email.Status = OutboundEmailStatus.Sent;
             email.SentAt = now;
             email.NextAttemptAt = null;
-            delivery = MessageDelivery.Sent;
         }
         else if (permanent || email.Attempts > options.RetryDelays.Count)
         {
             email.Status = OutboundEmailStatus.Failed;
             email.NextAttemptAt = null;
-            delivery = MessageDelivery.Failed;
         }
         else
         {
             email.NextAttemptAt = now + options.RetryDelays[email.Attempts - 1];
         }
 
+        // The conversation shows a staff reply's delivery from this row (comments never change).
         await db.SaveChangesAsync(cancellationToken).ConfigureAwait(false);
-        if (delivery is { } state && email.TicketMessageId is { } messageId)
-        {
-            // Delivery state only; the message itself does not change (not audited).
-            await db.TicketMessages.Where(m => m.Id == messageId).ExecuteUpdateAsync(set => set.SetProperty(m => m.Delivery, state), cancellationToken).ConfigureAwait(false);
-        }
     }
 
     /// <summary>The MIME message of <paramref name="email"/>: from the mailbox in the tenant's name, threaded, HTML and text.</summary>
@@ -260,7 +253,7 @@ public sealed partial class OutboundEmailSender(
         }
 
         // Notifications are automatic (RFC 3834); staff replies are written by a person.
-        if (email.TicketMessageId is null)
+        if (email.CommentId is null)
         {
             message.Headers.Add("Auto-Submitted", "auto-generated");
         }

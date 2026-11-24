@@ -21,6 +21,12 @@ export interface Comment {
   mentions: Person[];
   cannedResponseId: string | null;
   createdAt: string;
+  /** Task E2: written in Zelvo, by email, or in a live chat (its transcript). */
+  source?: "Web" | "Email" | "Chat";
+  /** Task E2: files that came with an email. */
+  attachments?: { id: string; fileName: string }[];
+  /** Task E2, staff only: how the email of a staff reply from the ticket's mailbox went. */
+  emailDelivery?: "Pending" | "Sent" | "Failed" | null;
 }
 
 export type WorkspaceScope = "Personal" | "Group" | "Tenant";

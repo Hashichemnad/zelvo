@@ -3,6 +3,7 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Diagnostics;
 using Npgsql;
 using NpgsqlTypes;
+using Zelvo.Data.Channels;
 using Zelvo.Data.Notifications;
 using Zelvo.Data.Sla;
 using Zelvo.Data.Tickets;
@@ -100,6 +101,9 @@ public sealed class LiveUpdateInterceptor : SaveChangesInterceptor
             var interesting = entry.Entity switch
             {
                 Ticket or Incident or TicketComment or TicketSla or SlaAlert => entry.State is EntityState.Added or EntityState.Modified,
+                // Task E2: the email of a reply going out (its delivery shows in the conversation), and live chats.
+                OutboundEmail => entry.State is EntityState.Added or EntityState.Modified,
+                ChatSession or ChatMessage => entry.State is EntityState.Added or EntityState.Modified,
                 Notification => entry.State == EntityState.Modified
                     && (entry.Property(nameof(Notification.Status)).IsModified || entry.Property(nameof(Notification.ReadAt)).IsModified),
                 _ => false,
@@ -120,6 +124,7 @@ public sealed class LiveUpdateInterceptor : SaveChangesInterceptor
 
         var tickets = new HashSet<(Guid Tenant, Guid Ticket)>();
         var people = new HashSet<(Guid Tenant, Guid User)>();
+        var chats = new HashSet<(Guid Tenant, Guid Chat)>();
         foreach (var entity in _pending)
         {
             switch (entity)
@@ -130,12 +135,16 @@ public sealed class LiveUpdateInterceptor : SaveChangesInterceptor
                 case TicketSla s: tickets.Add((s.TenantId, s.TicketId)); break;
                 case SlaAlert a: tickets.Add((a.TenantId, a.TicketId)); break;
                 case Notification n: people.Add((n.TenantId, n.RecipientId)); break;
+                case OutboundEmail o: tickets.Add((o.TenantId, o.TicketId)); break;
+                case ChatSession c: chats.Add((c.TenantId, c.Id)); break;
+                case ChatMessage m: chats.Add((m.TenantId, m.SessionId)); break;
             }
         }
 
         _pending.Clear();
         tickets.RemoveWhere(t => t.Tenant == Guid.Empty);
         people.RemoveWhere(p => p.Tenant == Guid.Empty);
+        chats.RemoveWhere(c => c.Tenant == Guid.Empty);
         var payloads = new List<string>();
         foreach (var tenant in tickets.GroupBy(t => t.Tenant))
         {
@@ -145,14 +154,15 @@ public sealed class LiveUpdateInterceptor : SaveChangesInterceptor
         }
 
         payloads.AddRange(people.Select(p => LiveEvent.NotificationsChanged(p.Tenant, p.User).ToJson()));
+        payloads.AddRange(chats.Select(c => LiveEvent.ChatChanged(c.Tenant, c.Chat).ToJson()));
         return [.. payloads];
     }
 }
 
 /// <summary>One live update, as sent on <see cref="LiveUpdateInterceptor.Channel"/>.</summary>
 /// <param name="Tenant">The tenant.</param>
-/// <param name="Kind"><c>ticket</c>, <c>refresh</c> (many tickets) or <c>notifications</c>.</param>
-/// <param name="Id">The ticket (<c>ticket</c>) or the person (<c>notifications</c>).</param>
+/// <param name="Kind"><c>ticket</c>, <c>refresh</c> (many tickets), <c>notifications</c> or <c>chat</c>.</param>
+/// <param name="Id">The ticket (<c>ticket</c>), the person (<c>notifications</c>) or the live chat (<c>chat</c>).</param>
 public sealed record LiveEvent(Guid Tenant, string Kind, Guid? Id)
 {
     private static readonly JsonSerializerOptions Json = new(JsonSerializerDefaults.Web);
@@ -165,6 +175,12 @@ public sealed record LiveEvent(Guid Tenant, string Kind, Guid? Id)
 
     /// <summary>A person's notifications changed (new, read).</summary>
     public const string Notifications = "notifications";
+
+    /// <summary>A live chat changed: its state or messages (task E2).</summary>
+    public const string Chat = "chat";
+
+    /// <summary>A change of the live chat <paramref name="chat"/>.</summary>
+    public static LiveEvent ChatChanged(Guid tenant, Guid chat) => new(tenant, Chat, chat);
 
     /// <summary>A change of <paramref name="ticket"/>.</summary>
     public static LiveEvent TicketChanged(Guid tenant, Guid ticket) => new(tenant, Ticket, ticket);
@@ -184,7 +200,7 @@ public sealed record LiveEvent(Guid Tenant, string Kind, Guid? Id)
         try
         {
             var parsed = JsonSerializer.Deserialize<LiveEvent>(payload, Json);
-            return parsed is { Kind: Ticket or RefreshAll or Notifications } && parsed.Tenant != Guid.Empty ? parsed : null;
+            return parsed is { Kind: Ticket or RefreshAll or Notifications or Chat } && parsed.Tenant != Guid.Empty ? parsed : null;
         }
         catch (JsonException)
         {

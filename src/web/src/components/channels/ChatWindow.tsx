@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useId, useRef, useState, type FormEvent } from "react";
 import { useTranslations } from "next-intl";
-import { useChatSignals } from "@/lib/chat-signals";
+import { usePolling } from "@/lib/use-polling";
 import { mergeMessages, textIn, type ChatMessage, type PublicChatWidget, type VisitorChat } from "@/lib/channels";
 
 type Stage = "start" | "offline" | "left" | "chat";
@@ -127,13 +127,8 @@ export function ChatWindow({
     if (typeof last?.scrollIntoView === "function") last.scrollIntoView({ block: "nearest" });
   }, [messages.length]);
 
-  useChatSignals({
-    sessionId: session?.sessionId,
-    token: session?.token,
-    csrfToken,
-    onChange: () => void load(),
-    enabled: stage === "chat" && chat?.state !== "Ended",
-  });
+  // Visitors have no live connection: the chat reloads every few seconds while it is open.
+  usePolling(() => void load(), 3000, stage === "chat" && chat?.state !== "Ended");
 
   async function start(event: FormEvent) {
     event.preventDefault();

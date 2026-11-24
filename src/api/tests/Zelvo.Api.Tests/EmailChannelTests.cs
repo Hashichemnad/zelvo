@@ -83,14 +83,15 @@ public sealed class EmailChannelTests : IAsyncDisposable
             inReplyTo: received.MessageId);
         _mail.Deliver("support@e2mail.example.org", answer);
         await _factory.ReadMailboxesAsync(tenant);
-        var messages = (await agent.SendOkAsync(HttpMethod.Get, $"/api/v1/incidents/{ticket.Id}/messages"))["items"]!.AsArray();
+        var messages = (await agent.SendOkAsync(HttpMethod.Get, $"/api/v1/incidents/{ticket.Id}/comments"))["items"]!.AsArray();
         var added = Assert.Single(messages);
-        Assert.Equal(("Requester", "Email", "It is the HP printer near the lift."), ((string?)added!["authorKind"], (string?)added["channel"], (string?)added["body"]));
+        Assert.Equal((false, "Email", "Public", "It is the HP printer near the lift."),
+            ((bool)added!["byStaff"]!, (string?)added["source"], (string?)added["visibility"], (string?)added["body"]));
 
         // 4. The agent replies in Zelvo: the email goes from the mailbox with the thread's headers, and the
         //    first public reply counts as the response.
-        var reply = await agent.SendOkAsync(HttpMethod.Post, $"/api/v1/incidents/{ticket.Id}/messages", new { body = "Thanks, a technician is on the way." }, HttpStatusCode.Created);
-        Assert.Equal("Pending", (string?)reply["delivery"]);
+        var reply = await agent.SendOkAsync(HttpMethod.Post, $"/api/v1/incidents/{ticket.Id}/comments", new { body = "Thanks, a technician is on the way." }, HttpStatusCode.Created);
+        Assert.Equal(("Web", "Pending"), ((string?)reply["source"], (string?)reply["emailDelivery"]));
         await _factory.DeliverNotificationsAsync(tenant);
         await _factory.RunMailAsync(tenant);
         var replyEmail = _mail.SentTo("layla@citizens.example.org").Last();
@@ -98,14 +99,14 @@ public sealed class EmailChannelTests : IAsyncDisposable
         Assert.Equal(answer.MessageId, replyEmail.InReplyTo);
         Assert.Contains(first.MessageId, replyEmail.References);
         Assert.Null(replyEmail.Headers["Auto-Submitted"]); // A person wrote it.
-        var thread = (await agent.SendOkAsync(HttpMethod.Get, $"/api/v1/incidents/{ticket.Id}/messages"))["items"]!.AsArray();
-        Assert.Equal("Sent", (string?)thread[^1]!["delivery"]);
+        var thread = (await agent.SendOkAsync(HttpMethod.Get, $"/api/v1/incidents/{ticket.Id}/comments"))["items"]!.AsArray();
+        Assert.Equal("Sent", (string?)thread[^1]!["emailDelivery"]);
         Assert.NotNull((await agent.GetIncidentAsync(ticket.Id))["respondedAt"]);
 
         // 5. A reply that only names the number in the subject also finds the ticket.
         _mail.Deliver("support@e2mail.example.org", ChannelApi.Email("layla@citizens.example.org", "support@e2mail.example.org", $"About [{ticket.Number}]", "It works now."));
         await _factory.ReadMailboxesAsync(tenant);
-        Assert.Equal(2, (await agent.SendOkAsync(HttpMethod.Get, $"/api/v1/incidents/{ticket.Id}/messages"))["items"]!.AsArray().Count(m => (string?)m!["authorKind"] == "Requester"));
+        Assert.Equal(2, (await agent.SendOkAsync(HttpMethod.Get, $"/api/v1/incidents/{ticket.Id}/comments"))["items"]!.AsArray().Count(m => !(bool)m!["byStaff"]!));
 
         // 6. Closed is final: a later reply becomes a follow-up incident.
         await admin.SendOkAsync(HttpMethod.Put, $"/api/v1/incidents/{ticket.Id}/assignee", new { assigneeId = agentUser.Id });
@@ -192,7 +193,7 @@ public sealed class EmailChannelTests : IAsyncDisposable
         await using (var db = TestData.AppContext(_database, tenant))
         {
             Assert.Equal(other.Id, (await db.Tickets.SingleAsync(t => t.Title == "Mine too." || t.Title == "Laptop slow" && t.RequesterId == other.Id, Ct)).RequesterId);
-            Assert.Empty(await db.TicketMessages.ToListAsync(Ct));
+            Assert.Empty(await db.TicketComments.ToListAsync(Ct));
             Assert.Equal(1, await db.Tickets.CountAsync(t => t.Title == "Monitor flickers", Ct));
             Assert.Contains(await db.InboundEmails.Select(e => e.Reason).ToListAsync(Ct), r => r == "duplicate");
         }
@@ -267,7 +268,7 @@ public sealed class EmailChannelTests : IAsyncDisposable
     }
 
     [Fact]
-    public async Task Replies_of_portal_incidents_reach_the_requester_as_notifications_and_requester_answers_reach_the_assignee()
+    public async Task Replies_of_portal_incidents_reach_the_requester_as_notifications_and_a_requester_answer_resumes_a_waiting_incident()
     {
         var tenant = await _database.CreateTenantAsync("e2portal");
         var requesterUser = await _database.CreateUserAsync(tenant, BuiltInRoles.Requester);
@@ -279,24 +280,25 @@ public sealed class EmailChannelTests : IAsyncDisposable
         await agent.MoveAsync(id, "InProgress");
         await agent.MoveAsync(id, "OnHold", reason: "awaiting-requester");
 
-        await agent.SendOkAsync(HttpMethod.Post, $"/api/v1/incidents/{id}/messages", new { body = "Which extension is it?" }, HttpStatusCode.Created);
-        var answer = await requester.SendOkAsync(HttpMethod.Post, $"/api/v1/incidents/{id}/messages", new { body = "Extension 4412." }, HttpStatusCode.Created);
-        Assert.False(answer.ContainsKey("delivery") && answer["delivery"] is not null); // Requesters do not see delivery details.
+        await agent.SendOkAsync(HttpMethod.Post, $"/api/v1/incidents/{id}/comments", new { body = "Which extension is it?" }, HttpStatusCode.Created);
+        var answer = await requester.SendOkAsync(HttpMethod.Post, $"/api/v1/incidents/{id}/comments", new { body = "Extension 4412." }, HttpStatusCode.Created);
+        Assert.Null(answer["emailDelivery"]); // Requesters never see delivery details.
 
         // The requester's answer moves the incident waiting for them back to work.
         Assert.Equal("InProgress", (string?)(await agent.GetIncidentAsync(id))["state"]);
-        Assert.Equal(HttpStatusCode.NotFound, (await stranger.SendAsync(HttpMethod.Get, $"/api/v1/incidents/{id}/messages")).StatusCode);
-        Assert.Equal(HttpStatusCode.NotFound, (await stranger.SendAsync(HttpMethod.Post, $"/api/v1/incidents/{id}/messages", new { body = "x" })).StatusCode);
+        Assert.Equal(HttpStatusCode.NotFound, (await stranger.SendAsync(HttpMethod.Get, $"/api/v1/incidents/{id}/comments")).StatusCode);
+        Assert.Equal(HttpStatusCode.NotFound, (await stranger.SendAsync(HttpMethod.Post, $"/api/v1/incidents/{id}/comments", new { body = "x" })).StatusCode);
 
         await _factory.DeliverNotificationsAsync(tenant);
-        Assert.Contains((await requester.InboxAsync()).Events(), e => e == Zelvo.Notifications.NotificationEvents.IncidentReply);
-        Assert.Contains((await agent.InboxAsync()).Events(), e => e == Zelvo.Notifications.NotificationEvents.IncidentRequesterReplied);
+        // B4's approved event: the requester hears of the staff reply; a requester's answer notifies nobody (the workspace shows it live).
+        Assert.Contains((await requester.InboxAsync()).Events(), e => e == Zelvo.Notifications.NotificationEvents.IncidentReplied);
+        Assert.DoesNotContain((await agent.InboxAsync()).Events(), e => e == Zelvo.Notifications.NotificationEvents.IncidentReplied);
         Assert.Contains(_notifications.To(requesterUser), m => m.Text.Contains("Which extension is it?", StringComparison.Ordinal));
         Assert.Empty(_mail.Sent);
 
         await agent.MoveAsync(id, "Resolved", notes: "Line repaired.");
         await agent.MoveAsync(id, "Closed");
-        Assert.Equal("ticket-closed", (await (await requester.SendAsync(HttpMethod.Post, $"/api/v1/incidents/{id}/messages", new { body = "Thanks" })).ProblemAsync()).Code);
+        Assert.Equal("ticket-closed", (await (await requester.SendAsync(HttpMethod.Post, $"/api/v1/incidents/{id}/comments", new { body = "Thanks" })).ProblemAsync()).Code);
     }
 }
 

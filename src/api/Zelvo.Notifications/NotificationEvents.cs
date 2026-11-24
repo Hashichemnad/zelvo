@@ -49,12 +49,6 @@ public static class NotificationEvents
     /// <summary>A major-incident update meant for requesters was posted.</summary>
     public const string IncidentMajorUpdate = "incident.major-update";
 
-    /// <summary>Staff answered the requester in the incident's conversation (task E2).</summary>
-    public const string IncidentReply = "incident.reply";
-
-    /// <summary>The requester wrote in the incident's conversation (portal, email or chat; task E2).</summary>
-    public const string IncidentRequesterReplied = "incident.requester-replied";
-
     /// <summary>An incident was assigned to someone (not by themselves).</summary>
     public const string IncidentAssigned = "incident.assigned";
 
@@ -90,9 +84,6 @@ public static class NotificationEvents
         new(IncidentResolved, NotificationAudience.Requester, true, [Placeholders.TicketNumber, Placeholders.TicketTitle, Placeholders.TicketResolutionNotes]),
         new(IncidentClosed, NotificationAudience.Requester, true, [Placeholders.TicketNumber, Placeholders.TicketTitle]),
         new(IncidentMajorUpdate, NotificationAudience.Requester, true, [Placeholders.TicketNumber, Placeholders.TicketTitle, Placeholders.UpdateText, Placeholders.UpdatePostedAt]),
-        new(IncidentReply, NotificationAudience.Requester, true, [Placeholders.TicketNumber, Placeholders.TicketTitle, Placeholders.ReplyText, Placeholders.AuthorName]),
-        new(IncidentRequesterReplied, NotificationAudience.Staff, true,
-            [Placeholders.TicketNumber, Placeholders.TicketTitle, Placeholders.ReplyText, Placeholders.RequesterName]),
         new(IncidentAssigned, NotificationAudience.Staff, true,
             [Placeholders.TicketNumber, Placeholders.TicketTitle, Placeholders.TicketPriority, Placeholders.TicketGroup, Placeholders.RequesterName]),
         new(IncidentQueued, NotificationAudience.Staff, true,
@@ -143,9 +134,6 @@ public static class Placeholders
     /// <summary>Text of a major-incident update.</summary>
     public const string UpdateText = "update.text";
 
-    /// <summary>Text of a reply in a ticket's conversation (task E2).</summary>
-    public const string ReplyText = "reply.text";
-
     /// <summary>When the update was posted.</summary>
     public const string UpdatePostedAt = "update.postedAt";
 
@@ -170,6 +158,6 @@ public static class Placeholders
     /// <summary>Article title.</summary>
     public const string ArticleTitle = "article.title";
 
-    /// <summary>Who submitted the version for review; who wrote a reply.</summary>
+    /// <summary>Who submitted the version for review.</summary>
     public const string AuthorName = "author.name";
 }
