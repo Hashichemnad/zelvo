@@ -194,6 +194,11 @@ internal static partial class IncidentEndpoints
             tickets = tickets.Where(t => t.Incident!.IsMajor == major);
         }
 
+        if (staff && query.Requester is { } requesterId)
+        {
+            tickets = tickets.Where(t => t.RequesterId == requesterId);
+        }
+
         if (staff && query.ParentId is { } parentId)
         {
             tickets = tickets.Where(t => t.ParentId == parentId);
@@ -607,10 +612,11 @@ internal static partial class IncidentEndpoints
             return (ProblemHttpResult)ApiProblem.Create(StatusCodes.Status409Conflict, "ticket-not-open", "Only open incidents can be routed again.");
         }
 
-        await using var transaction = await db.Database.BeginTransactionAsync(cancellationToken);
+        // Bulk changes (task B4) run inside their own transaction.
+        await using var transaction = db.Database.CurrentTransaction is null ? await db.Database.BeginTransactionAsync(cancellationToken) : null;
         await RouteAsync(db, settings, ticket, DateTimeOffset.UtcNow, cancellationToken);
         var result = await SaveAsync(http, db, user, indexer, ticket, [ticket], cancellationToken);
-        if (result.Result is Ok<JsonObject>)
+        if (result.Result is Ok<JsonObject> && transaction is not null)
         {
             await transaction.CommitAsync(cancellationToken);
         }
@@ -1226,6 +1232,9 @@ public sealed class IncidentListQuery
 
     /// <summary>Staff: only children of this incident.</summary>
     public Guid? ParentId { get; init; }
+
+    /// <summary>Staff (task B4): only incidents of this requester.</summary>
+    public Guid? Requester { get; init; }
 
     /// <summary>Only incidents the caller requested (always true for requesters).</summary>
     public bool? Mine { get; init; }

@@ -35,6 +35,8 @@ worker NotificationDispatcher (every 2 s, per tenant, lease + SKIP LOCKED)  ▼
    | `incident.queued` | Members of the group | An incident arrives in a group with nobody assigned (created, or moved to another group) |
    | `sla.threshold`, `sla.breached` | The recipients B3 recorded on the `sla_alerts` row | A threshold is reached; 100 % is the breach |
    | `knowledge.review-requested` | Active people with `knowledge.publish`, except the version's creator, last editor and submitter (four-eyes rule) | A version is submitted for review |
+   | `incident.replied` (B4) | The requester | A staff member posts a public reply on their incident |
+   | `incident.mentioned` (B4) | The people mentioned | Someone @mentions them in a reply or internal note (links to the workspace) |
 
 3. **Rendered for the recipient** (`NotificationProcessor`, in the worker). The event must be on and the recipient active, otherwise the notification is *Suppressed*. The language is the recipient's own, then the tenant default, then English (LANG-2, LANG-6); calendar and digits likewise (LANG-8); dates are shown in the time zone of the tenant's default business calendar (`Asia/Dubai` without one). The wording is the tenant's template for that language, field by field, else Zelvo's default. The in-app title and text are stored in the recipient's language; later language changes do not rewrite old notifications, so the list marks them with their own language and direction.
 4. **Email.** When the event sends email, the recipient has an address and (for events that allow it) has not turned it off, a `notification_deliveries` row holds the rendered subject, HTML and plain text. The dispatcher sends due emails (four at a time per tenant) and retries after 1 min, 5 min, 15 min, 1 h, 3 h, 6 h and 12 h (`Notifications:RetryDelays`); answers that will not improve (a refused address or message) fail at once. An SLA alert counts as delivered (`sla_alerts.delivered_at`) when its first notification is rendered.
@@ -108,11 +110,11 @@ Seeder `b5-notifications` queues "received" for each sample incident's requester
 
 ## Channels later
 
-`IEmailSender` is the email channel; SMS, WhatsApp and Teams arrive with module 6 (E3) as further channels of the same pipeline, with their own templates (the template table is per event today; a channel column is added then). Live updates of the bell over SignalR come with the agent workspace (B4).
+`IEmailSender` is the email channel; SMS, WhatsApp and Teams arrive with module 6 (E3) as further channels of the same pipeline, with their own templates (the template table is per event today; a channel column is added then). The bell follows live updates over SignalR since B4 (`workspace.md`): it hears when the person's notifications change and polls only as a fallback.
 
 ## Not in B5
 
 - Notification rules from the no-code builder (C3); approvals by email (C3).
 - Logo letterhead, a tenant's own sender domain and branded colours (F1); both calendars on official letters (F1 letterhead option).
 - Digests and quiet hours (not in the requirements).
-- Notifications for B4's public replies and notes (added with B4).
+- Notifications for B4's public replies and mentions: added with B4 (`incident.replied`, `incident.mentioned`; see `workspace.md`).

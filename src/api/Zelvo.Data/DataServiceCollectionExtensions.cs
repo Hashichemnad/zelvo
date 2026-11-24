@@ -24,6 +24,7 @@ public static class DataServiceCollectionExtensions
         services.AddScoped<IAuditContext>(sp => sp.GetRequiredService<AuditContext>());
         services.AddScoped<TenantConnectionInterceptor>();
         services.AddScoped<AuditSaveChangesInterceptor>();
+        services.AddScoped<Live.LiveUpdateInterceptor>();
         services.AddScoped<IAuditLog, AuditLog>();
 
         // Module interceptors (for example webhook events) run before the audit interceptor, so
@@ -34,6 +35,8 @@ public static class DataServiceCollectionExtensions
                 sp.GetRequiredService<TenantConnectionInterceptor>(),
                 .. sp.GetServices<IZelvoSaveChangesInterceptor>(),
                 sp.GetRequiredService<AuditSaveChangesInterceptor>(),
+                // Last: it reads the tenant ids the audit interceptor stamps (task B4).
+                sp.GetRequiredService<Live.LiveUpdateInterceptor>(),
             ]));
 
         return services;

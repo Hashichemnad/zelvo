@@ -110,6 +110,18 @@
       "inApp": "This is a test email.",
       "body": "Hello {{recipient.name}},\n\nThis is a test email from Settings → Notifications. If you can read it, notifications reach your mailbox.\n\n{{tenant.name}}",
       "action": "Open notification settings"
+    },
+    "incident.replied": {
+      "subject": "{{ticket.number}}: new reply on your incident",
+      "inApp": "{{comment.author}} replied on “{{ticket.title}}”.",
+      "body": "Dear {{recipient.name}},\n\n{{comment.author}} replied on your incident {{ticket.number}}, “{{ticket.title}}”:\n\n{{comment.text}}\n\nYou can answer from the incident page.\n\nKind regards,\n{{tenant.name}}",
+      "action": "View and answer"
+    },
+    "incident.mentioned": {
+      "subject": "{{comment.author}} mentioned you on {{ticket.number}}",
+      "inApp": "{{comment.author}} mentioned you on “{{ticket.title}}”.",
+      "body": "Hello {{recipient.name}},\n\n{{comment.author}} mentioned you on incident {{ticket.number}}, “{{ticket.title}}”:\n\n{{comment.text}}\n\n{{tenant.name}}",
+      "action": "Open the incident"
     }
   },
   "samples": {
@@ -120,6 +132,8 @@
     "update.text": "Email is slow for some users. Engineers are working on it; next update within an hour.",
     "article.title": "How to connect to the office Wi-Fi",
     "author.name": "Omar Al Hashimi",
-    "recipient.name": "Mariam Al Ketbi"
+    "recipient.name": "Mariam Al Ketbi",
+    "comment.text": "Could you restart the printer and tell us whether the error light is still on?",
+    "comment.author": "Omar Al Hashimi"
   }
 }

@@ -24,6 +24,7 @@ export interface SettingsSection {
     | "fieldSets"
     | "knowledge"
     | "notifications"
+    | "cannedResponses"
     | "search"
     | "integrations"
     | "ai"
@@ -55,6 +56,8 @@ export const settingsSections: readonly SettingsSection[] = [
   { key: "fieldSets", href: "/settings/field-sets", permission: "forms.manage" },
   { key: "knowledge", href: "/settings/knowledge", permission: "settings.manage" },
   { key: "notifications", href: "/settings/notifications", permission: "notifications.manage" },
+  // Task B4: everyone who works on incidents keeps their own; leads and administrators share them.
+  { key: "cannedResponses", href: "/settings/canned-responses", permission: "incidents.edit" },
   { key: "search", href: "/settings/search", permission: "search.manage" },
   { key: "integrations", href: "/settings/integrations", permission: "integrations.manage" },
   { key: "ai", href: "/settings/ai", permission: "ai.manage" },

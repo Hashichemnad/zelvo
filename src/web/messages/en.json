@@ -227,6 +227,10 @@
       "departments": {
         "title": "Departments",
         "description": "Departments people belong to, used by forms and services."
+      },
+      "cannedResponses": {
+        "title": "Canned responses",
+        "description": "Reply wording in English and Arabic for you, your groups or everyone."
       }
     },
     "missingWarning": "{count, plural, one {# text is} other {# texts are}} missing a translation.",
@@ -428,7 +432,9 @@
         "knowledge_write": "Write knowledge articles",
         "knowledge_publish": "Review, publish and retire knowledge articles",
         "notifications_manage": "Change notifications and see the email delivery log",
-        "forms_manage": "Change forms, field sets and which form each category uses"
+        "forms_manage": "Change forms, field sets and which form each category uses",
+        "responses_manage": "Keep canned responses for everyone",
+        "workspace_views_share": "Share workspace views with everyone"
       },
       "events": {
         "user_created": "A user was created",
@@ -1097,7 +1103,8 @@
     "nav": {
       "label": "Main",
       "myIncidents": "My incidents",
-      "incidents": "Incidents"
+      "incidents": "Incidents",
+      "workspace": "Workspace"
     },
     "title": "Incidents",
     "intro": "Incidents reported by everyone in your organisation, newest first.",
@@ -1586,7 +1593,9 @@
         "ai": "AI",
         "knowledge": "Knowledge base",
         "notifications": "Notifications",
-        "forms": "Forms"
+        "forms": "Forms",
+        "responses": "Canned responses",
+        "workspace": "Agent workspace"
       },
       "tenant_manage": "Change the organisation's name",
       "translations_read": "See missing translations",
@@ -1612,7 +1621,9 @@
       "knowledge_write": "Write knowledge articles",
       "knowledge_publish": "Review, publish and retire knowledge articles",
       "notifications_manage": "Change notifications and see the email delivery log",
-      "forms_manage": "Build and publish forms and field sets, and choose which form each category uses"
+      "forms_manage": "Build and publish forms and field sets, and choose which form each category uses",
+      "responses_manage": "Keep canned responses for everyone",
+      "workspace_views_share": "Share workspace views with everyone"
     },
     "assignment": {
       "intro": "The rules are checked in order and the first that matches decides where a new ticket goes. They run when a ticket is created and when an agent chooses \"Route again\"; they never move a ticket on their own later.",
@@ -2129,7 +2140,9 @@
       "sla_threshold": "An incident reached an SLA escalation threshold",
       "sla_breached": "An incident missed an SLA target",
       "knowledge_review_requested": "A knowledge article is waiting for review",
-      "notifications_test": "Test email"
+      "notifications_test": "Test email",
+      "incident_replied": "Staff replied on your incident",
+      "incident_mentioned": "Someone mentioned you on an incident"
     },
     "audiences": {
       "Requester": "Your incidents",
@@ -2540,6 +2553,250 @@
         "Infected": "rejected by the malware scan",
         "Clean": "checked",
         "NotScanned": "not checked"
+      }
+    }
+  },
+  "workspace": {
+    "title": "Workspace",
+    "noAccess": "The workspace is for staff who work on incidents.",
+    "unavailable": "The workspace cannot be loaded right now. Try again in a moment.",
+    "live": {
+      "connecting": "Connecting live updates…",
+      "live": "Live updates on",
+      "offline": "Live updates off; the page updates when you act",
+      "changed": "This incident changed and was updated."
+    },
+    "shortcuts": {
+      "open": "Keyboard shortcuts",
+      "title": "Keyboard shortcuts",
+      "close": "Close",
+      "actions": {
+        "next": "Next incident",
+        "previous": "Previous incident",
+        "select": "Select or clear the open incident for a bulk action",
+        "reply": "Write a public reply",
+        "note": "Write an internal note",
+        "assign": "Go to the assignment and state actions",
+        "filter": "Go to views and filters",
+        "help": "Show or hide these shortcuts",
+        "close": "Close this dialog"
+      }
+    },
+    "list": {
+      "heading": "Incidents",
+      "unavailable": "The incident list cannot be loaded right now.",
+      "count": "{count, plural, =0 {No incidents} one {{shown} incident} other {{shown} incidents}}",
+      "selectAll": "Select all on this page",
+      "empty": "No incidents match this view.",
+      "select": "Select {number}",
+      "unassigned": "Unassigned",
+      "pages": "Pages",
+      "previous": "Previous",
+      "next": "Next",
+      "page": "Page {page} of {pages}"
+    },
+    "detail": {
+      "label": "Open incident",
+      "back": "Back to the list",
+      "none": "Choose an incident from the list to see it here.",
+      "notFound": "This incident does not exist or you cannot see it.",
+      "fullPage": "Open the full incident page",
+      "history": "History"
+    },
+    "aside": {
+      "label": "Customer and assistant"
+    },
+    "conversation": {
+      "title": "Conversation",
+      "unavailable": "The conversation cannot be loaded right now.",
+      "closed": "This incident is closed; it takes no more replies.",
+      "empty": "No replies or notes yet.",
+      "label": "Replies and notes, oldest first",
+      "someone": "Someone",
+      "internalNote": "Internal note",
+      "publicReply": "Public reply",
+      "fromRequester": "From the requester",
+      "writtenIn": "Written in {language}",
+      "mentioned": "Mentioned: {names}"
+    },
+    "composer": {
+      "noteHeading": "Internal note",
+      "replyHeading": "Public reply",
+      "visibility": "Who can read it",
+      "public": "Public reply (the requester sees it)",
+      "internal": "Internal note (staff only)",
+      "requesterLanguage": "The requester's language: {language}",
+      "language": "Language you write in",
+      "cannedResponse": "Canned response",
+      "chooseResponse": "Choose a response",
+      "mention": "Mention",
+      "choosePerson": "Choose a person",
+      "mentions": "People mentioned",
+      "removeMention": "Remove the mention of {name}",
+      "addNote": "Add note",
+      "sendReply": "Send reply",
+      "translate": "Translate",
+      "translateLater": "One-click translation comes with the AI features.",
+      "sending": "Sending…",
+      "sent": "Sent.",
+      "failed": "It could not be sent. Try again.",
+      "empty": "Write the reply or note first.",
+      "responseFallback": "This response has no text in that language, so the other language was used.",
+      "errors": {
+        "ticket-closed": "The incident is closed; it takes no more replies.",
+        "validation-failed": "Check the text and the people mentioned.",
+        "forbidden": "You may not write on this incident.",
+        "incident-not-found": "This incident does not exist or you cannot see it."
+      }
+    },
+    "sla": {
+      "label": "Service level timers",
+      "paused": "{metric}: paused",
+      "stopped": "{metric}: met",
+      "stoppedLate": "{metric}: met late",
+      "hoursMinutes": "{hours} h {minutes} min",
+      "minutes": "{minutes} min",
+      "overdue": "{metric}: overdue by {amount}",
+      "left": "{metric}: {amount} left"
+    },
+    "customer": {
+      "title": "Customer",
+      "unavailable": "The customer's details cannot be loaded.",
+      "name": "Name",
+      "noName": "No name",
+      "email": "Email:",
+      "language": "Language:",
+      "languageDefault": "Organisation default",
+      "groups": "Customer groups:",
+      "disabled": "This account is disabled.",
+      "counts": "Open incidents: {open} · All incidents: {total}",
+      "recent": "Previous incidents",
+      "noOthers": "No other incidents."
+    },
+    "ai": {
+      "title": "AI assistant",
+      "comingSoon": "Summaries, suggested replies and translation will appear here once the AI features are set up."
+    },
+    "bulk": {
+      "heading": "{count, plural, one {# incident selected} other {# incidents selected}}",
+      "action": "Action",
+      "actions": {
+        "Assign": "Assign to an agent",
+        "Assignment": "Set group and agent",
+        "Route": "Route again by the rules",
+        "Transition": "Change state",
+        "Priority": "Set impact and urgency",
+        "Category": "Set category",
+        "Location": "Set location",
+        "Reply": "Reply or note to each"
+      },
+      "group": "Group",
+      "none": "None",
+      "assignee": "Agent",
+      "nobody": "Nobody",
+      "state": "New state",
+      "reason": "On-hold reason",
+      "chooseReason": "Choose a reason",
+      "notes": "Resolution notes",
+      "impact": "Impact",
+      "urgency": "Urgency",
+      "category": "Category",
+      "location": "Location",
+      "visibility": "Who can read it",
+      "public": "Public reply",
+      "internal": "Internal note",
+      "body": "Text",
+      "apply": "Apply",
+      "clear": "Clear selection",
+      "working": "Working…",
+      "failed": "The action could not be applied. Try again.",
+      "result": "{succeeded} changed, {failed} left as they were.",
+      "errors": {
+        "ticket-closed": "closed incidents do not change",
+        "transition-not-allowed": "it cannot move to that state from its current one",
+        "assignee-required": "assign it before starting work",
+        "validation-failed": "a value is missing or not allowed (for example the agent is not in its group)",
+        "incident-not-found": "it no longer exists",
+        "version-mismatch": "it changed meanwhile; try again",
+        "fields-read-only": "your role may not change these fields",
+        "forbidden": "you may not do this",
+        "ticket-not-open": "only open incidents can be routed again",
+        "conflict": "it could not be saved; try again",
+        "other": "it could not be changed"
+      }
+    },
+    "views": {
+      "label": "View",
+      "custom": "Custom filters",
+      "builtInGroup": "Built-in views",
+      "savedGroup": "Saved views",
+      "builtIn": {
+        "myOpen": "My open incidents",
+        "groupQueue": "My groups' queue",
+        "unassigned": "Unassigned",
+        "atRisk": "At risk",
+        "breached": "Breached",
+        "allOpen": "All open incidents"
+      },
+      "scopes": {
+        "Personal": "Only me",
+        "Group": "My group",
+        "Tenant": "Everyone"
+      },
+      "filters": "Filters",
+      "save": "Save as a view",
+      "edit": "Change view",
+      "remove": "Remove view",
+      "saveForm": "Save the view",
+      "nameEn": "Name in English",
+      "nameAr": "Name in Arabic",
+      "scope": "Who sees it",
+      "group": "Group",
+      "chooseGroup": "Choose a group",
+      "shareHint": "Team leads share views with their groups; sharing with everyone needs the right to share views.",
+      "confirmSave": "Save",
+      "cancel": "Cancel",
+      "saved": "The view is saved.",
+      "removed": "The view is removed.",
+      "failed": "The view could not be saved. Try again.",
+      "refused": "The view could not be saved: give it a name, and check who may see it."
+    },
+    "responses": {
+      "intro": "Canned responses are reply wording you use again and again, in English and Arabic. Keep your own; team leads keep their groups' responses and administrators the organisation's.",
+      "placeholders": "Placeholders filled in for the incident:",
+      "new": "New response",
+      "newHeading": "New canned response",
+      "editHeading": "Change canned response",
+      "scope": "Who can use it",
+      "scopes": {
+        "Personal": "Only me",
+        "Group": "A group",
+        "Tenant": "Everyone"
+      },
+      "group": "Group",
+      "chooseGroup": "Choose a group",
+      "active": "Offered to agents",
+      "english": "English",
+      "arabic": "Arabic",
+      "title": "Title",
+      "body": "Wording",
+      "save": "Save",
+      "cancel": "Cancel",
+      "saved": "The response is saved.",
+      "removed": "The response is removed.",
+      "empty": "No canned responses yet.",
+      "inactive": "not offered",
+      "missing": "missing: {languages}",
+      "edit": "Change",
+      "remove": "Remove",
+      "editNamed": "Change {name}",
+      "removeNamed": "Remove {name}",
+      "errors": {
+        "placeholders": "Use only the placeholders listed, written as '{{name}}'.",
+        "scope": "You may not keep responses for that group or for everyone.",
+        "title": "Give the response a title in English or Arabic.",
+        "group": "Choose the group.",
+        "failed": "It could not be saved. Try again."
       }
     }
   }

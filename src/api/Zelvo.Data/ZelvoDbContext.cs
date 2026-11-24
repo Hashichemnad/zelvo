@@ -16,6 +16,7 @@ using Zelvo.Data.Settings;
 using Zelvo.Data.Sla;
 using Zelvo.Data.Tenancy;
 using Zelvo.Data.Tickets;
+using Zelvo.Data.Workspace;
 
 namespace Zelvo.Data;
 
@@ -194,6 +195,18 @@ public sealed class ZelvoDbContext(DbContextOptions<ZelvoDbContext> options) : D
     /// <summary>People's email choices per event.</summary>
     public DbSet<NotificationPreference> NotificationPreferences => Set<NotificationPreference>();
 
+    /// <summary>Public replies and internal notes on tickets (module 5, task B4).</summary>
+    public DbSet<TicketComment> TicketComments => Set<TicketComment>();
+
+    /// <summary>Staff mentioned in comments.</summary>
+    public DbSet<TicketCommentMention> TicketCommentMentions => Set<TicketCommentMention>();
+
+    /// <summary>Canned responses in English and Arabic.</summary>
+    public DbSet<CannedResponse> CannedResponses => Set<CannedResponse>();
+
+    /// <summary>Saved views of the agent workspace.</summary>
+    public DbSet<SavedView> SavedViews => Set<SavedView>();
+
     /// <inheritdoc />
     /// <summary>Departments (task C1).</summary>
     public DbSet<Department> Departments => Set<Department>();
@@ -290,6 +303,7 @@ public sealed class ZelvoDbContext(DbContextOptions<ZelvoDbContext> options) : D
         ConfigureKnowledge(modelBuilder);
         ConfigureNotifications(modelBuilder);
         ConfigureForms(modelBuilder);
+        ConfigureWorkspace(modelBuilder);
 
         modelBuilder.Entity<TenantDataKey>(key =>
         {
@@ -646,6 +660,83 @@ public sealed class ZelvoDbContext(DbContextOptions<ZelvoDbContext> options) : D
             update.ConfigureLocalizedText(u => u.Body, "body", MajorIncidentUpdate.BodyMaxLength);
             update.Property(u => u.Audience).HasConversion<string>().HasMaxLength(20);
             update.HasIndex(u => new { u.TenantId, u.TicketId, u.PostedAt });
+        });
+    }
+
+    private static void ConfigureWorkspace(ModelBuilder modelBuilder)
+    {
+        modelBuilder.Entity<TicketComment>(comment =>
+        {
+            comment.ToTable("ticket_comments", table =>
+            {
+                table.HasCheckConstraint("ck_ticket_comments_visibility", EnumCheck("visibility", Enum.GetNames<CommentVisibility>()));
+                table.HasCheckConstraint("ck_ticket_comments_language", "language IN ('en', 'ar')");
+                // Requesters write public replies only.
+                table.HasCheckConstraint("ck_ticket_comments_internal_by_staff", "visibility = 'Public' OR by_staff");
+            });
+            comment.HasKey(c => c.Id);
+            comment.Property(c => c.Id).ValueGeneratedNever();
+            comment.HasOne<Ticket>().WithMany().HasForeignKey(c => c.TicketId).OnDelete(DeleteBehavior.Cascade);
+            comment.HasOne<UserAccount>().WithMany().HasForeignKey(c => c.AuthorId).OnDelete(DeleteBehavior.Restrict);
+            comment.HasOne<CannedResponse>().WithMany().HasForeignKey(c => c.CannedResponseId).OnDelete(DeleteBehavior.SetNull);
+            comment.Property(c => c.Visibility).HasConversion<string>().HasMaxLength(20);
+            comment.Property(c => c.Body).HasMaxLength(TicketComment.BodyMaxLength);
+            comment.Property(c => c.Language).HasMaxLength(2);
+            comment.HasIndex(c => new { c.TenantId, c.TicketId, c.CreatedAt });
+        });
+
+        modelBuilder.Entity<TicketCommentMention>(mention =>
+        {
+            mention.ToTable("ticket_comment_mentions");
+            mention.HasKey(m => new { m.CommentId, m.UserId });
+            mention.HasOne<TicketComment>().WithMany().HasForeignKey(m => m.CommentId).OnDelete(DeleteBehavior.Cascade);
+            mention.HasOne<Ticket>().WithMany().HasForeignKey(m => m.TicketId).OnDelete(DeleteBehavior.Cascade);
+            mention.HasOne<UserAccount>().WithMany().HasForeignKey(m => m.UserId).OnDelete(DeleteBehavior.Cascade);
+            mention.HasIndex(m => new { m.TenantId, m.UserId });
+            mention.HasIndex(m => m.TicketId);
+        });
+
+        modelBuilder.Entity<CannedResponse>(response =>
+        {
+            response.ToTable("canned_responses", table =>
+            {
+                table.HasCheckConstraint("ck_canned_responses_scope", EnumCheck("scope", Enum.GetNames<WorkspaceScope>()));
+                table.HasCheckConstraint("ck_canned_responses_owner",
+                    "(scope = 'Tenant' AND group_id IS NULL AND owner_id IS NULL) OR (scope = 'Group' AND group_id IS NOT NULL AND owner_id IS NULL) OR (scope = 'Personal' AND group_id IS NULL AND owner_id IS NOT NULL)");
+            });
+            response.HasKey(r => r.Id);
+            response.Property(r => r.Id).ValueGeneratedNever();
+            response.HasOne<Tenant>().WithMany().HasForeignKey(r => r.TenantId).OnDelete(DeleteBehavior.Restrict);
+            response.HasOne<SupportGroup>().WithMany().HasForeignKey(r => r.GroupId).OnDelete(DeleteBehavior.Cascade);
+            response.HasOne<UserAccount>().WithMany().HasForeignKey(r => r.OwnerId).OnDelete(DeleteBehavior.Cascade);
+            response.HasOne<UserAccount>().WithMany().HasForeignKey(r => r.CreatedById).OnDelete(DeleteBehavior.Restrict);
+            response.Property(r => r.Scope).HasConversion<string>().HasMaxLength(20);
+            response.ConfigureLocalizedText(r => r.Title, "title", CannedResponse.TitleMaxLength);
+            response.ConfigureLocalizedText(r => r.Body, "body", CannedResponse.BodyMaxLength);
+            response.Property(r => r.Version).IsRowVersion();
+            response.HasIndex(r => new { r.TenantId, r.Scope });
+            response.HasIndex(r => r.GroupId);
+            response.HasIndex(r => r.OwnerId);
+        });
+
+        modelBuilder.Entity<SavedView>(view =>
+        {
+            view.ToTable("saved_views", table =>
+            {
+                table.HasCheckConstraint("ck_saved_views_scope", EnumCheck("scope", Enum.GetNames<WorkspaceScope>()));
+                table.HasCheckConstraint("ck_saved_views_group", "(scope = 'Group') = (group_id IS NOT NULL)");
+            });
+            view.HasKey(v => v.Id);
+            view.Property(v => v.Id).ValueGeneratedNever();
+            view.HasOne<Tenant>().WithMany().HasForeignKey(v => v.TenantId).OnDelete(DeleteBehavior.Restrict);
+            view.HasOne<SupportGroup>().WithMany().HasForeignKey(v => v.GroupId).OnDelete(DeleteBehavior.Cascade);
+            view.HasOne<UserAccount>().WithMany().HasForeignKey(v => v.OwnerId).OnDelete(DeleteBehavior.Cascade);
+            view.Property(v => v.Scope).HasConversion<string>().HasMaxLength(20);
+            view.ConfigureLocalizedText(v => v.Name, "name", SavedView.NameMaxLength);
+            view.Property(v => v.Filters).HasColumnType("jsonb");
+            view.HasIndex(v => new { v.TenantId, v.Scope });
+            view.HasIndex(v => v.OwnerId);
+            view.HasIndex(v => v.GroupId);
         });
     }
 

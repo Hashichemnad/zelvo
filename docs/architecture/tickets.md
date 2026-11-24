@@ -86,7 +86,7 @@ Administrators (`settings.manage`) edit the matrix (level names in English and A
 ## Screens
 
 - **Requesters:** "My incidents" (list), "Report an incident" (title and description; follow-up of a closed incident) and the incident page (state, resolution, updates meant for them, attachments, reopen, report a follow-up). Built from components in `src/components/incidents` so the self-service portal (D2) reuses them.
-- **Staff:** "Incidents" (filters by state, priority, assignee, still open, major), "Log an incident" (requester, channel, impact, urgency, assignee, with a priority preview) and the incident page (facts, work panel, major-incident timeline, attachments, history). The one-screen agent workspace comes with B4.
+- **Staff:** "Incidents" (filters by state, priority, assignee, still open, major), "Log an incident" (requester, channel, impact, urgency, assignee, with a priority preview) and the incident page (facts, work panel, major-incident timeline, attachments, history). The one-screen agent workspace is built in B4 (`workspace.md`); the requester's incident page also shows the conversation (public replies) and lets them answer.
 - English and Arabic, right to left, WCAG 2.2 AA (axe checks in `tests/e2e/specs/incidents.spec.ts` and `settings.spec.ts`).
 
 ## Demo data
@@ -101,6 +101,6 @@ Administrators (`settings.manage`) edit the matrix (level names in English and A
 
 ## Not in B1
 
-- Groups, categories, locations, skills and assignment rules or round-robin (B2, now built: see `directory-assignment.md`); SLA timers and business calendars (B3, now built: see `sla.md`); the one-screen agent workspace, public replies and internal notes (B4); notifications about incidents and timeline updates (B5, now built: see `notifications.md`); creating incidents from email, chat and WhatsApp (E2, E3) and API keys for integrations (E1). The data model already records the channel.
+- Groups, categories, locations, skills and assignment rules or round-robin (B2, now built: see `directory-assignment.md`); SLA timers and business calendars (B3, now built: see `sla.md`); the one-screen agent workspace, public replies and internal notes (B4, now built: see `workspace.md`); notifications about incidents and timeline updates (B5, now built: see `notifications.md`); creating incidents from email, chat and WhatsApp (E2, E3) and API keys for integrations (E1). The data model already records the channel.
 - A search box on the incident list (the search API already finds incidents).
 - Importing malware definitions in Settings (F4) and S3-compatible attachment storage (F6).

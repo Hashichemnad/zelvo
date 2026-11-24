@@ -123,6 +123,9 @@ internal static class SourceLookups
     /// <summary>Path of a ticket for staff.</summary>
     public static string StaffPath(Guid ticketId) => $"/incidents/{ticketId}";
 
+    /// <summary>Path of a ticket in the agent workspace (task B4).</summary>
+    public static string WorkspacePath(Guid ticketId) => $"/workspace/{ticketId}";
+
     /// <summary>Names people see for <paramref name="ids"/>: the display name, else the email address.</summary>
     public static async Task<Dictionary<Guid, string>> NamesAsync(ZelvoDbContext db, IEnumerable<Guid?> ids, CancellationToken cancellationToken)
     {
@@ -424,6 +427,61 @@ public sealed class KnowledgeNotificationSource : INotificationSource
                 [Placeholders.AuthorName] = PlaceholderValue.OfText(author is { } a ? names.GetValueOrDefault(a) : null),
             };
             result.Add(new(NotificationEvents.KnowledgeReviewRequested, recipients, values, $"/knowledge/{article.Id}", ArticleId: article.Id));
+        }
+
+        return result;
+    }
+}
+
+/// <summary>
+/// Conversation notifications (task B4): the requester hears of staff public replies on their
+/// incident; staff hear when they are @mentioned. Nobody is notified of their own comment.
+/// </summary>
+public sealed class CommentNotificationSource : INotificationSource
+{
+    /// <summary>Longest comment text put into a notification; the full text is on the ticket.</summary>
+    internal const int TextLimit = 1500;
+
+    /// <inheritdoc />
+    public async Task<IReadOnlyList<NotificationRequest>> CollectAsync(ZelvoDbContext db, Guid? actorId, CancellationToken cancellationToken)
+    {
+        ArgumentNullException.ThrowIfNull(db);
+        var comments = db.ChangeTracker.Entries<TicketComment>().Where(e => e.State == EntityState.Added).Select(e => e.Entity).ToList();
+        if (comments.Count == 0)
+        {
+            return [];
+        }
+
+        var mentions = db.ChangeTracker.Entries<TicketCommentMention>().Where(e => e.State == EntityState.Added)
+            .Select(e => e.Entity).ToLookup(m => m.CommentId, m => m.UserId);
+        var authors = await SourceLookups.NamesAsync(db, comments.Select(c => (Guid?)c.AuthorId), cancellationToken).ConfigureAwait(false);
+        var result = new List<NotificationRequest>();
+        foreach (var comment in comments)
+        {
+            if (await SourceLookups.TicketAsync(db, comment.TicketId, cancellationToken).ConfigureAwait(false) is not { Type: TicketType.Incident } ticket)
+            {
+                continue;
+            }
+
+            var text = comment.Body.Length <= TextLimit ? comment.Body : string.Concat(comment.Body.AsSpan(0, TextLimit - 1), "…");
+            var values = new Dictionary<string, PlaceholderValue>(StringComparer.Ordinal)
+            {
+                [Placeholders.TicketNumber] = PlaceholderValue.OfText(ticket.Number),
+                [Placeholders.TicketTitle] = PlaceholderValue.OfText(ticket.Title),
+                [Placeholders.CommentText] = PlaceholderValue.OfText(text),
+                [Placeholders.CommentAuthor] = PlaceholderValue.OfText(authors.GetValueOrDefault(comment.AuthorId)),
+            };
+
+            if (comment.Visibility == CommentVisibility.Public && comment.ByStaff && ticket.RequesterId != comment.AuthorId && ticket.RequesterId != actorId)
+            {
+                result.Add(new(NotificationEvents.IncidentReplied, [ticket.RequesterId], values, SourceLookups.RequesterPath(ticket), TicketId: ticket.Id));
+            }
+
+            var mentioned = mentions[comment.Id].Where(u => u != comment.AuthorId && u != actorId).Distinct().ToList();
+            if (mentioned.Count > 0)
+            {
+                result.Add(new(NotificationEvents.IncidentMentioned, mentioned, values, SourceLookups.WorkspacePath(ticket.Id), TicketId: ticket.Id));
+            }
         }
 
         return result;

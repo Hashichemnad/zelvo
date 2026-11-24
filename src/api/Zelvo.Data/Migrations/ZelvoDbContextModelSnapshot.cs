@@ -4462,6 +4462,112 @@ namespace Zelvo.Data.Migrations
                     b.ToTable("ticket_attachment_contents", (string)null);
                 });
 
+            modelBuilder.Entity("Zelvo.Data.Tickets.TicketComment", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<Guid>("AuthorId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("author_id");
+
+                    b.Property<string>("Body")
+                        .IsRequired()
+                        .HasMaxLength(20000)
+                        .HasColumnType("character varying(20000)")
+                        .HasColumnName("body");
+
+                    b.Property<bool>("ByStaff")
+                        .HasColumnType("boolean")
+                        .HasColumnName("by_staff");
+
+                    b.Property<Guid?>("CannedResponseId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("canned_response_id");
+
+                    b.Property<DateTimeOffset>("CreatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("created_at");
+
+                    b.Property<string>("Language")
+                        .IsRequired()
+                        .HasMaxLength(2)
+                        .HasColumnType("character varying(2)")
+                        .HasColumnName("language");
+
+                    b.Property<Guid>("TenantId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("tenant_id");
+
+                    b.Property<Guid>("TicketId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("ticket_id");
+
+                    b.Property<string>("Visibility")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("character varying(20)")
+                        .HasColumnName("visibility");
+
+                    b.HasKey("Id")
+                        .HasName("pk_ticket_comments");
+
+                    b.HasIndex("AuthorId")
+                        .HasDatabaseName("ix_ticket_comments_author_id");
+
+                    b.HasIndex("CannedResponseId")
+                        .HasDatabaseName("ix_ticket_comments_canned_response_id");
+
+                    b.HasIndex("TicketId")
+                        .HasDatabaseName("ix_ticket_comments_ticket_id");
+
+                    b.HasIndex("TenantId", "TicketId", "CreatedAt")
+                        .HasDatabaseName("ix_ticket_comments_tenant_id_ticket_id_created_at");
+
+                    b.ToTable("ticket_comments", null, t =>
+                        {
+                            t.HasCheckConstraint("ck_ticket_comments_internal_by_staff", "visibility = 'Public' OR by_staff");
+
+                            t.HasCheckConstraint("ck_ticket_comments_language", "language IN ('en', 'ar')");
+
+                            t.HasCheckConstraint("ck_ticket_comments_visibility", "visibility IN ('Public', 'Internal')");
+                        });
+                });
+
+            modelBuilder.Entity("Zelvo.Data.Tickets.TicketCommentMention", b =>
+                {
+                    b.Property<Guid>("CommentId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("comment_id");
+
+                    b.Property<Guid>("UserId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("user_id");
+
+                    b.Property<Guid>("TenantId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("tenant_id");
+
+                    b.Property<Guid>("TicketId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("ticket_id");
+
+                    b.HasKey("CommentId", "UserId")
+                        .HasName("pk_ticket_comment_mentions");
+
+                    b.HasIndex("TicketId")
+                        .HasDatabaseName("ix_ticket_comment_mentions_ticket_id");
+
+                    b.HasIndex("UserId")
+                        .HasDatabaseName("ix_ticket_comment_mentions_user_id");
+
+                    b.HasIndex("TenantId", "UserId")
+                        .HasDatabaseName("ix_ticket_comment_mentions_tenant_id_user_id");
+
+                    b.ToTable("ticket_comment_mentions", (string)null);
+                });
+
             modelBuilder.Entity("Zelvo.Data.Tickets.TicketNumberSequence", b =>
                 {
                     b.Property<Guid>("TenantId")
@@ -4483,6 +4589,177 @@ namespace Zelvo.Data.Migrations
                     b.ToTable("ticket_number_sequences", null, t =>
                         {
                             t.HasCheckConstraint("ck_ticket_number_sequences_type", "type IN ('Incident')");
+                        });
+                });
+
+            modelBuilder.Entity("Zelvo.Data.Workspace.CannedResponse", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<bool>("Active")
+                        .HasColumnType("boolean")
+                        .HasColumnName("active");
+
+                    b.Property<DateTimeOffset>("CreatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("created_at");
+
+                    b.Property<Guid>("CreatedById")
+                        .HasColumnType("uuid")
+                        .HasColumnName("created_by_id");
+
+                    b.Property<Guid?>("GroupId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("group_id");
+
+                    b.Property<Guid?>("OwnerId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("owner_id");
+
+                    b.Property<string>("Scope")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("character varying(20)")
+                        .HasColumnName("scope");
+
+                    b.Property<Guid>("TenantId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("tenant_id");
+
+                    b.Property<DateTimeOffset>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("updated_at");
+
+                    b.Property<uint>("Version")
+                        .IsConcurrencyToken()
+                        .ValueGeneratedOnAddOrUpdate()
+                        .HasColumnType("xid")
+                        .HasColumnName("xmin");
+
+                    b.ComplexProperty(typeof(Dictionary<string, object>), "Body", "Zelvo.Data.Workspace.CannedResponse.Body#LocalizedText", b1 =>
+                        {
+                            b1.IsRequired();
+
+                            b1.Property<string>("Ar")
+                                .HasMaxLength(10000)
+                                .HasColumnType("character varying(10000)")
+                                .HasColumnName("body_ar");
+
+                            b1.Property<string>("En")
+                                .HasMaxLength(10000)
+                                .HasColumnType("character varying(10000)")
+                                .HasColumnName("body_en");
+                        });
+
+                    b.ComplexProperty(typeof(Dictionary<string, object>), "Title", "Zelvo.Data.Workspace.CannedResponse.Title#LocalizedText", b1 =>
+                        {
+                            b1.IsRequired();
+
+                            b1.Property<string>("Ar")
+                                .HasMaxLength(200)
+                                .HasColumnType("character varying(200)")
+                                .HasColumnName("title_ar");
+
+                            b1.Property<string>("En")
+                                .HasMaxLength(200)
+                                .HasColumnType("character varying(200)")
+                                .HasColumnName("title_en");
+                        });
+
+                    b.HasKey("Id")
+                        .HasName("pk_canned_responses");
+
+                    b.HasIndex("CreatedById")
+                        .HasDatabaseName("ix_canned_responses_created_by_id");
+
+                    b.HasIndex("GroupId")
+                        .HasDatabaseName("ix_canned_responses_group_id");
+
+                    b.HasIndex("OwnerId")
+                        .HasDatabaseName("ix_canned_responses_owner_id");
+
+                    b.HasIndex("TenantId", "Scope")
+                        .HasDatabaseName("ix_canned_responses_tenant_id_scope");
+
+                    b.ToTable("canned_responses", null, t =>
+                        {
+                            t.HasCheckConstraint("ck_canned_responses_owner", "(scope = 'Tenant' AND group_id IS NULL AND owner_id IS NULL) OR (scope = 'Group' AND group_id IS NOT NULL AND owner_id IS NULL) OR (scope = 'Personal' AND group_id IS NULL AND owner_id IS NOT NULL)");
+
+                            t.HasCheckConstraint("ck_canned_responses_scope", "scope IN ('Personal', 'Group', 'Tenant')");
+                        });
+                });
+
+            modelBuilder.Entity("Zelvo.Data.Workspace.SavedView", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<DateTimeOffset>("CreatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("created_at");
+
+                    b.Property<string>("Filters")
+                        .IsRequired()
+                        .HasColumnType("jsonb")
+                        .HasColumnName("filters");
+
+                    b.Property<Guid?>("GroupId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("group_id");
+
+                    b.Property<Guid>("OwnerId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("owner_id");
+
+                    b.Property<string>("Scope")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("character varying(20)")
+                        .HasColumnName("scope");
+
+                    b.Property<Guid>("TenantId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("tenant_id");
+
+                    b.Property<DateTimeOffset>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("updated_at");
+
+                    b.ComplexProperty(typeof(Dictionary<string, object>), "Name", "Zelvo.Data.Workspace.SavedView.Name#LocalizedText", b1 =>
+                        {
+                            b1.IsRequired();
+
+                            b1.Property<string>("Ar")
+                                .HasMaxLength(100)
+                                .HasColumnType("character varying(100)")
+                                .HasColumnName("name_ar");
+
+                            b1.Property<string>("En")
+                                .HasMaxLength(100)
+                                .HasColumnType("character varying(100)")
+                                .HasColumnName("name_en");
+                        });
+
+                    b.HasKey("Id")
+                        .HasName("pk_saved_views");
+
+                    b.HasIndex("GroupId")
+                        .HasDatabaseName("ix_saved_views_group_id");
+
+                    b.HasIndex("OwnerId")
+                        .HasDatabaseName("ix_saved_views_owner_id");
+
+                    b.HasIndex("TenantId", "Scope")
+                        .HasDatabaseName("ix_saved_views_tenant_id_scope");
+
+                    b.ToTable("saved_views", null, t =>
+                        {
+                            t.HasCheckConstraint("ck_saved_views_group", "(scope = 'Group') = (group_id IS NOT NULL)");
+
+                            t.HasCheckConstraint("ck_saved_views_scope", "scope IN ('Personal', 'Group', 'Tenant')");
                         });
                 });
 
@@ -5581,6 +5858,53 @@ namespace Zelvo.Data.Migrations
                         .HasConstraintName("fk_ticket_attachment_contents_ticket_attachments_attachment_id");
                 });
 
+            modelBuilder.Entity("Zelvo.Data.Tickets.TicketComment", b =>
+                {
+                    b.HasOne("Zelvo.Data.Identity.UserAccount", null)
+                        .WithMany()
+                        .HasForeignKey("AuthorId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired()
+                        .HasConstraintName("fk_ticket_comments_users_author_id");
+
+                    b.HasOne("Zelvo.Data.Workspace.CannedResponse", null)
+                        .WithMany()
+                        .HasForeignKey("CannedResponseId")
+                        .OnDelete(DeleteBehavior.SetNull)
+                        .HasConstraintName("fk_ticket_comments_canned_responses_canned_response_id");
+
+                    b.HasOne("Zelvo.Data.Tickets.Ticket", null)
+                        .WithMany()
+                        .HasForeignKey("TicketId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired()
+                        .HasConstraintName("fk_ticket_comments_tickets_ticket_id");
+                });
+
+            modelBuilder.Entity("Zelvo.Data.Tickets.TicketCommentMention", b =>
+                {
+                    b.HasOne("Zelvo.Data.Tickets.TicketComment", null)
+                        .WithMany()
+                        .HasForeignKey("CommentId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired()
+                        .HasConstraintName("fk_ticket_comment_mentions_ticket_comments_comment_id");
+
+                    b.HasOne("Zelvo.Data.Tickets.Ticket", null)
+                        .WithMany()
+                        .HasForeignKey("TicketId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired()
+                        .HasConstraintName("fk_ticket_comment_mentions_tickets_ticket_id");
+
+                    b.HasOne("Zelvo.Data.Identity.UserAccount", null)
+                        .WithMany()
+                        .HasForeignKey("UserId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired()
+                        .HasConstraintName("fk_ticket_comment_mentions_users_user_id");
+                });
+
             modelBuilder.Entity("Zelvo.Data.Tickets.TicketNumberSequence", b =>
                 {
                     b.HasOne("Zelvo.Data.Tenancy.Tenant", null)
@@ -5589,6 +5913,58 @@ namespace Zelvo.Data.Migrations
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired()
                         .HasConstraintName("fk_ticket_number_sequences_tenants_tenant_id");
+                });
+
+            modelBuilder.Entity("Zelvo.Data.Workspace.CannedResponse", b =>
+                {
+                    b.HasOne("Zelvo.Data.Identity.UserAccount", null)
+                        .WithMany()
+                        .HasForeignKey("CreatedById")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired()
+                        .HasConstraintName("fk_canned_responses_users_created_by_id");
+
+                    b.HasOne("Zelvo.Data.Directory.SupportGroup", null)
+                        .WithMany()
+                        .HasForeignKey("GroupId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .HasConstraintName("fk_canned_responses_support_groups_group_id");
+
+                    b.HasOne("Zelvo.Data.Identity.UserAccount", null)
+                        .WithMany()
+                        .HasForeignKey("OwnerId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .HasConstraintName("fk_canned_responses_users_owner_id");
+
+                    b.HasOne("Zelvo.Data.Tenancy.Tenant", null)
+                        .WithMany()
+                        .HasForeignKey("TenantId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired()
+                        .HasConstraintName("fk_canned_responses_tenants_tenant_id");
+                });
+
+            modelBuilder.Entity("Zelvo.Data.Workspace.SavedView", b =>
+                {
+                    b.HasOne("Zelvo.Data.Directory.SupportGroup", null)
+                        .WithMany()
+                        .HasForeignKey("GroupId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .HasConstraintName("fk_saved_views_support_groups_group_id");
+
+                    b.HasOne("Zelvo.Data.Identity.UserAccount", null)
+                        .WithMany()
+                        .HasForeignKey("OwnerId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired()
+                        .HasConstraintName("fk_saved_views_users_owner_id");
+
+                    b.HasOne("Zelvo.Data.Tenancy.Tenant", null)
+                        .WithMany()
+                        .HasForeignKey("TenantId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired()
+                        .HasConstraintName("fk_saved_views_tenants_tenant_id");
                 });
 
             modelBuilder.Entity("Zelvo.Data.Directory.SupportGroup", b =>

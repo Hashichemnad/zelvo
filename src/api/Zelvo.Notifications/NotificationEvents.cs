@@ -55,6 +55,12 @@ public static class NotificationEvents
     /// <summary>An incident arrived in a group's queue without an assignee.</summary>
     public const string IncidentQueued = "incident.queued";
 
+    /// <summary>A staff member posted a public reply on a requester's incident (task B4).</summary>
+    public const string IncidentReplied = "incident.replied";
+
+    /// <summary>Someone was @mentioned in a comment on an incident (task B4).</summary>
+    public const string IncidentMentioned = "incident.mentioned";
+
     /// <summary>A ticket reached an escalation threshold of an SLA target (task B3).</summary>
     public const string SlaThreshold = "sla.threshold";
 
@@ -82,6 +88,8 @@ public static class NotificationEvents
             [Placeholders.TicketNumber, Placeholders.TicketTitle, Placeholders.TicketPriority, Placeholders.TicketGroup, Placeholders.RequesterName]),
         new(IncidentQueued, NotificationAudience.Staff, true,
             [Placeholders.TicketNumber, Placeholders.TicketTitle, Placeholders.TicketPriority, Placeholders.TicketGroup, Placeholders.RequesterName]),
+        new(IncidentReplied, NotificationAudience.Requester, true, [Placeholders.TicketNumber, Placeholders.TicketTitle, Placeholders.CommentText, Placeholders.CommentAuthor]),
+        new(IncidentMentioned, NotificationAudience.Staff, true, [Placeholders.TicketNumber, Placeholders.TicketTitle, Placeholders.CommentText, Placeholders.CommentAuthor]),
         new(SlaThreshold, NotificationAudience.Staff, false,
             [Placeholders.TicketNumber, Placeholders.TicketTitle, Placeholders.TicketPriority, Placeholders.SlaTarget, Placeholders.SlaPercent, Placeholders.SlaDueAt]),
         new(SlaBreached, NotificationAudience.Staff, false,
@@ -128,6 +136,12 @@ public static class Placeholders
 
     /// <summary>When the update was posted.</summary>
     public const string UpdatePostedAt = "update.postedAt";
+
+    /// <summary>Text of a reply or note (task B4).</summary>
+    public const string CommentText = "comment.text";
+
+    /// <summary>Who wrote the reply or note.</summary>
+    public const string CommentAuthor = "comment.author";
 
     /// <summary>"response" or "resolution".</summary>
     public const string SlaTarget = "sla.target";

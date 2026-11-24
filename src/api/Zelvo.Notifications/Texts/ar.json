@@ -110,6 +110,18 @@
       "inApp": "هذه رسالة تجريبية.",
       "body": "تحية طيبة، {{recipient.name}}\n\nهذه رسالة تجريبية من الإعدادات ← الإشعارات. إذا وصلتكم هذه الرسالة، فإن الإشعارات تصل إلى بريدكم الإلكتروني.\n\nمع خالص التحية،\n{{tenant.name}}",
       "action": "فتح إعدادات الإشعارات"
+    },
+    "incident.replied": {
+      "subject": "بلاغ رقم {{ticket.number}}: رد جديد على بلاغكم",
+      "inApp": "ورد رد من {{comment.author}} على بلاغكم «{{ticket.title}}».",
+      "body": "تحية طيبة، {{recipient.name}}\n\nنفيدكم بورود رد من {{comment.author}} على بلاغكم رقم {{ticket.number}} بعنوان «{{ticket.title}}»، ونصه:\n\n{{comment.text}}\n\nيمكنكم الرد من صفحة البلاغ.\n\nمع خالص التحية،\n{{tenant.name}}",
+      "action": "عرض الرد والإجابة عليه"
+    },
+    "incident.mentioned": {
+      "subject": "أشار إليكم {{comment.author}} في البلاغ رقم {{ticket.number}}",
+      "inApp": "أشار إليكم {{comment.author}} في البلاغ «{{ticket.title}}».",
+      "body": "تحية طيبة، {{recipient.name}}\n\nأشار إليكم {{comment.author}} في البلاغ رقم {{ticket.number}} بعنوان «{{ticket.title}}»، ونص الملاحظة:\n\n{{comment.text}}\n\nمع خالص التحية،\n{{tenant.name}}",
+      "action": "فتح البلاغ"
     }
   },
   "samples": {
@@ -120,6 +132,8 @@
     "update.text": "يعاني بعض المستخدمين من بطء في البريد الإلكتروني، ويعمل الفريق الفني على حل المشكلة، وسيصدر التحديث التالي خلال ساعة.",
     "article.title": "طريقة الاتصال بشبكة المكتب اللاسلكية",
     "author.name": "عمر الهاشمي",
-    "recipient.name": "مريم الكتبي"
+    "recipient.name": "مريم الكتبي",
+    "comment.text": "نرجو إعادة تشغيل الطابعة وإفادتنا باستمرار ظهور مؤشر الخطأ من عدمه.",
+    "comment.author": "عمر الهاشمي"
   }
 }
