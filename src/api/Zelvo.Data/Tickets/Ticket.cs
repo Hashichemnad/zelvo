@@ -110,6 +110,13 @@ public sealed class Ticket : ITenantOwned, IAuditedEntity
     /// <summary>When it last changed.</summary>
     public DateTimeOffset UpdatedAt { get; set; } = DateTimeOffset.UtcNow;
 
+    /// <summary>
+    /// First response (task B3; product owner decision 2026-11-24): when a staff member first moved
+    /// it to In progress (from B4 also a public reply), or resolved it before that. Stops the
+    /// response clock.
+    /// </summary>
+    public DateTimeOffset? RespondedAt { get; set; }
+
     /// <summary>When it was last resolved.</summary>
     public DateTimeOffset? ResolvedAt { get; set; }
 

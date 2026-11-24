@@ -750,6 +750,10 @@ namespace Zelvo.Data.Migrations
                         .HasColumnType("boolean")
                         .HasColumnName("active");
 
+                    b.Property<Guid?>("CalendarId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("calendar_id");
+
                     b.Property<DateTimeOffset>("CreatedAt")
                         .HasColumnType("timestamp with time zone")
                         .HasColumnName("created_at");
@@ -800,6 +804,9 @@ namespace Zelvo.Data.Migrations
 
                     b.HasKey("Id")
                         .HasName("pk_support_groups");
+
+                    b.HasIndex("CalendarId")
+                        .HasDatabaseName("ix_support_groups_calendar_id");
 
                     b.HasIndex("TenantId")
                         .HasDatabaseName("ix_support_groups_tenant_id");
@@ -2221,6 +2228,593 @@ namespace Zelvo.Data.Migrations
                         });
                 });
 
+            modelBuilder.Entity("Zelvo.Data.Sla.BusinessCalendar", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<DateTimeOffset>("CreatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("created_at");
+
+                    b.Property<bool>("IsDefault")
+                        .HasColumnType("boolean")
+                        .HasColumnName("is_default");
+
+                    b.Property<Guid>("TenantId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("tenant_id");
+
+                    b.Property<string>("TimeZone")
+                        .IsRequired()
+                        .HasMaxLength(64)
+                        .HasColumnType("character varying(64)")
+                        .HasColumnName("time_zone");
+
+                    b.Property<DateTimeOffset>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("updated_at");
+
+                    b.Property<uint>("Version")
+                        .IsConcurrencyToken()
+                        .ValueGeneratedOnAddOrUpdate()
+                        .HasColumnType("xid")
+                        .HasColumnName("xmin");
+
+                    b.ComplexProperty(typeof(Dictionary<string, object>), "Name", "Zelvo.Data.Sla.BusinessCalendar.Name#LocalizedText", b1 =>
+                        {
+                            b1.IsRequired();
+
+                            b1.Property<string>("Ar")
+                                .HasMaxLength(150)
+                                .HasColumnType("character varying(150)")
+                                .HasColumnName("name_ar");
+
+                            b1.Property<string>("En")
+                                .HasMaxLength(150)
+                                .HasColumnType("character varying(150)")
+                                .HasColumnName("name_en");
+                        });
+
+                    b.HasKey("Id")
+                        .HasName("pk_business_calendars");
+
+                    b.HasIndex("TenantId")
+                        .HasDatabaseName("ix_business_calendars_tenant_id");
+
+                    b.HasIndex(new[] { "TenantId" }, "ux_business_calendars_default")
+                        .IsUnique()
+                        .HasDatabaseName("ix_business_calendars_tenant_id1")
+                        .HasFilter("is_default");
+
+                    b.ToTable("business_calendars", (string)null);
+                });
+
+            modelBuilder.Entity("Zelvo.Data.Sla.BusinessCalendarHoliday", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<Guid>("CalendarId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("calendar_id");
+
+                    b.Property<DateOnly>("EndDate")
+                        .HasColumnType("date")
+                        .HasColumnName("end_date");
+
+                    b.Property<DateOnly>("StartDate")
+                        .HasColumnType("date")
+                        .HasColumnName("start_date");
+
+                    b.Property<Guid>("TenantId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("tenant_id");
+
+                    b.ComplexProperty(typeof(Dictionary<string, object>), "Name", "Zelvo.Data.Sla.BusinessCalendarHoliday.Name#LocalizedText", b1 =>
+                        {
+                            b1.IsRequired();
+
+                            b1.Property<string>("Ar")
+                                .HasMaxLength(150)
+                                .HasColumnType("character varying(150)")
+                                .HasColumnName("name_ar");
+
+                            b1.Property<string>("En")
+                                .HasMaxLength(150)
+                                .HasColumnType("character varying(150)")
+                                .HasColumnName("name_en");
+                        });
+
+                    b.HasKey("Id")
+                        .HasName("pk_business_calendar_holidays");
+
+                    b.HasIndex("CalendarId")
+                        .HasDatabaseName("ix_business_calendar_holidays_calendar_id");
+
+                    b.HasIndex("TenantId", "CalendarId", "StartDate")
+                        .HasDatabaseName("ix_business_calendar_holidays_tenant_id_calendar_id_start_date");
+
+                    b.ToTable("business_calendar_holidays", null, t =>
+                        {
+                            t.HasCheckConstraint("ck_business_calendar_holidays_dates", "start_date <= end_date");
+                        });
+                });
+
+            modelBuilder.Entity("Zelvo.Data.Sla.BusinessCalendarPeriod", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<Guid>("CalendarId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("calendar_id");
+
+                    b.Property<int>("Day")
+                        .HasColumnType("integer")
+                        .HasColumnName("day");
+
+                    b.Property<int>("EndMinute")
+                        .HasColumnType("integer")
+                        .HasColumnName("end_minute");
+
+                    b.Property<int>("StartMinute")
+                        .HasColumnType("integer")
+                        .HasColumnName("start_minute");
+
+                    b.Property<Guid>("TenantId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("tenant_id");
+
+                    b.HasKey("Id")
+                        .HasName("pk_business_calendar_periods");
+
+                    b.HasIndex("CalendarId")
+                        .HasDatabaseName("ix_business_calendar_periods_calendar_id");
+
+                    b.HasIndex("TenantId", "CalendarId")
+                        .HasDatabaseName("ix_business_calendar_periods_tenant_id_calendar_id");
+
+                    b.ToTable("business_calendar_periods", null, t =>
+                        {
+                            t.HasCheckConstraint("ck_business_calendar_periods_day", "day BETWEEN 0 AND 6");
+
+                            t.HasCheckConstraint("ck_business_calendar_periods_minutes", "start_minute >= 0 AND end_minute <= 1440 AND start_minute < end_minute");
+                        });
+                });
+
+            modelBuilder.Entity("Zelvo.Data.Sla.CustomerGroup", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<bool>("Active")
+                        .HasColumnType("boolean")
+                        .HasColumnName("active");
+
+                    b.Property<DateTimeOffset>("CreatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("created_at");
+
+                    b.PrimitiveCollection<List<string>>("EmailDomains")
+                        .IsRequired()
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("text[]")
+                        .HasColumnName("email_domains")
+                        .HasDefaultValueSql("'{}'");
+
+                    b.Property<Guid>("TenantId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("tenant_id");
+
+                    b.Property<DateTimeOffset>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("updated_at");
+
+                    b.Property<uint>("Version")
+                        .IsConcurrencyToken()
+                        .ValueGeneratedOnAddOrUpdate()
+                        .HasColumnType("xid")
+                        .HasColumnName("xmin");
+
+                    b.ComplexProperty(typeof(Dictionary<string, object>), "Name", "Zelvo.Data.Sla.CustomerGroup.Name#LocalizedText", b1 =>
+                        {
+                            b1.IsRequired();
+
+                            b1.Property<string>("Ar")
+                                .HasMaxLength(150)
+                                .HasColumnType("character varying(150)")
+                                .HasColumnName("name_ar");
+
+                            b1.Property<string>("En")
+                                .HasMaxLength(150)
+                                .HasColumnType("character varying(150)")
+                                .HasColumnName("name_en");
+                        });
+
+                    b.HasKey("Id")
+                        .HasName("pk_customer_groups");
+
+                    b.HasIndex("TenantId")
+                        .HasDatabaseName("ix_customer_groups_tenant_id");
+
+                    b.ToTable("customer_groups", (string)null);
+                });
+
+            modelBuilder.Entity("Zelvo.Data.Sla.CustomerGroupMember", b =>
+                {
+                    b.Property<Guid>("GroupId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("group_id");
+
+                    b.Property<Guid>("UserId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("user_id");
+
+                    b.Property<DateTimeOffset>("AddedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("added_at");
+
+                    b.Property<Guid>("TenantId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("tenant_id");
+
+                    b.HasKey("GroupId", "UserId")
+                        .HasName("pk_customer_group_members");
+
+                    b.HasIndex("UserId")
+                        .HasDatabaseName("ix_customer_group_members_user_id");
+
+                    b.HasIndex("TenantId", "UserId")
+                        .HasDatabaseName("ix_customer_group_members_tenant_id_user_id");
+
+                    b.ToTable("customer_group_members", (string)null);
+                });
+
+            modelBuilder.Entity("Zelvo.Data.Sla.SlaAlert", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<DateTimeOffset?>("DeliveredAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("delivered_at");
+
+                    b.Property<string>("Metric")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("character varying(20)")
+                        .HasColumnName("metric");
+
+                    b.Property<int>("Percent")
+                        .HasColumnType("integer")
+                        .HasColumnName("percent");
+
+                    b.Property<DateTimeOffset>("ReachedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("reached_at");
+
+                    b.PrimitiveCollection<List<Guid>>("RecipientIds")
+                        .IsRequired()
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid[]")
+                        .HasColumnName("recipient_ids")
+                        .HasDefaultValueSql("'{}'");
+
+                    b.Property<Guid>("TenantId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("tenant_id");
+
+                    b.Property<Guid>("TicketId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("ticket_id");
+
+                    b.Property<Guid>("TicketSlaId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("ticket_sla_id");
+
+                    b.HasKey("Id")
+                        .HasName("pk_sla_alerts");
+
+                    b.HasIndex("TicketId")
+                        .HasDatabaseName("ix_sla_alerts_ticket_id");
+
+                    b.HasIndex("TenantId", "TicketId")
+                        .HasDatabaseName("ix_sla_alerts_tenant_id_ticket_id");
+
+                    b.HasIndex("TicketSlaId", "Percent")
+                        .IsUnique()
+                        .HasDatabaseName("ix_sla_alerts_ticket_sla_id_percent");
+
+                    b.HasIndex(new[] { "TenantId", "ReachedAt" }, "ix_sla_alerts_undelivered")
+                        .HasDatabaseName("ix_sla_alerts_tenant_id_reached_at")
+                        .HasFilter("delivered_at IS NULL");
+
+                    b.ToTable("sla_alerts", null, t =>
+                        {
+                            t.HasCheckConstraint("ck_sla_alerts_metric", "metric IN ('Response', 'Resolution')");
+
+                            t.HasCheckConstraint("ck_sla_alerts_percent", "percent BETWEEN 1 AND 300");
+                        });
+                });
+
+            modelBuilder.Entity("Zelvo.Data.Sla.SlaEscalation", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<string>("Metric")
+                        .HasMaxLength(20)
+                        .HasColumnType("character varying(20)")
+                        .HasColumnName("metric");
+
+                    b.Property<bool>("NotifyAssignee")
+                        .HasColumnType("boolean")
+                        .HasColumnName("notify_assignee");
+
+                    b.Property<Guid?>("NotifyGroupId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("notify_group_id");
+
+                    b.Property<bool>("NotifyGroupLeads")
+                        .HasColumnType("boolean")
+                        .HasColumnName("notify_group_leads");
+
+                    b.Property<int>("Percent")
+                        .HasColumnType("integer")
+                        .HasColumnName("percent");
+
+                    b.Property<Guid>("PolicyId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("policy_id");
+
+                    b.Property<Guid>("TenantId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("tenant_id");
+
+                    b.HasKey("Id")
+                        .HasName("pk_sla_escalations");
+
+                    b.HasIndex("NotifyGroupId")
+                        .HasDatabaseName("ix_sla_escalations_notify_group_id");
+
+                    b.HasIndex("PolicyId")
+                        .HasDatabaseName("ix_sla_escalations_policy_id");
+
+                    b.HasIndex("TenantId", "PolicyId")
+                        .HasDatabaseName("ix_sla_escalations_tenant_id_policy_id");
+
+                    b.ToTable("sla_escalations", null, t =>
+                        {
+                            t.HasCheckConstraint("ck_sla_escalations_metric", "metric IN ('Response', 'Resolution')");
+
+                            t.HasCheckConstraint("ck_sla_escalations_percent", "percent BETWEEN 1 AND 300");
+                        });
+                });
+
+            modelBuilder.Entity("Zelvo.Data.Sla.SlaPolicy", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<bool>("Active")
+                        .HasColumnType("boolean")
+                        .HasColumnName("active");
+
+                    b.Property<Guid?>("CalendarId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("calendar_id");
+
+                    b.Property<Guid?>("CategoryId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("category_id");
+
+                    b.Property<DateTimeOffset>("CreatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("created_at");
+
+                    b.Property<Guid?>("CustomerGroupId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("customer_group_id");
+
+                    b.Property<int>("Position")
+                        .HasColumnType("integer")
+                        .HasColumnName("position");
+
+                    b.Property<string>("RecordType")
+                        .HasMaxLength(30)
+                        .HasColumnType("character varying(30)")
+                        .HasColumnName("record_type");
+
+                    b.Property<Guid>("TenantId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("tenant_id");
+
+                    b.Property<DateTimeOffset>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("updated_at");
+
+                    b.Property<uint>("Version")
+                        .IsConcurrencyToken()
+                        .ValueGeneratedOnAddOrUpdate()
+                        .HasColumnType("xid")
+                        .HasColumnName("xmin");
+
+                    b.ComplexProperty(typeof(Dictionary<string, object>), "Name", "Zelvo.Data.Sla.SlaPolicy.Name#LocalizedText", b1 =>
+                        {
+                            b1.IsRequired();
+
+                            b1.Property<string>("Ar")
+                                .HasMaxLength(150)
+                                .HasColumnType("character varying(150)")
+                                .HasColumnName("name_ar");
+
+                            b1.Property<string>("En")
+                                .HasMaxLength(150)
+                                .HasColumnType("character varying(150)")
+                                .HasColumnName("name_en");
+                        });
+
+                    b.HasKey("Id")
+                        .HasName("pk_sla_policies");
+
+                    b.HasIndex("CalendarId")
+                        .HasDatabaseName("ix_sla_policies_calendar_id");
+
+                    b.HasIndex("CategoryId")
+                        .HasDatabaseName("ix_sla_policies_category_id");
+
+                    b.HasIndex("CustomerGroupId")
+                        .HasDatabaseName("ix_sla_policies_customer_group_id");
+
+                    b.HasIndex("TenantId", "Position")
+                        .HasDatabaseName("ix_sla_policies_tenant_id_position");
+
+                    b.ToTable("sla_policies", null, t =>
+                        {
+                            t.HasCheckConstraint("ck_sla_policies_record_type", "record_type IN ('Incident')");
+                        });
+                });
+
+            modelBuilder.Entity("Zelvo.Data.Sla.SlaPolicyTarget", b =>
+                {
+                    b.Property<Guid>("PolicyId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("policy_id");
+
+                    b.Property<int>("Priority")
+                        .HasColumnType("integer")
+                        .HasColumnName("priority");
+
+                    b.Property<int?>("ResolutionMinutes")
+                        .HasColumnType("integer")
+                        .HasColumnName("resolution_minutes");
+
+                    b.Property<int?>("ResponseMinutes")
+                        .HasColumnType("integer")
+                        .HasColumnName("response_minutes");
+
+                    b.Property<Guid>("TenantId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("tenant_id");
+
+                    b.HasKey("PolicyId", "Priority")
+                        .HasName("pk_sla_policy_targets");
+
+                    b.HasIndex("TenantId")
+                        .HasDatabaseName("ix_sla_policy_targets_tenant_id");
+
+                    b.ToTable("sla_policy_targets", null, t =>
+                        {
+                            t.HasCheckConstraint("ck_sla_policy_targets_minutes", "(response_minutes IS NULL OR response_minutes BETWEEN 1 AND 525600) AND (resolution_minutes IS NULL OR resolution_minutes BETWEEN 1 AND 525600)");
+
+                            t.HasCheckConstraint("ck_sla_policy_targets_priority", "priority BETWEEN 1 AND 9");
+                        });
+                });
+
+            modelBuilder.Entity("Zelvo.Data.Sla.TicketSla", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<DateTimeOffset?>("BreachedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("breached_at");
+
+                    b.Property<Guid?>("CalendarId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("calendar_id");
+
+                    b.Property<DateTimeOffset>("CountedUntil")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("counted_until");
+
+                    b.Property<DateTimeOffset?>("DueAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("due_at");
+
+                    b.Property<long>("ElapsedSeconds")
+                        .HasColumnType("bigint")
+                        .HasColumnName("elapsed_seconds");
+
+                    b.Property<string>("Metric")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("character varying(20)")
+                        .HasColumnName("metric");
+
+                    b.Property<DateTimeOffset?>("NextCheckAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("next_check_at");
+
+                    b.Property<Guid?>("PolicyId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("policy_id");
+
+                    b.Property<int>("ReachedPercent")
+                        .HasColumnType("integer")
+                        .HasColumnName("reached_percent");
+
+                    b.Property<string>("State")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("character varying(20)")
+                        .HasColumnName("state");
+
+                    b.Property<DateTimeOffset?>("StoppedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("stopped_at");
+
+                    b.Property<int?>("TargetMinutes")
+                        .HasColumnType("integer")
+                        .HasColumnName("target_minutes");
+
+                    b.Property<Guid>("TenantId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("tenant_id");
+
+                    b.Property<Guid>("TicketId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("ticket_id");
+
+                    b.HasKey("Id")
+                        .HasName("pk_ticket_slas");
+
+                    b.HasIndex("CalendarId")
+                        .HasDatabaseName("ix_ticket_slas_calendar_id");
+
+                    b.HasIndex("PolicyId")
+                        .HasDatabaseName("ix_ticket_slas_policy_id");
+
+                    b.HasIndex("TenantId", "TicketId")
+                        .HasDatabaseName("ix_ticket_slas_tenant_id_ticket_id");
+
+                    b.HasIndex("TicketId", "Metric")
+                        .IsUnique()
+                        .HasDatabaseName("ix_ticket_slas_ticket_id_metric");
+
+                    b.HasIndex(new[] { "TenantId", "NextCheckAt" }, "ix_ticket_slas_due")
+                        .HasDatabaseName("ix_ticket_slas_tenant_id_next_check_at")
+                        .HasFilter("next_check_at IS NOT NULL");
+
+                    b.ToTable("ticket_slas", null, t =>
+                        {
+                            t.HasCheckConstraint("ck_ticket_slas_elapsed", "elapsed_seconds >= 0");
+
+                            t.HasCheckConstraint("ck_ticket_slas_metric", "metric IN ('Response', 'Resolution')");
+
+                            t.HasCheckConstraint("ck_ticket_slas_state", "state IN ('Running', 'Paused', 'Stopped')");
+                        });
+                });
+
             modelBuilder.Entity("Zelvo.Data.Tenancy.Tenant", b =>
                 {
                     b.Property<Guid>("Id")
@@ -2478,6 +3072,10 @@ namespace Zelvo.Data.Migrations
                     b.Property<DateTimeOffset?>("ResolvedAt")
                         .HasColumnType("timestamp with time zone")
                         .HasColumnName("resolved_at");
+
+                    b.Property<DateTimeOffset?>("RespondedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("responded_at");
 
                     b.Property<Guid?>("RoutingRuleId")
                         .HasColumnType("uuid")
@@ -2894,6 +3492,12 @@ namespace Zelvo.Data.Migrations
 
             modelBuilder.Entity("Zelvo.Data.Directory.SupportGroup", b =>
                 {
+                    b.HasOne("Zelvo.Data.Sla.BusinessCalendar", null)
+                        .WithMany()
+                        .HasForeignKey("CalendarId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .HasConstraintName("fk_support_groups_business_calendars_calendar_id");
+
                     b.HasOne("Zelvo.Data.Tenancy.Tenant", null)
                         .WithMany()
                         .HasForeignKey("TenantId")
@@ -3220,6 +3824,158 @@ namespace Zelvo.Data.Migrations
                         .HasConstraintName("fk_tenant_settings_tenants_tenant_id");
                 });
 
+            modelBuilder.Entity("Zelvo.Data.Sla.BusinessCalendar", b =>
+                {
+                    b.HasOne("Zelvo.Data.Tenancy.Tenant", null)
+                        .WithMany()
+                        .HasForeignKey("TenantId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired()
+                        .HasConstraintName("fk_business_calendars_tenants_tenant_id");
+                });
+
+            modelBuilder.Entity("Zelvo.Data.Sla.BusinessCalendarHoliday", b =>
+                {
+                    b.HasOne("Zelvo.Data.Sla.BusinessCalendar", null)
+                        .WithMany("Holidays")
+                        .HasForeignKey("CalendarId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired()
+                        .HasConstraintName("fk_business_calendar_holidays_business_calendars_calendar_id");
+                });
+
+            modelBuilder.Entity("Zelvo.Data.Sla.BusinessCalendarPeriod", b =>
+                {
+                    b.HasOne("Zelvo.Data.Sla.BusinessCalendar", null)
+                        .WithMany("Periods")
+                        .HasForeignKey("CalendarId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired()
+                        .HasConstraintName("fk_business_calendar_periods_business_calendars_calendar_id");
+                });
+
+            modelBuilder.Entity("Zelvo.Data.Sla.CustomerGroup", b =>
+                {
+                    b.HasOne("Zelvo.Data.Tenancy.Tenant", null)
+                        .WithMany()
+                        .HasForeignKey("TenantId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired()
+                        .HasConstraintName("fk_customer_groups_tenants_tenant_id");
+                });
+
+            modelBuilder.Entity("Zelvo.Data.Sla.CustomerGroupMember", b =>
+                {
+                    b.HasOne("Zelvo.Data.Sla.CustomerGroup", null)
+                        .WithMany("Members")
+                        .HasForeignKey("GroupId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired()
+                        .HasConstraintName("fk_customer_group_members_customer_groups_group_id");
+
+                    b.HasOne("Zelvo.Data.Identity.UserAccount", "User")
+                        .WithMany()
+                        .HasForeignKey("UserId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired()
+                        .HasConstraintName("fk_customer_group_members_users_user_id");
+
+                    b.Navigation("User");
+                });
+
+            modelBuilder.Entity("Zelvo.Data.Sla.SlaAlert", b =>
+                {
+                    b.HasOne("Zelvo.Data.Tickets.Ticket", null)
+                        .WithMany()
+                        .HasForeignKey("TicketId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired()
+                        .HasConstraintName("fk_sla_alerts_tickets_ticket_id");
+
+                    b.HasOne("Zelvo.Data.Sla.TicketSla", null)
+                        .WithMany()
+                        .HasForeignKey("TicketSlaId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired()
+                        .HasConstraintName("fk_sla_alerts_ticket_slas_ticket_sla_id");
+                });
+
+            modelBuilder.Entity("Zelvo.Data.Sla.SlaEscalation", b =>
+                {
+                    b.HasOne("Zelvo.Data.Directory.SupportGroup", null)
+                        .WithMany()
+                        .HasForeignKey("NotifyGroupId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .HasConstraintName("fk_sla_escalations_support_groups_notify_group_id");
+
+                    b.HasOne("Zelvo.Data.Sla.SlaPolicy", null)
+                        .WithMany("Escalations")
+                        .HasForeignKey("PolicyId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired()
+                        .HasConstraintName("fk_sla_escalations_sla_policies_policy_id");
+                });
+
+            modelBuilder.Entity("Zelvo.Data.Sla.SlaPolicy", b =>
+                {
+                    b.HasOne("Zelvo.Data.Sla.BusinessCalendar", null)
+                        .WithMany()
+                        .HasForeignKey("CalendarId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .HasConstraintName("fk_sla_policies_business_calendars_calendar_id");
+
+                    b.HasOne("Zelvo.Data.Directory.Category", null)
+                        .WithMany()
+                        .HasForeignKey("CategoryId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .HasConstraintName("fk_sla_policies_categories_category_id");
+
+                    b.HasOne("Zelvo.Data.Sla.CustomerGroup", null)
+                        .WithMany()
+                        .HasForeignKey("CustomerGroupId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .HasConstraintName("fk_sla_policies_customer_groups_customer_group_id");
+
+                    b.HasOne("Zelvo.Data.Tenancy.Tenant", null)
+                        .WithMany()
+                        .HasForeignKey("TenantId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired()
+                        .HasConstraintName("fk_sla_policies_tenants_tenant_id");
+                });
+
+            modelBuilder.Entity("Zelvo.Data.Sla.SlaPolicyTarget", b =>
+                {
+                    b.HasOne("Zelvo.Data.Sla.SlaPolicy", null)
+                        .WithMany("Targets")
+                        .HasForeignKey("PolicyId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired()
+                        .HasConstraintName("fk_sla_policy_targets_sla_policies_policy_id");
+                });
+
+            modelBuilder.Entity("Zelvo.Data.Sla.TicketSla", b =>
+                {
+                    b.HasOne("Zelvo.Data.Sla.BusinessCalendar", null)
+                        .WithMany()
+                        .HasForeignKey("CalendarId")
+                        .OnDelete(DeleteBehavior.SetNull)
+                        .HasConstraintName("fk_ticket_slas_business_calendars_calendar_id");
+
+                    b.HasOne("Zelvo.Data.Sla.SlaPolicy", null)
+                        .WithMany()
+                        .HasForeignKey("PolicyId")
+                        .OnDelete(DeleteBehavior.SetNull)
+                        .HasConstraintName("fk_ticket_slas_sla_policies_policy_id");
+
+                    b.HasOne("Zelvo.Data.Tickets.Ticket", null)
+                        .WithMany()
+                        .HasForeignKey("TicketId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired()
+                        .HasConstraintName("fk_ticket_slas_tickets_ticket_id");
+                });
+
             modelBuilder.Entity("Zelvo.Data.Tickets.Incident", b =>
                 {
                     b.HasOne("Zelvo.Data.Identity.UserAccount", null)
@@ -3386,6 +4142,25 @@ namespace Zelvo.Data.Migrations
                     b.Navigation("Roles");
 
                     b.Navigation("Skills");
+                });
+
+            modelBuilder.Entity("Zelvo.Data.Sla.BusinessCalendar", b =>
+                {
+                    b.Navigation("Holidays");
+
+                    b.Navigation("Periods");
+                });
+
+            modelBuilder.Entity("Zelvo.Data.Sla.CustomerGroup", b =>
+                {
+                    b.Navigation("Members");
+                });
+
+            modelBuilder.Entity("Zelvo.Data.Sla.SlaPolicy", b =>
+                {
+                    b.Navigation("Escalations");
+
+                    b.Navigation("Targets");
                 });
 
             modelBuilder.Entity("Zelvo.Data.Tickets.Ticket", b =>

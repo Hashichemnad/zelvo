@@ -65,18 +65,29 @@ public sealed record PriorityMatrix(
 /// <param name="Key">Stable key, for example <c>awaiting-requester</c>.</param>
 /// <param name="Name">Name in English and Arabic.</param>
 /// <param name="Active">Whether agents can choose it.</param>
-public sealed partial record OnHoldReason(string Key, SettingText Name, bool Active)
+/// <param name="PausesSla">
+/// Whether SLA clocks pause while a ticket is on hold for this reason (module 8: "pause on waiting
+/// for customer"). Missing in settings saved before B3: only <see cref="AwaitingRequester"/> pauses.
+/// </param>
+public sealed partial record OnHoldReason(string Key, SettingText Name, bool Active, bool? PausesSla = null)
 {
+    /// <summary>Key of the default "waiting for the requester" reason.</summary>
+    public const string AwaitingRequester = "awaiting-requester";
+
+    /// <summary>Whether SLA clocks pause for this reason.</summary>
+    [JsonIgnore]
+    public bool Pauses => PausesSla ?? string.Equals(Key, AwaitingRequester, StringComparison.Ordinal);
+
     /// <summary>Most reasons a tenant can have.</summary>
     public const int MaxCount = 30;
 
     /// <summary>The default reasons.</summary>
     public static IReadOnlyList<OnHoldReason> Defaults { get; } =
     [
-        new("awaiting-requester", new("Waiting for the requester", "بانتظار ردّ مقدّم الطلب"), true),
-        new("awaiting-supplier", new("Waiting for a supplier", "بانتظار المورّد"), true),
-        new("awaiting-change", new("Waiting for a planned change", "بانتظار تغيير مخطط له"), true),
-        new("scheduled", new("Scheduled for a later date", "مجدول لموعد لاحق"), true),
+        new(AwaitingRequester, new("Waiting for the requester", "بانتظار ردّ مقدّم الطلب"), true, true),
+        new("awaiting-supplier", new("Waiting for a supplier", "بانتظار المورّد"), true, false),
+        new("awaiting-change", new("Waiting for a planned change", "بانتظار تغيير مخطط له"), true, false),
+        new("scheduled", new("Scheduled for a later date", "مجدول لموعد لاحق"), true, false),
     ];
 
     /// <summary>Whether <paramref name="key"/> is a valid reason key.</summary>
@@ -173,6 +184,9 @@ public static class TicketSettingKeys
     /// <summary>Days after which resolved tickets close.</summary>
     public const string AutoCloseDaysKey = "tickets.autoCloseDays";
 
+    /// <summary>Whether the auto-close period counts working days of the tenant's default calendar (task B3).</summary>
+    public const string AutoCloseBusinessDaysKey = "tickets.autoCloseBusinessDays";
+
     /// <summary>Accepted attachments.</summary>
     public const string AttachmentPolicyKey = "attachments.policy";
 
@@ -183,23 +197,36 @@ public static class TicketSettingKeys
     public static bool IsAutoCloseDays(int days) => days is >= 1 and <= 365;
 
     /// <summary>The tenant's auto-close period, read straight from <c>tenant_settings</c> (worker).</summary>
-    public static async Task<int> ReadAutoCloseDaysAsync(ZelvoDbContext db, CancellationToken cancellationToken)
+    public static Task<int> ReadAutoCloseDaysAsync(ZelvoDbContext db, CancellationToken cancellationToken) =>
+        ReadAsync(db, AutoCloseDaysKey, DefaultAutoCloseDays, IsAutoCloseDays, cancellationToken);
+
+    /// <summary>Whether auto-close counts working days, read straight from <c>tenant_settings</c> (worker).</summary>
+    public static Task<bool> ReadAutoCloseBusinessDaysAsync(ZelvoDbContext db, CancellationToken cancellationToken) =>
+        ReadAsync(db, AutoCloseBusinessDaysKey, false, _ => true, cancellationToken);
+
+    /// <summary>The tenant's on-hold reasons, read straight from <c>tenant_settings</c> (SLA clocks).</summary>
+    public static Task<IReadOnlyList<OnHoldReason>> ReadOnHoldReasonsAsync(ZelvoDbContext db, CancellationToken cancellationToken) =>
+        ReadAsync(db, OnHoldReasons, OnHoldReason.Defaults, OnHoldReason.AreValid, cancellationToken);
+
+    /// <summary>A tenant setting read straight from <c>tenant_settings</c>; the default when missing or not valid.</summary>
+    public static async Task<T> ReadAsync<T>(ZelvoDbContext db, string key, T fallback, Func<T, bool> isValid, CancellationToken cancellationToken)
     {
         ArgumentNullException.ThrowIfNull(db);
-        var row = await db.TenantSettings.AsNoTracking().SingleOrDefaultAsync(s => s.Key == AutoCloseDaysKey, cancellationToken).ConfigureAwait(false);
+        ArgumentNullException.ThrowIfNull(isValid);
+        var row = await db.TenantSettings.AsNoTracking().SingleOrDefaultAsync(s => s.Key == key, cancellationToken).ConfigureAwait(false);
         if (row is null)
         {
-            return DefaultAutoCloseDays;
+            return fallback;
         }
 
         try
         {
-            var days = JsonSerializer.Deserialize<int>(row.Value);
-            return IsAutoCloseDays(days) ? days : DefaultAutoCloseDays;
+            var value = JsonSerializer.Deserialize<T>(row.Value, Json);
+            return value is not null && isValid(value) ? value : fallback;
         }
         catch (JsonException)
         {
-            return DefaultAutoCloseDays;
+            return fallback;
         }
     }
 

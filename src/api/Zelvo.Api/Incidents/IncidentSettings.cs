@@ -31,7 +31,10 @@ internal static class IncidentSettings
     public static SettingDefinition<AttachmentPolicy> Attachments { get; } =
         new(TicketSettingKeys.AttachmentPolicyKey, AttachmentPolicy.Default, Permissions.SettingsManage, p => p.IsValid());
 
-    public static IReadOnlyList<SettingDefinition> IncidentKeys { get; } = [PriorityMatrix, OnHoldReasons, NumberPrefixes, AutoCloseDays];
+    public static SettingDefinition<bool> AutoCloseBusinessDays { get; } =
+        new(TicketSettingKeys.AutoCloseBusinessDaysKey, false, Permissions.SettingsManage, _ => true);
+
+    public static IReadOnlyList<SettingDefinition> IncidentKeys { get; } = [PriorityMatrix, OnHoldReasons, NumberPrefixes, AutoCloseDays, AutoCloseBusinessDays];
 
     public static RouteGroupBuilder MapIncidentSettingsEndpoints(this RouteGroupBuilder group)
     {
@@ -110,7 +113,16 @@ internal static class IncidentSettings
         await store.SetAsync<IReadOnlyList<OnHoldReason>>(OnHoldReasons, reasons, cancellationToken);
         await store.SetAsync<IReadOnlyDictionary<TicketType, string>>(NumberPrefixes, prefixes, cancellationToken);
         await store.SetAsync(AutoCloseDays, request.AutoCloseDays.Value, cancellationToken);
+        if (request.AutoCloseBusinessDays is { } businessDays)
+        {
+            await store.SetAsync(AutoCloseBusinessDays, businessDays, cancellationToken);
+        }
+
+        await using var transaction = await db.Database.BeginTransactionAsync(cancellationToken);
         await db.SaveChangesAsync(cancellationToken);
+        // On-hold reasons that pause SLAs may have changed: open clocks follow within moments (task B3).
+        await Tickets.Sla.SlaTimerJob.RecheckAllAsync(db, cancellationToken);
+        await transaction.CommitAsync(cancellationToken);
         return TypedResults.Ok(await IncidentSettingsResponse.LoadAsync(store, cancellationToken));
     }
 
@@ -192,7 +204,11 @@ public sealed class OnHoldReasonInput
     /// <summary>Whether agents can choose it.</summary>
     public bool Active { get; init; } = true;
 
-    internal OnHoldReason ToValue() => new(Key ?? string.Empty, Name?.ToValue() ?? new SettingText(null, null), Active);
+    /// <summary>Whether SLA clocks pause while a ticket waits for this reason (task B3). Default: only <c>awaiting-requester</c>.</summary>
+    public bool? PausesSla { get; init; }
+
+    internal OnHoldReason ToValue() => new(Key ?? string.Empty, Name?.ToValue() ?? new SettingText(null, null), Active,
+        PausesSla ?? string.Equals(Key, OnHoldReason.AwaitingRequester, StringComparison.Ordinal));
 }
 
 /// <summary>New incident settings. Every field is required.</summary>
@@ -214,13 +230,16 @@ public sealed class UpdateIncidentSettingsRequest
     /// <summary>Days after which resolved tickets close, 1–365.</summary>
     [Required]
     public int? AutoCloseDays { get; init; }
+
+    /// <summary>Count the auto-close days as working days of the default business calendar (task B3); leave out to keep.</summary>
+    public bool? AutoCloseBusinessDays { get; init; }
 }
 
 /// <summary>A bilingual name.</summary>
 internal sealed record NameResponse(int Level, LocalizedTextDto Name);
 
 /// <summary>An on-hold reason.</summary>
-internal sealed record OnHoldReasonResponse(string Key, LocalizedTextDto Name, bool Active);
+internal sealed record OnHoldReasonResponse(string Key, LocalizedTextDto Name, bool Active, bool PausesSla);
 
 /// <summary>The matrix: names of each level and the priority of each impact (row) and urgency (column).</summary>
 internal sealed record PriorityMatrixResponse(
@@ -240,6 +259,7 @@ internal sealed record IncidentSettingsResponse(
     IReadOnlyList<OnHoldReasonResponse> OnHoldReasons,
     IReadOnlyDictionary<string, string> NumberPrefixes,
     int AutoCloseDays,
+    bool AutoCloseBusinessDays,
     DateTimeOffset? UpdatedAt)
 {
     public static async Task<IncidentSettingsResponse> LoadAsync(TenantSettingsStore store, CancellationToken cancellationToken)
@@ -248,11 +268,13 @@ internal sealed record IncidentSettingsResponse(
         var reasons = await store.GetAsync(IncidentSettings.OnHoldReasons, cancellationToken).ConfigureAwait(false);
         var prefixes = await store.GetAsync(IncidentSettings.NumberPrefixes, cancellationToken).ConfigureAwait(false);
         var days = await store.GetAsync(IncidentSettings.AutoCloseDays, cancellationToken).ConfigureAwait(false);
+        var businessDays = await store.GetAsync(IncidentSettings.AutoCloseBusinessDays, cancellationToken).ConfigureAwait(false);
         return new(
             PriorityMatrixResponse.From(matrix),
-            [.. reasons.Select(r => new OnHoldReasonResponse(r.Key, LocalizedTextDto.From(r.Name.ToText()), r.Active))],
+            [.. reasons.Select(r => new OnHoldReasonResponse(r.Key, LocalizedTextDto.From(r.Name.ToText()), r.Active, r.Pauses))],
             prefixes.ToDictionary(p => p.Key.ToString(), p => p.Value, StringComparer.Ordinal),
             days,
+            businessDays,
             await store.LastChangedAsync(IncidentSettings.IncidentKeys, cancellationToken).ConfigureAwait(false));
     }
 }

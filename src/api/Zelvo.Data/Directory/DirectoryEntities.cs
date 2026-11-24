@@ -122,6 +122,9 @@ public sealed class SupportGroup : ITenantOwned, IAuditedEntity
     /// <summary>Inactive groups receive no new tickets.</summary>
     public bool Active { get; set; } = true;
 
+    /// <summary>The team's business hours for SLA clocks (task B3); <see langword="null"/>: the SLA policy's or the tenant default.</summary>
+    public Guid? CalendarId { get; set; }
+
     /// <summary>Members of the group.</summary>
     public List<SupportGroupMember> Members { get; init; } = [];
 

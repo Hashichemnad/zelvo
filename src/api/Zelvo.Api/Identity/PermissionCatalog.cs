@@ -59,6 +59,12 @@ internal static class Permissions
     public const string DirectoryManage = "directory.manage";
 
     /// <summary>
+    /// Change business calendars, customer groups, SLA policies and the calendars of groups (task B3).
+    /// Staff with <see cref="DirectoryRead"/> can read them.
+    /// </summary>
+    public const string SlaManage = "sla.manage";
+
+    /// <summary>
     /// Settings → Integrations (module 14): API keys, OAuth clients, webhooks and the integration
     /// log. Never available to integrations themselves.
     /// </summary>
@@ -135,6 +141,7 @@ internal static class PermissionCatalog
         Permissions.KnowledgeRead,
         Permissions.KnowledgeWrite,
         Permissions.KnowledgePublish,
+        Permissions.SlaManage,
     ];
 
     /// <summary>
@@ -190,6 +197,8 @@ internal static class PermissionCatalog
             new FieldDefinition("category", Writable: true),
             new FieldDefinition("location", Writable: true),
             new FieldDefinition("group"),
+            // Task B3: response and resolution clocks.
+            new FieldDefinition("sla"),
         ]);
 
     public static IReadOnlyList<ResourceDefinition> Resources { get; } = [Users, Incidents];

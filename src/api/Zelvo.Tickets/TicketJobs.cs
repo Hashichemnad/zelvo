@@ -11,6 +11,7 @@ using Zelvo.Data;
 using Zelvo.Data.Auditing;
 using Zelvo.Data.Tenancy;
 using Zelvo.Data.Tickets;
+using Zelvo.Integrations;
 using Zelvo.Search;
 
 namespace Zelvo.Tickets;
@@ -109,7 +110,9 @@ public sealed partial class TicketAutoCloseJob(IServiceScopeFactory scopes, ILog
         var indexer = scope.ServiceProvider.GetRequiredService<ISearchIndexer>();
 
         var days = await TicketSettingKeys.ReadAutoCloseDaysAsync(db, cancellationToken).ConfigureAwait(false);
+        var businessDays = await TicketSettingKeys.ReadAutoCloseBusinessDaysAsync(db, cancellationToken).ConfigureAwait(false);
         var now = time.GetUtcNow();
+        // Working days are never shorter than calendar days, so this finds every candidate.
         var due = now.AddDays(-days);
         await using var transaction = await db.Database.BeginTransactionAsync(IsolationLevel.ReadCommitted, cancellationToken).ConfigureAwait(false);
         // xmin is the row version (a system column that SELECT * leaves out).
@@ -122,6 +125,16 @@ public sealed partial class TicketAutoCloseJob(IServiceScopeFactory scopes, ILog
                 FOR UPDATE SKIP LOCKED
                 """)
             .ToListAsync(cancellationToken).ConfigureAwait(false);
+        var selected = tickets.Count;
+        if (businessDays && tickets.Count > 0)
+        {
+            // Task B3: working days of the tenant's default calendar. Due times grow with the
+            // resolution time, so the tickets due form the start of the list.
+            var setup = await Sla.SlaSetup.LoadAsync(db, cancellationToken).ConfigureAwait(false);
+            var calendar = setup.Calendar(setup.DefaultCalendarId);
+            tickets = [.. tickets.TakeWhile(t => calendar.AddWorkingDays(t.ResolvedAt!.Value, days) <= now)];
+        }
+
         if (tickets.Count == 0)
         {
             return 0;
@@ -140,10 +153,12 @@ public sealed partial class TicketAutoCloseJob(IServiceScopeFactory scopes, ILog
             }
         }
 
+        await scope.ServiceProvider.GetRequiredService<Sla.SlaTracker>().UpdateAsync(tickets, now, cancellationToken).ConfigureAwait(false);
         await db.SaveChangesAsync(cancellationToken).ConfigureAwait(false);
         await transaction.CommitAsync(cancellationToken).ConfigureAwait(false);
         LogClosed(logger, tickets.Count, slug);
-        return tickets.Count;
+        // A full batch keeps the caller going; a short one (business days) means the rest is not due.
+        return tickets.Count == selected ? tickets.Count : Math.Min(tickets.Count, BatchSize - 1);
     }
 
     [LoggerMessage(Level = LogLevel.Error, Message = "Closing resolved tickets failed; trying again shortly.")]
@@ -318,6 +333,12 @@ public static class TicketServiceCollectionExtensions
         services.TryAddScoped<IAttachmentStore, PostgresAttachmentStore>();
         services.TryAddSingleton<IMalwareScanner, ClamAvScanner>();
         services.AddScoped<ISearchDocumentSource, IncidentSearchSource>();
+        services.TryAddScoped<Sla.SlaTracker>();
+        if (!services.Any(d => d.ImplementationType == typeof(Sla.SlaWebhookEvents)))
+        {
+            services.AddWebhookEventSource<Sla.SlaWebhookEvents>();
+        }
+
         services.AddSearchType(IncidentSearch.Type, null);
         return services;
     }
@@ -328,6 +349,8 @@ public static class TicketServiceCollectionExtensions
         services.AddZelvoTickets(configuration);
         services.TryAddSingleton<TicketAutoCloseJob>();
         services.AddHostedService(sp => sp.GetRequiredService<TicketAutoCloseJob>());
+        services.TryAddSingleton<Sla.SlaTimerJob>();
+        services.AddHostedService(sp => sp.GetRequiredService<Sla.SlaTimerJob>());
         if (ScanningEnabled(configuration))
         {
             services.TryAddSingleton<AttachmentScanJob>();

@@ -111,6 +111,24 @@ public sealed class DemoModeTests(DatabaseFixture database) : IAsyncDisposable
     }
 
     [Fact]
+    public async Task Sample_organisations_get_calendars_sla_policies_and_clocks()
+    {
+        foreach (var organisation in new[] { DemoCatalog.Government, DemoCatalog.Company })
+        {
+            var tenant = await SeededAsync(organisation);
+            await using var db = TestData.AppContext(database, tenant);
+            var calendars = await db.BusinessCalendars.Include(c => c.Holidays).ToListAsync(Ct);
+            Assert.Equal(2, calendars.Count);
+            Assert.Contains(calendars, c => c.IsDefault && c.Holidays.Any(h => h.StartDate == new DateOnly(2026, 12, 2)));
+            Assert.Equal(2, await db.SlaPolicies.CountAsync(Ct));
+            Assert.Single(await db.CustomerGroupMembers.ToListAsync(Ct));
+            Assert.True(await db.SupportGroups.AnyAsync(g => g.CalendarId != null, Ct));
+            Assert.Equal(await db.Tickets.CountAsync(Ct) * 2, await db.TicketSlas.CountAsync(Ct));
+            Assert.True(await db.TicketSlas.AnyAsync(c => c.TargetMinutes != null && c.State == Data.Sla.SlaClockState.Running, Ct));
+        }
+    }
+
+    [Fact]
     public async Task Seeders_run_once_per_tenant()
     {
         var gov = await SeededAsync(DemoCatalog.Government);
