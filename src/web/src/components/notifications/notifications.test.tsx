@@ -74,7 +74,8 @@ describe("NotificationBell", () => {
 
     expect(fetchMock).toHaveBeenCalledWith("/bff/api/v1/me/notifications/unread-count", expect.anything());
     expect(screen.getByTestId("notification-count")).toHaveTextContent("٥");
-    expect(screen.getByRole("status")).toHaveTextContent(/غير مقروء/);
+    expect(screen.getByTestId("notification-announcement")).toHaveTextContent(/غير مقروء/);
+    expect(screen.queryByRole("status")).not.toBeInTheDocument(); // Pages keep a single status message.
   });
 
   it("hides the count when nothing is unread", () => {

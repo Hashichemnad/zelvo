@@ -71,7 +71,8 @@ export function NotificationBell({ initialCount, locale, digits }: NotificationB
         )}
         <span className="sr-only">{`, ${t("unread", { count })}`}</span>
       </Link>
-      <span className="sr-only" role="status" aria-live="polite">
+      {/* A live region without the status role: pages keep their own single role="status" message. */}
+      <span className="sr-only" aria-live="polite" aria-atomic="true" data-testid="notification-announcement">
         {announcement}
       </span>
     </>
