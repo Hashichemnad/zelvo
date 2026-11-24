@@ -18,7 +18,7 @@ namespace Zelvo.Notifications;
 /// </summary>
 public sealed partial class NotificationProcessor(
     ZelvoDbContext db, NotificationComposer composer, NotificationOptions options, IEmailSender sender, TimeProvider time,
-    ILogger<NotificationProcessor> logger)
+    ILogger<NotificationProcessor> logger, IServiceProvider services)
 {
     /// <summary>Rendering attempts before a notification is given up.</summary>
     public const int MaxRenderAttempts = 5;
@@ -184,8 +184,32 @@ public sealed partial class NotificationProcessor(
 
         var letterhead = await composer.LetterheadAsync(cancellationToken).ConfigureAwait(false);
         var domain = options.Smtp.From.Split('@') is [_, { Length: > 0 } host] ? host : "zelvo.invalid";
+        // Task F1: the tenant's own verified sender domain, signed with its DKIM key, and the logo.
+        var senderDomain = await db.SenderDomains.AsNoTracking().FirstOrDefaultAsync(s => s.Verified, cancellationToken).ConfigureAwait(false);
+        DkimKey? dkim = null;
+        if (senderDomain is not null)
+        {
+            var secrets = services.GetRequiredService<Zelvo.Secrets.ISecretProtector>();
+            dkim = new DkimKey(senderDomain.Domain, senderDomain.DkimSelector,
+                await secrets.UnprotectAsync(SenderDomainKeys.Purpose, senderDomain.DkimPrivateKeyCiphertext, cancellationToken).ConfigureAwait(false));
+            domain = senderDomain.Domain;
+        }
+
+        IReadOnlyList<EmailImage> images = [];
+        if (delivery.HtmlBody.Contains($"cid:{NotificationRenderer.LogoContentId}", StringComparison.Ordinal)
+            && await Zelvo.Tickets.Branding.BrandingReader.ImageAsync(db, await Zelvo.Tickets.Branding.BrandingReader.PublishedAsync(db, cancellationToken).ConfigureAwait(false),
+                Data.Branding.BrandingSlot.LogoLight, cancellationToken).ConfigureAwait(false) is { } logo)
+        {
+            images = [new EmailImage(NotificationRenderer.LogoContentId, logo.ContentType, logo.Content)];
+        }
+
         var message = new EmailMessage(delivery.Address, letterhead.NameIn(delivery.Language), delivery.Subject, delivery.HtmlBody, delivery.TextBody,
-            delivery.Language, $"zelvo.{delivery.TenantId:N}.{delivery.Id}@{domain}");
+            delivery.Language, $"zelvo.{delivery.TenantId:N}.{delivery.Id}@{domain}")
+        {
+            FromAddress = senderDomain is null ? null : $"{senderDomain.LocalPart}@{senderDomain.Domain}",
+            Dkim = dkim,
+            Images = images,
+        };
         var result = await sender.SendAsync(message, cancellationToken).ConfigureAwait(false);
 
         var now = time.GetUtcNow();
@@ -427,4 +451,11 @@ public sealed partial class NotificationPurge(IServiceScopeFactory scopes, Notif
 
     [LoggerMessage(Level = LogLevel.Warning, Message = "Removing old notifications failed; trying again in an hour")]
     private static partial void LogPurgeFailed(ILogger logger, Exception exception);
+}
+
+/// <summary>The secret purpose of a tenant's DKIM private key (task F1).</summary>
+public static class SenderDomainKeys
+{
+    /// <summary>Purpose for <see cref="Zelvo.Secrets.ISecretProtector"/>.</summary>
+    public const string Purpose = "branding.senderDomain.dkimKey";
 }

@@ -78,6 +78,14 @@ internal sealed class TestRealmSigningKeys : IRealmSigningKeys
 /// <summary>Records what the API would change in Keycloak; can be told to fail.</summary>
 internal sealed class FakeKeycloakAdmin : IKeycloakAdmin
 {
+    public List<(string Realm, RealmBranding Branding)> BrandingCalls { get; } = [];
+
+    public Task ApplyBrandingAsync(string realm, RealmBranding branding, CancellationToken cancellationToken)
+    {
+        BrandingCalls.Add((realm, branding));
+        return Task.CompletedTask;
+    }
+
     public List<(string Realm, Zelvo.Data.Identity.EmailCodeSignIn Mode, IReadOnlyList<string> Domains)> Calls { get; } = [];
 
     public bool Fail { get; set; }

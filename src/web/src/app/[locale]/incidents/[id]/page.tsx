@@ -8,6 +8,7 @@ import { IncidentHistory } from "@/components/incidents/IncidentHistory";
 import { IncidentWorkPanel } from "@/components/incidents/IncidentWorkPanel";
 import { MajorTimeline } from "@/components/incidents/MajorTimeline";
 import { CreateArticleFromIncident } from "@/components/knowledge/NewArticle";
+import { ExportPdfButton } from "@/components/ExportPdfButton";
 import { Link } from "@/i18n/navigation";
 import { getJsonAs } from "@/lib/api";
 import { loadDirectoryChoices } from "@/lib/directory-pages";
@@ -66,6 +67,8 @@ export default async function IncidentPage({ params }: PageProps<"/[locale]/inci
           {incident.title}
         </h1>
       </header>
+      {/* Task F1: a branded PDF in the page's language. */}
+      <ExportPdfButton path={`/incidents/${incident.id}`} csrfToken={session.data.csrfToken} />
       <IncidentFacts incident={incident} settings={settings} display={display} basePath="/incidents" />
       {form && <FormAnswersView view={form} attachmentBase={`/bff/api/v1/incidents/${incident.id}/attachments`} />}
       {incident.sla && <SlaClocks clocks={incident.sla} display={display} />}

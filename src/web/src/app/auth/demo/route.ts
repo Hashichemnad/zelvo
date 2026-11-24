@@ -16,7 +16,7 @@ import { tenantCookieMaxAgeSeconds, tenantCookieName } from "@/lib/tenant";
  * opens the organisation as a visitor. Signed-in users send the session's CSRF token.
  */
 export async function POST(request: NextRequest) {
-  const config = authConfigFor(request);
+  const config = (await authConfigFor(request));
   if (config.demoTenants.length === 0) {
     return new NextResponse(null, { status: 404 });
   }

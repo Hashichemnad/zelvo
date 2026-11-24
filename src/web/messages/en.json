@@ -243,6 +243,10 @@
       "liveChat": {
         "title": "Live chat",
         "description": "Chat widgets for the portal and your websites, and the group that answers."
+      },
+      "branding": {
+        "title": "Branding",
+        "description": "Your product name, logos, colours and font, custom domains and the email sender domain."
       }
     },
     "missingWarning": "{count, plural, one {# text is} other {# texts are}} missing a translation.",
@@ -455,7 +459,8 @@
         "requests_edit": "Change the state of service requests",
         "requests_assign": "Assign service requests",
         "channels_manage": "Set up mailboxes and live chat widgets",
-        "chat_handle": "Answer live chats of their groups"
+        "chat_handle": "Answer live chats of their groups",
+        "branding_manage": "Change the branding, custom domains and email sender domain"
       },
       "events": {
         "user_created": "A user was created",
@@ -1121,6 +1126,134 @@
         "previous": "Previous page",
         "next": "Next page"
       }
+    },
+    "branding": {
+      "intro": "Run Zelvo under your own brand. Changes are a draft until you publish them; the preview shows them in English and Arabic, in light and dark mode.",
+      "poweredByNote": "The “Powered by Zelvo” mark is always shown and cannot be changed here.",
+      "saveDraft": "Save draft",
+      "draftSaved": "Draft saved. Publish it when you are ready.",
+      "published": "Published. Every page now shows the new branding.",
+      "discarded": "The draft was thrown away.",
+      "look": {
+        "title": "Name, colours and font",
+        "nameEn": "Product name in English",
+        "nameAr": "Product name in Arabic",
+        "lightColour": "Brand colour, light mode",
+        "darkColour": "Brand colour, dark mode",
+        "lightPicker": "Pick the light mode colour",
+        "darkPicker": "Pick the dark mode colour",
+        "colourHelp": "Six-digit colour such as #0f5c8a.",
+        "font": "Font"
+      },
+      "checks": {
+        "title": "Contrast checks (WCAG 2.2 AA, at least 4.5:1)",
+        "light_text": "Links and headings on light backgrounds",
+        "light_button": "Button text on the brand colour, light mode",
+        "dark_text": "Links and headings on dark backgrounds",
+        "dark_button": "Button text on the brand colour, dark mode",
+        "passed": "passes",
+        "failed": "too low; choose a darker or lighter colour"
+      },
+      "preview": {
+        "title": "Live preview",
+        "text": "Your service desk, in your colours.",
+        "link": "Read the help articles",
+        "button": "Report an incident",
+        "name": "Product name in {language}"
+      },
+      "images": {
+        "title": "Logos and images",
+        "help": "PNG, JPEG or WebP up to 2 MB (the favicon also ICO, up to 256 KB). Images are checked for malware before they can be published.",
+        "slots": {
+          "LogoLight": "Logo for light backgrounds",
+          "LogoDark": "Logo for dark backgrounds",
+          "Favicon": "Browser tab icon",
+          "LoginImage": "Sign-in page image"
+        },
+        "choose": "Choose an image",
+        "remove": "Remove",
+        "previewAlt": "Preview: {name}",
+        "scan": {
+          "Pending": "Being checked for malware…",
+          "Clean": "Checked: no malware found.",
+          "Infected": "Rejected: malware was found.",
+          "NotScanned": "Not checked (scanning is off in this installation)."
+        }
+      },
+      "publish": {
+        "title": "Publish",
+        "unpublished": "The draft has changes that are not published yet.",
+        "upToDate": "Everything is published.",
+        "button": "Publish",
+        "discard": "Throw the draft away"
+      },
+      "problems": {
+        "contrast": "Contrast too low: {check}.",
+        "image": "{image} is not ready ({status})."
+      },
+      "dns": {
+        "type": "Type",
+        "name": "Name",
+        "value": "Value",
+        "status": "Status",
+        "states": {
+          "Unknown": "Not checked",
+          "Passed": "Found",
+          "Missing": "Missing",
+          "Wrong": "Different value"
+        }
+      },
+      "domains": {
+        "title": "Custom domains",
+        "help": "Serve your portal on your own address, such as support.entity.gov.ae. Add the DNS records below, then verify. A certificate is obtained automatically, or upload your own for offline networks.",
+        "host": "Host name",
+        "add": "Add domain",
+        "verify": "Verify",
+        "remove": "Remove",
+        "status": {
+          "Pending": "Waiting for verification",
+          "Verified": "Verified: served on this address"
+        },
+        "errors": {
+          "txtMissing": "the TXT record was not found",
+          "txtWrong": "the TXT record has another value"
+        },
+        "certificate": {
+          "Automatic": "Certificate: automatic.",
+          "Uploaded": "Certificate: your own, uploaded.",
+          "useAutomatic": "Use an automatic certificate",
+          "upload": "Upload your own certificate",
+          "help": "PEM certificate chain and its private key (not encrypted). The key is stored encrypted and never shown again.",
+          "chain": "Certificate chain (PEM)",
+          "key": "Private key (PEM)",
+          "save": "Upload certificate"
+        }
+      },
+      "sender": {
+        "title": "Email sender domain",
+        "help": "Send notification emails from your own address. Publish the three DNS records, then check. Until SPF and DKIM pass, emails keep the installation's sender.",
+        "localPart": "Name before the @",
+        "domain": "Domain",
+        "save": "Save sender",
+        "check": "Check DNS",
+        "remove": "Use the installation's sender",
+        "verified": "Emails go out from {address}.",
+        "notVerified": "{address} is not verified yet.",
+        "lastChecked": "Last checked {time}."
+      },
+      "errors": {
+        "failed": "That did not work. Try again.",
+        "rate-limited": "Too many requests. Wait a moment.",
+        "colour": "Give both colours as #rrggbb.",
+        "validation-failed": "Check the values and try again.",
+        "file-too-large": "The image is too large.",
+        "file-type-not-allowed": "This image type is not accepted.",
+        "file-content-mismatch": "The file's content does not match its type.",
+        "branding-not-ready": "The draft cannot be published until every problem is solved.",
+        "too-many-domains": "You have the most domains allowed.",
+        "domain-not-found": "That domain no longer exists.",
+        "sender-domain-not-set": "No sender domain is set."
+      }
     }
   },
   "demo": {
@@ -1639,7 +1772,8 @@
         "catalog": "Service catalog",
         "requests": "Service requests",
         "channels": "Email and chat",
-        "chat": "Live chat"
+        "chat": "Live chat",
+        "branding": "Branding"
       },
       "tenant_manage": "Change the organisation's name",
       "translations_read": "See missing translations",
@@ -1674,7 +1808,8 @@
       "requests_edit": "Work on service requests",
       "requests_assign": "Assign service requests",
       "channels_manage": "Set up mailboxes and live chat widgets",
-      "chat_handle": "Answer live chats of their groups"
+      "chat_handle": "Answer live chats of their groups",
+      "branding_manage": "Change the branding, custom domains and email sender domain"
     },
     "assignment": {
       "intro": "The rules are checked in order and the first that matches decides where a new ticket goes. They run when a ticket is created and when an agent chooses \"Route again\"; they never move a ticket on their own later.",
@@ -3735,5 +3870,10 @@
         "refresh": "Summarise again"
       }
     }
+  },
+  "exports": {
+    "download": "Download PDF",
+    "making": "Making the PDF…",
+    "failed": "The PDF could not be made. Try again later."
   }
 }

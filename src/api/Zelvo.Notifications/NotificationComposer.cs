@@ -93,7 +93,15 @@ public sealed class NotificationComposer(ZelvoDbContext db, NotificationOptions 
         var zone = await db.BusinessCalendars.AsNoTracking().Where(c => c.IsDefault).Select(c => c.TimeZone)
             .FirstOrDefaultAsync(cancellationToken).ConfigureAwait(false) ?? BusinessCalendar.DefaultTimeZone;
         var tenant = await db.Tenants.AsNoTracking().OrderBy(t => t.Id).Select(t => new { t.Name, t.Slug }).FirstAsync(cancellationToken).ConfigureAwait(false);
-        _defaults = new(language, calendar, digits, TimeZone(zone), new TenantLetterhead(tenant.Name, tenant.Slug));
+        // Task F1: the published branding colours the letterhead; its logo is embedded when sent.
+        var branding = await Zelvo.Tickets.Branding.BrandingReader.PublishedAsync(db, cancellationToken).ConfigureAwait(false);
+        var hasLogo = await Zelvo.Tickets.Branding.BrandingReader.ImageAsync(db, branding, Data.Branding.BrandingSlot.LogoLight, cancellationToken).ConfigureAwait(false) is not null;
+        _defaults = new(language, calendar, digits, TimeZone(zone), new TenantLetterhead(tenant.Name, tenant.Slug)
+        {
+            Accent = branding.LightColour,
+            ProductName = branding.ProductName,
+            HasLogo = hasLogo,
+        });
         return _defaults;
     }
 

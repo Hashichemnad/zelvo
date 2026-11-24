@@ -193,6 +193,12 @@ public sealed class DemoModeTests(DatabaseFixture database) : IAsyncDisposable
         Assert.True(await db.AiTicketInsights.AnyAsync(i => i.FrustratedSince != null, Ct));
         Assert.True(await db.AiDuplicateCandidates.AnyAsync(Ct));
         Assert.False(await db.AiFeatureSettings.AnyAsync(f => f.Enabled, Ct));
+
+        // Task F1: published branding that passes the contrast checks.
+        Assert.Contains("f1-branding", ran);
+        var branding = Data.Branding.BrandingValue.Read((await db.TenantBrandings.SingleAsync(Ct)).Published);
+        Assert.Equal("Municipality e-Services", branding.ProductName.En);
+        Assert.All(branding.Checks(), c => Assert.True(c.Passed, c.Key));
     }
 
     [Fact]

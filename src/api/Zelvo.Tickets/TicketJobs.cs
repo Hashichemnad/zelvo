@@ -349,6 +349,8 @@ public static class TicketServiceCollectionExtensions
         }
 
         services.AddSearchType(IncidentSearch.Type, null);
+        // Task F1: DNS lookups of the guided domain checks.
+        services.TryAddSingleton<Branding.IDnsLookup, Branding.SystemDnsLookup>();
         return services;
     }
 
@@ -362,6 +364,11 @@ public static class TicketServiceCollectionExtensions
         services.AddHostedService(sp => sp.GetRequiredService<Sla.SlaTimerJob>());
         services.TryAddSingleton<Forms.FormUploadCleanupJob>();
         services.AddHostedService(sp => sp.GetRequiredService<Forms.FormUploadCleanupJob>());
+        // Task F1: branded PDF exports with headless Chromium.
+        services.TryAddSingleton(_ => Exports.PdfOptions.From(configuration));
+        services.TryAddSingleton<Exports.IPdfRenderer, Exports.ChromiumPdfRenderer>();
+        services.TryAddSingleton<Exports.DocumentExportJob>();
+        services.AddHostedService(sp => sp.GetRequiredService<Exports.DocumentExportJob>());
         if (ScanningEnabled(configuration))
         {
             services.TryAddSingleton<AttachmentScanJob>();

@@ -847,6 +847,323 @@ namespace Zelvo.Data.Migrations
                         });
                 });
 
+            modelBuilder.Entity("Zelvo.Data.Branding.DocumentExport", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<int>("Attempts")
+                        .HasColumnType("integer")
+                        .HasColumnName("attempts");
+
+                    b.Property<byte[]>("Content")
+                        .HasColumnType("bytea")
+                        .HasColumnName("content");
+
+                    b.Property<DateTimeOffset>("CreatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("created_at");
+
+                    b.Property<Guid>("EntityId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("entity_id");
+
+                    b.Property<string>("Error")
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)")
+                        .HasColumnName("error");
+
+                    b.Property<string>("FileName")
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)")
+                        .HasColumnName("file_name");
+
+                    b.Property<DateTimeOffset?>("FinishedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("finished_at");
+
+                    b.Property<string>("Kind")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("character varying(20)")
+                        .HasColumnName("kind");
+
+                    b.Property<string>("Language")
+                        .IsRequired()
+                        .HasMaxLength(5)
+                        .HasColumnType("character varying(5)")
+                        .HasColumnName("language");
+
+                    b.Property<DateTimeOffset?>("LeaseUntil")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("lease_until");
+
+                    b.Property<Guid>("RequestedById")
+                        .HasColumnType("uuid")
+                        .HasColumnName("requested_by_id");
+
+                    b.Property<bool>("StaffView")
+                        .HasColumnType("boolean")
+                        .HasColumnName("staff_view");
+
+                    b.Property<string>("Status")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("character varying(20)")
+                        .HasColumnName("status");
+
+                    b.Property<Guid>("TenantId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("tenant_id");
+
+                    b.HasKey("Id")
+                        .HasName("pk_document_exports");
+
+                    b.HasIndex("CreatedAt")
+                        .HasDatabaseName("ix_document_exports_due")
+                        .HasFilter("status = 'Pending'");
+
+                    b.HasIndex("EntityId")
+                        .HasDatabaseName("ix_document_exports_entity_id");
+
+                    b.HasIndex("RequestedById")
+                        .HasDatabaseName("ix_document_exports_requested_by_id");
+
+                    b.HasIndex("TenantId", "Status", "CreatedAt")
+                        .HasDatabaseName("ix_document_exports_tenant_id_status_created_at");
+
+                    b.ToTable("document_exports", null, t =>
+                        {
+                            t.HasCheckConstraint("ck_document_exports_kind", "kind IN ('Incident', 'ServiceRequest')");
+
+                            t.HasCheckConstraint("ck_document_exports_language", "language IN ('en', 'ar')");
+
+                            t.HasCheckConstraint("ck_document_exports_status", "status IN ('Pending', 'Ready', 'Failed')");
+                        });
+                });
+
+            modelBuilder.Entity("Zelvo.Data.Branding.SenderDomain", b =>
+                {
+                    b.Property<Guid>("TenantId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("tenant_id");
+
+                    b.Property<DateTimeOffset>("CreatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("created_at");
+
+                    b.Property<string>("Dkim")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("character varying(20)")
+                        .HasColumnName("dkim");
+
+                    b.Property<string>("DkimPrivateKeyCiphertext")
+                        .IsRequired()
+                        .HasColumnType("text")
+                        .HasColumnName("dkim_private_key_ciphertext");
+
+                    b.Property<string>("DkimPublicKey")
+                        .IsRequired()
+                        .HasColumnType("text")
+                        .HasColumnName("dkim_public_key");
+
+                    b.Property<string>("DkimSelector")
+                        .IsRequired()
+                        .HasMaxLength(63)
+                        .HasColumnType("character varying(63)")
+                        .HasColumnName("dkim_selector");
+
+                    b.Property<string>("Dmarc")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("character varying(20)")
+                        .HasColumnName("dmarc");
+
+                    b.Property<string>("Domain")
+                        .IsRequired()
+                        .HasMaxLength(253)
+                        .HasColumnType("character varying(253)")
+                        .HasColumnName("domain");
+
+                    b.Property<DateTimeOffset?>("LastCheckedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("last_checked_at");
+
+                    b.Property<string>("LocalPart")
+                        .IsRequired()
+                        .HasMaxLength(64)
+                        .HasColumnType("character varying(64)")
+                        .HasColumnName("local_part");
+
+                    b.Property<string>("Spf")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("character varying(20)")
+                        .HasColumnName("spf");
+
+                    b.Property<bool>("Verified")
+                        .HasColumnType("boolean")
+                        .HasColumnName("verified");
+
+                    b.Property<uint>("Version")
+                        .IsConcurrencyToken()
+                        .ValueGeneratedOnAddOrUpdate()
+                        .HasColumnType("xid")
+                        .HasColumnName("xmin");
+
+                    b.HasKey("TenantId")
+                        .HasName("pk_sender_domains");
+
+                    b.ToTable("sender_domains", null, t =>
+                        {
+                            t.HasCheckConstraint("ck_sender_domains_dkim", "dkim IN ('Unknown', 'Passed', 'Missing', 'Wrong')");
+
+                            t.HasCheckConstraint("ck_sender_domains_dmarc", "dmarc IN ('Unknown', 'Passed', 'Missing', 'Wrong')");
+
+                            t.HasCheckConstraint("ck_sender_domains_domain", "domain ~ '^[a-z0-9]([a-z0-9-]*[a-z0-9])?(\\.[a-z0-9]([a-z0-9-]*[a-z0-9])?)+$'");
+
+                            t.HasCheckConstraint("ck_sender_domains_local_part", "local_part ~ '^[a-z0-9]([a-z0-9._-]*[a-z0-9])?$'");
+
+                            t.HasCheckConstraint("ck_sender_domains_spf", "spf IN ('Unknown', 'Passed', 'Missing', 'Wrong')");
+                        });
+                });
+
+            modelBuilder.Entity("Zelvo.Data.Branding.TenantBranding", b =>
+                {
+                    b.Property<Guid>("TenantId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("tenant_id");
+
+                    b.Property<string>("Draft")
+                        .IsRequired()
+                        .HasColumnType("jsonb")
+                        .HasColumnName("draft");
+
+                    b.Property<string>("Published")
+                        .HasColumnType("jsonb")
+                        .HasColumnName("published");
+
+                    b.Property<DateTimeOffset?>("PublishedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("published_at");
+
+                    b.Property<Guid?>("PublishedById")
+                        .HasColumnType("uuid")
+                        .HasColumnName("published_by_id");
+
+                    b.Property<DateTimeOffset>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("updated_at");
+
+                    b.Property<uint>("Version")
+                        .IsConcurrencyToken()
+                        .ValueGeneratedOnAddOrUpdate()
+                        .HasColumnType("xid")
+                        .HasColumnName("xmin");
+
+                    b.HasKey("TenantId")
+                        .HasName("pk_tenant_brandings");
+
+                    b.HasIndex("PublishedById")
+                        .HasDatabaseName("ix_tenant_brandings_published_by_id");
+
+                    b.ToTable("tenant_brandings", (string)null);
+                });
+
+            modelBuilder.Entity("Zelvo.Data.Branding.TenantDomain", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<DateTimeOffset?>("CertificateExpiresAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("certificate_expires_at");
+
+                    b.Property<string>("CertificateMode")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("character varying(20)")
+                        .HasColumnName("certificate_mode");
+
+                    b.Property<string>("CertificatePem")
+                        .HasMaxLength(32768)
+                        .HasColumnType("character varying(32768)")
+                        .HasColumnName("certificate_pem");
+
+                    b.Property<DateTimeOffset>("CreatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("created_at");
+
+                    b.Property<string>("Host")
+                        .IsRequired()
+                        .HasMaxLength(253)
+                        .HasColumnType("character varying(253)")
+                        .HasColumnName("host");
+
+                    b.Property<DateTimeOffset?>("LastCheckedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("last_checked_at");
+
+                    b.Property<string>("LastError")
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)")
+                        .HasColumnName("last_error");
+
+                    b.Property<string>("PrivateKeyCiphertext")
+                        .HasColumnType("text")
+                        .HasColumnName("private_key_ciphertext");
+
+                    b.Property<string>("Status")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("character varying(20)")
+                        .HasColumnName("status");
+
+                    b.Property<Guid>("TenantId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("tenant_id");
+
+                    b.Property<string>("VerificationToken")
+                        .IsRequired()
+                        .HasMaxLength(64)
+                        .HasColumnType("character varying(64)")
+                        .HasColumnName("verification_token");
+
+                    b.Property<DateTimeOffset?>("VerifiedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("verified_at");
+
+                    b.Property<uint>("Version")
+                        .IsConcurrencyToken()
+                        .ValueGeneratedOnAddOrUpdate()
+                        .HasColumnType("xid")
+                        .HasColumnName("xmin");
+
+                    b.HasKey("Id")
+                        .HasName("pk_tenant_domains");
+
+                    b.HasIndex("Host")
+                        .IsUnique()
+                        .HasDatabaseName("ix_tenant_domains_host");
+
+                    b.HasIndex("TenantId")
+                        .HasDatabaseName("ix_tenant_domains_tenant_id");
+
+                    b.ToTable("tenant_domains", null, t =>
+                        {
+                            t.HasCheckConstraint("ck_tenant_domains_certificate_mode", "certificate_mode IN ('Automatic', 'Uploaded')");
+
+                            t.HasCheckConstraint("ck_tenant_domains_host", "host ~ '^[a-z0-9]([a-z0-9-]*[a-z0-9])?(\\.[a-z0-9]([a-z0-9-]*[a-z0-9])?)+$'");
+
+                            t.HasCheckConstraint("ck_tenant_domains_status", "status IN ('Pending', 'Verified')");
+
+                            t.HasCheckConstraint("ck_tenant_domains_uploaded", "certificate_mode <> 'Uploaded' OR (certificate_pem IS NOT NULL AND private_key_ciphertext IS NOT NULL)");
+                        });
+                });
+
             modelBuilder.Entity("Zelvo.Data.Catalog.CatalogEditor", b =>
                 {
                     b.Property<Guid>("Id")
@@ -5966,6 +6283,11 @@ namespace Zelvo.Data.Migrations
                         .HasColumnType("uuid")
                         .HasColumnName("article_id");
 
+                    b.Property<string>("BrandingSlot")
+                        .HasMaxLength(20)
+                        .HasColumnType("character varying(20)")
+                        .HasColumnName("branding_slot");
+
                     b.Property<Guid?>("CommentId")
                         .HasColumnType("uuid")
                         .HasColumnName("comment_id");
@@ -6073,11 +6395,13 @@ namespace Zelvo.Data.Migrations
 
                     b.ToTable("ticket_attachments", null, t =>
                         {
+                            t.HasCheckConstraint("ck_ticket_attachments_branding_slot", "branding_slot IS NULL OR branding_slot IN ('LogoLight', 'LogoDark', 'Favicon', 'LoginImage')");
+
                             t.HasCheckConstraint("ck_ticket_attachments_comment", "comment_id IS NULL OR ticket_id IS NOT NULL");
 
                             t.HasCheckConstraint("ck_ticket_attachments_form_field_key", "form_field_key ~ '^[a-z][a-zA-Z0-9]{0,59}$'");
 
-                            t.HasCheckConstraint("ck_ticket_attachments_owner", "num_nonnulls(ticket_id, article_id, service_id) = 1 OR (ticket_id IS NULL AND article_id IS NULL AND service_id IS NULL AND form_field_key IS NOT NULL)");
+                            t.HasCheckConstraint("ck_ticket_attachments_owner", "num_nonnulls(ticket_id, article_id, service_id, branding_slot) = 1 OR (ticket_id IS NULL AND article_id IS NULL AND service_id IS NULL AND branding_slot IS NULL AND form_field_key IS NOT NULL)");
 
                             t.HasCheckConstraint("ck_ticket_attachments_scan_status", "scan_status IN ('Pending', 'Clean', 'Infected', 'NotScanned')");
 
@@ -6646,6 +6970,66 @@ namespace Zelvo.Data.Migrations
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired()
                         .HasConstraintName("fk_audit_events_tenants_tenant_id");
+                });
+
+            modelBuilder.Entity("Zelvo.Data.Branding.DocumentExport", b =>
+                {
+                    b.HasOne("Zelvo.Data.Tickets.Ticket", null)
+                        .WithMany()
+                        .HasForeignKey("EntityId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired()
+                        .HasConstraintName("fk_document_exports_tickets_entity_id");
+
+                    b.HasOne("Zelvo.Data.Identity.UserAccount", null)
+                        .WithMany()
+                        .HasForeignKey("RequestedById")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired()
+                        .HasConstraintName("fk_document_exports_users_requested_by_id");
+
+                    b.HasOne("Zelvo.Data.Tenancy.Tenant", null)
+                        .WithMany()
+                        .HasForeignKey("TenantId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired()
+                        .HasConstraintName("fk_document_exports_tenants_tenant_id");
+                });
+
+            modelBuilder.Entity("Zelvo.Data.Branding.SenderDomain", b =>
+                {
+                    b.HasOne("Zelvo.Data.Tenancy.Tenant", null)
+                        .WithOne()
+                        .HasForeignKey("Zelvo.Data.Branding.SenderDomain", "TenantId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired()
+                        .HasConstraintName("fk_sender_domains_tenants_tenant_id");
+                });
+
+            modelBuilder.Entity("Zelvo.Data.Branding.TenantBranding", b =>
+                {
+                    b.HasOne("Zelvo.Data.Identity.UserAccount", null)
+                        .WithMany()
+                        .HasForeignKey("PublishedById")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .HasConstraintName("fk_tenant_brandings_users_published_by_id");
+
+                    b.HasOne("Zelvo.Data.Tenancy.Tenant", null)
+                        .WithOne()
+                        .HasForeignKey("Zelvo.Data.Branding.TenantBranding", "TenantId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired()
+                        .HasConstraintName("fk_tenant_brandings_tenants_tenant_id");
+                });
+
+            modelBuilder.Entity("Zelvo.Data.Branding.TenantDomain", b =>
+                {
+                    b.HasOne("Zelvo.Data.Tenancy.Tenant", null)
+                        .WithMany()
+                        .HasForeignKey("TenantId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired()
+                        .HasConstraintName("fk_tenant_domains_tenants_tenant_id");
                 });
 
             modelBuilder.Entity("Zelvo.Data.Catalog.CatalogEditor", b =>

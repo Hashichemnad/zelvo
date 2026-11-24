@@ -2,6 +2,7 @@ import { notFound } from "next/navigation";
 import { getTranslations, setRequestLocale } from "next-intl/server";
 import { FormAnswersView } from "@/components/forms/FormAnswersView";
 import { ReopenRequestButton, RequestAttachments, RequestFacts, RequestProgress } from "@/components/catalog/ServiceRequests";
+import { ExportPdfButton } from "@/components/ExportPdfButton";
 import { Link } from "@/i18n/navigation";
 import { isId } from "@/lib/incident-pages";
 import { loadRequest } from "@/lib/request-pages";
@@ -36,6 +37,8 @@ export default async function MyRequestPage({ params }: PageProps<"/[locale]/my-
         <p className="font-mono text-ink-muted" dir="ltr">{request.number}</p>
         <h1 id="request-heading" className="text-3xl font-bold text-brand" dir="auto">{request.title}</h1>
       </header>
+      {/* Task F1: a branded PDF in the page's language. */}
+      <ExportPdfButton path={`/service-requests/${request.id}`} csrfToken={session.data.csrfToken} />
       <RequestProgress request={request} />
       <RequestFacts request={request} display={display} settings={settings} basePath="/my-requests" />
       {form && <FormAnswersView view={form} attachmentBase={`/bff/api/v1/service-requests/${request.id}/attachments`} />}

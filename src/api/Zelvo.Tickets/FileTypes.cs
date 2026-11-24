@@ -24,6 +24,7 @@ public static class FileTypes
     private static readonly byte[] Webp = "WEBP"u8.ToArray();
     private static readonly byte[] Zip = [0x50, 0x4B, 0x03, 0x04];
     private static readonly byte[] ZipEmpty = [0x50, 0x4B, 0x05, 0x06];
+    private static readonly byte[] Ico = [0x00, 0x00, 0x01, 0x00];
     private static readonly byte[] OleCompound = [0xD0, 0xCF, 0x11, 0xE0, 0xA1, 0xB1, 0x1A, 0xE1];
 
     /// <summary>Every known type, by extension.</summary>
@@ -34,6 +35,7 @@ public static class FileTypes
         new("jpg", "image/jpeg", c => StartsWith(c, Jpeg)),
         new("jpeg", "image/jpeg", c => StartsWith(c, Jpeg)),
         new("gif", "image/gif", c => StartsWith(c, Gif87) || StartsWith(c, Gif89)),
+        new("ico", "image/x-icon", c => StartsWith(c, Ico)),
         new("webp", "image/webp", c => StartsWith(c, Riff) && c.Length >= 12 && c.Span[8..12].SequenceEqual(Webp)),
         new("txt", "text/plain; charset=utf-8", IsText),
         new("csv", "text/csv; charset=utf-8", IsText),

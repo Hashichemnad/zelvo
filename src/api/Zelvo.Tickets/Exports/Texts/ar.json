@@ -1,0 +1,31 @@
+{
+  "incident": "بلاغ",
+  "serviceRequest": "طلب خدمة",
+  "state": "الحالة",
+  "priority": "الأولوية",
+  "category": "الفئة",
+  "group": "المجموعة",
+  "requester": "مقدّم الطلب",
+  "assignee": "المسؤول",
+  "created": "تاريخ التسجيل",
+  "resolved": "تاريخ الحل",
+  "description": "الوصف",
+  "resolutionNotes": "ملاحظات الحل",
+  "conversation": "المراسلات",
+  "noConversation": "لا توجد رسائل بعد.",
+  "requesterLabel": "مقدّم الطلب",
+  "staff": "الموظف",
+  "internalNote": "ملاحظة داخلية",
+  "exported": "صُدّر في {date}",
+  "page": "صفحة",
+  "poweredBy": "بتقنية زيلفو",
+  "states": {
+    "New": "جديد",
+    "Assigned": "مُسنَد",
+    "InProgress": "قيد المعالجة",
+    "OnHold": "معلّق",
+    "Resolved": "تمت المعالجة",
+    "Closed": "مغلق",
+    "Reopened": "أُعيد فتحه"
+  }
+}

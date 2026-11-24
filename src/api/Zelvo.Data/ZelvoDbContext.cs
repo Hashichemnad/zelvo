@@ -2,6 +2,7 @@ using Microsoft.EntityFrameworkCore;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 using Zelvo.Data.Ai;
 using Zelvo.Data.Auditing;
+using Zelvo.Data.Branding;
 using Zelvo.Data.Channels;
 using Zelvo.Data.Directory;
 using Zelvo.Data.Catalog;
@@ -208,6 +209,18 @@ public sealed class ZelvoDbContext(DbContextOptions<ZelvoDbContext> options) : D
 
     /// <summary>Cached one-click translations.</summary>
     public DbSet<AiTranslation> AiTranslations => Set<AiTranslation>();
+
+    /// <summary>White-label branding per tenant (module 11, task F1).</summary>
+    public DbSet<TenantBranding> TenantBrandings => Set<TenantBranding>();
+
+    /// <summary>Custom domains of tenants.</summary>
+    public DbSet<TenantDomain> TenantDomains => Set<TenantDomain>();
+
+    /// <summary>Tenants' own email sender domains.</summary>
+    public DbSet<SenderDomain> SenderDomains => Set<SenderDomain>();
+
+    /// <summary>Branded PDF exports.</summary>
+    public DbSet<DocumentExport> DocumentExports => Set<DocumentExport>();
 
     /// <summary>AI agents of the built-in MCP server (module 9, task E6).</summary>
     public DbSet<McpAgent> McpAgents => Set<McpAgent>();
@@ -797,7 +810,8 @@ public sealed class ZelvoDbContext(DbContextOptions<ZelvoDbContext> options) : D
                 table.HasCheckConstraint("ck_ticket_attachments_scan_status", EnumCheck("scan_status", Enum.GetNames<AttachmentScanStatus>()));
                 table.HasCheckConstraint("ck_ticket_attachments_size", "size >= 0");
                 table.HasCheckConstraint("ck_ticket_attachments_sha256", "sha256 ~ '^[0-9a-f]{64}$'");
-                table.HasCheckConstraint("ck_ticket_attachments_owner", "num_nonnulls(ticket_id, article_id, service_id) = 1 OR (ticket_id IS NULL AND article_id IS NULL AND service_id IS NULL AND form_field_key IS NOT NULL)");
+                table.HasCheckConstraint("ck_ticket_attachments_owner", "num_nonnulls(ticket_id, article_id, service_id, branding_slot) = 1 OR (ticket_id IS NULL AND article_id IS NULL AND service_id IS NULL AND branding_slot IS NULL AND form_field_key IS NOT NULL)");
+                table.HasCheckConstraint("ck_ticket_attachments_branding_slot", $"branding_slot IS NULL OR {EnumCheck("branding_slot", Enum.GetNames<BrandingSlot>())}");
                 table.HasCheckConstraint("ck_ticket_attachments_form_field_key", "form_field_key ~ '^[a-z][a-zA-Z0-9]{0,59}$'");
                 table.HasCheckConstraint("ck_ticket_attachments_comment", "comment_id IS NULL OR ticket_id IS NOT NULL");
             });
@@ -807,6 +821,7 @@ public sealed class ZelvoDbContext(DbContextOptions<ZelvoDbContext> options) : D
             attachment.HasOne<KbArticle>().WithMany().HasForeignKey(a => a.ArticleId).OnDelete(DeleteBehavior.Cascade);
             attachment.HasOne<CatalogService>().WithMany().HasForeignKey(a => a.ServiceId).OnDelete(DeleteBehavior.Cascade);
             attachment.HasIndex(a => new { a.TenantId, a.ServiceId }).HasFilter("service_id IS NOT NULL");
+            attachment.Property(a => a.BrandingSlot).HasConversion<string>().HasMaxLength(20);
             attachment.Property(a => a.FormFieldKey).HasMaxLength(TicketAttachment.FormFieldKeyMaxLength);
             attachment.HasIndex(a => new { a.TenantId, a.UploadedAt }).HasFilter("ticket_id IS NULL AND article_id IS NULL AND service_id IS NULL").HasDatabaseName("ix_ticket_attachments_form_uploads");
             // Comments are never removed, so the link never needs to change.
@@ -1439,6 +1454,93 @@ public sealed class ZelvoDbContext(DbContextOptions<ZelvoDbContext> options) : D
         });
 
         ConfigureAiFeatures(modelBuilder);
+        ConfigureBranding(modelBuilder);
+    }
+
+    // Task F1: white-label branding, custom domains, sender domains and PDF exports.
+    private static void ConfigureBranding(ModelBuilder modelBuilder)
+    {
+        modelBuilder.Entity<TenantBranding>(branding =>
+        {
+            branding.ToTable("tenant_brandings");
+            branding.HasKey(b => b.TenantId);
+            branding.HasOne<Tenant>().WithOne().HasForeignKey<TenantBranding>(b => b.TenantId).OnDelete(DeleteBehavior.Restrict);
+            branding.HasOne<UserAccount>().WithMany().HasForeignKey(b => b.PublishedById).OnDelete(DeleteBehavior.Restrict);
+            branding.Property(b => b.Draft).HasColumnType("jsonb");
+            branding.Property(b => b.Published).HasColumnType("jsonb");
+            branding.Property(b => b.Version).IsRowVersion();
+            branding.HasIndex(b => b.PublishedById);
+        });
+
+        modelBuilder.Entity<TenantDomain>(domain =>
+        {
+            domain.ToTable("tenant_domains", table =>
+            {
+                table.HasCheckConstraint("ck_tenant_domains_status", EnumCheck("status", Enum.GetNames<DomainStatus>()));
+                table.HasCheckConstraint("ck_tenant_domains_certificate_mode", EnumCheck("certificate_mode", Enum.GetNames<CertificateMode>()));
+                table.HasCheckConstraint("ck_tenant_domains_host", "host ~ '^[a-z0-9]([a-z0-9-]*[a-z0-9])?(\\.[a-z0-9]([a-z0-9-]*[a-z0-9])?)+$'");
+                table.HasCheckConstraint("ck_tenant_domains_uploaded", "certificate_mode <> 'Uploaded' OR (certificate_pem IS NOT NULL AND private_key_ciphertext IS NOT NULL)");
+            });
+            domain.HasKey(d => d.Id);
+            domain.Property(d => d.Id).ValueGeneratedNever();
+            domain.HasOne<Tenant>().WithMany().HasForeignKey(d => d.TenantId).OnDelete(DeleteBehavior.Restrict);
+            domain.Property(d => d.Host).HasMaxLength(TenantDomain.HostMaxLength);
+            domain.Property(d => d.Status).HasConversion<string>().HasMaxLength(20);
+            domain.Property(d => d.CertificateMode).HasConversion<string>().HasMaxLength(20);
+            domain.Property(d => d.VerificationToken).HasMaxLength(64);
+            domain.Property(d => d.LastError).HasMaxLength(TenantDomain.ErrorMaxLength);
+            domain.Property(d => d.CertificatePem).HasMaxLength(TenantDomain.CertificateMaxLength);
+            domain.Property(d => d.Version).IsRowVersion();
+            // A host belongs to one tenant in the whole installation.
+            domain.HasIndex(d => d.Host).IsUnique();
+            domain.HasIndex(d => d.TenantId);
+        });
+
+        modelBuilder.Entity<SenderDomain>(sender =>
+        {
+            sender.ToTable("sender_domains", table =>
+            {
+                table.HasCheckConstraint("ck_sender_domains_spf", EnumCheck("spf", Enum.GetNames<DnsCheck>()));
+                table.HasCheckConstraint("ck_sender_domains_dkim", EnumCheck("dkim", Enum.GetNames<DnsCheck>()));
+                table.HasCheckConstraint("ck_sender_domains_dmarc", EnumCheck("dmarc", Enum.GetNames<DnsCheck>()));
+
+                table.HasCheckConstraint("ck_sender_domains_domain", "domain ~ '^[a-z0-9]([a-z0-9-]*[a-z0-9])?(\\.[a-z0-9]([a-z0-9-]*[a-z0-9])?)+$'");
+                table.HasCheckConstraint("ck_sender_domains_local_part", "local_part ~ '^[a-z0-9]([a-z0-9._-]*[a-z0-9])?$'");
+            });
+            sender.HasKey(d => d.TenantId);
+            sender.HasOne<Tenant>().WithOne().HasForeignKey<SenderDomain>(d => d.TenantId).OnDelete(DeleteBehavior.Restrict);
+            sender.Property(d => d.Domain).HasMaxLength(TenantDomain.HostMaxLength);
+            sender.Property(d => d.LocalPart).HasMaxLength(SenderDomain.LocalPartMaxLength);
+            sender.Property(d => d.DkimSelector).HasMaxLength(SenderDomain.SelectorMaxLength);
+            sender.Property(d => d.Spf).HasConversion<string>().HasMaxLength(20);
+            sender.Property(d => d.Dkim).HasConversion<string>().HasMaxLength(20);
+            sender.Property(d => d.Dmarc).HasConversion<string>().HasMaxLength(20);
+            sender.Property(d => d.Version).IsRowVersion();
+        });
+
+        modelBuilder.Entity<DocumentExport>(export =>
+        {
+            export.ToTable("document_exports", table =>
+            {
+                table.HasCheckConstraint("ck_document_exports_kind", EnumCheck("kind", Enum.GetNames<ExportKind>()));
+                table.HasCheckConstraint("ck_document_exports_status", EnumCheck("status", Enum.GetNames<ExportStatus>()));
+                table.HasCheckConstraint("ck_document_exports_language", "language IN ('en', 'ar')");
+            });
+            export.HasKey(e => e.Id);
+            export.Property(e => e.Id).ValueGeneratedNever();
+            export.HasOne<Tenant>().WithMany().HasForeignKey(e => e.TenantId).OnDelete(DeleteBehavior.Restrict);
+            export.HasOne<Ticket>().WithMany().HasForeignKey(e => e.EntityId).OnDelete(DeleteBehavior.Cascade);
+            export.HasOne<UserAccount>().WithMany().HasForeignKey(e => e.RequestedById).OnDelete(DeleteBehavior.Restrict);
+            export.Property(e => e.Kind).HasConversion<string>().HasMaxLength(20);
+            export.Property(e => e.Status).HasConversion<string>().HasMaxLength(20);
+            export.Property(e => e.Language).HasMaxLength(5);
+            export.Property(e => e.FileName).HasMaxLength(DocumentExport.FileNameMaxLength);
+            export.Property(e => e.Error).HasMaxLength(DocumentExport.ErrorMaxLength);
+            export.HasIndex(e => new { e.TenantId, e.Status, e.CreatedAt });
+            export.HasIndex(e => e.EntityId);
+            export.HasIndex(e => e.RequestedById);
+            export.HasIndex(e => e.CreatedAt).HasFilter("status = 'Pending'").HasDatabaseName("ix_document_exports_due");
+        });
     }
 
     // Task E5: the AI features' own records.

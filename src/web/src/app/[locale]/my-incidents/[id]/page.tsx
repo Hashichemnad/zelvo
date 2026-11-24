@@ -6,6 +6,7 @@ import { IncidentFacts } from "@/components/incidents/IncidentFacts";
 import { MajorTimeline } from "@/components/incidents/MajorTimeline";
 import { ReopenButton } from "@/components/incidents/ReopenButton";
 import { Composer, ConversationList } from "@/components/workspace/Conversation";
+import { ExportPdfButton } from "@/components/ExportPdfButton";
 import { Link } from "@/i18n/navigation";
 import { getJsonAs } from "@/lib/api";
 import { isId, loadIncident } from "@/lib/incident-pages";
@@ -63,6 +64,8 @@ export default async function MyIncidentPage({ params }: PageProps<"/[locale]/my
           {incident.title}
         </h1>
       </header>
+      {/* Task F1: a branded PDF in the page's language. */}
+      <ExportPdfButton path={`/incidents/${incident.id}`} csrfToken={session.data.csrfToken} />
       <IncidentFacts incident={incident} settings={settings} display={display} basePath="/my-incidents" />
       {form && <FormAnswersView view={form} attachmentBase={`/bff/api/v1/incidents/${incident.id}/attachments`} />}
       {incident.canReopen && <ReopenButton incidentId={incident.id} csrfToken={session.data.csrfToken} />}

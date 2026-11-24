@@ -124,3 +124,7 @@ Requester notifications of tickets that came in by email go out **from the ticke
 - Digests and quiet hours (not in the requirements).
 - Notifications for B4's public replies and mentions: added with B4 (`incident.replied`, `incident.mentioned`; see `workspace.md`).
 - Notifications for B4's internal notes and mentions (added with B4; public replies came with E2).
+
+## Branding (task F1)
+
+The letterhead follows the tenant's published branding: brand colour for the heading, links and button, the light logo embedded as `cid:zelvo-logo`, and the product name beside "Powered by Zelvo". With a verified sender domain, emails go out from the tenant's own address, signed with its DKIM key. See `branding.md`.

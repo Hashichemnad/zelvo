@@ -3,6 +3,7 @@ import { getTranslations, setRequestLocale } from "next-intl/server";
 import { FormAnswersView } from "@/components/forms/FormAnswersView";
 import { RequestAttachments, RequestFacts, RequestProgress, RequestWorkPanel } from "@/components/catalog/ServiceRequests";
 import { SlaClocks } from "@/components/sla/SlaClocks";
+import { ExportPdfButton } from "@/components/ExportPdfButton";
 import { Link } from "@/i18n/navigation";
 import { getJsonAs } from "@/lib/api";
 import type { GroupSummary } from "@/lib/directory";
@@ -50,6 +51,8 @@ export default async function RequestPage({ params }: PageProps<"/[locale]/reque
         <p className="font-mono text-ink-muted" dir="ltr">{request.number}</p>
         <h1 id="request-heading" className="text-3xl font-bold text-brand" dir="auto">{request.title}</h1>
       </header>
+      {/* Task F1: a branded PDF in the page's language. */}
+      <ExportPdfButton path={`/service-requests/${request.id}`} csrfToken={session.data.csrfToken} />
       <RequestProgress request={request} />
       <RequestFacts request={request} display={display} settings={settings} basePath="/requests" />
       {request.sla.length > 0 && <SlaClocks clocks={request.sla} display={display} />}

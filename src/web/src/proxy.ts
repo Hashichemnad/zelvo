@@ -18,7 +18,7 @@ export default async function proxy(request: NextRequest) {
   // The chat widget's frame (task E2): only the websites listed for the widget may frame it.
   const widget = /^\/chat-widget\/(en|ar)\/([0-9a-f-]{36})$/i.exec(pathname);
   if (widget) {
-    const origins = await getWidgetOrigins(authConfigFor(request).tenant, widget[2] ?? "");
+    const origins = await getWidgetOrigins((await authConfigFor(request)).tenant, widget[2] ?? "");
     const response = NextResponse.next();
     response.headers.set("Content-Security-Policy", `frame-ancestors 'self' ${origins.join(" ")}`.trim());
     return response;
@@ -27,7 +27,7 @@ export default async function proxy(request: NextRequest) {
     return intl(request);
   }
 
-  const config = authConfigFor(request);
+  const config = (await authConfigFor(request));
   const deviceLanguage = request.cookies.get(languageCookieName)?.value;
   const signedIn = request.cookies.has(sessionCookieName(config));
   // Only first visits (no language cookie yet) need the tenant default; ask the API directly.
@@ -47,5 +47,5 @@ export default async function proxy(request: NextRequest) {
 export const config = {
   // Everything except API routes, sign-in routes (/auth/...), the API proxy (/bff/...), the health
   // endpoint, Next internals and files with an extension.
-  matcher: "/((?!api|auth/|bff/|healthz|_next|_vercel|.*\\..*).*)",
+  matcher: "/((?!api|auth/|bff/|branding/|healthz|_next|_vercel|.*\\..*).*)",
 };

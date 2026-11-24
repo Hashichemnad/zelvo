@@ -34,7 +34,9 @@ public sealed record NotificationLinks(Uri? Action, Uri? Preferences);
 /// </summary>
 public static partial class NotificationRenderer
 {
-    private const string Accent = "#0f4c81";
+    /// <summary>Content id of the logo embedded in emails (task F1).</summary>
+    public const string LogoContentId = "zelvo-logo";
+
     private const string TextColour = "#1f2937";
     private const string MutedColour = "#4b5563";
 
@@ -175,6 +177,8 @@ public static partial class NotificationRenderer
     {
         var rtl = language == LocalizedText.Arabic;
         var dir = rtl ? "rtl" : "ltr";
+        // Task F1: the tenant's brand colour (checked for contrast on white when published).
+        var Accent = letterhead.Accent;
         // Mail apps ignore logical CSS properties, so alignment follows the direction explicitly.
         var align = rtl ? "right" : "left";
         var font = rtl ? "Tahoma, 'IBM Plex Sans Arabic', Arial, sans-serif" : "Arial, Helvetica, sans-serif";
@@ -187,8 +191,13 @@ public static partial class NotificationRenderer
             <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background-color:#f3f4f6;"><tr><td align="center" style="padding:24px 12px;">
             <table role="presentation" width="100%" cellpadding="0" cellspacing="0" dir="{dir}" style="max-width:600px;background-color:#ffffff;border-radius:8px;font-family:{font};text-align:{align};">
             <tr><td style="padding:20px 24px;border-bottom:3px solid {Accent};">
-            <div style="font-size:20px;font-weight:bold;color:{Accent};">{Encode(letterhead.NameIn(language))}</div>
             """);
+        if (letterhead.HasLogo)
+        {
+            html.Append(CultureInfo.InvariantCulture, $"""<img src="cid:{LogoContentId}" alt="" height="48" style="display:block;max-height:48px;margin:0 0 8px;border:0;">""");
+        }
+
+        html.Append(CultureInfo.InvariantCulture, $"""<div style="font-size:20px;font-weight:bold;color:{Accent};">{Encode(letterhead.NameIn(language))}</div>""");
         if (letterhead.OtherName(language) is { } other)
         {
             var otherLanguage = rtl ? LocalizedText.English : LocalizedText.Arabic;
@@ -227,7 +236,7 @@ public static partial class NotificationRenderer
         }
 
         html.Append(CultureInfo.InvariantCulture, $"""
-            <span>{Encode(texts.Layout.PoweredBy)}</span>
+            {(letterhead.ProductIn(language) is { } product ? $"<span>{Encode(product)}</span> · " : string.Empty)}<span>{Encode(texts.Layout.PoweredBy)}</span>
             </td></tr>
             </table>
             </td></tr></table>
@@ -261,11 +270,23 @@ public static partial class NotificationRenderer
     private static partial Regex Whitespace();
 }
 
-/// <summary>The organisation's names for the letterhead (GOV-8; the logo comes with branding, task F1).</summary>
+/// <summary>The organisation's letterhead (GOV-8) with its branding (task F1).</summary>
 /// <param name="Name">The tenant's bilingual name.</param>
 /// <param name="Fallback">Shown when the tenant has no name (its slug).</param>
 public sealed record TenantLetterhead(LocalizedText Name, string Fallback)
 {
+    /// <summary>Brand colour of headings, links and buttons (the published light colour).</summary>
+    public string Accent { get; init; } = Data.Branding.BrandingValue.DefaultLightColour;
+
+    /// <summary>The published product name, if the tenant set one.</summary>
+    public LocalizedText ProductName { get; init; } = new(null, null);
+
+    /// <summary>The published logo is embedded (content id <see cref="NotificationRenderer.LogoContentId"/>).</summary>
+    public bool HasLogo { get; init; }
+
+    /// <summary>The product name in <paramref name="language"/>, or null when the tenant set none.</summary>
+    public string? ProductIn(string language) => ProductName.GetOrFallback(language);
+
     /// <summary>The name in <paramref name="language"/>, else the other language, else the fallback.</summary>
     public string NameIn(string language) => Name.GetOrFallback(language) ?? Fallback;
 

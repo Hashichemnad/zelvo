@@ -202,6 +202,30 @@ export function forgetLocalizationSettings(tenant: string): void {
   revalidateTag(localizationSettingsTag(tenant), { expire: 0 });
 }
 
+/** Cache tag of a tenant's published branding (task F1). */
+export function brandingTag(tenant: string): string {
+  return `zelvo-branding-${tenant}`;
+}
+
+/** The tenant's published branding, cached for a minute like the language defaults; null when the API cannot be reached. */
+export async function getBranding(tenant: string): Promise<import("./branding").PublicBranding | null> {
+  try {
+    const response = await fetch(new URL("/api/v1/branding", apiBaseUrl), {
+      next: { revalidate: 60, tags: [brandingTag(tenant)] },
+      signal: AbortSignal.timeout(timeoutMs),
+      headers: { Accept: "application/json", "X-Zelvo-Tenant": tenant },
+    });
+    return response.ok ? ((await response.json()) as import("./branding").PublicBranding) : null;
+  } catch {
+    return null;
+  }
+}
+
+/** Expires the cached branding after an administrator publishes or discards through this web app. */
+export function forgetBranding(tenant: string): void {
+  revalidateTag(brandingTag(tenant), { expire: 0 });
+}
+
 /** Sign-in methods besides password and email code (GET /api/v1/identity/sign-in-methods). */
 export interface SignInMethods {
   uaePass: { enabled: boolean; signOutUrl: string | null };

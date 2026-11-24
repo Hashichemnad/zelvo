@@ -1,0 +1,33 @@
+# Zelvo's reverse proxy (task F1, product owner decision 2026-11-24): HTTPS in front of the web
+# app, for the installation's own address and for tenants' verified custom domains.
+#
+# - Automatic certificates by ACME (Let's Encrypt by default, or the customer's own ACME server
+#   for offline networks: ZELVO_ACME_CA), only for hosts Zelvo says a tenant verified ("ask").
+# - Certificates a tenant uploaded in Settings → Branding come from Zelvo during the TLS
+#   handshake ("get_certificate http"); Zelvo answers 204 for other hosts and ACME takes over.
+# Both questions go to the API's internal address with a shared secret (ZELVO_TLS_TOKEN) and are
+# never reachable from outside: the proxy forwards only to the web app.
+{
+	email {$ZELVO_ACME_EMAIL:admin@localhost}
+	acme_ca {$ZELVO_ACME_CA:https://acme-v02.api.letsencrypt.org/directory}
+	on_demand_tls {
+		ask http://api:8080/internal/tls/ask?token={$ZELVO_TLS_TOKEN}
+	}
+}
+
+# The installation's own address. Development uses Caddy's internal certificate authority.
+{$ZELVO_PUBLIC_HOST:localhost} {
+	tls {$ZELVO_PUBLIC_TLS:internal}
+	encode zstd gzip
+	reverse_proxy web:3000
+}
+
+# Tenants' custom domains.
+https:// {
+	tls {
+		get_certificate http http://api:8080/internal/tls/certificate?token={$ZELVO_TLS_TOKEN}
+		on_demand
+	}
+	encode zstd gzip
+	reverse_proxy web:3000
+}

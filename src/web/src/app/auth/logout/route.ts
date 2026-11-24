@@ -11,7 +11,7 @@ import { deleteSession, getSession, sessionCookieName } from "@/lib/auth/session
  * as UAE PASS requires of service providers.
  */
 export async function POST(request: NextRequest) {
-  const config = authConfigFor(request);
+  const config = (await authConfigFor(request));
   const form = await request.formData();
   const locale = localeOf(String(form.get("locale") ?? ""));
   const home = new URL(`/${locale}`, config.appUrl);

@@ -10,7 +10,7 @@ import { isLocale, languageCookieName } from "@/lib/localization";
  * refresh token; the administrator goes back to the mailbox's page.
  */
 export async function GET(request: NextRequest) {
-  const config = authConfigFor(request);
+  const config = (await authConfigFor(request));
   const params = request.nextUrl.searchParams;
   const state = params.get("state") ?? "";
   const code = params.get("code");

@@ -55,6 +55,13 @@ x-notifications-env: &notifications-env
   Notifications__Smtp__Password: ${ZELVO_SMTP_PASSWORD:-}
   Notifications__Smtp__From: ${ZELVO_SMTP_FROM:-no-reply@zelvo.test}
 
+# Branding (F1): the installation's public host that custom domains point to, the secret of the
+# reverse proxy's TLS questions, and what SPF must allow for the installation's mail server.
+x-branding-env: &branding-env
+  Branding__PublicHost: ${ZELVO_PUBLIC_HOST:-localhost}
+  Branding__TlsToken: ${ZELVO_TLS_TOKEN:?set in .env}
+  Branding__SpfInclude: ${ZELVO_SPF_INCLUDE:-}
+
 # Email and live chat (E2): links in replies and the mailbox sign-in address use the web app's
 # address. Development: mail servers in the Compose network (the GreenMail test server) may be
 # reached; installations list only their own internal mail networks.
@@ -389,7 +396,7 @@ services:
       Search__Password: ${OPENSEARCH_API_PASSWORD}
       Search__CaFile: /run/certs/ca.crt
       Services__KeycloakHealth: http://keycloak:9000/health/ready
-      <<: [*identity, *secrets-env, *telemetry-env, *integrations-env, *ai-env, *notifications-env, *channels-env]
+      <<: [*identity, *secrets-env, *telemetry-env, *integrations-env, *ai-env, *notifications-env, *channels-env, *branding-env]
       # Development: everything in the Compose network (the web app's server) may forward client
       # addresses. Installs list their proxies' exact addresses.
       Network__TrustedProxies__0: 172.16.0.0/12
@@ -500,8 +507,8 @@ services:
       SESSION_STORE_URL: redis://:${REDIS_PASSWORD}@redis:6379/1
       # Traces of the web app's server (pages, sign-in, API proxy) to the collector (A5).
       OTEL_EXPORTER_OTLP_ENDPOINT: http://otel-collector:4318
-      # Reverse proxies in front of the web app whose X-Forwarded-For is trusted; none in development.
-      TRUSTED_PROXY_HOPS: "0"
+      # Reverse proxies in front of the web app whose X-Forwarded-For is trusted: the Caddy proxy (F1).
+      TRUSTED_PROXY_HOPS: "${ZELVO_TRUSTED_PROXY_HOPS:-0}"
     ports:
       - "127.0.0.1:${WEB_PORT:-3000}:3000"
     depends_on:
@@ -513,6 +520,27 @@ services:
       interval: 5s
       timeout: 5s
       retries: 30
+
+  # Reverse proxy (F1): HTTPS for the installation's address and tenants' custom domains, with
+  # automatic certificates (ACME) or the ones tenants uploaded. Caddy (Apache-2.0), unmodified.
+  # Development: https://localhost:8443 with Caddy's own certificate authority.
+  proxy:
+    <<: *restart
+    image: caddy:2.10.2-alpine
+    environment:
+      ZELVO_PUBLIC_HOST: ${ZELVO_PUBLIC_HOST:-localhost}
+      ZELVO_PUBLIC_TLS: ${ZELVO_PUBLIC_TLS:-internal}
+      ZELVO_TLS_TOKEN: ${ZELVO_TLS_TOKEN:?set in .env}
+      ZELVO_ACME_EMAIL: ${ZELVO_ACME_EMAIL:-admin@localhost}
+      ZELVO_ACME_CA: ${ZELVO_ACME_CA:-https://acme-v02.api.letsencrypt.org/directory}
+    volumes:
+      - ./caddy/Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy-data:/data
+    ports:
+      - "${ZELVO_HTTP_PORT:-8088}:80"
+      - "${ZELVO_HTTPS_PORT:-8443}:443"
+    depends_on:
+      web: { condition: service_healthy }
 
   # Observability (A5, docs/architecture/observability.md). Operator tools, English only.
   # The collector receives OTLP from Zelvo's services and fans it out.
@@ -605,6 +633,7 @@ volumes:
   grafana-data:
   certs:
   clamav-db:
+  caddy-data:
 
 secrets:
   zelvo-master-key:

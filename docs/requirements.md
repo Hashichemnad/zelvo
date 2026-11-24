@@ -318,6 +318,8 @@ Zelvo is the platform name; each customer runs it under its own brand, set by it
 - Branded email, WhatsApp, SMS and notification templates; branded PDF reports and exports.
 - Live preview of every change before it is published.
 - A "Powered by Zelvo" mark in the portal footer, which is always shown and cannot be removed or changed in Settings.
+- Custom domains (product owner decision 2026-11-24): Zelvo ships a reverse proxy (Caddy) that gets certificates automatically by ACME, only for domains a tenant verified, or uses the customer's own uploaded certificate for offline networks.
+- PDF exports (product owner decision 2026-11-24): made on the server with headless Chromium, so Arabic is shaped and laid out right to left; first for incidents and service requests, then reports.
 - *Story:* As a customer admin, I want to upload our logo and set our own product name, so that our employees and citizens only ever see our brand.
 
 ### 12. Licensing and copy protection

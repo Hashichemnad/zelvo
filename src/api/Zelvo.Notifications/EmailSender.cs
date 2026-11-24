@@ -14,7 +14,26 @@ namespace Zelvo.Notifications;
 /// <param name="Text">Plain-text body.</param>
 /// <param name="Language">Content language (<c>en</c> or <c>ar</c>).</param>
 /// <param name="MessageId">Stable id, so a retried email is recognisable.</param>
-public sealed record EmailMessage(string To, string FromName, string Subject, string Html, string Text, string Language, string MessageId);
+public sealed record EmailMessage(string To, string FromName, string Subject, string Html, string Text, string Language, string MessageId)
+{
+    /// <summary>The tenant's own verified sender address (task F1); null for the installation's.</summary>
+    public string? FromAddress { get; init; }
+
+    /// <summary>Signs the email with the tenant's DKIM key (task F1).</summary>
+    public DkimKey? Dkim { get; init; }
+
+    /// <summary>Images embedded in the HTML by content id (the letterhead's logo).</summary>
+    public IReadOnlyList<EmailImage> Images { get; init; } = [];
+}
+
+/// <summary>An image embedded in an email (<c>cid:</c>).</summary>
+public sealed record EmailImage(string ContentId, string ContentType, byte[] Content);
+
+/// <summary>A DKIM signing key.</summary>
+/// <param name="Domain">The signing domain (d=).</param>
+/// <param name="Selector">The selector (s=).</param>
+/// <param name="PrivateKeyPem">The private key (PKCS #8 PEM), decrypted only for sending.</param>
+public sealed record DkimKey(string Domain, string Selector, string PrivateKeyPem);
 
 /// <summary>What happened to one attempt.</summary>
 /// <param name="Sent">The mail server accepted it.</param>
@@ -103,14 +122,33 @@ public sealed class SmtpEmailSender(NotificationOptions options) : IEmailSender
     {
         ArgumentNullException.ThrowIfNull(message);
         var mime = new MimeMessage();
-        mime.From.Add(new MailboxAddress(message.FromName, from));
+        mime.From.Add(new MailboxAddress(message.FromName, message.FromAddress ?? from));
         mime.To.Add(MailboxAddress.Parse(message.To));
         mime.Subject = message.Subject;
         mime.MessageId = message.MessageId;
         mime.Headers.Add("Auto-Submitted", "auto-generated");
         mime.Headers.Add("X-Auto-Response-Suppress", "All");
         mime.Headers.Add(HeaderId.ContentLanguage, message.Language);
-        mime.Body = new BodyBuilder { TextBody = message.Text, HtmlBody = message.Html }.ToMessageBody();
+        var body = new BodyBuilder { TextBody = message.Text, HtmlBody = message.Html };
+        foreach (var image in message.Images)
+        {
+            var resource = body.LinkedResources.Add(image.ContentId, image.Content, ContentType.Parse(image.ContentType));
+            resource.ContentId = image.ContentId;
+        }
+
+        mime.Body = body.ToMessageBody();
+        if (message.Dkim is { } dkim)
+        {
+            using var key = new MemoryStream(System.Text.Encoding.ASCII.GetBytes(dkim.PrivateKeyPem));
+            var signer = new MimeKit.Cryptography.DkimSigner(key, dkim.Domain, dkim.Selector)
+            {
+                HeaderCanonicalizationAlgorithm = MimeKit.Cryptography.DkimCanonicalizationAlgorithm.Relaxed,
+                BodyCanonicalizationAlgorithm = MimeKit.Cryptography.DkimCanonicalizationAlgorithm.Relaxed,
+            };
+            mime.Prepare(EncodingConstraint.SevenBit);
+            signer.Sign(mime, [HeaderId.From, HeaderId.To, HeaderId.Subject, HeaderId.Date, HeaderId.MessageId, HeaderId.ContentType]);
+        }
+
         return mime;
     }
 
