@@ -1,5 +1,6 @@
 using Microsoft.EntityFrameworkCore;
 using Zelvo.Data;
+using Zelvo.Data.Auditing;
 using Zelvo.Data.Localization;
 using Zelvo.Data.Sla;
 using Zelvo.Tickets.Sla;
@@ -67,7 +68,9 @@ internal sealed class DemoSlaSeeder : IDemoSeeder
         // The sample incidents get their clocks.
         await using var transaction = await db.Database.BeginTransactionAsync(cancellationToken).ConfigureAwait(false);
         var tickets = await db.Tickets.Include(t => t.Incident).ToListAsync(cancellationToken).ConfigureAwait(false);
-        await context.Get<SlaTracker>().UpdateAsync(tickets, DateTimeOffset.UtcNow, cancellationToken).ConfigureAwait(false);
+        // Built here rather than resolved: migrate seeds without the ticket services of the API and worker.
+        var tracker = new SlaTracker(db, context.Get<IAuditLog>());
+        await tracker.UpdateAsync(tickets, DateTimeOffset.UtcNow, cancellationToken).ConfigureAwait(false);
         await db.SaveChangesAsync(cancellationToken).ConfigureAwait(false);
         await transaction.CommitAsync(cancellationToken).ConfigureAwait(false);
     }
