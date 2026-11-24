@@ -98,7 +98,7 @@ test.describe("form builder", () => {
     await bind.getByLabel("Category", { exact: true }).selectOption({ label: category });
     await bind.getByLabel("Form", { exact: true }).selectOption({ label: `Monitor request ${stamp}` });
     await bind.getByRole("button", { name: "Use this form" }).click();
-    await expect(page.getByRole("cell", { name: category })).toBeVisible();
+    await expect(page.getByRole("cell", { name: category, exact: true })).toBeVisible();
 
     // The requester fills the form; the rule shows and requires the size.
     const requesterContext = await browser.newContext();
@@ -107,7 +107,7 @@ test.describe("form builder", () => {
     await requester.goto("/en/my-incidents/new");
     await requester.getByLabel("Title", { exact: true }).fill(title);
     await requester.getByLabel("Category", { exact: true }).selectOption({ label: category });
-    await expect(requester.getByRole("heading", { name: `Monitor request ${stamp}` })).toBeVisible();
+    await expect(requester.getByRole("heading", { name: `Monitor request ${stamp}`, exact: true })).toBeVisible();
     await expect(requester.getByLabel(/Monitor size/)).toHaveCount(0);
     await requester.getByLabel("Add a monitor").check();
     await requester.getByRole("button", { name: "Report incident" }).click();
