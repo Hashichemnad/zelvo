@@ -166,7 +166,7 @@
       },
       "ai": {
         "title": "AI",
-        "description": "AI providers and keys, model per feature, usage and cost, monthly limit and the AI log."
+        "description": "AI providers and keys, model per feature, usage and cost, monthly limit, the AI log, the MCP server for AI agents and your own MCP servers."
       },
       "importExport": {
         "title": "Import and export",
@@ -403,7 +403,19 @@
         "search_manage": "Search index status and rebuild",
         "demo_reset": "Reset the demo",
         "integrations_manage": "Manage integrations",
-        "sla_manage": "Change SLA policies and calendars"
+        "sla_manage": "Change SLA policies and calendars",
+        "directory_manage": "Change categories, locations, skills, groups and assignment rules",
+        "directory_read": "See groups, skills and assignment rules",
+        "incidents_assign": "Assign incidents",
+        "incidents_create": "Log incidents for others",
+        "incidents_edit": "Work on incidents",
+        "incidents_major": "Manage major incidents",
+        "incidents_read": "See every incident",
+        "ai_manage": "Manage AI providers, features, the MCP server and MCP servers",
+        "knowledge_read": "Read internal knowledge articles",
+        "knowledge_write": "Write knowledge articles",
+        "knowledge_publish": "Review, publish and retire knowledge articles",
+        "notifications_manage": "Change notifications and see the email delivery log"
       },
       "events": {
         "user_created": "A user was created",
@@ -644,7 +656,9 @@
         "features": "Features",
         "usage": "Usage and cost",
         "prices": "Prices",
-        "log": "AI log"
+        "log": "AI log",
+        "mcp": "MCP server",
+        "mcpServers": "MCP servers"
       },
       "featureNames": {
         "triage": "Categorise, prioritise and route",
@@ -856,6 +870,117 @@
         "previous": "Previous",
         "next": "Next",
         "pageOf": "Page {page} of {pages}"
+      },
+      "mcp": {
+        "intro": "Zelvo's built-in MCP server lets AI agents such as Claude, ChatGPT, Microsoft Copilot Studio or your own agents work with Zelvo. Each agent connects with its own API key or OAuth client from Settings → Integrations and gets only the tools you turn on that its role allows.",
+        "status": "MCP server",
+        "on": "On",
+        "off": "Off",
+        "turnOn": "Turn the MCP server on",
+        "turnOff": "Turn the MCP server off",
+        "connectTitle": "How agents connect",
+        "connectHelp": "Give the agent the address of the Zelvo API followed by this path, your organisation in the X-Zelvo-Tenant header, and its own credential. It uses the Streamable HTTP transport.",
+        "approvalHelp": "Changes need the approval of a person who may make the change themselves, unless you turn approval off for an agent and tool. Requests expire after {hours} hours. Every action is in the audit log, marked as done by an AI agent.",
+        "agentsTitle": "AI agents",
+        "noAgents": "No integration is an AI agent yet.",
+        "noCandidates": "To add an AI agent, first create an API key or OAuth client in Settings → Integrations.",
+        "addAgent": "Make an integration an AI agent",
+        "chooseIntegration": "Choose an integration",
+        "makeAgent": "Add as AI agent",
+        "agentSaved": "Saved the tools of {name}.",
+        "agentRole": "Role: {role}",
+        "notUsable": "revoked or expired",
+        "toolsOf": "Tools of {name}",
+        "tool": "Tool",
+        "toolOn": "On",
+        "needsApproval": "Needs approval",
+        "readOnly": "Reads only",
+        "notAllowed": "Its role and scopes do not allow this (needs {permission}).",
+        "turnOnTool": "Turn on {tool}",
+        "approvalFor": "{tool} needs a person's approval",
+        "saveAgent": "Save tools",
+        "removeAgent": "Remove as AI agent",
+        "activityTitle": "What AI agents did",
+        "noActivity": "No AI agent has asked for a change yet.",
+        "requested": "Asked",
+        "agent": "Agent",
+        "change": "Change",
+        "actionStatus": "Status",
+        "decidedBy": "Decided by",
+        "noApproval": "Without approval",
+        "invalid": "Check the tools: some are not allowed for this integration.",
+        "kinds": {
+          "ApiKey": "API key",
+          "OAuthClient": "OAuth client"
+        },
+        "statuses": {
+          "Pending": "Waiting for approval",
+          "Rejected": "Rejected",
+          "Expired": "Expired",
+          "Succeeded": "Done",
+          "Failed": "Failed"
+        },
+        "tools": {
+          "search_knowledge": "Search knowledge",
+          "get_knowledge_article": "Read a knowledge article",
+          "search_incidents": "Find incidents",
+          "get_incident": "Read an incident and its status",
+          "get_incident_sla": "Read an incident's SLA clocks",
+          "list_sla_policies": "Read SLA policies",
+          "create_incident": "Raise an incident",
+          "update_incident": "Change an incident",
+          "change_incident_state": "Change an incident's state",
+          "get_action_status": "Check on an approval"
+        }
+      },
+      "mcpServers": {
+        "intro": "Zelvo's AI can use tools of your own MCP servers, for example an HR or asset system. Tools start off; turn on the ones the AI may use. Tools that change data run only after a person approves each use. Credentials are stored encrypted and never shown again.",
+        "empty": "No MCP server is set up.",
+        "addTitle": "Add an MCP server",
+        "name": "Name",
+        "url": "Address",
+        "urlHelp": "The server's Streamable HTTP address, for example https://hr.example.ae/mcp.",
+        "authHeader": "Credential header",
+        "authHeaderHelp": "Authorization sends \"Bearer\" and the credential; other headers send the credential as it is.",
+        "secret": "Credential",
+        "secretHelp": "Leave empty if the server needs none.",
+        "add": "Add and read tools",
+        "invalid": "Check the details and try again.",
+        "statuses": {
+          "Active": "Active",
+          "Disabled": "Switched off"
+        },
+        "secretSet": "Credential set",
+        "noSecret": "No credential",
+        "lastTestOk": "Tools read {at}",
+        "lastTestFailed": "Connection failed {at}",
+        "refresh": "Test and read tools",
+        "disable": "Switch off",
+        "enable": "Switch on",
+        "noTools": "No tools yet: test the connection to read them.",
+        "toolsOf": "Tools of {name}",
+        "tool": "Tool",
+        "toolOn": "On",
+        "changesData": "Changes data",
+        "turnOnTool": "Turn on {tool}",
+        "changesDataFor": "{tool} changes data",
+        "changesDataHelp": "Zelvo's AI runs tools that change data only after a person approves each use.",
+        "missing": "The server no longer offers this tool.",
+        "saveTools": "Save tools",
+        "urlProblems": {
+          "url-invalid": "Enter a full address without user name, password or #fragment.",
+          "url-not-https": "Use an https:// address.",
+          "address-not-allowed": "Zelvo may not connect to this address (this server, internal or reserved networks). The installation's operator can allow internal networks."
+        },
+        "errors": {
+          "server-auth-failed": "The server refused the credential.",
+          "address-not-allowed": "Zelvo may not connect to this address.",
+          "connection-failed": "Zelvo could not connect to the server.",
+          "timeout": "The server did not answer in time.",
+          "server-error": "The server's answer was not valid MCP.",
+          "secret-unreadable": "The stored credential cannot be read; enter it again.",
+          "other": "The connection failed."
+        }
       }
     },
     "knowledge": {
@@ -1036,7 +1161,8 @@
       "Chat": "Chat",
       "WhatsApp": "WhatsApp",
       "Phone": "Phone",
-      "Api": "Integration (API)"
+      "Api": "Integration (API)",
+      "AiAgent": "AI agent (MCP)"
     },
     "fields": {
       "number": "Number",
@@ -1428,6 +1554,8 @@
         "integrations": "Integrations",
         "directory": "Directory and assignment",
         "sla": "SLA management",
+        "ai": "AI",
+        "knowledge": "Knowledge base",
         "notifications": "Notifications"
       },
       "tenant_manage": "Change the organisation's name",
@@ -1449,6 +1577,10 @@
       "directory_read": "See groups, skills and assignment rules",
       "directory_manage": "Change categories, locations, skills, groups and assignment rules",
       "sla_manage": "Change SLA policies, business calendars and customer groups",
+      "ai_manage": "Manage AI providers, features, the MCP server and MCP servers",
+      "knowledge_read": "Read internal knowledge articles",
+      "knowledge_write": "Write knowledge articles",
+      "knowledge_publish": "Review, publish and retire knowledge articles",
       "notifications_manage": "Change notifications and see the email delivery log"
     },
     "assignment": {
@@ -1897,6 +2029,28 @@
       "resultNone": "No policy applies: the incident would have no targets.",
       "allDay": "around the clock"
     }
+  },
+  "aiApprovals": {
+    "nav": "AI approvals",
+    "title": "AI approvals",
+    "intro": "Changes AI agents asked for through Zelvo's MCP server, waiting for a person. You see the ones you may make yourself. Approved changes are made as the AI agent, and the audit log names you as the approver.",
+    "empty": "Nothing is waiting for your approval.",
+    "agent": "AI agent",
+    "tool": "Tool",
+    "requested": "Asked",
+    "expires": "Expires",
+    "ticket": "Ticket",
+    "details": "What the agent sent",
+    "note": "Note for the agent (optional)",
+    "approve": "Approve",
+    "reject": "Reject",
+    "approved": "Approved and done. {ticket}",
+    "approvedButFailed": "Approved, but Zelvo refused the change: {error}",
+    "rejected": "Rejected. Nothing was changed.",
+    "notPending": "This request was already decided or has expired.",
+    "failed": "That did not work. Try again.",
+    "noAccess": "You have no permissions to decide AI agents' changes.",
+    "unavailable": "AI approvals are not available right now."
   },
   "notifications": {
     "title": "Notifications",

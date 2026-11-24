@@ -113,5 +113,5 @@ Development Compose allows HTTP and the Compose network, and has a `webhook-rece
 - **Incidents through integrations (B1 × E1):** integrations with incident scopes can read incidents (list, details, history, updates, attachments), but raising an incident, changing its state, declaring a major incident, posting updates and uploading or removing files record the person who acts, so they answer 403 `people-only` to integrations for now. Who an integration acts for (a service user, or the requester named in the call) is still to decide.
 - Ticket, SLA breach and approval events (B3 and C3 add theirs; incident events are still to add to the catalog), bulk types of later modules, custom fields in the API (C1).
 - Copying configuration from the live installation to the test installation.
-- Connectors and the no-code connector builder (E7); per-agent MCP credentials (E6) will reuse API clients.
+- Connectors and the no-code connector builder (E7). Per-agent MCP credentials (E6) reuse API clients; AI agents may raise incidents through the MCP server for a named requester (`mcp.md`).
 - An outgoing HTTP proxy for webhooks (installations that need one: follow-up).

@@ -1,7 +1,7 @@
 import { defineConfig, devices } from "@playwright/test";
 
 /** Specs that change tenant-wide settings; each runs in its own project, one after another. */
-const tenantWide = [/settings\.spec\.ts/, /uae-pass\.spec\.ts/, /integrations\.spec\.ts/, /directory\.spec\.ts/, /sla\.spec\.ts/, /ai\.spec\.ts/, /knowledge\.spec\.ts/, /notifications\.spec\.ts/];
+const tenantWide = [/settings\.spec\.ts/, /uae-pass\.spec\.ts/, /integrations\.spec\.ts/, /directory\.spec\.ts/, /sla\.spec\.ts/, /ai\.spec\.ts/, /knowledge\.spec\.ts/, /mcp\.spec\.ts/, /notifications\.spec\.ts/];
 
 /** Demo mode needs the demo installation (`make demo`); `make e2e-demo` runs it with E2E_DEMO=1. */
 const demo = /demo\.spec\.ts/;
@@ -78,12 +78,19 @@ export default defineConfig({
           testMatch: /knowledge\.spec\.ts/,
           dependencies: ["tenant-ai"],
         },
-        // Notifications (task B5) sign in as the requester and the admin; after knowledge, on their own.
+        // MCP server (task E6) turns the server on and adds an AI agent; after knowledge, on its own.
+        {
+          name: "tenant-mcp",
+          use: { ...devices["Desktop Chrome"] },
+          testMatch: /mcp\.spec\.ts/,
+          dependencies: ["knowledge"],
+        },
+        // Notifications (task B5) sign in as the requester and the admin; after MCP, on their own.
         {
           name: "notifications",
           use: { ...devices["Desktop Chrome"] },
           testMatch: /notifications\.spec\.ts/,
-          dependencies: ["knowledge"],
+          dependencies: ["tenant-mcp"],
         },
       ],
 });

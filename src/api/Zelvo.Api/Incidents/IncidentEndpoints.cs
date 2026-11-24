@@ -275,8 +275,25 @@ internal static partial class IncidentEndpoints
         CreateIncidentRequest request, HttpContext http, ZelvoDbContext db, CurrentUser user, ITenantContext tenant,
         TenantSettingsStore settings, ISearchIndexer indexer, CancellationToken cancellationToken)
     {
-        var me = user.Account!.Id;
+        // A person, or an AI agent through Zelvo's MCP server (task E6): the agent names the
+        // requester and the ticket records the agent (product owner decision 2026-11-24).
+        var me = user.Account?.Id;
+        var agent = me is null ? user.ApiClient?.Id : null;
         var onBehalf = user.Has(Permissions.IncidentsCreate);
+        if (me is null && (agent is null || !onBehalf))
+        {
+            return (ProblemHttpResult)ApiProblem.Create(StatusCodes.Status403Forbidden, "forbidden", "Only people and AI agents with incidents.create may log incidents.");
+        }
+
+        if (agent is null && request.Channel == TicketChannel.AiAgent)
+        {
+            return UserEndpoints.Validation("channel", "Only AI agents raise incidents through the AI agent channel.");
+        }
+
+        if (me is null && request.RequesterId is null)
+        {
+            return UserEndpoints.Validation("requesterId", "An AI agent names the requester of the incident.");
+        }
         var asked = new List<string>();
         if (request.RequesterId is not null && request.RequesterId != me) asked.Add("requesterId");
         if (request.Channel is not null && request.Channel != TicketChannel.Portal) asked.Add("channel");
@@ -309,7 +326,7 @@ internal static partial class IncidentEndpoints
             return NotInGroup();
         }
 
-        var requesterId = request.RequesterId ?? me;
+        var requesterId = request.RequesterId ?? me!.Value;
         if (requesterId != me && !await db.Users.AnyAsync(u => u.Id == requesterId && u.Status == UserStatus.Active, cancellationToken))
         {
             return UserEndpoints.Validation("requesterId", "The requester is not an active user of this organisation.");
@@ -365,9 +382,10 @@ internal static partial class IncidentEndpoints
             Sequence = sequence,
             Title = request.Title!.Trim(),
             Description = string.IsNullOrWhiteSpace(request.Description) ? null : request.Description.Trim(),
-            Channel = onBehalf ? request.Channel ?? TicketChannel.Phone : TicketChannel.Portal,
+            Channel = agent is not null ? TicketChannel.AiAgent : onBehalf ? request.Channel ?? TicketChannel.Phone : TicketChannel.Portal,
             RequesterId = requesterId,
             CreatedById = me,
+            CreatedByApiClientId = agent,
             ParentId = parent?.Id,
             FollowUpOfId = followUpOf?.Id,
             CategoryId = request.CategoryId,
@@ -665,7 +683,7 @@ internal static partial class IncidentEndpoints
 
         var to = request.State!.Value;
         var mayEdit = user.Has(Permissions.IncidentsEdit);
-        var requesterReopens = to == TicketState.Reopened && ticket.RequesterId == user.Account!.Id;
+        var requesterReopens = to == TicketState.Reopened && user.Account is not null && ticket.RequesterId == user.Account.Id;
         if (!mayEdit && !requesterReopens)
         {
             return (ProblemHttpResult)ApiProblem.Create(StatusCodes.Status403Forbidden, "forbidden",

@@ -34,6 +34,9 @@ internal sealed class FakeAiProvider : IAsyncDisposable
     /// <summary>What the model answers.</summary>
     public string Answer { get; set; } = "OK";
 
+    /// <summary>Answers given one per call before <see cref="Answer"/> (a scripted conversation).</summary>
+    public ConcurrentQueue<string> Script { get; } = new();
+
     /// <summary>Status to answer with (errors carry an error message).</summary>
     public int Status { get; set; } = StatusCodes.Status200OK;
 
@@ -73,11 +76,12 @@ internal sealed class FakeAiProvider : IAsyncDisposable
             return;
         }
 
+        var text = Script.TryDequeue(out var next) ? next : Answer;
         JsonNode answer = path switch
         {
             _ when path.EndsWith("/v1/messages", StringComparison.Ordinal) => new JsonObject
             {
-                ["content"] = new JsonArray { new JsonObject { ["type"] = "text", ["text"] = Answer } },
+                ["content"] = new JsonArray { new JsonObject { ["type"] = "text", ["text"] = text } },
                 ["usage"] = new JsonObject { ["input_tokens"] = InputTokens, ["output_tokens"] = OutputTokens },
                 ["stop_reason"] = "end_turn",
             },
@@ -85,7 +89,7 @@ internal sealed class FakeAiProvider : IAsyncDisposable
             {
                 ["candidates"] = new JsonArray { new JsonObject
                 {
-                    ["content"] = new JsonObject { ["parts"] = new JsonArray { new JsonObject { ["text"] = Answer } }, ["role"] = "model" },
+                    ["content"] = new JsonObject { ["parts"] = new JsonArray { new JsonObject { ["text"] = text } }, ["role"] = "model" },
                     ["finishReason"] = "STOP",
                 } },
                 ["usageMetadata"] = new JsonObject { ["promptTokenCount"] = InputTokens, ["candidatesTokenCount"] = OutputTokens },
@@ -94,7 +98,7 @@ internal sealed class FakeAiProvider : IAsyncDisposable
             {
                 ["choices"] = new JsonArray { new JsonObject
                 {
-                    ["message"] = new JsonObject { ["role"] = "assistant", ["content"] = Answer },
+                    ["message"] = new JsonObject { ["role"] = "assistant", ["content"] = text },
                     ["finish_reason"] = "stop",
                 } },
                 ["usage"] = new JsonObject { ["prompt_tokens"] = InputTokens, ["completion_tokens"] = OutputTokens },

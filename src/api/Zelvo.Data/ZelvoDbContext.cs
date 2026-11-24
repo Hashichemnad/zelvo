@@ -7,6 +7,7 @@ using Zelvo.Data.Identity;
 using Zelvo.Data.Integrations;
 using Zelvo.Data.Knowledge;
 using Zelvo.Data.Localization;
+using Zelvo.Data.Mcp;
 using Zelvo.Data.Notifications;
 using Zelvo.Data.Search;
 using Zelvo.Data.Secrets;
@@ -171,6 +172,15 @@ public sealed class ZelvoDbContext(DbContextOptions<ZelvoDbContext> options) : D
     /// <summary>AI calls: usage, cost and the AI log.</summary>
     public DbSet<AiCall> AiCalls => Set<AiCall>();
 
+    /// <summary>AI agents of the built-in MCP server (module 9, task E6).</summary>
+    public DbSet<McpAgent> McpAgents => Set<McpAgent>();
+
+    /// <summary>Changes AI agents asked for through MCP tools, with their approvals.</summary>
+    public DbSet<McpAction> McpActions => Set<McpAction>();
+
+    /// <summary>Customers' own MCP servers that Zelvo's AI may use as tools.</summary>
+    public DbSet<McpServerConnection> McpServers => Set<McpServerConnection>();
+
     /// <summary>Notifications of people: queue and in-app list (module 10, task B5).</summary>
     public DbSet<Notification> Notifications => Set<Notification>();
 
@@ -254,6 +264,7 @@ public sealed class ZelvoDbContext(DbContextOptions<ZelvoDbContext> options) : D
         ConfigureSla(modelBuilder);
         ConfigureIntegrations(modelBuilder);
         ConfigureAi(modelBuilder);
+        ConfigureMcp(modelBuilder);
         ConfigureKnowledge(modelBuilder);
         ConfigureNotifications(modelBuilder);
 
@@ -396,6 +407,8 @@ public sealed class ZelvoDbContext(DbContextOptions<ZelvoDbContext> options) : D
             ticket.HasOne(t => t.Requester).WithMany().HasForeignKey(t => t.RequesterId).OnDelete(DeleteBehavior.Restrict);
             ticket.HasOne(t => t.Assignee).WithMany().HasForeignKey(t => t.AssigneeId).OnDelete(DeleteBehavior.Restrict);
             ticket.HasOne<UserAccount>().WithMany().HasForeignKey(t => t.CreatedById).OnDelete(DeleteBehavior.Restrict);
+            ticket.HasOne<ApiClient>().WithMany().HasForeignKey(t => t.CreatedByApiClientId).OnDelete(DeleteBehavior.Restrict);
+            ticket.HasIndex(t => t.CreatedByApiClientId);
             // NO ACTION (checked at the end of each statement), so a tenant's tickets can be deleted together.
             ticket.HasOne<Ticket>().WithMany().HasForeignKey(t => t.ParentId).OnDelete(DeleteBehavior.NoAction);
             ticket.HasOne<Ticket>().WithMany().HasForeignKey(t => t.FollowUpOfId).OnDelete(DeleteBehavior.NoAction);
@@ -991,6 +1004,71 @@ public sealed class ZelvoDbContext(DbContextOptions<ZelvoDbContext> options) : D
             call.HasIndex(c => new { c.TenantId, c.Id });
             call.HasIndex(c => c.ProviderId);
             call.HasIndex(c => c.OccurredAt).HasFilter("prompt IS NOT NULL OR response IS NOT NULL").HasDatabaseName("ix_ai_calls_text_retention");
+        });
+    }
+
+    private static void ConfigureMcp(ModelBuilder modelBuilder)
+    {
+        modelBuilder.Entity<McpAgent>(agent =>
+        {
+            agent.ToTable("mcp_agents");
+            agent.HasKey(a => a.ApiClientId);
+            agent.Property(a => a.ApiClientId).ValueGeneratedNever();
+            agent.HasOne<Tenant>().WithMany().HasForeignKey(a => a.TenantId).OnDelete(DeleteBehavior.Restrict);
+            agent.HasOne<ApiClient>().WithOne().HasForeignKey<McpAgent>(a => a.ApiClientId).OnDelete(DeleteBehavior.Restrict);
+            agent.Property(a => a.Version).IsRowVersion();
+            agent.HasIndex(a => a.TenantId);
+        });
+
+        modelBuilder.Entity<McpAction>(action =>
+        {
+            action.ToTable("mcp_actions", table =>
+            {
+                table.HasCheckConstraint("ck_mcp_actions_status", EnumCheck("status", Enum.GetNames<McpActionStatus>()));
+                table.HasCheckConstraint("ck_mcp_actions_tool", "tool ~ '^[a-z][a-z0-9_]*$'");
+                table.HasCheckConstraint("ck_mcp_actions_expiry", "NOT approval_required OR expires_at IS NOT NULL");
+            });
+            action.HasKey(a => a.Id);
+            action.Property(a => a.Id).ValueGeneratedNever();
+            action.HasOne<Tenant>().WithMany().HasForeignKey(a => a.TenantId).OnDelete(DeleteBehavior.Restrict);
+            action.HasOne<ApiClient>().WithMany().HasForeignKey(a => a.ApiClientId).OnDelete(DeleteBehavior.Restrict);
+            action.HasOne<UserAccount>().WithMany().HasForeignKey(a => a.DecidedById).OnDelete(DeleteBehavior.Restrict);
+            action.HasOne<Ticket>().WithMany().HasForeignKey(a => a.TicketId).OnDelete(DeleteBehavior.Restrict);
+            action.Property(a => a.Tool).HasMaxLength(McpAction.ToolMaxLength);
+            action.Property(a => a.Permission).HasMaxLength(100);
+            action.Property(a => a.Arguments).HasColumnType("jsonb");
+            action.Property(a => a.Result).HasColumnType("jsonb");
+            action.Property(a => a.Summary).HasMaxLength(McpAction.SummaryMaxLength);
+            action.Property(a => a.Status).HasConversion<string>().HasMaxLength(20);
+            action.Property(a => a.DecisionNote).HasMaxLength(McpAction.NoteMaxLength);
+            action.Property(a => a.ErrorCode).HasMaxLength(McpAction.ErrorCodeMaxLength);
+            action.Property(a => a.Error).HasMaxLength(McpAction.ErrorMaxLength);
+            action.Property(a => a.Version).IsRowVersion();
+            action.HasIndex(a => new { a.TenantId, a.Status, a.RequestedAt });
+            action.HasIndex(a => new { a.ApiClientId, a.RequestedAt });
+            action.HasIndex(a => a.DecidedById);
+            action.HasIndex(a => a.TicketId);
+        });
+
+        modelBuilder.Entity<McpServerConnection>(server =>
+        {
+            server.ToTable("mcp_servers", table =>
+            {
+                table.HasCheckConstraint("ck_mcp_servers_status", EnumCheck("status", Enum.GetNames<McpServerStatus>()));
+                table.HasCheckConstraint("ck_mcp_servers_url", "url ~ '^https?://'");
+                table.HasCheckConstraint("ck_mcp_servers_auth_header", "auth_header IS NULL OR auth_header ~ '^[A-Za-z][A-Za-z0-9-]*$'");
+            });
+            server.HasKey(s => s.Id);
+            server.Property(s => s.Id).ValueGeneratedNever();
+            server.HasOne<Tenant>().WithMany().HasForeignKey(s => s.TenantId).OnDelete(DeleteBehavior.Restrict);
+            server.Property(s => s.Name).HasMaxLength(McpServerConnection.NameMaxLength);
+            server.Property(s => s.Url).HasMaxLength(McpServerConnection.UrlMaxLength);
+            server.Property(s => s.AuthHeader).HasMaxLength(McpServerConnection.HeaderMaxLength);
+            server.Property(s => s.Status).HasConversion<string>().HasMaxLength(20);
+            server.Property(s => s.Tools).HasColumnType("jsonb");
+            server.Property(s => s.LastTestError).HasMaxLength(McpServerConnection.ErrorMaxLength);
+            server.Property(s => s.Version).IsRowVersion();
+            server.HasIndex(s => new { s.TenantId, s.Status });
         });
     }
 
