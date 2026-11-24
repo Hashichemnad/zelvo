@@ -90,6 +90,19 @@ internal static class Permissions
     /// wording in English and Arabic, test emails and the email delivery log.
     /// </summary>
     public const string NotificationsManage = "notifications.manage";
+
+    /// <summary>
+    /// Agent workspace (module 5, task B4): make and change canned responses for everyone in the
+    /// organisation. Team leads manage their groups' responses without it; everyone who works on
+    /// tickets keeps personal ones.
+    /// </summary>
+    public const string ResponsesManage = "responses.manage";
+
+    /// <summary>
+    /// Agent workspace (task B4): share saved views with everyone in the organisation. Team leads
+    /// share views with their groups without it.
+    /// </summary>
+    public const string WorkspaceViewsShare = "workspace.views.share";
 }
 
 /// <summary>A field of a resource that field rules can hide or make read-only.</summary>
@@ -149,6 +162,8 @@ internal static class PermissionCatalog
         Permissions.KnowledgePublish,
         Permissions.SlaManage,
         Permissions.NotificationsManage,
+        Permissions.ResponsesManage,
+        Permissions.WorkspaceViewsShare,
     ];
 
     /// <summary>

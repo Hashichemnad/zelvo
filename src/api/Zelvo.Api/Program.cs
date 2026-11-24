@@ -22,6 +22,7 @@ using Zelvo.Api.Security.RateLimiting;
 using Zelvo.Api.Settings;
 using Zelvo.Api.Sla;
 using Zelvo.Api.Tenancy;
+using Zelvo.Api.Workspace;
 using Zelvo.Data;
 using Zelvo.Data.Localization;
 using Zelvo.Data.Tenancy;
@@ -84,6 +85,8 @@ builder.Services.AddZelvoApiAi(builder.Configuration);
 builder.Services.AddZelvoKnowledge();
 builder.Services.AddZelvoMcpServer();
 builder.Services.AddZelvoApiNotifications(builder.Configuration);
+// Agent workspace (task B4): live updates over SignalR.
+builder.Services.AddZelvoLiveUpdates();
 
 var app = builder.Build();
 
@@ -134,6 +137,8 @@ v1.MapZelvoMcp();
 v1.MapMcpEndpoints();
 v1.MapMcpServerEndpoints();
 v1.MapNotificationEndpoints();
+v1.MapWorkspaceEndpoints();
+app.MapZelvoLiveUpdates();
 
 await app.RunAsync();
 return 0;

@@ -128,6 +128,11 @@ public sealed class DemoModeTests(DatabaseFixture database) : IAsyncDisposable
             Assert.Equal(await db.Tickets.CountAsync(Ct),
                 await db.Notifications.CountAsync(n => n.EventType == Zelvo.Notifications.NotificationEvents.IncidentReceived, Ct));
             Assert.True(await db.TicketSlas.AnyAsync(c => c.TargetMinutes != null && c.State == Data.Sla.SlaClockState.Running, Ct));
+            // Task B4: canned responses at every scope, shared and personal views, and conversations with a mention.
+            Assert.Equal(3, await db.CannedResponses.Select(r => r.Scope).Distinct().CountAsync(Ct));
+            Assert.Equal(2, await db.SavedViews.CountAsync(Ct));
+            Assert.True(await db.TicketComments.AnyAsync(c => c.Visibility == Data.Tickets.CommentVisibility.Internal, Ct));
+            Assert.True(await db.TicketCommentMentions.AnyAsync(Ct));
         }
     }
 
@@ -145,6 +150,7 @@ public sealed class DemoModeTests(DatabaseFixture database) : IAsyncDisposable
 
         Assert.Contains("b3-sla", ran);
         Assert.Contains("b5-notifications", ran);
+        Assert.Contains("b4-workspace", ran);
         await using var db = TestData.AppContext(database, tenant);
         Assert.True(await db.TicketSlas.AnyAsync(Ct));
         // Task B5: migrate has no notification interceptor; the seeder queues one "received" per sample incident.
