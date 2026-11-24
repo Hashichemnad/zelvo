@@ -4,6 +4,7 @@ import { authConfigFor } from "@/lib/auth/config";
 import { isSameOriginRequest, secretsMatch } from "@/lib/auth/security";
 import { getSession } from "@/lib/auth/session";
 import { isLocale, languageCookieMaxAgeSeconds, languageCookieName } from "@/lib/localization";
+import { isVisitorPath } from "@/lib/visitor-paths";
 
 /**
  * The browser's way to the public API: forwards /bff/api/v1/... to the API with the session's
@@ -18,12 +19,17 @@ async function forward(request: NextRequest, { params }: { params: Promise<{ pat
   }
 
   const session = await getSession(config);
-  if (!session) {
-    return problem(401, "unauthenticated");
-  }
-
   const changes = !["GET", "HEAD"].includes(request.method);
-  if (
+  if (!session) {
+    // Visitors reach only the public knowledge base (D1), and change only views and feedback,
+    // from this site's own pages.
+    if (!isVisitorPath(request.method, path)) {
+      return problem(401, "unauthenticated");
+    }
+    if (changes && !isSameOriginRequest(request.headers.get("origin"), config.appUrl)) {
+      return problem(403, "csrf-failed");
+    }
+  } else if (
     changes &&
     (!isSameOriginRequest(request.headers.get("origin"), config.appUrl) ||
       !secretsMatch(request.headers.get("x-csrf-token"), session.data.csrfToken))
@@ -39,7 +45,7 @@ async function forward(request: NextRequest, { params }: { params: Promise<{ pat
       headers.set(name, value);
     }
   }
-  const response = await apiFetch(target, session.data.accessToken, config.tenant, {
+  const response = await apiFetch(target, session?.data.accessToken ?? "", config.tenant, {
     method: request.method,
     headers,
     body: changes ? await request.arrayBuffer() : undefined,
@@ -77,6 +83,7 @@ function copyHeaders(from: Response, to: NextResponse) {
     "content-type",
     "content-disposition",
     "content-security-policy",
+    "x-content-type-options",
     "cache-control",
     "etag",
     "www-authenticate",

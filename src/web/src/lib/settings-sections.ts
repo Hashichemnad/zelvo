@@ -15,7 +15,13 @@ export interface SettingsSection {
     | "skills"
     | "assignment"
     | "incidents"
-    | "attachments" | "search" | "integrations" | "ai" | "importExport" | "translations";
+    | "attachments"
+    | "knowledge"
+    | "search"
+    | "integrations"
+    | "ai"
+    | "importExport"
+    | "translations";
   /** Path below /[locale]. */
   href: string;
   /** Permission needed to open the section. */
@@ -34,6 +40,7 @@ export const settingsSections: readonly SettingsSection[] = [
   { key: "assignment", href: "/settings/assignment", permission: "directory.read" },
   { key: "incidents", href: "/settings/incidents", permission: "settings.manage" },
   { key: "attachments", href: "/settings/attachments", permission: "settings.manage" },
+  { key: "knowledge", href: "/settings/knowledge", permission: "settings.manage" },
   { key: "search", href: "/settings/search", permission: "search.manage" },
   { key: "integrations", href: "/settings/integrations", permission: "integrations.manage" },
   { key: "ai", href: "/settings/ai", permission: "ai.manage" },

@@ -126,10 +126,15 @@ export interface CurrentUser {
   groups?: { id: string; name: LocalizedText; isLead: boolean }[];
 }
 
-/** Calls the API as the signed-in user, for the session's tenant. */
+/**
+ * Calls the API as the signed-in user, for the session's tenant. An empty access token calls it
+ * as a visitor (only endpoints open to visitors answer).
+ */
 export async function apiFetch(path: string, accessToken: string, tenant: string, init: RequestInit = {}): Promise<Response> {
   const headers = new Headers(init.headers);
-  headers.set("Authorization", `Bearer ${accessToken}`);
+  if (accessToken) {
+    headers.set("Authorization", `Bearer ${accessToken}`);
+  }
   headers.set("X-Zelvo-Tenant", tenant);
   if (!headers.has("Accept")) {
     headers.set("Accept", "application/json");

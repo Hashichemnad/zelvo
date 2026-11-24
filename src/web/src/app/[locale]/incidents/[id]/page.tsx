@@ -5,6 +5,7 @@ import { IncidentFacts } from "@/components/incidents/IncidentFacts";
 import { IncidentHistory } from "@/components/incidents/IncidentHistory";
 import { IncidentWorkPanel } from "@/components/incidents/IncidentWorkPanel";
 import { MajorTimeline } from "@/components/incidents/MajorTimeline";
+import { CreateArticleFromIncident } from "@/components/knowledge/NewArticle";
 import { Link } from "@/i18n/navigation";
 import { loadDirectoryChoices } from "@/lib/directory-pages";
 import { isId, loadAssignees, loadIncident } from "@/lib/incident-pages";
@@ -62,6 +63,9 @@ export default async function IncidentPage({ params }: PageProps<"/[locale]/inci
       </header>
       <IncidentFacts incident={incident} settings={settings} display={display} basePath="/incidents" />
       <IncidentWorkPanel incident={incident} settings={settings} csrfToken={session.data.csrfToken} permissions={permissions} assignees={assignees} directory={directory} />
+      {(incident.state === "Resolved" || closed) && permissions.includes("knowledge.write") && (
+        <CreateArticleFromIncident incidentId={incident.id} csrfToken={session.data.csrfToken} />
+      )}
       {(incident.isMajor || updates.length > 0) && (
         <MajorTimeline
           incidentId={incident.id}
