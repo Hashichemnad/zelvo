@@ -504,11 +504,11 @@ internal sealed record FormSummaryResponse(
 /// <param name="Draft">The draft's elements (<c>{"elements": [...]}</c>).</param>
 /// <param name="DraftFields">The draft's fields with field sets expanded as published now.</param>
 /// <param name="Problems">What stops the draft from being published.</param>
-/// <param name="ETag">Version for If-Match (also in the ETag header).</param>
+/// <param name="Etag">Version for If-Match (also in the ETag header; JSON `etag`, as the web app reads it).</param>
 internal sealed record FormResponse(
     Guid Id, string Key, LocalizedTextDto Name, LocalizedTextDto Description, FormState State, bool HasUnpublishedChanges,
     int? PublishedVersion, DateTimeOffset? PublishedAt, JsonNode? Draft, IReadOnlyList<JsonNode> DraftFields, IReadOnlyList<FormProblem> Problems,
-    IReadOnlyList<FormBindingRef> UsedBy, DateTimeOffset UpdatedAt, uint ETag);
+    IReadOnlyList<FormBindingRef> UsedBy, DateTimeOffset UpdatedAt, uint Etag);
 
 /// <summary>A published version's elements.</summary>
 internal sealed record FormVersionResponse(int Number, DateTimeOffset PublishedAt, JsonNode? Schema);

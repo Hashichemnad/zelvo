@@ -414,8 +414,8 @@ internal sealed record FormUseRef(Guid Id, string Key, LocalizedTextDto Name, Fo
 /// <param name="Published">The published fields, if published.</param>
 /// <param name="Problems">What stops the draft from being published.</param>
 /// <param name="UsedBy">Forms whose draft or published version uses it.</param>
-/// <param name="ETag">Version for If-Match (also in the ETag header).</param>
+/// <param name="Etag">Version for If-Match (also in the ETag header; JSON `etag`, as the web app reads it).</param>
 internal sealed record FieldSetResponse(
     Guid Id, string Key, LocalizedTextDto Name, LocalizedTextDto Description, FormState State, bool HasUnpublishedChanges,
     int? PublishedVersion, DateTimeOffset? PublishedAt, JsonNode? Draft, JsonNode? Published, IReadOnlyList<FormProblem> Problems,
-    IReadOnlyList<FormUseRef> UsedBy, DateTimeOffset UpdatedAt, uint ETag);
+    IReadOnlyList<FormUseRef> UsedBy, DateTimeOffset UpdatedAt, uint Etag);

@@ -184,6 +184,17 @@ public sealed class FormApiTests(DatabaseFixture database) : IAsyncDisposable
         Assert.Equal(HttpStatusCode.Conflict, (await admin.SendAsync(HttpMethod.Post, "/api/v1/forms", new { key = "broken", name = new { en = "Again" } })).StatusCode);
         Assert.Equal(HttpStatusCode.BadRequest, (await admin.SendAsync(HttpMethod.Put, $"/api/v1/forms/{id}/draft", new { schema = new { elements = 3 } })).StatusCode);
 
+        // The builder sends If-Match from the JSON's `etag`; a stale value is refused.
+        var etag = (uint?)form["etag"];
+        Assert.NotNull(etag);
+        using var current = new HttpRequestMessage(HttpMethod.Put, $"/api/v1/forms/{id}/draft") { Content = JsonContent.Create(new { schema = form["draft"] }) };
+        current.Headers.TryAddWithoutValidation("If-Match", $"\"{etag}\"");
+        using var saved = await admin.SendAsync(current, TestContext.Current.CancellationToken);
+        Assert.Equal(HttpStatusCode.OK, saved.StatusCode);
+        using var stale = new HttpRequestMessage(HttpMethod.Put, $"/api/v1/forms/{id}/draft") { Content = JsonContent.Create(new { schema = form["draft"] }) };
+        stale.Headers.TryAddWithoutValidation("If-Match", $"\"{etag}\"");
+        Assert.Equal(HttpStatusCode.PreconditionFailed, (await admin.SendAsync(stale, TestContext.Current.CancellationToken)).StatusCode);
+
         // Missing Arabic labels are reported (LANG-5).
         var missing = await admin.SendOkAsync(HttpMethod.Get, "/api/v1/translations/missing");
         Assert.Contains("fields.size.label", missing.ToJsonString(), StringComparison.Ordinal);
