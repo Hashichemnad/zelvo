@@ -1,6 +1,7 @@
 import { notFound } from "next/navigation";
 import { getTranslations, setRequestLocale } from "next-intl/server";
 import { AttachmentsPanel } from "@/components/incidents/AttachmentsPanel";
+import { FormAnswersView } from "@/components/forms/FormAnswersView";
 import { IncidentFacts } from "@/components/incidents/IncidentFacts";
 import { MajorTimeline } from "@/components/incidents/MajorTimeline";
 import { ReopenButton } from "@/components/incidents/ReopenButton";
@@ -30,7 +31,7 @@ export default async function MyIncidentPage({ params }: PageProps<"/[locale]/my
     getTranslations({ locale, namespace: "incidents" }),
     getTranslations({ locale, namespace: "workspace.conversation" }),
   ]);
-  const [{ incident, settings, attachments, attachmentSettings, updates, display }, comments] = await Promise.all([
+  const [{ incident, settings, attachments, attachmentSettings, updates, display, form }, comments] = await Promise.all([
     loadIncident(id, session.data.accessToken, tenant, locale, { staff: false }),
     getJsonAs<Comment[]>(`/api/v1/incidents/${encodeURIComponent(id)}/comments`, session.data.accessToken, tenant),
   ]);
@@ -60,6 +61,7 @@ export default async function MyIncidentPage({ params }: PageProps<"/[locale]/my
         </h1>
       </header>
       <IncidentFacts incident={incident} settings={settings} display={display} basePath="/my-incidents" />
+      {form && <FormAnswersView view={form} attachmentBase={`/bff/api/v1/incidents/${incident.id}/attachments`} />}
       {incident.canReopen && <ReopenButton incidentId={incident.id} csrfToken={session.data.csrfToken} />}
       {closed && (
         <div className="space-y-2 rounded-lg border border-line p-4">

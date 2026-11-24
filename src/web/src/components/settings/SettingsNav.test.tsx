@@ -19,7 +19,9 @@ describe("Settings sections", () => {
     // Task B2: agents (users.read, directory.read) see the directory read-only; Roles needs roles.manage.
     // Task B3: and the SLA set-up, read-only (sla.manage changes it).
     expect(sectionsFor(["users.read", "directory.read"]).map((s) => s.key)).toEqual(
-      ["users", "groups", "categories", "locations", "skills", "assignment", "slaPolicies", "businessCalendars", "customerGroups"]);
+      ["users", "groups", "categories", "locations", "skills", "departments", "assignment", "slaPolicies", "businessCalendars", "customerGroups"]);
+    // Task C1: forms and field sets need forms.manage.
+    expect(sectionsFor(["forms.manage"]).map((s) => s.key)).toEqual(["forms", "fieldSets"]);
     expect(sectionsFor(["roles.manage"]).map((s) => s.key)).toEqual(["roles"]);
     expect(sectionsFor(["search.manage", "translations.read", "settings.manage"]).map((s) => s.key)).toEqual(["language", "incidents", "attachments", "knowledge", "search", "translations"]);
   });

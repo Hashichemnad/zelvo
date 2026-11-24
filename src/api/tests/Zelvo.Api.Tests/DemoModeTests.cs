@@ -151,11 +151,23 @@ public sealed class DemoModeTests(DatabaseFixture database) : IAsyncDisposable
         Assert.Contains("b3-sla", ran);
         Assert.Contains("b5-notifications", ran);
         Assert.Contains("b4-workspace", ran);
+        Assert.Contains("c1-forms", ran);
         await using var db = TestData.AppContext(database, tenant);
         Assert.True(await db.TicketSlas.AnyAsync(Ct));
         // Task B5: migrate has no notification interceptor; the seeder queues one "received" per sample incident.
         Assert.Equal(await db.Tickets.CountAsync(Ct),
             await db.Notifications.CountAsync(n => n.EventType == Zelvo.Notifications.NotificationEvents.IncidentReceived, Ct));
+
+        // Task C1: published forms with a field set, bound to the default and to Laptops, and profile fields.
+        Assert.Equal(2, await db.Forms.CountAsync(f => f.State == Data.Forms.FormState.Published, Ct));
+        Assert.Equal(2, await db.FormBindings.CountAsync(Ct));
+        Assert.True(await db.FieldSets.AnyAsync(s => s.State == Data.Forms.FormState.Published, Ct));
+        Assert.True(await db.Users.AnyAsync(u => u.DepartmentId != null && u.ManagerId != null && u.Phone != null, Ct));
+        foreach (var form in await db.Forms.ToListAsync(Ct))
+        {
+            var resolved = await Zelvo.Tickets.Forms.FormResolver.PublishedAsync(db, form.Id, Ct);
+            Assert.Empty(Zelvo.Tickets.Forms.FormDefinitionCheck.Check([.. resolved!.PlainFields]));
+        }
     }
 
     [Fact]

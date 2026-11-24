@@ -2,12 +2,13 @@ import "server-only";
 import { getJsonAs } from "./api";
 import { getDisplayFormat } from "./display";
 import type { DateDisplayOptions } from "./format";
+import type { TicketFormView } from "./forms/types";
 import type { Attachment, AttachmentSettings, HistoryEntry, Incident, IncidentSettings, MajorIncidentUpdate, Person } from "./incidents";
 
 /** Everything an incident page shows, loaded in parallel through the public API. */
 export async function loadIncident(id: string, accessToken: string, tenant: string, locale: string, { staff }: { staff: boolean }) {
   const get = <T,>(path: string) => getJsonAs<T>(path, accessToken, tenant);
-  const [incident, settings, attachments, attachmentSettings, updates, history, format] = await Promise.all([
+  const [incident, settings, attachments, attachmentSettings, updates, history, format, form] = await Promise.all([
     get<Incident>(`/api/v1/incidents/${encodeURIComponent(id)}`),
     get<IncidentSettings>("/api/v1/settings/incidents"),
     get<Attachment[]>(`/api/v1/incidents/${encodeURIComponent(id)}/attachments`),
@@ -15,9 +16,11 @@ export async function loadIncident(id: string, accessToken: string, tenant: stri
     get<MajorIncidentUpdate[]>(`/api/v1/incidents/${encodeURIComponent(id)}/updates`),
     staff ? get<HistoryEntry[]>(`/api/v1/incidents/${encodeURIComponent(id)}/history`) : Promise.resolve(null),
     getDisplayFormat(),
+    // Task C1: the form answers given when the incident was reported.
+    get<TicketFormView>(`/api/v1/incidents/${encodeURIComponent(id)}/form`),
   ]);
   const display: DateDisplayOptions = { locale, ...format };
-  return { incident, settings, attachments: attachments ?? [], attachmentSettings, updates: updates ?? [], history: history ?? [], display };
+  return { incident, settings, attachments: attachments ?? [], attachmentSettings, updates: updates ?? [], history: history ?? [], display, form: form?.form ? form : null };
 }
 
 /** Agents incidents can be assigned to (needs incidents.assign). */

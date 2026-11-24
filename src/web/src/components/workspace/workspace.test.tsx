@@ -17,8 +17,9 @@ const replace = vi.fn();
 const refresh = vi.fn();
 vi.mock("@/i18n/navigation", () => ({
   useRouter: () => ({ push, replace, refresh }),
-  Link: ({ href, children, scroll: _scroll, ...rest }: { href: string; children: React.ReactNode; scroll?: boolean }) => (
-    <a href={href} {...rest}>
+  // `scroll` is Next's option, not an attribute: left out of the anchor.
+  Link: ({ href, children, ...rest }: { href: string; children: React.ReactNode; scroll?: boolean }) => (
+    <a href={href} {...Object.fromEntries(Object.entries(rest).filter(([key]) => key !== "scroll"))}>
       {children}
     </a>
   ),

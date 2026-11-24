@@ -3,7 +3,7 @@ import { getTranslations, setRequestLocale } from "next-intl/server";
 import { UserEditForm } from "@/components/directory/UserEditForm";
 import { Link } from "@/i18n/navigation";
 import { getJsonAs } from "@/lib/api";
-import type { DirectoryUser, Role, Skill } from "@/lib/directory";
+import type { Department, DirectoryUser, Role, Skill, TreeNode } from "@/lib/directory";
 import { isId } from "@/lib/incident-pages";
 import { requireSignedIn } from "@/lib/signed-in";
 
@@ -27,10 +27,13 @@ export default async function UserPage({ params }: PageProps<"/[locale]/settings
     return <p role="alert">{tSettings(user ? "noAccess" : "unavailable")}</p>;
   }
   const token = session.data.accessToken;
-  const [account, roles, skills] = await Promise.all([
+  const [account, roles, skills, departments, locations] = await Promise.all([
     getJsonAs<DirectoryUser>(`/api/v1/users/${id}`, token, tenant),
     user.permissions.includes("roles.manage") ? getJsonAs<Role[]>("/api/v1/roles", token, tenant) : Promise.resolve(null),
     user.permissions.includes("directory.read") ? getJsonAs<Skill[]>("/api/v1/skills?includeInactive=true", token, tenant) : Promise.resolve(null),
+    // Task C1: profile fields.
+    getJsonAs<Department[]>("/api/v1/departments", token, tenant),
+    getJsonAs<TreeNode[]>("/api/v1/locations", token, tenant),
   ]);
   if (!account) notFound();
 
@@ -38,7 +41,7 @@ export default async function UserPage({ params }: PageProps<"/[locale]/settings
     <section aria-labelledby="user-heading" className="space-y-4">
       <Link href="/settings/users" className="font-semibold text-brand underline">{t("back")}</Link>
       <h2 id="user-heading" className="text-2xl font-bold" dir="auto">{account.displayName ?? t("noName")}</h2>
-      <UserEditForm initial={account} roles={roles} skills={skills ?? []} csrfToken={session.data.csrfToken} canManage={user.permissions.includes("users.manage")} />
+      <UserEditForm initial={account} roles={roles} skills={skills ?? []} departments={departments ?? []} locations={locations ?? []} csrfToken={session.data.csrfToken} canManage={user.permissions.includes("users.manage")} />
     </section>
   );
 }

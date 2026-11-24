@@ -620,6 +620,52 @@ namespace Zelvo.Data.Migrations
                         });
                 });
 
+            modelBuilder.Entity("Zelvo.Data.Directory.Department", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<bool>("Active")
+                        .HasColumnType("boolean")
+                        .HasColumnName("active");
+
+                    b.Property<DateTimeOffset>("CreatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("created_at");
+
+                    b.Property<Guid>("TenantId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("tenant_id");
+
+                    b.Property<DateTimeOffset>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("updated_at");
+
+                    b.ComplexProperty(typeof(Dictionary<string, object>), "Name", "Zelvo.Data.Directory.Department.Name#LocalizedText", b1 =>
+                        {
+                            b1.IsRequired();
+
+                            b1.Property<string>("Ar")
+                                .HasMaxLength(150)
+                                .HasColumnType("character varying(150)")
+                                .HasColumnName("name_ar");
+
+                            b1.Property<string>("En")
+                                .HasMaxLength(150)
+                                .HasColumnType("character varying(150)")
+                                .HasColumnName("name_en");
+                        });
+
+                    b.HasKey("Id")
+                        .HasName("pk_departments");
+
+                    b.HasIndex("TenantId")
+                        .HasDatabaseName("ix_departments_tenant_id");
+
+                    b.ToTable("departments", (string)null);
+                });
+
             modelBuilder.Entity("Zelvo.Data.Directory.Location", b =>
                 {
                     b.Property<Guid>("Id")
@@ -901,6 +947,434 @@ namespace Zelvo.Data.Migrations
                     b.ToTable("user_skills", (string)null);
                 });
 
+            modelBuilder.Entity("Zelvo.Data.Forms.FieldSet", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<DateTimeOffset>("CreatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("created_at");
+
+                    b.Property<Guid?>("CreatedById")
+                        .HasColumnType("uuid")
+                        .HasColumnName("created_by_id");
+
+                    b.Property<string>("DraftSchema")
+                        .IsRequired()
+                        .HasColumnType("jsonb")
+                        .HasColumnName("draft_schema");
+
+                    b.Property<bool>("HasUnpublishedChanges")
+                        .HasColumnType("boolean")
+                        .HasColumnName("has_unpublished_changes");
+
+                    b.Property<string>("Key")
+                        .IsRequired()
+                        .HasMaxLength(60)
+                        .HasColumnType("character varying(60)")
+                        .HasColumnName("key");
+
+                    b.Property<Guid?>("PublishedVersionId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("published_version_id");
+
+                    b.Property<string>("State")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("character varying(20)")
+                        .HasColumnName("state");
+
+                    b.Property<Guid>("TenantId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("tenant_id");
+
+                    b.Property<DateTimeOffset>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("updated_at");
+
+                    b.Property<uint>("Version")
+                        .IsConcurrencyToken()
+                        .ValueGeneratedOnAddOrUpdate()
+                        .HasColumnType("xid")
+                        .HasColumnName("xmin");
+
+                    b.ComplexProperty(typeof(Dictionary<string, object>), "Description", "Zelvo.Data.Forms.FieldSet.Description#LocalizedText", b1 =>
+                        {
+                            b1.IsRequired();
+
+                            b1.Property<string>("Ar")
+                                .HasMaxLength(1000)
+                                .HasColumnType("character varying(1000)")
+                                .HasColumnName("description_ar");
+
+                            b1.Property<string>("En")
+                                .HasMaxLength(1000)
+                                .HasColumnType("character varying(1000)")
+                                .HasColumnName("description_en");
+                        });
+
+                    b.ComplexProperty(typeof(Dictionary<string, object>), "Name", "Zelvo.Data.Forms.FieldSet.Name#LocalizedText", b1 =>
+                        {
+                            b1.IsRequired();
+
+                            b1.Property<string>("Ar")
+                                .HasMaxLength(150)
+                                .HasColumnType("character varying(150)")
+                                .HasColumnName("name_ar");
+
+                            b1.Property<string>("En")
+                                .HasMaxLength(150)
+                                .HasColumnType("character varying(150)")
+                                .HasColumnName("name_en");
+                        });
+
+                    b.HasKey("Id")
+                        .HasName("pk_field_sets");
+
+                    b.HasIndex("CreatedById")
+                        .HasDatabaseName("ix_field_sets_created_by_id");
+
+                    b.HasIndex("PublishedVersionId")
+                        .HasDatabaseName("ix_field_sets_published_version_id");
+
+                    b.HasIndex("TenantId", "Key")
+                        .IsUnique()
+                        .HasDatabaseName("ix_field_sets_tenant_id_key");
+
+                    b.ToTable("field_sets", null, t =>
+                        {
+                            t.HasCheckConstraint("ck_field_sets_key", "key ~ '^[a-z0-9]([a-z0-9-]{0,58}[a-z0-9])?$'");
+
+                            t.HasCheckConstraint("ck_field_sets_published", "state = 'Draft' OR published_version_id IS NOT NULL");
+
+                            t.HasCheckConstraint("ck_field_sets_state", "state IN ('Draft', 'Published', 'Retired')");
+                        });
+                });
+
+            modelBuilder.Entity("Zelvo.Data.Forms.FieldSetVersion", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<Guid>("FieldSetId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("field_set_id");
+
+                    b.Property<int>("Number")
+                        .HasColumnType("integer")
+                        .HasColumnName("number");
+
+                    b.Property<DateTimeOffset>("PublishedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("published_at");
+
+                    b.Property<Guid?>("PublishedById")
+                        .HasColumnType("uuid")
+                        .HasColumnName("published_by_id");
+
+                    b.Property<string>("Schema")
+                        .IsRequired()
+                        .HasColumnType("jsonb")
+                        .HasColumnName("schema");
+
+                    b.Property<Guid>("TenantId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("tenant_id");
+
+                    b.HasKey("Id")
+                        .HasName("pk_field_set_versions");
+
+                    b.HasIndex("PublishedById")
+                        .HasDatabaseName("ix_field_set_versions_published_by_id");
+
+                    b.HasIndex("TenantId")
+                        .HasDatabaseName("ix_field_set_versions_tenant_id");
+
+                    b.HasIndex("FieldSetId", "Number")
+                        .IsUnique()
+                        .HasDatabaseName("ix_field_set_versions_field_set_id_number");
+
+                    b.ToTable("field_set_versions", null, t =>
+                        {
+                            t.HasCheckConstraint("ck_field_set_versions_number", "number >= 1");
+                        });
+                });
+
+            modelBuilder.Entity("Zelvo.Data.Forms.Form", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<DateTimeOffset>("CreatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("created_at");
+
+                    b.Property<Guid?>("CreatedById")
+                        .HasColumnType("uuid")
+                        .HasColumnName("created_by_id");
+
+                    b.Property<string>("DraftSchema")
+                        .IsRequired()
+                        .HasColumnType("jsonb")
+                        .HasColumnName("draft_schema");
+
+                    b.Property<bool>("HasUnpublishedChanges")
+                        .HasColumnType("boolean")
+                        .HasColumnName("has_unpublished_changes");
+
+                    b.Property<string>("Key")
+                        .IsRequired()
+                        .HasMaxLength(60)
+                        .HasColumnType("character varying(60)")
+                        .HasColumnName("key");
+
+                    b.Property<Guid?>("PublishedVersionId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("published_version_id");
+
+                    b.Property<string>("State")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("character varying(20)")
+                        .HasColumnName("state");
+
+                    b.Property<Guid>("TenantId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("tenant_id");
+
+                    b.Property<DateTimeOffset>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("updated_at");
+
+                    b.Property<uint>("Version")
+                        .IsConcurrencyToken()
+                        .ValueGeneratedOnAddOrUpdate()
+                        .HasColumnType("xid")
+                        .HasColumnName("xmin");
+
+                    b.ComplexProperty(typeof(Dictionary<string, object>), "Description", "Zelvo.Data.Forms.Form.Description#LocalizedText", b1 =>
+                        {
+                            b1.IsRequired();
+
+                            b1.Property<string>("Ar")
+                                .HasMaxLength(1000)
+                                .HasColumnType("character varying(1000)")
+                                .HasColumnName("description_ar");
+
+                            b1.Property<string>("En")
+                                .HasMaxLength(1000)
+                                .HasColumnType("character varying(1000)")
+                                .HasColumnName("description_en");
+                        });
+
+                    b.ComplexProperty(typeof(Dictionary<string, object>), "Name", "Zelvo.Data.Forms.Form.Name#LocalizedText", b1 =>
+                        {
+                            b1.IsRequired();
+
+                            b1.Property<string>("Ar")
+                                .HasMaxLength(150)
+                                .HasColumnType("character varying(150)")
+                                .HasColumnName("name_ar");
+
+                            b1.Property<string>("En")
+                                .HasMaxLength(150)
+                                .HasColumnType("character varying(150)")
+                                .HasColumnName("name_en");
+                        });
+
+                    b.HasKey("Id")
+                        .HasName("pk_forms");
+
+                    b.HasIndex("CreatedById")
+                        .HasDatabaseName("ix_forms_created_by_id");
+
+                    b.HasIndex("PublishedVersionId")
+                        .HasDatabaseName("ix_forms_published_version_id");
+
+                    b.HasIndex("TenantId", "Key")
+                        .IsUnique()
+                        .HasDatabaseName("ix_forms_tenant_id_key");
+
+                    b.ToTable("forms", null, t =>
+                        {
+                            t.HasCheckConstraint("ck_forms_key", "key ~ '^[a-z0-9]([a-z0-9-]{0,58}[a-z0-9])?$'");
+
+                            t.HasCheckConstraint("ck_forms_published", "state = 'Draft' OR published_version_id IS NOT NULL");
+
+                            t.HasCheckConstraint("ck_forms_state", "state IN ('Draft', 'Published', 'Retired')");
+                        });
+                });
+
+            modelBuilder.Entity("Zelvo.Data.Forms.FormBinding", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<Guid?>("CategoryId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("category_id");
+
+                    b.Property<DateTimeOffset>("CreatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("created_at");
+
+                    b.Property<Guid>("FormId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("form_id");
+
+                    b.Property<string>("RecordType")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("character varying(20)")
+                        .HasColumnName("record_type");
+
+                    b.Property<Guid>("TenantId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("tenant_id");
+
+                    b.Property<DateTimeOffset>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("updated_at");
+
+                    b.HasKey("Id")
+                        .HasName("pk_form_bindings");
+
+                    b.HasIndex("CategoryId")
+                        .HasDatabaseName("ix_form_bindings_category_id");
+
+                    b.HasIndex("FormId")
+                        .HasDatabaseName("ix_form_bindings_form_id");
+
+                    b.HasIndex("TenantId", "RecordType", "CategoryId")
+                        .IsUnique()
+                        .HasDatabaseName("ix_form_bindings_tenant_id_record_type_category_id");
+
+                    NpgsqlIndexBuilderExtensions.AreNullsDistinct(b.HasIndex("TenantId", "RecordType", "CategoryId"), false);
+
+                    b.ToTable("form_bindings", null, t =>
+                        {
+                            t.HasCheckConstraint("ck_form_bindings_record_type", "record_type IN ('Incident')");
+                        });
+                });
+
+            modelBuilder.Entity("Zelvo.Data.Forms.FormVersion", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<Guid>("FormId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("form_id");
+
+                    b.Property<int>("Number")
+                        .HasColumnType("integer")
+                        .HasColumnName("number");
+
+                    b.Property<DateTimeOffset>("PublishedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("published_at");
+
+                    b.Property<Guid?>("PublishedById")
+                        .HasColumnType("uuid")
+                        .HasColumnName("published_by_id");
+
+                    b.Property<string>("Schema")
+                        .IsRequired()
+                        .HasColumnType("jsonb")
+                        .HasColumnName("schema");
+
+                    b.Property<Guid>("TenantId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("tenant_id");
+
+                    b.HasKey("Id")
+                        .HasName("pk_form_versions");
+
+                    b.HasIndex("PublishedById")
+                        .HasDatabaseName("ix_form_versions_published_by_id");
+
+                    b.HasIndex("TenantId")
+                        .HasDatabaseName("ix_form_versions_tenant_id");
+
+                    b.HasIndex("FormId", "Number")
+                        .IsUnique()
+                        .HasDatabaseName("ix_form_versions_form_id_number");
+
+                    b.ToTable("form_versions", null, t =>
+                        {
+                            t.HasCheckConstraint("ck_form_versions_number", "number >= 1");
+                        });
+                });
+
+            modelBuilder.Entity("Zelvo.Data.Forms.TicketFormResponse", b =>
+                {
+                    b.Property<Guid>("TicketId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("ticket_id");
+
+                    b.Property<string>("Answers")
+                        .IsRequired()
+                        .HasColumnType("jsonb")
+                        .HasColumnName("answers");
+
+                    b.Property<string>("Fields")
+                        .IsRequired()
+                        .HasColumnType("jsonb")
+                        .HasColumnName("fields");
+
+                    b.Property<Guid>("FormId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("form_id");
+
+                    b.Property<Guid>("FormVersionId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("form_version_id");
+
+                    b.Property<string>("PersonalAnswers")
+                        .IsRequired()
+                        .HasColumnType("jsonb")
+                        .HasColumnName("personal_answers");
+
+                    b.Property<DateTimeOffset>("SubmittedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("submitted_at");
+
+                    b.Property<Guid?>("SubmittedById")
+                        .HasColumnType("uuid")
+                        .HasColumnName("submitted_by_id");
+
+                    b.Property<Guid>("TenantId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("tenant_id");
+
+                    b.Property<DateTimeOffset>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("updated_at");
+
+                    b.HasKey("TicketId")
+                        .HasName("pk_ticket_form_responses");
+
+                    b.HasIndex("FormId")
+                        .HasDatabaseName("ix_ticket_form_responses_form_id");
+
+                    b.HasIndex("FormVersionId")
+                        .HasDatabaseName("ix_ticket_form_responses_form_version_id");
+
+                    b.HasIndex("SubmittedById")
+                        .HasDatabaseName("ix_ticket_form_responses_submitted_by_id");
+
+                    b.HasIndex("TenantId")
+                        .HasDatabaseName("ix_ticket_form_responses_tenant_id");
+
+                    b.ToTable("ticket_form_responses", (string)null);
+                });
+
             modelBuilder.Entity("Zelvo.Data.Identity.IdentitySettings", b =>
                 {
                     b.Property<Guid>("TenantId")
@@ -1108,6 +1582,10 @@ namespace Zelvo.Data.Migrations
                         .HasColumnType("timestamp with time zone")
                         .HasColumnName("created_at");
 
+                    b.Property<Guid?>("DepartmentId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("department_id");
+
                     b.Property<string>("Digits")
                         .HasMaxLength(20)
                         .HasColumnType("character varying(20)")
@@ -1128,6 +1606,11 @@ namespace Zelvo.Data.Migrations
                         .HasColumnType("character varying(15)")
                         .HasColumnName("emirates_id");
 
+                    b.Property<string>("EmployeeId")
+                        .HasMaxLength(50)
+                        .HasColumnType("character varying(50)")
+                        .HasColumnName("employee_id");
+
                     b.PrimitiveCollection<List<string>>("Languages")
                         .IsRequired()
                         .ValueGeneratedOnAdd()
@@ -1138,6 +1621,19 @@ namespace Zelvo.Data.Migrations
                     b.Property<DateTimeOffset?>("LastSeenAt")
                         .HasColumnType("timestamp with time zone")
                         .HasColumnName("last_seen_at");
+
+                    b.Property<Guid?>("LocationId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("location_id");
+
+                    b.Property<Guid?>("ManagerId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("manager_id");
+
+                    b.Property<string>("Phone")
+                        .HasMaxLength(16)
+                        .HasColumnType("character varying(16)")
+                        .HasColumnName("phone");
 
                     b.Property<string>("PreferredLanguage")
                         .HasMaxLength(2)
@@ -1173,6 +1669,15 @@ namespace Zelvo.Data.Migrations
                     b.HasKey("Id")
                         .HasName("pk_users");
 
+                    b.HasIndex("DepartmentId")
+                        .HasDatabaseName("ix_users_department_id");
+
+                    b.HasIndex("LocationId")
+                        .HasDatabaseName("ix_users_location_id");
+
+                    b.HasIndex("ManagerId")
+                        .HasDatabaseName("ix_users_manager_id");
+
                     b.HasIndex("TenantId", "Email")
                         .HasDatabaseName("ix_users_tenant_id_email");
 
@@ -1194,6 +1699,10 @@ namespace Zelvo.Data.Migrations
                             t.HasCheckConstraint("ck_users_emirates_id", "emirates_id ~ '^784[0-9]{12}$'");
 
                             t.HasCheckConstraint("ck_users_languages", "languages <@ ARRAY['en', 'ar']::text[]");
+
+                            t.HasCheckConstraint("ck_users_not_own_manager", "manager_id IS NULL OR manager_id <> id");
+
+                            t.HasCheckConstraint("ck_users_phone", "phone ~ '^\\+[1-9][0-9]{6,14}$'");
 
                             t.HasCheckConstraint("ck_users_preferred_language", "preferred_language IN ('en', 'ar')");
 
@@ -3841,6 +4350,11 @@ namespace Zelvo.Data.Migrations
                         .HasColumnType("character varying(255)")
                         .HasColumnName("file_name");
 
+                    b.Property<string>("FormFieldKey")
+                        .HasMaxLength(60)
+                        .HasColumnType("character varying(60)")
+                        .HasColumnName("form_field_key");
+
                     b.Property<int>("ScanAttempts")
                         .HasColumnType("integer")
                         .HasColumnName("scan_attempts");
@@ -3912,7 +4426,9 @@ namespace Zelvo.Data.Migrations
 
                     b.ToTable("ticket_attachments", null, t =>
                         {
-                            t.HasCheckConstraint("ck_ticket_attachments_owner", "(ticket_id IS NULL) <> (article_id IS NULL)");
+                            t.HasCheckConstraint("ck_ticket_attachments_form_field_key", "form_field_key ~ '^[a-z][a-zA-Z0-9]{0,59}$'");
+
+                            t.HasCheckConstraint("ck_ticket_attachments_owner", "num_nonnulls(ticket_id, article_id) = 1 OR (ticket_id IS NULL AND article_id IS NULL AND form_field_key IS NOT NULL)");
 
                             t.HasCheckConstraint("ck_ticket_attachments_scan_status", "scan_status IN ('Pending', 'Clean', 'Infected', 'NotScanned')");
 
@@ -4367,6 +4883,16 @@ namespace Zelvo.Data.Migrations
                         .HasConstraintName("fk_categories_tenants_tenant_id");
                 });
 
+            modelBuilder.Entity("Zelvo.Data.Directory.Department", b =>
+                {
+                    b.HasOne("Zelvo.Data.Tenancy.Tenant", null)
+                        .WithMany()
+                        .HasForeignKey("TenantId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired()
+                        .HasConstraintName("fk_departments_tenants_tenant_id");
+                });
+
             modelBuilder.Entity("Zelvo.Data.Directory.Location", b =>
                 {
                     b.HasOne("Zelvo.Data.Directory.Location", null)
@@ -4457,6 +4983,156 @@ namespace Zelvo.Data.Migrations
                     b.Navigation("Skill");
                 });
 
+            modelBuilder.Entity("Zelvo.Data.Forms.FieldSet", b =>
+                {
+                    b.HasOne("Zelvo.Data.Identity.UserAccount", null)
+                        .WithMany()
+                        .HasForeignKey("CreatedById")
+                        .OnDelete(DeleteBehavior.SetNull)
+                        .HasConstraintName("fk_field_sets_users_created_by_id");
+
+                    b.HasOne("Zelvo.Data.Forms.FieldSetVersion", null)
+                        .WithMany()
+                        .HasForeignKey("PublishedVersionId")
+                        .OnDelete(DeleteBehavior.NoAction)
+                        .HasConstraintName("fk_field_sets_field_set_versions_published_version_id");
+
+                    b.HasOne("Zelvo.Data.Tenancy.Tenant", null)
+                        .WithMany()
+                        .HasForeignKey("TenantId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired()
+                        .HasConstraintName("fk_field_sets_tenants_tenant_id");
+                });
+
+            modelBuilder.Entity("Zelvo.Data.Forms.FieldSetVersion", b =>
+                {
+                    b.HasOne("Zelvo.Data.Forms.FieldSet", null)
+                        .WithMany()
+                        .HasForeignKey("FieldSetId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired()
+                        .HasConstraintName("fk_field_set_versions_field_sets_field_set_id");
+
+                    b.HasOne("Zelvo.Data.Identity.UserAccount", null)
+                        .WithMany()
+                        .HasForeignKey("PublishedById")
+                        .OnDelete(DeleteBehavior.SetNull)
+                        .HasConstraintName("fk_field_set_versions_users_published_by_id");
+
+                    b.HasOne("Zelvo.Data.Tenancy.Tenant", null)
+                        .WithMany()
+                        .HasForeignKey("TenantId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired()
+                        .HasConstraintName("fk_field_set_versions_tenants_tenant_id");
+                });
+
+            modelBuilder.Entity("Zelvo.Data.Forms.Form", b =>
+                {
+                    b.HasOne("Zelvo.Data.Identity.UserAccount", null)
+                        .WithMany()
+                        .HasForeignKey("CreatedById")
+                        .OnDelete(DeleteBehavior.SetNull)
+                        .HasConstraintName("fk_forms_users_created_by_id");
+
+                    b.HasOne("Zelvo.Data.Forms.FormVersion", null)
+                        .WithMany()
+                        .HasForeignKey("PublishedVersionId")
+                        .OnDelete(DeleteBehavior.NoAction)
+                        .HasConstraintName("fk_forms_form_versions_published_version_id");
+
+                    b.HasOne("Zelvo.Data.Tenancy.Tenant", null)
+                        .WithMany()
+                        .HasForeignKey("TenantId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired()
+                        .HasConstraintName("fk_forms_tenants_tenant_id");
+                });
+
+            modelBuilder.Entity("Zelvo.Data.Forms.FormBinding", b =>
+                {
+                    b.HasOne("Zelvo.Data.Directory.Category", null)
+                        .WithMany()
+                        .HasForeignKey("CategoryId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .HasConstraintName("fk_form_bindings_categories_category_id");
+
+                    b.HasOne("Zelvo.Data.Forms.Form", null)
+                        .WithMany()
+                        .HasForeignKey("FormId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired()
+                        .HasConstraintName("fk_form_bindings_forms_form_id");
+
+                    b.HasOne("Zelvo.Data.Tenancy.Tenant", null)
+                        .WithMany()
+                        .HasForeignKey("TenantId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired()
+                        .HasConstraintName("fk_form_bindings_tenants_tenant_id");
+                });
+
+            modelBuilder.Entity("Zelvo.Data.Forms.FormVersion", b =>
+                {
+                    b.HasOne("Zelvo.Data.Forms.Form", null)
+                        .WithMany()
+                        .HasForeignKey("FormId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired()
+                        .HasConstraintName("fk_form_versions_forms_form_id");
+
+                    b.HasOne("Zelvo.Data.Identity.UserAccount", null)
+                        .WithMany()
+                        .HasForeignKey("PublishedById")
+                        .OnDelete(DeleteBehavior.SetNull)
+                        .HasConstraintName("fk_form_versions_users_published_by_id");
+
+                    b.HasOne("Zelvo.Data.Tenancy.Tenant", null)
+                        .WithMany()
+                        .HasForeignKey("TenantId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired()
+                        .HasConstraintName("fk_form_versions_tenants_tenant_id");
+                });
+
+            modelBuilder.Entity("Zelvo.Data.Forms.TicketFormResponse", b =>
+                {
+                    b.HasOne("Zelvo.Data.Forms.Form", null)
+                        .WithMany()
+                        .HasForeignKey("FormId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired()
+                        .HasConstraintName("fk_ticket_form_responses_forms_form_id");
+
+                    b.HasOne("Zelvo.Data.Forms.FormVersion", null)
+                        .WithMany()
+                        .HasForeignKey("FormVersionId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired()
+                        .HasConstraintName("fk_ticket_form_responses_form_versions_form_version_id");
+
+                    b.HasOne("Zelvo.Data.Identity.UserAccount", null)
+                        .WithMany()
+                        .HasForeignKey("SubmittedById")
+                        .OnDelete(DeleteBehavior.SetNull)
+                        .HasConstraintName("fk_ticket_form_responses_users_submitted_by_id");
+
+                    b.HasOne("Zelvo.Data.Tenancy.Tenant", null)
+                        .WithMany()
+                        .HasForeignKey("TenantId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired()
+                        .HasConstraintName("fk_ticket_form_responses_tenants_tenant_id");
+
+                    b.HasOne("Zelvo.Data.Tickets.Ticket", null)
+                        .WithOne()
+                        .HasForeignKey("Zelvo.Data.Forms.TicketFormResponse", "TicketId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired()
+                        .HasConstraintName("fk_ticket_form_responses_tickets_ticket_id");
+                });
+
             modelBuilder.Entity("Zelvo.Data.Identity.IdentitySettings", b =>
                 {
                     b.HasOne("Zelvo.Data.Tenancy.Tenant", null)
@@ -4509,6 +5185,24 @@ namespace Zelvo.Data.Migrations
 
             modelBuilder.Entity("Zelvo.Data.Identity.UserAccount", b =>
                 {
+                    b.HasOne("Zelvo.Data.Directory.Department", null)
+                        .WithMany()
+                        .HasForeignKey("DepartmentId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .HasConstraintName("fk_users_departments_department_id");
+
+                    b.HasOne("Zelvo.Data.Directory.Location", null)
+                        .WithMany()
+                        .HasForeignKey("LocationId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .HasConstraintName("fk_users_locations_location_id");
+
+                    b.HasOne("Zelvo.Data.Identity.UserAccount", null)
+                        .WithMany()
+                        .HasForeignKey("ManagerId")
+                        .OnDelete(DeleteBehavior.SetNull)
+                        .HasConstraintName("fk_users_users_manager_id");
+
                     b.HasOne("Zelvo.Data.Tenancy.Tenant", null)
                         .WithMany()
                         .HasForeignKey("TenantId")

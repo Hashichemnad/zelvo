@@ -92,6 +92,12 @@ internal static class Permissions
     public const string NotificationsManage = "notifications.manage";
 
     /// <summary>
+    /// Build and publish forms and field sets, and choose which form each record type and category
+    /// uses (task C1, module 2). Anyone may fill in a published form they are given.
+    /// </summary>
+    public const string FormsManage = "forms.manage";
+
+    /// <summary>
     /// Agent workspace (module 5, task B4): make and change canned responses for everyone in the
     /// organisation. Team leads manage their groups' responses without it; everyone who works on
     /// tickets keeps personal ones.
@@ -162,6 +168,7 @@ internal static class PermissionCatalog
         Permissions.KnowledgePublish,
         Permissions.SlaManage,
         Permissions.NotificationsManage,
+        Permissions.FormsManage,
         Permissions.ResponsesManage,
         Permissions.WorkspaceViewsShare,
     ];
@@ -201,6 +208,12 @@ internal static class PermissionCatalog
             new FieldDefinition("languages", Writable: true),
             new FieldDefinition("availableForAssignment", Writable: true),
             new FieldDefinition("groups"),
+            // Task C1: profile fields that forms fill in.
+            new FieldDefinition("department", Writable: true),
+            new FieldDefinition("manager", Writable: true),
+            new FieldDefinition("location", Writable: true),
+            new FieldDefinition("employeeId", Writable: true),
+            new FieldDefinition("phone", Sensitive: true, Writable: true),
         ]);
 
     /// <summary>Incidents (module 1), as staff see them. Requesters see their own through a fixed, smaller view.</summary>
@@ -242,7 +255,7 @@ internal static class PermissionCatalog
         new(BuiltInRoles.Approver, new LocalizedText("Approver", "المعتمِد"), [], new Dictionary<string, FieldAccess>()),
         new(BuiltInRoles.TenantAdmin, new LocalizedText("Tenant administrator", "مسؤول الجهة"),
             All,
-            new Dictionary<string, FieldAccess> { ["users.email"] = FieldAccess.Read, ["users.emiratesId"] = FieldAccess.Edit }),
+            new Dictionary<string, FieldAccess> { ["users.email"] = FieldAccess.Read, ["users.emiratesId"] = FieldAccess.Edit, ["users.phone"] = FieldAccess.Edit }),
         new(BuiltInRoles.ExecutiveAuditor, new LocalizedText("Executive / auditor", "تنفيذي / مدقق"),
             [Permissions.AuditRead, Permissions.UsersRead, Permissions.IncidentsRead, Permissions.DirectoryRead, Permissions.KnowledgeRead],
             new Dictionary<string, FieldAccess> { ["users.email"] = FieldAccess.Read }),

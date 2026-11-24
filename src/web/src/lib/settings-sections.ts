@@ -13,12 +13,15 @@ export interface SettingsSection {
     | "categories"
     | "locations"
     | "skills"
+    | "departments"
     | "assignment"
     | "slaPolicies"
     | "businessCalendars"
     | "customerGroups"
     | "incidents"
     | "attachments"
+    | "forms"
+    | "fieldSets"
     | "knowledge"
     | "notifications"
     | "cannedResponses"
@@ -42,12 +45,15 @@ export const settingsSections: readonly SettingsSection[] = [
   { key: "categories", href: "/settings/categories", permission: "directory.read" },
   { key: "locations", href: "/settings/locations", permission: "directory.read" },
   { key: "skills", href: "/settings/skills", permission: "directory.read" },
+  { key: "departments", href: "/settings/departments", permission: "directory.read" },
   { key: "assignment", href: "/settings/assignment", permission: "directory.read" },
   { key: "slaPolicies", href: "/settings/sla-policies", permission: "directory.read" },
   { key: "businessCalendars", href: "/settings/business-calendars", permission: "directory.read" },
   { key: "customerGroups", href: "/settings/customer-groups", permission: "directory.read" },
   { key: "incidents", href: "/settings/incidents", permission: "settings.manage" },
   { key: "attachments", href: "/settings/attachments", permission: "settings.manage" },
+  { key: "forms", href: "/settings/forms", permission: "forms.manage" },
+  { key: "fieldSets", href: "/settings/field-sets", permission: "forms.manage" },
   { key: "knowledge", href: "/settings/knowledge", permission: "settings.manage" },
   { key: "notifications", href: "/settings/notifications", permission: "notifications.manage" },
   // Task B4: everyone who works on incidents keeps their own; leads and administrators share them.

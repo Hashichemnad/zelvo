@@ -1,0 +1,114 @@
+{
+  "$comment": "Task C1: cases shared by the server (Zelvo.Tickets.Forms) and the web app (src/web/src/lib/forms) so both check formats and evaluate rules the same way. Expected null means not valid.",
+  "formats": [
+    { "format": "EmiratesId", "input": "784-1990-1234567-6", "expected": "784199012345676" },
+    { "format": "EmiratesId", "input": "784199012345676", "expected": "784199012345676" },
+    { "format": "EmiratesId", "input": "٧٨٤١٩٩٠١٢٣٤٥٦٧٦", "expected": "784199012345676" },
+    { "format": "EmiratesId", "input": "784-1990-1234567-5", "expected": null },
+    { "format": "EmiratesId", "input": "785199012345676", "expected": null },
+    { "format": "EmiratesId", "input": "78419901234567", "expected": null },
+    { "format": "EmiratesId", "input": "784-1990-12345a7-6", "expected": null },
+    { "format": "Phone", "input": "+971 50 123 4567", "expected": "+971501234567" },
+    { "format": "Phone", "input": "050 123 4567", "expected": "+971501234567" },
+    { "format": "Phone", "input": "04 123 4567", "expected": "+97141234567" },
+    { "format": "Phone", "input": "00971501234567", "expected": "+971501234567" },
+    { "format": "Phone", "input": "+44 20 7946 0958", "expected": "+442079460958" },
+    { "format": "Phone", "input": "(050) 123-4567", "expected": "+971501234567" },
+    { "format": "Phone", "input": "+971 50 123 456", "expected": null },
+    { "format": "Phone", "input": "501234567", "expected": null },
+    { "format": "Phone", "input": "+0 123 4567", "expected": null },
+    { "format": "Phone", "input": "phone", "expected": null },
+    { "format": "Email", "input": "Sara@Example.AE", "expected": "Sara@example.ae" },
+    { "format": "Email", "input": " sara.ali@example.gov.ae ", "expected": "sara.ali@example.gov.ae" },
+    { "format": "Email", "input": "sara@localhost", "expected": null },
+    { "format": "Email", "input": "sara example.ae", "expected": null },
+    { "format": "Email", "input": "Sara <sara@example.ae>", "expected": null },
+    { "format": "Iban", "input": "AE07 0331 2345 6789 0123 456", "expected": "AE070331234567890123456" },
+    { "format": "Iban", "input": "ae070331234567890123456", "expected": "AE070331234567890123456" },
+    { "format": "Iban", "input": "GB82 WEST 1234 5698 7654 32", "expected": "GB82WEST12345698765432" },
+    { "format": "Iban", "input": "SA03 8000 0000 6080 1016 7519", "expected": "SA0380000000608010167519" },
+    { "format": "Iban", "input": "AE07 0331 2345 6789 0123 457", "expected": null },
+    { "format": "Iban", "input": "AE07 0331 2345 6789 0123 45", "expected": null },
+    { "format": "Iban", "input": "AE07-0331-2345-6789-0123-456", "expected": "AE070331234567890123456" },
+    { "format": "Iban", "input": "AE07_0331", "expected": null }
+  ],
+  "rules": [
+    {
+      "name": "show only when ticked (the module 2 example)",
+      "fields": [
+        { "key": "addMonitor", "type": "Checkbox", "label": { "en": "Add a monitor" } },
+        { "key": "monitorSize", "type": "Dropdown", "label": { "en": "Monitor size" },
+          "options": [{ "value": "24", "label": { "en": "24 inch" } }, { "value": "27", "label": { "en": "27 inch" } }],
+          "rules": [{ "action": "Show", "match": "All", "conditions": [{ "field": "addMonitor", "operator": "Checked" }] },
+                    { "action": "Require", "match": "All", "conditions": [{ "field": "addMonitor", "operator": "Checked" }] }] }
+      ],
+      "cases": [
+        { "answers": {}, "expected": { "addMonitor": [true, false, false], "monitorSize": [false, false, false] } },
+        { "answers": { "addMonitor": false }, "expected": { "monitorSize": [false, false, false] } },
+        { "answers": { "addMonitor": true }, "expected": { "monitorSize": [true, true, false] } }
+      ]
+    },
+    {
+      "name": "hide wins over show; read-only by a rule",
+      "fields": [
+        { "key": "kind", "type": "Radio", "label": { "en": "Kind" },
+          "options": [{ "value": "hardware", "label": { "en": "Hardware" } }, { "value": "software", "label": { "en": "Software" } }] },
+        { "key": "vip", "type": "Checkbox", "label": { "en": "VIP" } },
+        { "key": "serial", "type": "Text", "label": { "en": "Serial number" }, "required": true,
+          "rules": [{ "action": "Show", "match": "All", "conditions": [{ "field": "kind", "operator": "Equals", "value": "hardware" }] },
+                    { "action": "Hide", "match": "All", "conditions": [{ "field": "vip", "operator": "Checked" }] },
+                    { "action": "ReadOnly", "match": "Any", "conditions": [{ "field": "kind", "operator": "Equals", "value": "software" }, { "field": "vip", "operator": "Checked" }] }] }
+      ],
+      "cases": [
+        { "answers": { "kind": "hardware" }, "expected": { "serial": [true, true, false] } },
+        { "answers": { "kind": "HARDWARE" }, "expected": { "serial": [true, true, false] } },
+        { "answers": { "kind": "hardware", "vip": true }, "expected": { "serial": [false, false, true] } },
+        { "answers": { "kind": "software" }, "expected": { "serial": [false, false, true] } },
+        { "answers": {}, "expected": { "serial": [false, false, false] } }
+      ]
+    },
+    {
+      "name": "a hidden field counts as not answered (chains)",
+      "fields": [
+        { "key": "a", "type": "Checkbox", "label": { "en": "A" } },
+        { "key": "b", "type": "Text", "label": { "en": "B" },
+          "rules": [{ "action": "Show", "match": "All", "conditions": [{ "field": "a", "operator": "Checked" }] }] },
+        { "key": "c", "type": "Text", "label": { "en": "C" },
+          "rules": [{ "action": "Require", "match": "All", "conditions": [{ "field": "b", "operator": "NotEmpty" }] }] }
+      ],
+      "cases": [
+        { "answers": { "a": true, "b": "x" }, "expected": { "b": [true, false, false], "c": [true, true, false] } },
+        { "answers": { "a": false, "b": "x" }, "expected": { "b": [false, false, false], "c": [true, false, false] } },
+        { "answers": { "a": true, "b": "   " }, "expected": { "c": [true, false, false] } }
+      ]
+    },
+    {
+      "name": "numbers, dates, contains and several choices",
+      "fields": [
+        { "key": "amount", "type": "Number", "label": { "en": "Amount" } },
+        { "key": "needed", "type": "Date", "label": { "en": "Needed by" } },
+        { "key": "notes", "type": "Text", "label": { "en": "Notes" } },
+        { "key": "tags", "type": "Dropdown", "multiple": true, "label": { "en": "Tags" },
+          "options": [{ "value": "urgent", "label": { "en": "Urgent" } }, { "value": "vip", "label": { "en": "VIP" } }] },
+        { "key": "approval", "type": "Text", "label": { "en": "Approval reason" },
+          "rules": [{ "action": "Require", "match": "Any", "conditions": [
+            { "field": "amount", "operator": "GreaterThan", "value": "5000" },
+            { "field": "needed", "operator": "LessThan", "value": "2026-01-01" },
+            { "field": "notes", "operator": "Contains", "value": "Budget" },
+            { "field": "tags", "operator": "Equals", "value": "urgent" }] }] },
+        { "key": "other", "type": "Text", "label": { "en": "Other" },
+          "rules": [{ "action": "Show", "match": "All", "conditions": [{ "field": "tags", "operator": "NotEquals", "value": "vip" }, { "field": "amount", "operator": "Empty" }] }] }
+      ],
+      "cases": [
+        { "answers": { "amount": 5000 }, "expected": { "approval": [true, false, false], "other": [false, false, false] } },
+        { "answers": { "amount": 5000.5 }, "expected": { "approval": [true, true, false] } },
+        { "answers": { "needed": "2025-12-31" }, "expected": { "approval": [true, true, false], "other": [true, false, false] } },
+        { "answers": { "needed": "2026-01-01" }, "expected": { "approval": [true, false, false] } },
+        { "answers": { "notes": "over the budget line" }, "expected": { "approval": [true, true, false] } },
+        { "answers": { "tags": ["vip", "urgent"] }, "expected": { "approval": [true, true, false], "other": [false, false, false] } },
+        { "answers": { "tags": [] }, "expected": { "approval": [true, false, false], "other": [true, false, false] } },
+        { "answers": { "amount": "not a number" }, "expected": { "approval": [true, false, false] } }
+      ]
+    }
+  ]
+}

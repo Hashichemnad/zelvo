@@ -34,10 +34,10 @@ async function refused(response: Response, what: string): Promise<ApiError> {
  * Browser calls to the API go through the web app's proxy (/bff/api/...), which adds the
  * session's access token. Changes carry the session's CSRF token.
  */
-export async function putJson<T>(path: string, body: unknown, csrfToken: string): Promise<T> {
+export async function putJson<T>(path: string, body: unknown, csrfToken: string, extraHeaders: Record<string, string> = {}): Promise<T> {
   const response = await fetch(`/bff/api${path}`, {
     method: "PUT",
-    headers: { "Content-Type": "application/json", Accept: "application/json", "X-CSRF-Token": csrfToken },
+    headers: { "Content-Type": "application/json", Accept: "application/json", "X-CSRF-Token": csrfToken, ...extraHeaders },
     body: JSON.stringify(body),
   });
   if (!response.ok) {
@@ -56,10 +56,10 @@ export async function getJson<T>(path: string): Promise<T> {
 }
 
 /** POST through the proxy, with the CSRF token. */
-export async function postJson<T>(path: string, body: unknown, csrfToken: string): Promise<T> {
+export async function postJson<T>(path: string, body: unknown, csrfToken: string, extraHeaders: Record<string, string> = {}): Promise<T> {
   const response = await fetch(`/bff/api${path}`, {
     method: "POST",
-    headers: { "Content-Type": "application/json", Accept: "application/json", "X-CSRF-Token": csrfToken },
+    headers: { "Content-Type": "application/json", Accept: "application/json", "X-CSRF-Token": csrfToken, ...extraHeaders },
     body: body === undefined ? undefined : JSON.stringify(body),
   });
   if (!response.ok) {

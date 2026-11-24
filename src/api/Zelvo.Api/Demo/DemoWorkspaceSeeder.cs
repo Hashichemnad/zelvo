@@ -18,9 +18,9 @@ internal sealed class DemoWorkspaceSeeder : IDemoSeeder
 {
     public string Key => "b4-workspace";
 
-    // After directory (110), SLA (120) and notifications (130): the comments' notifications are
+    // After directory (110), SLA (120), notifications (130) and forms (140): the comments' notifications are
     // raised by the save like any others.
-    public int Order => 140;
+    public int Order => 150;
 
     public async Task SeedAsync(DemoSeedContext context, CancellationToken cancellationToken)
     {

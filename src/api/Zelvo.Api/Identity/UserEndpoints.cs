@@ -16,7 +16,7 @@ namespace Zelvo.Api.Identity;
 /// <summary>Users of the tenant. Field rules decide which fields each caller sees and may change.</summary>
 internal static partial class UserEndpoints
 {
-    private static readonly string[] SensitiveFields = ["email", "emiratesId"];
+    private static readonly string[] SensitiveFields = ["email", "emiratesId", "phone"];
 
     [LoggerMessage(Level = LogLevel.Error, Message = "Could not record the Emirates ID in Keycloak.")]
     private static partial void LogKeycloakRefused(ILogger logger, Exception exception);
@@ -39,7 +39,7 @@ internal static partial class UserEndpoints
 
         users.MapPatch("/{id:guid}", UpdateAsync)
             .WithName("UpdateUser")
-            .WithSummary("Change a user's display name, status or Emirates ID (used to match UAE PASS sign-ins; empty string removes it). Needs edit access to each field; audited.")
+            .WithSummary("Change a user's display name, status, Emirates ID (used to match UAE PASS sign-ins), department, manager, location, employee number or phone (task C1; empty string removes a value). Needs edit access to each field; audited.")
             .RequirePermission(Permissions.UsersManage)
             .Produces<UserResponse>()
             .ProducesValidationProblem();
@@ -101,11 +101,12 @@ internal static partial class UserEndpoints
         var total = await query.LongCountAsync(cancellationToken);
         var items = await query.Skip(page.Skip).Take(page.Size).ToListAsync(cancellationToken);
         var groups = await GroupsOfAsync(db, [.. items.Select(u => u.Id)], cancellationToken);
+        var profiles = await ProfileRefs.LoadAsync(db, items, cancellationToken);
 
         await RecordSensitiveViewAsync(user, audit, items, cancellationToken);
         var json = new JsonObject
         {
-            ["items"] = new JsonArray([.. items.Select(u => (JsonNode)FieldFilter.Apply(user, PermissionCatalog.Users, UserResponse.From(u, groups)))]),
+            ["items"] = new JsonArray([.. items.Select(u => (JsonNode)FieldFilter.Apply(user, PermissionCatalog.Users, UserResponse.From(u, groups, profiles)))]),
             ["page"] = page.Number,
             ["pageSize"] = page.Size,
             ["totalCount"] = total,
@@ -240,7 +241,8 @@ internal static partial class UserEndpoints
     }
 
     internal static async Task<JsonObject> ResponseAsync(ZelvoDbContext db, CurrentUser user, UserAccount account, CancellationToken cancellationToken) =>
-        FieldFilter.Apply(user, PermissionCatalog.Users, UserResponse.From(account, await GroupsOfAsync(db, [account.Id], cancellationToken)));
+        FieldFilter.Apply(user, PermissionCatalog.Users, UserResponse.From(account, await GroupsOfAsync(db, [account.Id], cancellationToken),
+            await ProfileRefs.LoadAsync(db, [account], cancellationToken)));
 
     /// <summary>The groups of each user, by name.</summary>
     internal static async Task<ILookup<Guid, UserGroupResponse>> GroupsOfAsync(ZelvoDbContext db, IReadOnlyList<Guid> userIds, CancellationToken cancellationToken)
@@ -291,6 +293,15 @@ internal static partial class UserEndpoints
             changed.Add("availableForAssignment");
         }
 
+        // Task C1: profile fields that forms fill in.
+        var profile = ProfileChange.Parse(request);
+        if (profile.Error is { } profileError)
+        {
+            return Validation(profileError.Field, profileError.Message);
+        }
+
+        changed.AddRange(profile.Fields);
+
         var refused = FieldFilter.NotEditable(user, PermissionCatalog.Users, changed);
         if (refused.Count > 0)
         {
@@ -329,6 +340,10 @@ internal static partial class UserEndpoints
         }
 
         account.AvailableForAssignment = request.AvailableForAssignment ?? account.AvailableForAssignment;
+        if (await profile.ApplyAsync(db, account, cancellationToken) is { } applyError)
+        {
+            return Validation(applyError.Field, applyError.Message);
+        }
 
         var newEmiratesId = string.IsNullOrEmpty(emiratesId) ? null : emiratesId;
         var emiratesIdChanged = request.EmiratesId is not null && newEmiratesId != account.EmiratesId;
@@ -467,18 +482,26 @@ internal static partial class UserEndpoints
 /// <param name="Languages">Languages the user handles tickets in (task B2).</param>
 /// <param name="AvailableForAssignment">Whether round-robin may give them tickets (task B2).</param>
 /// <param name="Groups">Groups the user belongs to (task B2).</param>
+/// <param name="Department">Department (task C1).</param>
+/// <param name="Manager">Manager (task C1).</param>
+/// <param name="Location">Where the user works (task C1).</param>
+/// <param name="EmployeeId">Employee number (task C1).</param>
+/// <param name="Phone">Phone number (task C1; personal data: hidden unless a role is given access).</param>
 internal sealed record UserResponse(
     Guid Id, string? DisplayName, string? Email, string? EmiratesId, UserStatus Status, IReadOnlyList<string> Roles,
     DateTimeOffset? LastSeenAt, DateTimeOffset CreatedAt,
-    IReadOnlyList<ServiceDesk.NamedRef> Skills, IReadOnlyList<string> Languages, bool AvailableForAssignment, IReadOnlyList<UserGroupResponse> Groups)
+    IReadOnlyList<ServiceDesk.NamedRef> Skills, IReadOnlyList<string> Languages, bool AvailableForAssignment, IReadOnlyList<UserGroupResponse> Groups,
+    ServiceDesk.NamedRef? Department, PersonRef? Manager, ServiceDesk.NodeRef? Location, string? EmployeeId, string? Phone)
 {
-    public static UserResponse From(UserAccount account, ILookup<Guid, UserGroupResponse>? groups = null) => new(
+    public static UserResponse From(UserAccount account, ILookup<Guid, UserGroupResponse>? groups = null, ProfileRefs? profiles = null) => new(
         account.Id, account.DisplayName, account.Email, account.EmiratesId, account.Status,
         [.. account.Roles.Select(r => r.Role!.Key).Order(StringComparer.Ordinal)],
         account.LastSeenAt, account.CreatedAt,
         [.. account.Skills.Where(s => s.Skill is not null).Select(s => ServiceDesk.NamedRef.From(s.SkillId, s.Skill!.Name)).OrderBy(s => s.Name.En, StringComparer.OrdinalIgnoreCase)],
         account.Languages, account.AvailableForAssignment,
-        [.. (groups?[account.Id] ?? []).OrderBy(g => g.Name.En, StringComparer.OrdinalIgnoreCase)]);
+        [.. (groups?[account.Id] ?? []).OrderBy(g => g.Name.En, StringComparer.OrdinalIgnoreCase)],
+        profiles?.Department(account.DepartmentId), profiles?.Manager(account.ManagerId), profiles?.Location(account.LocationId),
+        account.EmployeeId, account.Phone);
 }
 
 /// <summary>A group a user belongs to.</summary>
@@ -552,6 +575,26 @@ public sealed class UpdateUserRequest
 
     /// <summary>Whether round-robin may give the user tickets (task B2).</summary>
     public bool? AvailableForAssignment { get; init; }
+
+    /// <summary>Task C1: id of an active department; empty string removes it.</summary>
+    [MaxLength(36)]
+    public string? DepartmentId { get; init; }
+
+    /// <summary>Task C1: id of the user's manager, an active user; empty string removes it.</summary>
+    [MaxLength(36)]
+    public string? ManagerId { get; init; }
+
+    /// <summary>Task C1: id of a location that can be chosen; empty string removes it.</summary>
+    [MaxLength(36)]
+    public string? LocationId { get; init; }
+
+    /// <summary>Task C1: employee number, up to 50 characters; empty string removes it.</summary>
+    [MaxLength(UserAccount.EmployeeIdMaxLength)]
+    public string? EmployeeId { get; init; }
+
+    /// <summary>Task C1: phone number (international form, or a UAE number written locally); empty string removes it.</summary>
+    [MaxLength(30)]
+    public string? Phone { get; init; }
 }
 
 /// <summary>The complete list of a user's roles.</summary>

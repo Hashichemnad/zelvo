@@ -141,8 +141,11 @@ internal sealed class DemoReset(
         while (remaining.Count > 0)
         {
             // A table can go once no other remaining table refers to it.
+            // A reference that cascades from a table this table itself refers to is removed with it
+            // (task C1: a form's versions go with the form that points at its published version).
             var leaves = remaining.Where(e => !remaining.Any(other => other != e
-                && other.GetForeignKeys().Any(fk => fk.PrincipalEntityType == e))).ToList();
+                && other.GetForeignKeys().Any(fk => fk.PrincipalEntityType == e
+                    && !(fk.DeleteBehavior == DeleteBehavior.Cascade && e.GetForeignKeys().Any(back => back.PrincipalEntityType == other && back.DeleteBehavior == DeleteBehavior.NoAction))))).ToList();
             if (leaves.Count == 0)
             {
                 throw new InvalidOperationException("Tenant-owned tables refer to each other in a cycle; reset cannot order them.");

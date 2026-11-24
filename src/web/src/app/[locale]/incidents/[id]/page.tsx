@@ -1,6 +1,7 @@
 import { notFound } from "next/navigation";
 import { getTranslations, setRequestLocale } from "next-intl/server";
 import { AttachmentsPanel } from "@/components/incidents/AttachmentsPanel";
+import { FormAnswersView } from "@/components/forms/FormAnswersView";
 import { IncidentFacts } from "@/components/incidents/IncidentFacts";
 import { SlaClocks } from "@/components/sla/SlaClocks";
 import { IncidentHistory } from "@/components/incidents/IncidentHistory";
@@ -36,7 +37,7 @@ export default async function IncidentPage({ params }: PageProps<"/[locale]/inci
     loadDirectoryChoices(token, tenant, permissions),
   ]);
   const directory = { categories: choices.categories, locations: choices.locations, groups: choices.groups ?? [] };
-  const { incident, settings, attachments, attachmentSettings, updates, history, display } = data;
+  const { incident, settings, attachments, attachmentSettings, updates, history, display, form } = data;
   if (!incident) {
     return (
       <section className="space-y-4">
@@ -63,6 +64,7 @@ export default async function IncidentPage({ params }: PageProps<"/[locale]/inci
         </h1>
       </header>
       <IncidentFacts incident={incident} settings={settings} display={display} basePath="/incidents" />
+      {form && <FormAnswersView view={form} attachmentBase={`/bff/api/v1/incidents/${incident.id}/attachments`} />}
       {incident.sla && <SlaClocks clocks={incident.sla} display={display} />}
       <IncidentWorkPanel incident={incident} settings={settings} csrfToken={session.data.csrfToken} permissions={permissions} assignees={assignees} directory={directory} />
       {(incident.state === "Resolved" || closed) && permissions.includes("knowledge.write") && (

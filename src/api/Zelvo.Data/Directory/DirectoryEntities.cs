@@ -241,3 +241,32 @@ public sealed class AssignmentRule : ITenantOwned, IAuditedEntity
     /// <summary>Optimistic concurrency token (PostgreSQL <c>xmin</c>).</summary>
     public uint Version { get; init; }
 }
+
+/// <summary>
+/// A department of the organisation (task C1, product owner decision 2026-11-24), for example
+/// "Finance" or "IT". People belong to one; forms fill it in from the requester's profile, and
+/// services name their owning department (task C2).
+/// </summary>
+public sealed class Department : ITenantOwned, IAuditedEntity
+{
+    /// <summary>Maximum length of each language of <see cref="Name"/>.</summary>
+    public const int NameMaxLength = 150;
+
+    /// <summary>Unique id (UUID version 7).</summary>
+    public Guid Id { get; init; } = Guid.CreateVersion7();
+
+    /// <inheritdoc />
+    public Guid TenantId { get; set; }
+
+    /// <summary>Name in English and Arabic.</summary>
+    public required LocalizedText Name { get; set; }
+
+    /// <summary>Inactive departments stay on people but cannot be chosen again.</summary>
+    public bool Active { get; set; } = true;
+
+    /// <summary>When the department was created.</summary>
+    public DateTimeOffset CreatedAt { get; init; } = DateTimeOffset.UtcNow;
+
+    /// <summary>When the department was last changed.</summary>
+    public DateTimeOffset UpdatedAt { get; set; } = DateTimeOffset.UtcNow;
+}

@@ -1,7 +1,7 @@
 import { defineConfig, devices } from "@playwright/test";
 
 /** Specs that change tenant-wide settings; each runs in its own project, one after another. */
-const tenantWide = [/settings\.spec\.ts/, /uae-pass\.spec\.ts/, /integrations\.spec\.ts/, /directory\.spec\.ts/, /sla\.spec\.ts/, /ai\.spec\.ts/, /knowledge\.spec\.ts/, /mcp\.spec\.ts/, /notifications\.spec\.ts/];
+const tenantWide = [/settings\.spec\.ts/, /uae-pass\.spec\.ts/, /integrations\.spec\.ts/, /directory\.spec\.ts/, /sla\.spec\.ts/, /ai\.spec\.ts/, /knowledge\.spec\.ts/, /mcp\.spec\.ts/, /notifications\.spec\.ts/, /forms\.spec\.ts/];
 
 /** Demo mode needs the demo installation (`make demo`); `make e2e-demo` runs it with E2E_DEMO=1. */
 const demo = /demo\.spec\.ts/;
@@ -91,6 +91,13 @@ export default defineConfig({
           use: { ...devices["Desktop Chrome"] },
           testMatch: /notifications\.spec\.ts/,
           dependencies: ["tenant-mcp"],
+        },
+        // Form builder (task C1) signs in as the admin and adds a category and a form; after notifications, on its own.
+        {
+          name: "forms",
+          use: { ...devices["Desktop Chrome"] },
+          testMatch: /forms\.spec\.ts/,
+          dependencies: ["notifications"],
         },
       ],
 });
