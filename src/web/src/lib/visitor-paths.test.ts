@@ -13,6 +13,17 @@ describe("visitor paths of the API proxy", () => {
     expect(isVisitorPath("GET", ["v1", "settings", "knowledge"])).toBe(true);
   });
 
+  it("lets visitors browse the catalog, read a service card and download its files (task C2)", () => {
+    expect(isVisitorPath("GET", ["v1", "catalog", "published"])).toBe(true);
+    expect(isVisitorPath("GET", ["v1", "catalog", "published", id])).toBe(true);
+    expect(isVisitorPath("GET", ["v1", "catalog", "published", id, "files", id])).toBe(true);
+    expect(isVisitorPath("GET", ["v1", "catalog", "published", id, "request-form"])).toBe(false);
+    expect(isVisitorPath("POST", ["v1", "catalog", "published"])).toBe(false);
+    expect(isVisitorPath("GET", ["v1", "catalog", "services"])).toBe(false);
+    expect(isVisitorPath("GET", ["v1", "catalog", "published", "x"])).toBe(false);
+    expect(isVisitorPath("POST", ["v1", "service-requests"])).toBe(false);
+  });
+
   it("refuses everything else", () => {
     expect(isVisitorPath("GET", ["v1", "knowledge", "articles"])).toBe(false);
     expect(isVisitorPath("GET", ["v1", "knowledge", "articles", id])).toBe(false);
