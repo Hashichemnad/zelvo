@@ -121,7 +121,7 @@ test.describe("settings and localization", () => {
       await page.getByLabel("Language", { exact: true }).selectOption("ar");
       await page.getByLabel("Digits", { exact: true }).selectOption("ArabicIndic");
       await expect(page.getByTestId("preview-number")).toHaveText(/[٠-٩]/);
-      await page.getByRole("button", { name: "Save" }).click();
+      await page.getByTestId("preferences-form").getByRole("button", { name: "Save" }).click();
 
       // Saving a new language shows the same page in it.
       await expect(page).toHaveURL(/\/ar\/account$/);
@@ -146,7 +146,7 @@ test.describe("settings and localization", () => {
       await page.goto("/ar/account");
       await page.getByLabel("اللغة", { exact: true }).selectOption("default");
       await page.getByLabel("الأرقام", { exact: true }).selectOption("default");
-      await page.getByRole("button", { name: "حفظ" }).click();
+      await page.getByTestId("preferences-form").getByRole("button", { name: "حفظ" }).click();
       await expect(page).toHaveURL(/\/en\/account$/);
     }
   });
