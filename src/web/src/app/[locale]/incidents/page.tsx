@@ -3,7 +3,8 @@ import { IncidentTable, Pagination } from "@/components/incidents/IncidentTable"
 import { Link } from "@/i18n/navigation";
 import { getJsonAs } from "@/lib/api";
 import { getDisplayFormat } from "@/lib/display";
-import { levelName, ticketStates, type IncidentPage, type IncidentSettings, type Locale } from "@/lib/incidents";
+import type { GroupSummary } from "@/lib/directory";
+import { inLanguage, levelName, ticketStates, type IncidentPage, type IncidentSettings, type Locale } from "@/lib/incidents";
 import { requireSignedIn } from "@/lib/signed-in";
 
 export async function generateMetadata({ params }: PageProps<"/[locale]/incidents">) {
@@ -12,7 +13,7 @@ export async function generateMetadata({ params }: PageProps<"/[locale]/incident
   return { title: t("title") };
 }
 
-const filterKeys = ["state", "open", "priority", "assignee", "major"] as const;
+const filterKeys = ["state", "open", "priority", "assignee", "group", "major"] as const;
 const selectClass =
   "rounded-md border border-line bg-surface px-3 py-2 text-ink focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand";
 
@@ -41,10 +42,13 @@ export default async function IncidentsPage({ params, searchParams }: PageProps<
     );
   }
 
-  const [page, settings, format] = await Promise.all([
+  const [page, settings, format, groups] = await Promise.all([
     getJsonAs<IncidentPage>(`/api/v1/incidents?${new URLSearchParams({ ...query, pageSize: "25" })}`, session.data.accessToken, tenant),
     getJsonAs<IncidentSettings>("/api/v1/settings/incidents", session.data.accessToken, tenant),
     getDisplayFormat(),
+    user.permissions.includes("directory.read")
+      ? getJsonAs<GroupSummary[]>("/api/v1/groups", session.data.accessToken, tenant)
+      : Promise.resolve(null),
   ]);
   const display = { locale, ...format };
   const filters = Object.fromEntries(Object.entries(query).filter(([key]) => key !== "page"));
@@ -91,6 +95,19 @@ export default async function IncidentsPage({ params, searchParams }: PageProps<
             <option value="">{t("filters.anyone")}</option>
             <option value="me">{t("filters.me")}</option>
             <option value="none">{t("filters.nobody")}</option>
+          </select>
+        </label>
+        <label className="space-y-1 text-sm">
+          <span className="block font-semibold">{t("filters.group")}</span>
+          <select name="group" defaultValue={query.group ?? ""} className={selectClass}>
+            <option value="">{t("filters.anyGroup")}</option>
+            <option value="mine">{t("filters.myGroups")}</option>
+            <option value="none">{t("filters.noGroup")}</option>
+            {groups?.map((g) => (
+              <option key={g.id} value={g.id}>
+                {inLanguage(g.name, locale as Locale).value}
+              </option>
+            ))}
           </select>
         </label>
         <label className="flex items-center gap-2 pb-2 text-sm">

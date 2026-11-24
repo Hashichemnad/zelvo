@@ -63,6 +63,32 @@ describe("ReportIncidentForm", () => {
     expect(screen.queryByLabelText("Impact")).not.toBeInTheDocument();
   });
 
+  it("lets a requester choose an active category and location (task B2)", async () => {
+    const fetchMock = vi.fn().mockResolvedValue(ok({ ...incident, id: "cat-id" }, 201));
+    vi.stubGlobal("fetch", fetchMock);
+    const tree = (id: string, en: string, extra: Record<string, unknown> = {}) => ({
+      id, parentId: null, depth: 1, position: 0, name: { en, ar: null }, path: { en, ar: null }, active: true, selectable: true, childCount: 0, ...extra,
+    });
+    withIntl(
+      <ReportIncidentForm
+        csrfToken="c"
+        settings={settings}
+        basePath="/my-incidents"
+        directory={{ categories: [tree("c1", "Hardware"), tree("c9", "Old", { active: false, selectable: false })], locations: [tree("l1", "Main building")], groups: null }}
+      />,
+    );
+
+    expect(screen.queryByRole("option", { name: "Old" })).not.toBeInTheDocument();
+    expect(screen.queryByLabelText("Group")).not.toBeInTheDocument();
+    fireEvent.change(screen.getByLabelText("Title"), { target: { value: "Laptop is slow" } });
+    fireEvent.change(screen.getByLabelText("Category"), { target: { value: "c1" } });
+    fireEvent.change(screen.getByLabelText("Location"), { target: { value: "l1" } });
+    fireEvent.click(screen.getByRole("button", { name: "Report incident" }));
+
+    await waitFor(() => expect(push).toHaveBeenCalledWith("/my-incidents/cat-id"));
+    expect(JSON.parse((fetchMock.mock.calls[0] as [string, RequestInit])[1].body as string)).toEqual({ title: "Laptop is slow", categoryId: "c1", locationId: "l1" });
+  });
+
   it("asks for a title before calling the API", () => {
     const fetchMock = vi.fn();
     vi.stubGlobal("fetch", fetchMock);

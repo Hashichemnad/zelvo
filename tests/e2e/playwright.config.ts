@@ -1,7 +1,7 @@
 import { defineConfig, devices } from "@playwright/test";
 
 /** Specs that change tenant-wide settings; each runs in its own project, one after another. */
-const tenantWide = [/settings\.spec\.ts/, /uae-pass\.spec\.ts/, /integrations\.spec\.ts/, /ai\.spec\.ts/];
+const tenantWide = [/settings\.spec\.ts/, /uae-pass\.spec\.ts/, /integrations\.spec\.ts/, /directory\.spec\.ts/, /ai\.spec\.ts/];
 
 /** Demo mode needs the demo installation (`make demo`); `make e2e-demo` runs it with E2E_DEMO=1. */
 const demo = /demo\.spec\.ts/;
@@ -50,12 +50,19 @@ export default defineConfig({
           testMatch: /integrations\.spec\.ts/,
           dependencies: ["tenant-uae-pass"],
         },
+        // Directory and assignment (task B2) add groups and assignment rules; after integrations, on their own.
+        {
+          name: "tenant-directory",
+          use: { ...devices["Desktop Chrome"] },
+          testMatch: /directory\.spec\.ts/,
+          dependencies: ["tenant-integrations"],
+        },
         // Settings → AI (task E4) signs in as the admin and turns an AI feature on; last, on its own.
         {
           name: "tenant-ai",
           use: { ...devices["Desktop Chrome"] },
           testMatch: /ai\.spec\.ts/,
-          dependencies: ["tenant-integrations"],
+          dependencies: ["tenant-directory"],
         },
       ],
 });

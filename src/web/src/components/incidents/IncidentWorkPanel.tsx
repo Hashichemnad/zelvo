@@ -4,7 +4,9 @@ import { useId, useState } from "react";
 import { useLocale, useTranslations } from "next-intl";
 import { useRouter } from "@/i18n/navigation";
 import { ApiError, getJson, patchJson, postJson, putJson } from "@/lib/client-api";
-import { levelName, type Incident, type IncidentPage, type IncidentSettings, type Locale, type Person, type TicketState } from "@/lib/incidents";
+import { selectableNodes, textOf, type GroupSummary, type TreeNode } from "@/lib/directory";
+import { isOpen, levelName, type Incident, type IncidentPage, type IncidentSettings, type Locale, type Person, type TicketState } from "@/lib/incidents";
+import { AssignmentPicker } from "./AssignmentPicker";
 import { inputClass, secondaryButtonClass } from "./ReportIncidentForm";
 
 export interface IncidentWorkPanelProps {
@@ -14,6 +16,8 @@ export interface IncidentWorkPanelProps {
   permissions: string[];
   /** Agents the incident can be assigned to; null without incidents.assign. */
   assignees: Person[] | null;
+  /** Categories, locations and groups to choose from (task B2). */
+  directory?: { categories: TreeNode[]; locations: TreeNode[]; groups: GroupSummary[] } | null;
 }
 
 type Status = { kind: "idle" | "saving" | "saved" } | { kind: "failed"; code: string | null };
@@ -23,7 +27,7 @@ type Status = { kind: "idle" | "saving" | "saved" } | { kind: "failed"; code: st
  * impact and urgency, the parent link and the major-incident flag. Each action saves at once and
  * reloads the page's data, so the history shows it.
  */
-export function IncidentWorkPanel({ incident, settings, csrfToken, permissions, assignees }: IncidentWorkPanelProps) {
+export function IncidentWorkPanel({ incident, settings, csrfToken, permissions, assignees, directory }: IncidentWorkPanelProps) {
   const t = useTranslations("incidents.work");
   const tCommon = useTranslations("common");
   const tFields = useTranslations("incidents.fields");
@@ -31,7 +35,8 @@ export function IncidentWorkPanel({ incident, settings, csrfToken, permissions, 
   const router = useRouter();
   const id = useId();
   const [status, setStatus] = useState<Status>({ kind: "idle" });
-  const [assigneeId, setAssigneeId] = useState(incident.assignee?.id ?? "");
+  const [categoryId, setCategoryId] = useState(incident.category?.id ?? "");
+  const [locationId, setLocationId] = useState(incident.location?.id ?? "");
   const [target, setTarget] = useState<TicketState | null>(null);
   const [reason, setReason] = useState("");
   const [notes, setNotes] = useState("");
@@ -90,29 +95,62 @@ export function IncidentWorkPanel({ incident, settings, csrfToken, permissions, 
       </h2>
 
       {can("incidents.assign") && assignees && !closed && (
+        <div className="space-y-2">
+          <AssignmentPicker
+            incident={incident}
+            groups={directory?.groups ?? []}
+            allAssignees={assignees}
+            busy={status.kind === "saving"}
+            onSave={(groupId, assigneeId) => void run(() => putJson(`${base}/assignment`, { groupId, assigneeId }, csrfToken))}
+          />
+          {isOpen(incident.state) && (
+            <div className="flex flex-wrap items-center gap-2">
+              <button type="button" className={secondaryButtonClass} disabled={status.kind === "saving"}
+                aria-describedby={`${id}-route-hint`} onClick={() => void run(() => postJson(`${base}/route`, undefined, csrfToken))}>
+                {t("routeAgain")}
+              </button>
+              <p id={`${id}-route-hint`} className="text-sm text-ink-muted">{t("routeAgainHint")}</p>
+            </div>
+          )}
+        </div>
+      )}
+
+      {can("incidents.edit") && !closed && directory && (
         <form
           className={sectionClass}
           onSubmit={(e) => {
             e.preventDefault();
-            void run(() => putJson(`${base}/assignee`, { assigneeId: assigneeId || null }, csrfToken));
+            void run(() => putJson(`${base}/classification`, { categoryId: categoryId || null, locationId: locationId || null }, csrfToken));
           }}
         >
-          <label htmlFor={`${id}-assignee`} className="block font-semibold">
-            {t("assignee")}
-          </label>
-          <div className="flex flex-wrap gap-2">
-            <select id={`${id}-assignee`} value={assigneeId} onChange={(e) => setAssigneeId(e.target.value)} className={`${inputClass} max-w-xs`}>
-              <option value="">{"—"}</option>
-              {assignees.map((person) => (
-                <option key={person.id} value={person.id}>
-                  {person.displayName ?? person.id}
-                </option>
-              ))}
-            </select>
-            <button type="submit" className={secondaryButtonClass} disabled={status.kind === "saving"}>
-              {t("assign")}
-            </button>
-          </div>
+          <fieldset className="space-y-2">
+            <legend className="font-semibold">{t("classification")}</legend>
+            <div className="grid gap-2 sm:grid-cols-2">
+              {(["category", "location"] as const).map((name) => {
+                const nodes = name === "category" ? directory.categories : directory.locations;
+                const value = name === "category" ? categoryId : locationId;
+                const usable = selectableNodes(nodes);
+                const current = incident[name];
+                return (
+                  <div key={name} className="space-y-1">
+                    <label htmlFor={`${id}-${name}`} className="block text-sm">
+                      {tFields(name)}
+                    </label>
+                    <select id={`${id}-${name}`} value={value} onChange={(e) => (name === "category" ? setCategoryId : setLocationId)(e.target.value)} className={inputClass}>
+                      <option value="">{t("none")}</option>
+                      {current && !usable.some((n) => n.id === current.id) && <option value={current.id}>{textOf(current.path, locale)}</option>}
+                      {usable.map((node) => (
+                        <option key={node.id} value={node.id}>{textOf(node.path, locale) || textOf(node.name, locale)}</option>
+                      ))}
+                    </select>
+                  </div>
+                );
+              })}
+            </div>
+          </fieldset>
+          <button type="submit" className={secondaryButtonClass} disabled={status.kind === "saving"}>
+            {t("saveClassification")}
+          </button>
         </form>
       )}
 

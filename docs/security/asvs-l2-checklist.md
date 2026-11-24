@@ -6,7 +6,7 @@ Zelvo targets OWASP ASVS **Level 2** for every tenant (non-functional requiremen
 - Status: **Met** (with evidence), **Partly met**, **Open** (with the task expected to close it), **Not applicable**, **Not assessed** (not reviewed yet).
 - Evidence points to code, tests, architecture notes and build plan tasks (A1-F7 in `docs/phase1-build-plan.md`).
 
-**Summary (2026-11-23):** Met: 96 · Partly met: 16 · Open: 8 · Not applicable: 14 · Not assessed: 119.
+**Summary (2026-11-23):** Met: 97 · Partly met: 16 · Open: 8 · Not applicable: 14 · Not assessed: 118.
 
 Main gaps found so far: web app without Content-Security-Policy and HSTS (V3.4); TLS still to add for PostgreSQL, Valkey and internal HTTP (V12.3, F6); service passwords as environment variables rather than a secrets manager (V13.3.1, F6); password policy, breached-password checks and session management settings in Keycloak not yet reviewed (V6.2, V7). File handling (V5) was added with attachments in B1.
 
@@ -178,13 +178,13 @@ Main gaps found so far: web app without Content-Security-Policy and HSTS (V3.4);
 
 | Requirement | Level | Section | Status | Evidence and notes |
 | --- | --- | --- | --- | --- |
-| V8.1.1 | 1 | V8.1 Authorization Documentation | Met | Permissions and field rules per role are data, documented in `identity-access.md`. A2. |
+| V8.1.1 | 1 | V8.1 Authorization Documentation | Met | Permissions and field rules per role are data, documented in `identity-access.md`. A2. B2: directory permissions and group-lead rights in `directory-assignment.md`; custom roles start with no permissions. |
 | V8.1.2 | 2 | V8.1 Authorization Documentation | Met | Permissions and field rules per role are data, documented in `identity-access.md`. A2. |
 | V8.2.1 | 1 | V8.2 General Authorization Design | Met | Permission checks and field-level filtering in the API (`PermissionAuthorization`, `FieldFilter`); tests in `AccessControlApiTests`. A2. E1: integrations act with one role narrowed by their scopes and never hold `users.manage`, `roles.manage`, `identity.manage` or `integrations.manage` (`CurrentUser.SetClient`, `ApiClientApiTests`). E4: Settings → AI needs `ai.manage`, which integrations can never hold (`AiApiTests.Only_ai_managers_reach_settings_and_integrations_can_never_be_given_ai_manage`). |
-| V8.2.2 | 1 | V8.2 General Authorization Design | Not assessed |  |
+| V8.2.2 | 1 | V8.2 General Authorization Design | Met | Data-specific access: requesters see only their own incidents and get 404 for others (B1, `IncidentApiTests`); B2: rights of a team lead apply only to members of the groups they lead and only while their staff permissions (second factor) apply, users outside the directory get 404 for groups, and searches by email run only for callers who may see emails (`GroupEndpoints`, `UserEndpoints`, `DirectoryApiTests`). |
 | V8.2.3 | 2 | V8.2 General Authorization Design | Met | Permission checks and field-level filtering in the API (`PermissionAuthorization`, `FieldFilter`); tests in `AccessControlApiTests`. A2. E1: field rules of an integration's role apply to its responses. |
 | V8.3.1 | 1 | V8.3 Operation Level Authorization | Met | Permission checks and field-level filtering in the API (`PermissionAuthorization`, `FieldFilter`); tests in `AccessControlApiTests`. A2. |
-| V8.4.1 | 2 | V8.4 Other Authorization Considerations | Met | PostgreSQL row-level security on every tenant-owned table (guard test), tokens only from the tenant's own realm, one search index per tenant. A1, A2, A4. |
+| V8.4.1 | 2 | V8.4 Other Authorization Considerations | Met | PostgreSQL row-level security on every tenant-owned table (guard test), tokens only from the tenant's own realm, one search index per tenant. A1, A2, A4. B2: the eight directory tables included. |
 
 ## V9 Self-contained Tokens
 

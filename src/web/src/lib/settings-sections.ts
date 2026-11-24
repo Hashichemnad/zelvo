@@ -4,7 +4,18 @@
  */
 export interface SettingsSection {
   /** Key under `settings.sections` in the translation files. */
-  key: "language" | "signIn" | "incidents" | "attachments" | "search" | "integrations" | "ai" | "importExport" | "translations";
+  key:
+    | "language"
+    | "signIn"
+    | "users"
+    | "roles"
+    | "groups"
+    | "categories"
+    | "locations"
+    | "skills"
+    | "assignment"
+    | "incidents"
+    | "attachments" | "search" | "integrations" | "ai" | "importExport" | "translations";
   /** Path below /[locale]. */
   href: string;
   /** Permission needed to open the section. */
@@ -14,6 +25,13 @@ export interface SettingsSection {
 export const settingsSections: readonly SettingsSection[] = [
   { key: "language", href: "/settings/language", permission: "settings.manage" },
   { key: "signIn", href: "/settings/sign-in", permission: "identity.manage" },
+  { key: "users", href: "/settings/users", permission: "users.read" },
+  { key: "roles", href: "/settings/roles", permission: "roles.manage" },
+  { key: "groups", href: "/settings/groups", permission: "directory.read" },
+  { key: "categories", href: "/settings/categories", permission: "directory.read" },
+  { key: "locations", href: "/settings/locations", permission: "directory.read" },
+  { key: "skills", href: "/settings/skills", permission: "directory.read" },
+  { key: "assignment", href: "/settings/assignment", permission: "directory.read" },
   { key: "incidents", href: "/settings/incidents", permission: "settings.manage" },
   { key: "attachments", href: "/settings/attachments", permission: "settings.manage" },
   { key: "search", href: "/settings/search", permission: "search.manage" },

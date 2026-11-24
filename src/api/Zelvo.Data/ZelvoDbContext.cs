@@ -2,6 +2,7 @@ using Microsoft.EntityFrameworkCore;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 using Zelvo.Data.Ai;
 using Zelvo.Data.Auditing;
+using Zelvo.Data.Directory;
 using Zelvo.Data.Identity;
 using Zelvo.Data.Integrations;
 using Zelvo.Data.Localization;
@@ -89,6 +90,30 @@ public sealed class ZelvoDbContext(DbContextOptions<ZelvoDbContext> options) : D
     /// <summary>Integration log: calls in and out, personal data masked.</summary>
     public DbSet<IntegrationLogEntry> IntegrationLog => Set<IntegrationLogEntry>();
 
+    /// <summary>Category tree (task B2).</summary>
+    public DbSet<Category> Categories => Set<Category>();
+
+    /// <summary>Location tree (task B2).</summary>
+    public DbSet<Location> Locations => Set<Location>();
+
+    /// <summary>Skills agents can have (task B2).</summary>
+    public DbSet<Skill> Skills => Set<Skill>();
+
+    /// <summary>Skills of users.</summary>
+    public DbSet<UserSkill> UserSkills => Set<UserSkill>();
+
+    /// <summary>Groups tickets are assigned to (task B2).</summary>
+    public DbSet<SupportGroup> SupportGroups => Set<SupportGroup>();
+
+    /// <summary>Members of groups.</summary>
+    public DbSet<SupportGroupMember> SupportGroupMembers => Set<SupportGroupMember>();
+
+    /// <summary>Round-robin state of groups.</summary>
+    public DbSet<SupportGroupRotation> SupportGroupRotations => Set<SupportGroupRotation>();
+
+    /// <summary>Assignment rules, in order (task B2).</summary>
+    public DbSet<AssignmentRule> AssignmentRules => Set<AssignmentRule>();
+
     /// <summary>AI provider connections (module 9).</summary>
     public DbSet<AiProvider> AiProviders => Set<AiProvider>();
 
@@ -167,6 +192,7 @@ public sealed class ZelvoDbContext(DbContextOptions<ZelvoDbContext> options) : D
         });
 
         ConfigureSearch(modelBuilder);
+        ConfigureDirectory(modelBuilder);
         ConfigureTickets(modelBuilder);
         ConfigureIntegrations(modelBuilder);
         ConfigureAi(modelBuilder);
@@ -183,6 +209,103 @@ public sealed class ZelvoDbContext(DbContextOptions<ZelvoDbContext> options) : D
             // One active key per tenant.
             key.HasIndex(k => k.TenantId).IsUnique().HasFilter("retired_at IS NULL").HasDatabaseName("ux_tenant_data_keys_active");
         });
+    }
+
+    private static void ConfigureDirectory(ModelBuilder modelBuilder)
+    {
+        modelBuilder.Entity<Category>(category => ConfigureTree(category, "categories"));
+        modelBuilder.Entity<Location>(location => ConfigureTree(location, "locations"));
+
+        modelBuilder.Entity<Skill>(skill =>
+        {
+            skill.ToTable("skills");
+            skill.HasKey(s => s.Id);
+            skill.Property(s => s.Id).ValueGeneratedNever();
+            skill.HasOne<Tenant>().WithMany().HasForeignKey(s => s.TenantId).OnDelete(DeleteBehavior.Restrict);
+            skill.ConfigureLocalizedText(s => s.Name, "name", Skill.NameMaxLength);
+            skill.HasIndex(s => s.TenantId);
+        });
+
+        modelBuilder.Entity<UserSkill>(userSkill =>
+        {
+            userSkill.ToTable("user_skills");
+            userSkill.HasKey(u => new { u.UserId, u.SkillId });
+            userSkill.HasOne(u => u.Skill).WithMany().HasForeignKey(u => u.SkillId).OnDelete(DeleteBehavior.Cascade);
+            userSkill.HasIndex(u => new { u.TenantId, u.SkillId });
+        });
+
+        modelBuilder.Entity<SupportGroup>(group =>
+        {
+            group.ToTable("support_groups");
+            group.HasKey(g => g.Id);
+            group.Property(g => g.Id).ValueGeneratedNever();
+            group.HasOne<Tenant>().WithMany().HasForeignKey(g => g.TenantId).OnDelete(DeleteBehavior.Restrict);
+            group.ConfigureLocalizedText(g => g.Name, "name", SupportGroup.NameMaxLength);
+            group.ConfigureLocalizedText(g => g.Description, "description", SupportGroup.DescriptionMaxLength);
+            group.Property(g => g.Version).IsRowVersion();
+            group.HasMany(g => g.Members).WithOne().HasForeignKey(m => m.GroupId).OnDelete(DeleteBehavior.Cascade);
+            group.HasIndex(g => g.TenantId);
+        });
+
+        modelBuilder.Entity<SupportGroupMember>(member =>
+        {
+            member.ToTable("support_group_members");
+            member.HasKey(m => new { m.GroupId, m.UserId });
+            member.HasOne(m => m.User).WithMany().HasForeignKey(m => m.UserId).OnDelete(DeleteBehavior.Cascade);
+            member.HasIndex(m => new { m.TenantId, m.UserId });
+        });
+
+        modelBuilder.Entity<SupportGroupRotation>(rotation =>
+        {
+            rotation.ToTable("support_group_rotation");
+            rotation.HasKey(r => new { r.GroupId, r.UserId });
+            rotation.HasOne<SupportGroupMember>().WithOne()
+                .HasForeignKey<SupportGroupRotation>(r => new { r.GroupId, r.UserId })
+                .HasPrincipalKey<SupportGroupMember>(m => new { m.GroupId, m.UserId })
+                .OnDelete(DeleteBehavior.Cascade);
+            rotation.HasIndex(r => r.TenantId);
+        });
+
+        modelBuilder.Entity<AssignmentRule>(rule =>
+        {
+            rule.ToTable("assignment_rules", table =>
+            {
+                table.HasCheckConstraint("ck_assignment_rules_method", EnumCheck("method", Enum.GetNames<AssignmentMethod>()));
+                table.HasCheckConstraint("ck_assignment_rules_language", EnumCheck("language", LocalizedText.Languages));
+                table.HasCheckConstraint("ck_assignment_rules_skill", "skill_id IS NULL OR method = 'RoundRobin'");
+            });
+            rule.HasKey(r => r.Id);
+            rule.Property(r => r.Id).ValueGeneratedNever();
+            rule.HasOne<Tenant>().WithMany().HasForeignKey(r => r.TenantId).OnDelete(DeleteBehavior.Restrict);
+            rule.ConfigureLocalizedText(r => r.Name, "name", AssignmentRule.NameMaxLength);
+            rule.Property(r => r.Language).HasMaxLength(2);
+            rule.Property(r => r.Method).HasConversion<string>().HasMaxLength(20);
+            rule.Property(r => r.Version).IsRowVersion();
+            rule.HasOne<Category>().WithMany().HasForeignKey(r => r.CategoryId).OnDelete(DeleteBehavior.Restrict);
+            rule.HasOne<Location>().WithMany().HasForeignKey(r => r.LocationId).OnDelete(DeleteBehavior.Restrict);
+            rule.HasOne<SupportGroup>().WithMany().HasForeignKey(r => r.GroupId).OnDelete(DeleteBehavior.Restrict);
+            rule.HasOne<Skill>().WithMany().HasForeignKey(r => r.SkillId).OnDelete(DeleteBehavior.Restrict);
+            rule.HasIndex(r => new { r.TenantId, r.Position });
+        });
+    }
+
+    private static void ConfigureTree<TNode>(Microsoft.EntityFrameworkCore.Metadata.Builders.EntityTypeBuilder<TNode> node, string table)
+        where TNode : TreeNode
+    {
+        node.ToTable(table, t =>
+        {
+            t.HasCheckConstraint($"ck_{table}_depth", $"depth BETWEEN 1 AND {TreeNode.MaxDepth}");
+            t.HasCheckConstraint($"ck_{table}_parent", "(depth = 1) = (parent_id IS NULL)");
+            t.HasCheckConstraint($"ck_{table}_not_own_parent", "parent_id IS NULL OR parent_id <> id");
+        });
+        node.HasKey(n => n.Id);
+        node.Property(n => n.Id).ValueGeneratedNever();
+        node.HasOne<Tenant>().WithMany().HasForeignKey(n => n.TenantId).OnDelete(DeleteBehavior.Restrict);
+        // NO ACTION (checked at the end of each statement), so a tenant's tree can be deleted together.
+        node.HasOne<TNode>().WithMany().HasForeignKey(n => n.ParentId).OnDelete(DeleteBehavior.NoAction);
+        node.ConfigureLocalizedText(n => n.Name, "name", TreeNode.NameMaxLength);
+        node.Property(n => n.Version).IsRowVersion();
+        node.HasIndex(n => new { n.TenantId, n.ParentId, n.Position });
     }
 
     private static void ConfigureTickets(ModelBuilder modelBuilder)
@@ -223,6 +346,14 @@ public sealed class ZelvoDbContext(DbContextOptions<ZelvoDbContext> options) : D
             ticket.HasIndex(t => new { t.TenantId, t.ParentId });
             ticket.HasIndex(t => new { t.TenantId, t.State, t.ResolvedAt });
             ticket.HasIndex(t => new { t.TenantId, t.CreatedAt });
+            ticket.HasOne(t => t.Category).WithMany().HasForeignKey(t => t.CategoryId).OnDelete(DeleteBehavior.Restrict);
+            ticket.HasOne(t => t.Location).WithMany().HasForeignKey(t => t.LocationId).OnDelete(DeleteBehavior.Restrict);
+            ticket.HasOne(t => t.Group).WithMany().HasForeignKey(t => t.GroupId).OnDelete(DeleteBehavior.Restrict);
+            // The rule may be deleted later; the ticket then simply no longer names it.
+            ticket.HasOne<AssignmentRule>().WithMany().HasForeignKey(t => t.RoutingRuleId).OnDelete(DeleteBehavior.SetNull);
+            ticket.HasIndex(t => new { t.TenantId, t.GroupId });
+            ticket.HasIndex(t => new { t.TenantId, t.CategoryId });
+            ticket.HasIndex(t => new { t.TenantId, t.LocationId });
         });
 
         modelBuilder.Entity<Incident>(incident =>
@@ -519,6 +650,7 @@ public sealed class ZelvoDbContext(DbContextOptions<ZelvoDbContext> options) : D
                 table.HasCheckConstraint("ck_users_calendar", EnumCheck("calendar", Enum.GetNames<CalendarSystem>()));
                 table.HasCheckConstraint("ck_users_digits", EnumCheck("digits", Enum.GetNames<DigitSystem>()));
                 table.HasCheckConstraint("ck_users_emirates_id", "emirates_id ~ '^784[0-9]{12}$'");
+                table.HasCheckConstraint("ck_users_languages", "languages <@ ARRAY['en', 'ar']::text[]");
             });
             user.HasKey(u => u.Id);
             user.Property(u => u.Id).ValueGeneratedNever();
@@ -536,6 +668,9 @@ public sealed class ZelvoDbContext(DbContextOptions<ZelvoDbContext> options) : D
             user.HasIndex(u => new { u.TenantId, u.Email });
             user.HasIndex(u => new { u.TenantId, u.EmiratesId }).IsUnique().HasFilter("emirates_id IS NOT NULL");
             user.HasMany(u => u.Roles).WithOne().HasForeignKey(r => r.UserId).OnDelete(DeleteBehavior.Cascade);
+            user.HasMany(u => u.Skills).WithOne().HasForeignKey(s => s.UserId).OnDelete(DeleteBehavior.Cascade);
+            user.Property(u => u.Languages).HasColumnType("text[]").HasDefaultValueSql("'{}'");
+            user.Property(u => u.AvailableForAssignment).HasDefaultValue(true);
         });
 
         modelBuilder.Entity<Role>(role =>

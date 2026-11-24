@@ -65,6 +65,27 @@ public sealed class Ticket : ITenantOwned, IAuditedEntity
     /// <summary>The assignee (navigation).</summary>
     public UserAccount? Assignee { get; init; }
 
+    /// <summary>What the ticket is about (task B2).</summary>
+    public Guid? CategoryId { get; set; }
+
+    /// <summary>The category (navigation).</summary>
+    public Directory.Category? Category { get; init; }
+
+    /// <summary>Where the requester is (task B2).</summary>
+    public Guid? LocationId { get; set; }
+
+    /// <summary>The location (navigation).</summary>
+    public Directory.Location? Location { get; init; }
+
+    /// <summary>The group working on it; the assignee, when set, is one of its members (task B2).</summary>
+    public Guid? GroupId { get; set; }
+
+    /// <summary>The group (navigation).</summary>
+    public Directory.SupportGroup? Group { get; init; }
+
+    /// <summary>The assignment rule that last routed the ticket; <see langword="null"/> when the tenant default or a person placed it.</summary>
+    public Guid? RoutingRuleId { get; set; }
+
     /// <summary>Parent ticket; children are resolved with it.</summary>
     public Guid? ParentId { get; set; }
 

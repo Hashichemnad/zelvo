@@ -2,6 +2,7 @@ import { redirect } from "next/navigation";
 import { getTranslations, setRequestLocale } from "next-intl/server";
 import { getDirection, otherLocale, type Locale } from "@/i18n/routing";
 import { PreferencesForm } from "@/components/PreferencesForm";
+import { AvailabilitySwitch } from "@/components/directory/AvailabilitySwitch";
 import { getCurrentUser, getLocalizationSettings, type LocalizedText } from "@/lib/api";
 import { getRequestAuthConfig } from "@/lib/auth/config";
 import { getSession } from "@/lib/auth/session";
@@ -88,6 +89,33 @@ export default async function AccountPage({ params }: PageProps<"/[locale]/accou
           }
         />
       </section>
+
+      {user.permissions.includes("incidents.edit") && (
+        <section aria-labelledby="availability-heading" className="space-y-3" data-testid="availability">
+          <h2 id="availability-heading" className="text-xl font-bold">
+            {t("availability.heading")}
+          </h2>
+          <AvailabilitySwitch initial={user.availableForAssignment ?? true} csrfToken={session.data.csrfToken} />
+          {user.groups && user.groups.length > 0 && (
+            <>
+              <h3 className="font-semibold">{t("availability.groups")}</h3>
+              <ul className="flex flex-wrap gap-2">
+                {user.groups.map((group) => {
+                  const name = localized(group.name, locale);
+                  return (
+                    <li key={group.id} className="rounded-full border border-line bg-surface-muted px-3 py-1 text-sm">
+                      <span lang={name.lang} dir={name.dir}>
+                        {name.value}
+                      </span>
+                      {group.isLead && ` · ${t("availability.lead")}`}
+                    </li>
+                  );
+                })}
+              </ul>
+            </>
+          )}
+        </section>
+      )}
 
       <section aria-labelledby="roles-heading" className="space-y-3">
         <h2 id="roles-heading" className="text-xl font-bold">

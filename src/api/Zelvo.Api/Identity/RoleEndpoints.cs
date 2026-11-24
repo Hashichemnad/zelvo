@@ -9,7 +9,7 @@ using Zelvo.Data.Identity;
 namespace Zelvo.Api.Identity;
 
 /// <summary>Roles, their permissions and field rules: data that tenant administrators change.</summary>
-internal static class RoleEndpoints
+internal static partial class RoleEndpoints
 {
     public static RouteGroupBuilder MapRoleEndpoints(this RouteGroupBuilder group)
     {
@@ -24,6 +24,15 @@ internal static class RoleEndpoints
 
         roles.MapGet("/", ListAsync).WithName("ListRoles").WithSummary("Roles with their permissions and field rules.");
         roles.MapGet("/{key}", GetAsync).WithName("GetRole").WithSummary("One role.");
+        roles.MapPost("/", CreateAsync)
+            .WithName("CreateRole")
+            .WithSummary("Add a custom role (task B2). It starts without permissions or field rules. Audited.")
+            .Produces<RoleResponse>(StatusCodes.Status201Created)
+            .ProducesValidationProblem();
+        roles.MapDelete("/{key}", DeleteAsync)
+            .WithName("DeleteRole")
+            .WithSummary("Delete a custom role that no user or integration has. Built-in roles cannot be deleted. Audited.")
+            .Produces(StatusCodes.Status204NoContent);
         roles.MapPatch("/{key}", UpdateAsync)
             .WithName("UpdateRole")
             .WithSummary("Rename a role or change whether it needs a second factor (always on for agents, team leads and tenant administrators). Audited.")
@@ -56,6 +65,58 @@ internal static class RoleEndpoints
         var role = await Query(db).SingleOrDefaultAsync(r => r.Key == key, cancellationToken);
         return role is null ? NotFound() : TypedResults.Ok(RoleResponse.From(role));
     }
+
+    internal static async Task<Results<Created<RoleResponse>, ValidationProblem, ProblemHttpResult>> CreateAsync(
+        CreateRoleRequest request, ZelvoDbContext db, CancellationToken cancellationToken)
+    {
+        var key = request.Key!.Trim();
+        if (!RoleKey().IsMatch(key) || BuiltInRoles.All.Contains(key, StringComparer.Ordinal))
+        {
+            return UserEndpoints.Validation("key", "Use 2 to 50 lower-case letters, digits and hyphens, starting with a letter, and not a built-in role.");
+        }
+
+        var name = request.Name!.ToValue();
+        if (name.En?.Length > Role.NameMaxLength || name.Ar?.Length > Role.NameMaxLength)
+        {
+            return UserEndpoints.Validation("name", $"Each language of the name is at most {Role.NameMaxLength} characters.");
+        }
+
+        if (await db.Roles.AnyAsync(r => r.Key == key, cancellationToken))
+        {
+            return (ProblemHttpResult)ApiProblem.Create(StatusCodes.Status409Conflict, "role-exists", "A role with this key already exists.");
+        }
+
+        var role = new Role { Key = key, Name = name, IsSystem = false, RequiresMfa = request.RequiresMfa ?? false };
+        db.Roles.Add(role);
+        await db.SaveChangesAsync(cancellationToken);
+        return TypedResults.Created($"/api/v1/roles/{key}", RoleResponse.From(role));
+    }
+
+    internal static async Task<Results<NoContent, ProblemHttpResult>> DeleteAsync(string key, ZelvoDbContext db, CancellationToken cancellationToken)
+    {
+        var role = await Query(db).SingleOrDefaultAsync(r => r.Key == key, cancellationToken);
+        if (role is null)
+        {
+            return NotFound();
+        }
+
+        if (role.IsSystem)
+        {
+            return (ProblemHttpResult)ApiProblem.Create(StatusCodes.Status409Conflict, "role-system", "Built-in roles cannot be deleted.");
+        }
+
+        if (await db.UserRoles.AnyAsync(u => u.RoleId == role.Id, cancellationToken) || await db.ApiClients.AnyAsync(c => c.RoleId == role.Id, cancellationToken))
+        {
+            return (ProblemHttpResult)ApiProblem.Create(StatusCodes.Status409Conflict, "in-use", "Users or integrations have this role; give them another role first.");
+        }
+
+        db.Roles.Remove(role);
+        await db.SaveChangesAsync(cancellationToken);
+        return TypedResults.NoContent();
+    }
+
+    [System.Text.RegularExpressions.GeneratedRegex("^[a-z][a-z0-9-]{0,48}[a-z0-9]$", System.Text.RegularExpressions.RegexOptions.CultureInvariant)]
+    private static partial System.Text.RegularExpressions.Regex RoleKey();
 
     internal static async Task<Results<Ok<RoleResponse>, ValidationProblem, ProblemHttpResult>> UpdateAsync(
         string key, UpdateRoleRequest request, ZelvoDbContext db, CancellationToken cancellationToken)
@@ -215,6 +276,22 @@ internal sealed record RoleResponse(
 
 /// <summary>A field rule.</summary>
 internal sealed record FieldRuleResponse(string Resource, string Field, FieldAccess Access);
+
+/// <summary>A new custom role.</summary>
+public sealed class CreateRoleRequest
+{
+    /// <summary>Stable key, for example <c>finance-desk</c>.</summary>
+    [Required]
+    [MaxLength(Role.KeyMaxLength)]
+    public string? Key { get; init; }
+
+    /// <summary>Name in English and Arabic.</summary>
+    [Required]
+    public LocalizedTextInput? Name { get; init; }
+
+    /// <summary>Whether the role's permissions need a second factor (default false).</summary>
+    public bool? RequiresMfa { get; init; }
+}
 
 /// <summary>Changes to a role. Leave a field out to keep it.</summary>
 public sealed class UpdateRoleRequest

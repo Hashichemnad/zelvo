@@ -53,6 +53,13 @@ test.describe("settings and localization", () => {
       await expect(menu.getByRole("link")).toHaveText([
         "Language and region",
         "Sign-in",
+        "Users",
+        "Roles",
+        "Groups",
+        "Categories",
+        "Locations",
+        "Skills",
+        "Assignment",
         "Incidents",
         "Attachments",
         "Search",

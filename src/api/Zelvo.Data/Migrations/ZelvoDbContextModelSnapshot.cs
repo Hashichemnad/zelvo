@@ -444,6 +444,456 @@ namespace Zelvo.Data.Migrations
                         });
                 });
 
+            modelBuilder.Entity("Zelvo.Data.Directory.AssignmentRule", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<bool>("Active")
+                        .HasColumnType("boolean")
+                        .HasColumnName("active");
+
+                    b.Property<Guid?>("CategoryId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("category_id");
+
+                    b.Property<DateTimeOffset>("CreatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("created_at");
+
+                    b.Property<Guid>("GroupId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("group_id");
+
+                    b.Property<string>("Language")
+                        .HasMaxLength(2)
+                        .HasColumnType("character varying(2)")
+                        .HasColumnName("language");
+
+                    b.Property<Guid?>("LocationId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("location_id");
+
+                    b.Property<string>("Method")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("character varying(20)")
+                        .HasColumnName("method");
+
+                    b.Property<int>("Position")
+                        .HasColumnType("integer")
+                        .HasColumnName("position");
+
+                    b.Property<Guid?>("SkillId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("skill_id");
+
+                    b.Property<Guid>("TenantId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("tenant_id");
+
+                    b.Property<DateTimeOffset>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("updated_at");
+
+                    b.Property<uint>("Version")
+                        .IsConcurrencyToken()
+                        .ValueGeneratedOnAddOrUpdate()
+                        .HasColumnType("xid")
+                        .HasColumnName("xmin");
+
+                    b.ComplexProperty(typeof(Dictionary<string, object>), "Name", "Zelvo.Data.Directory.AssignmentRule.Name#LocalizedText", b1 =>
+                        {
+                            b1.IsRequired();
+
+                            b1.Property<string>("Ar")
+                                .HasMaxLength(150)
+                                .HasColumnType("character varying(150)")
+                                .HasColumnName("name_ar");
+
+                            b1.Property<string>("En")
+                                .HasMaxLength(150)
+                                .HasColumnType("character varying(150)")
+                                .HasColumnName("name_en");
+                        });
+
+                    b.HasKey("Id")
+                        .HasName("pk_assignment_rules");
+
+                    b.HasIndex("CategoryId")
+                        .HasDatabaseName("ix_assignment_rules_category_id");
+
+                    b.HasIndex("GroupId")
+                        .HasDatabaseName("ix_assignment_rules_group_id");
+
+                    b.HasIndex("LocationId")
+                        .HasDatabaseName("ix_assignment_rules_location_id");
+
+                    b.HasIndex("SkillId")
+                        .HasDatabaseName("ix_assignment_rules_skill_id");
+
+                    b.HasIndex("TenantId", "Position")
+                        .HasDatabaseName("ix_assignment_rules_tenant_id_position");
+
+                    b.ToTable("assignment_rules", null, t =>
+                        {
+                            t.HasCheckConstraint("ck_assignment_rules_language", "language IN ('en', 'ar')");
+
+                            t.HasCheckConstraint("ck_assignment_rules_method", "method IN ('GroupQueue', 'RoundRobin')");
+
+                            t.HasCheckConstraint("ck_assignment_rules_skill", "skill_id IS NULL OR method = 'RoundRobin'");
+                        });
+                });
+
+            modelBuilder.Entity("Zelvo.Data.Directory.Category", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<bool>("Active")
+                        .HasColumnType("boolean")
+                        .HasColumnName("active");
+
+                    b.Property<DateTimeOffset>("CreatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("created_at");
+
+                    b.Property<int>("Depth")
+                        .HasColumnType("integer")
+                        .HasColumnName("depth");
+
+                    b.Property<Guid?>("ParentId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("parent_id");
+
+                    b.Property<int>("Position")
+                        .HasColumnType("integer")
+                        .HasColumnName("position");
+
+                    b.Property<Guid>("TenantId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("tenant_id");
+
+                    b.Property<DateTimeOffset>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("updated_at");
+
+                    b.Property<uint>("Version")
+                        .IsConcurrencyToken()
+                        .ValueGeneratedOnAddOrUpdate()
+                        .HasColumnType("xid")
+                        .HasColumnName("xmin");
+
+                    b.ComplexProperty(typeof(Dictionary<string, object>), "Name", "Zelvo.Data.Directory.Category.Name#LocalizedText", b1 =>
+                        {
+                            b1.IsRequired();
+
+                            b1.Property<string>("Ar")
+                                .HasMaxLength(150)
+                                .HasColumnType("character varying(150)")
+                                .HasColumnName("name_ar");
+
+                            b1.Property<string>("En")
+                                .HasMaxLength(150)
+                                .HasColumnType("character varying(150)")
+                                .HasColumnName("name_en");
+                        });
+
+                    b.HasKey("Id")
+                        .HasName("pk_categories");
+
+                    b.HasIndex("ParentId")
+                        .HasDatabaseName("ix_categories_parent_id");
+
+                    b.HasIndex("TenantId", "ParentId", "Position")
+                        .HasDatabaseName("ix_categories_tenant_id_parent_id_position");
+
+                    b.ToTable("categories", null, t =>
+                        {
+                            t.HasCheckConstraint("ck_categories_depth", "depth BETWEEN 1 AND 3");
+
+                            t.HasCheckConstraint("ck_categories_not_own_parent", "parent_id IS NULL OR parent_id <> id");
+
+                            t.HasCheckConstraint("ck_categories_parent", "(depth = 1) = (parent_id IS NULL)");
+                        });
+                });
+
+            modelBuilder.Entity("Zelvo.Data.Directory.Location", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<bool>("Active")
+                        .HasColumnType("boolean")
+                        .HasColumnName("active");
+
+                    b.Property<DateTimeOffset>("CreatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("created_at");
+
+                    b.Property<int>("Depth")
+                        .HasColumnType("integer")
+                        .HasColumnName("depth");
+
+                    b.Property<Guid?>("ParentId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("parent_id");
+
+                    b.Property<int>("Position")
+                        .HasColumnType("integer")
+                        .HasColumnName("position");
+
+                    b.Property<Guid>("TenantId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("tenant_id");
+
+                    b.Property<DateTimeOffset>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("updated_at");
+
+                    b.Property<uint>("Version")
+                        .IsConcurrencyToken()
+                        .ValueGeneratedOnAddOrUpdate()
+                        .HasColumnType("xid")
+                        .HasColumnName("xmin");
+
+                    b.ComplexProperty(typeof(Dictionary<string, object>), "Name", "Zelvo.Data.Directory.Location.Name#LocalizedText", b1 =>
+                        {
+                            b1.IsRequired();
+
+                            b1.Property<string>("Ar")
+                                .HasMaxLength(150)
+                                .HasColumnType("character varying(150)")
+                                .HasColumnName("name_ar");
+
+                            b1.Property<string>("En")
+                                .HasMaxLength(150)
+                                .HasColumnType("character varying(150)")
+                                .HasColumnName("name_en");
+                        });
+
+                    b.HasKey("Id")
+                        .HasName("pk_locations");
+
+                    b.HasIndex("ParentId")
+                        .HasDatabaseName("ix_locations_parent_id");
+
+                    b.HasIndex("TenantId", "ParentId", "Position")
+                        .HasDatabaseName("ix_locations_tenant_id_parent_id_position");
+
+                    b.ToTable("locations", null, t =>
+                        {
+                            t.HasCheckConstraint("ck_locations_depth", "depth BETWEEN 1 AND 3");
+
+                            t.HasCheckConstraint("ck_locations_not_own_parent", "parent_id IS NULL OR parent_id <> id");
+
+                            t.HasCheckConstraint("ck_locations_parent", "(depth = 1) = (parent_id IS NULL)");
+                        });
+                });
+
+            modelBuilder.Entity("Zelvo.Data.Directory.Skill", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<bool>("Active")
+                        .HasColumnType("boolean")
+                        .HasColumnName("active");
+
+                    b.Property<DateTimeOffset>("CreatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("created_at");
+
+                    b.Property<Guid>("TenantId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("tenant_id");
+
+                    b.Property<DateTimeOffset>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("updated_at");
+
+                    b.ComplexProperty(typeof(Dictionary<string, object>), "Name", "Zelvo.Data.Directory.Skill.Name#LocalizedText", b1 =>
+                        {
+                            b1.IsRequired();
+
+                            b1.Property<string>("Ar")
+                                .HasMaxLength(100)
+                                .HasColumnType("character varying(100)")
+                                .HasColumnName("name_ar");
+
+                            b1.Property<string>("En")
+                                .HasMaxLength(100)
+                                .HasColumnType("character varying(100)")
+                                .HasColumnName("name_en");
+                        });
+
+                    b.HasKey("Id")
+                        .HasName("pk_skills");
+
+                    b.HasIndex("TenantId")
+                        .HasDatabaseName("ix_skills_tenant_id");
+
+                    b.ToTable("skills", (string)null);
+                });
+
+            modelBuilder.Entity("Zelvo.Data.Directory.SupportGroup", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<bool>("Active")
+                        .HasColumnType("boolean")
+                        .HasColumnName("active");
+
+                    b.Property<DateTimeOffset>("CreatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("created_at");
+
+                    b.Property<Guid>("TenantId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("tenant_id");
+
+                    b.Property<DateTimeOffset>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("updated_at");
+
+                    b.Property<uint>("Version")
+                        .IsConcurrencyToken()
+                        .ValueGeneratedOnAddOrUpdate()
+                        .HasColumnType("xid")
+                        .HasColumnName("xmin");
+
+                    b.ComplexProperty(typeof(Dictionary<string, object>), "Description", "Zelvo.Data.Directory.SupportGroup.Description#LocalizedText", b1 =>
+                        {
+                            b1.IsRequired();
+
+                            b1.Property<string>("Ar")
+                                .HasMaxLength(1000)
+                                .HasColumnType("character varying(1000)")
+                                .HasColumnName("description_ar");
+
+                            b1.Property<string>("En")
+                                .HasMaxLength(1000)
+                                .HasColumnType("character varying(1000)")
+                                .HasColumnName("description_en");
+                        });
+
+                    b.ComplexProperty(typeof(Dictionary<string, object>), "Name", "Zelvo.Data.Directory.SupportGroup.Name#LocalizedText", b1 =>
+                        {
+                            b1.IsRequired();
+
+                            b1.Property<string>("Ar")
+                                .HasMaxLength(150)
+                                .HasColumnType("character varying(150)")
+                                .HasColumnName("name_ar");
+
+                            b1.Property<string>("En")
+                                .HasMaxLength(150)
+                                .HasColumnType("character varying(150)")
+                                .HasColumnName("name_en");
+                        });
+
+                    b.HasKey("Id")
+                        .HasName("pk_support_groups");
+
+                    b.HasIndex("TenantId")
+                        .HasDatabaseName("ix_support_groups_tenant_id");
+
+                    b.ToTable("support_groups", (string)null);
+                });
+
+            modelBuilder.Entity("Zelvo.Data.Directory.SupportGroupMember", b =>
+                {
+                    b.Property<Guid>("GroupId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("group_id");
+
+                    b.Property<Guid>("UserId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("user_id");
+
+                    b.Property<DateTimeOffset>("AddedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("added_at");
+
+                    b.Property<bool>("IsLead")
+                        .HasColumnType("boolean")
+                        .HasColumnName("is_lead");
+
+                    b.Property<Guid>("TenantId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("tenant_id");
+
+                    b.HasKey("GroupId", "UserId")
+                        .HasName("pk_support_group_members");
+
+                    b.HasIndex("UserId")
+                        .HasDatabaseName("ix_support_group_members_user_id");
+
+                    b.HasIndex("TenantId", "UserId")
+                        .HasDatabaseName("ix_support_group_members_tenant_id_user_id");
+
+                    b.ToTable("support_group_members", (string)null);
+                });
+
+            modelBuilder.Entity("Zelvo.Data.Directory.SupportGroupRotation", b =>
+                {
+                    b.Property<Guid>("GroupId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("group_id");
+
+                    b.Property<Guid>("UserId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("user_id");
+
+                    b.Property<DateTimeOffset>("LastAssignedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("last_assigned_at");
+
+                    b.Property<Guid>("TenantId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("tenant_id");
+
+                    b.HasKey("GroupId", "UserId")
+                        .HasName("pk_support_group_rotation");
+
+                    b.HasIndex("TenantId")
+                        .HasDatabaseName("ix_support_group_rotation_tenant_id");
+
+                    b.ToTable("support_group_rotation", (string)null);
+                });
+
+            modelBuilder.Entity("Zelvo.Data.Directory.UserSkill", b =>
+                {
+                    b.Property<Guid>("UserId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("user_id");
+
+                    b.Property<Guid>("SkillId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("skill_id");
+
+                    b.Property<Guid>("TenantId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("tenant_id");
+
+                    b.HasKey("UserId", "SkillId")
+                        .HasName("pk_user_skills");
+
+                    b.HasIndex("SkillId")
+                        .HasDatabaseName("ix_user_skills_skill_id");
+
+                    b.HasIndex("TenantId", "SkillId")
+                        .HasDatabaseName("ix_user_skills_tenant_id_skill_id");
+
+                    b.ToTable("user_skills", (string)null);
+                });
+
             modelBuilder.Entity("Zelvo.Data.Identity.IdentitySettings", b =>
                 {
                     b.Property<Guid>("TenantId")
@@ -636,6 +1086,12 @@ namespace Zelvo.Data.Migrations
                         .HasColumnType("uuid")
                         .HasColumnName("id");
 
+                    b.Property<bool>("AvailableForAssignment")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(true)
+                        .HasColumnName("available_for_assignment");
+
                     b.Property<string>("Calendar")
                         .HasMaxLength(20)
                         .HasColumnType("character varying(20)")
@@ -664,6 +1120,13 @@ namespace Zelvo.Data.Migrations
                         .HasMaxLength(15)
                         .HasColumnType("character varying(15)")
                         .HasColumnName("emirates_id");
+
+                    b.PrimitiveCollection<List<string>>("Languages")
+                        .IsRequired()
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("text[]")
+                        .HasColumnName("languages")
+                        .HasDefaultValueSql("'{}'");
 
                     b.Property<DateTimeOffset?>("LastSeenAt")
                         .HasColumnType("timestamp with time zone")
@@ -722,6 +1185,8 @@ namespace Zelvo.Data.Migrations
                             t.HasCheckConstraint("ck_users_digits", "digits IN ('Western', 'ArabicIndic')");
 
                             t.HasCheckConstraint("ck_users_emirates_id", "emirates_id ~ '^784[0-9]{12}$'");
+
+                            t.HasCheckConstraint("ck_users_languages", "languages <@ ARRAY['en', 'ar']::text[]");
 
                             t.HasCheckConstraint("ck_users_preferred_language", "preferred_language IN ('en', 'ar')");
 
@@ -1559,6 +2024,10 @@ namespace Zelvo.Data.Migrations
                         .HasColumnType("uuid")
                         .HasColumnName("assignee_id");
 
+                    b.Property<Guid?>("CategoryId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("category_id");
+
                     b.Property<string>("Channel")
                         .IsRequired()
                         .HasMaxLength(20)
@@ -1585,6 +2054,14 @@ namespace Zelvo.Data.Migrations
                     b.Property<Guid?>("FollowUpOfId")
                         .HasColumnType("uuid")
                         .HasColumnName("follow_up_of_id");
+
+                    b.Property<Guid?>("GroupId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("group_id");
+
+                    b.Property<Guid?>("LocationId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("location_id");
 
                     b.Property<string>("Number")
                         .IsRequired()
@@ -1617,6 +2094,10 @@ namespace Zelvo.Data.Migrations
                     b.Property<DateTimeOffset?>("ResolvedAt")
                         .HasColumnType("timestamp with time zone")
                         .HasColumnName("resolved_at");
+
+                    b.Property<Guid?>("RoutingRuleId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("routing_rule_id");
 
                     b.Property<long>("Sequence")
                         .HasColumnType("bigint")
@@ -1660,11 +2141,20 @@ namespace Zelvo.Data.Migrations
                     b.HasIndex("AssigneeId")
                         .HasDatabaseName("ix_tickets_assignee_id");
 
+                    b.HasIndex("CategoryId")
+                        .HasDatabaseName("ix_tickets_category_id");
+
                     b.HasIndex("CreatedById")
                         .HasDatabaseName("ix_tickets_created_by_id");
 
                     b.HasIndex("FollowUpOfId")
                         .HasDatabaseName("ix_tickets_follow_up_of_id");
+
+                    b.HasIndex("GroupId")
+                        .HasDatabaseName("ix_tickets_group_id");
+
+                    b.HasIndex("LocationId")
+                        .HasDatabaseName("ix_tickets_location_id");
 
                     b.HasIndex("ParentId")
                         .HasDatabaseName("ix_tickets_parent_id");
@@ -1672,11 +2162,23 @@ namespace Zelvo.Data.Migrations
                     b.HasIndex("RequesterId")
                         .HasDatabaseName("ix_tickets_requester_id");
 
+                    b.HasIndex("RoutingRuleId")
+                        .HasDatabaseName("ix_tickets_routing_rule_id");
+
                     b.HasIndex("TenantId", "AssigneeId")
                         .HasDatabaseName("ix_tickets_tenant_id_assignee_id");
 
+                    b.HasIndex("TenantId", "CategoryId")
+                        .HasDatabaseName("ix_tickets_tenant_id_category_id");
+
                     b.HasIndex("TenantId", "CreatedAt")
                         .HasDatabaseName("ix_tickets_tenant_id_created_at");
+
+                    b.HasIndex("TenantId", "GroupId")
+                        .HasDatabaseName("ix_tickets_tenant_id_group_id");
+
+                    b.HasIndex("TenantId", "LocationId")
+                        .HasDatabaseName("ix_tickets_tenant_id_location_id");
 
                     b.HasIndex("TenantId", "Number")
                         .IsUnique()
@@ -1916,6 +2418,141 @@ namespace Zelvo.Data.Migrations
                         .HasConstraintName("fk_audit_events_tenants_tenant_id");
                 });
 
+            modelBuilder.Entity("Zelvo.Data.Directory.AssignmentRule", b =>
+                {
+                    b.HasOne("Zelvo.Data.Directory.Category", null)
+                        .WithMany()
+                        .HasForeignKey("CategoryId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .HasConstraintName("fk_assignment_rules_categories_category_id");
+
+                    b.HasOne("Zelvo.Data.Directory.SupportGroup", null)
+                        .WithMany()
+                        .HasForeignKey("GroupId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired()
+                        .HasConstraintName("fk_assignment_rules_support_groups_group_id");
+
+                    b.HasOne("Zelvo.Data.Directory.Location", null)
+                        .WithMany()
+                        .HasForeignKey("LocationId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .HasConstraintName("fk_assignment_rules_locations_location_id");
+
+                    b.HasOne("Zelvo.Data.Directory.Skill", null)
+                        .WithMany()
+                        .HasForeignKey("SkillId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .HasConstraintName("fk_assignment_rules_skills_skill_id");
+
+                    b.HasOne("Zelvo.Data.Tenancy.Tenant", null)
+                        .WithMany()
+                        .HasForeignKey("TenantId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired()
+                        .HasConstraintName("fk_assignment_rules_tenants_tenant_id");
+                });
+
+            modelBuilder.Entity("Zelvo.Data.Directory.Category", b =>
+                {
+                    b.HasOne("Zelvo.Data.Directory.Category", null)
+                        .WithMany()
+                        .HasForeignKey("ParentId")
+                        .OnDelete(DeleteBehavior.NoAction)
+                        .HasConstraintName("fk_categories_categories_parent_id");
+
+                    b.HasOne("Zelvo.Data.Tenancy.Tenant", null)
+                        .WithMany()
+                        .HasForeignKey("TenantId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired()
+                        .HasConstraintName("fk_categories_tenants_tenant_id");
+                });
+
+            modelBuilder.Entity("Zelvo.Data.Directory.Location", b =>
+                {
+                    b.HasOne("Zelvo.Data.Directory.Location", null)
+                        .WithMany()
+                        .HasForeignKey("ParentId")
+                        .OnDelete(DeleteBehavior.NoAction)
+                        .HasConstraintName("fk_locations_locations_parent_id");
+
+                    b.HasOne("Zelvo.Data.Tenancy.Tenant", null)
+                        .WithMany()
+                        .HasForeignKey("TenantId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired()
+                        .HasConstraintName("fk_locations_tenants_tenant_id");
+                });
+
+            modelBuilder.Entity("Zelvo.Data.Directory.Skill", b =>
+                {
+                    b.HasOne("Zelvo.Data.Tenancy.Tenant", null)
+                        .WithMany()
+                        .HasForeignKey("TenantId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired()
+                        .HasConstraintName("fk_skills_tenants_tenant_id");
+                });
+
+            modelBuilder.Entity("Zelvo.Data.Directory.SupportGroup", b =>
+                {
+                    b.HasOne("Zelvo.Data.Tenancy.Tenant", null)
+                        .WithMany()
+                        .HasForeignKey("TenantId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired()
+                        .HasConstraintName("fk_support_groups_tenants_tenant_id");
+                });
+
+            modelBuilder.Entity("Zelvo.Data.Directory.SupportGroupMember", b =>
+                {
+                    b.HasOne("Zelvo.Data.Directory.SupportGroup", null)
+                        .WithMany("Members")
+                        .HasForeignKey("GroupId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired()
+                        .HasConstraintName("fk_support_group_members_support_groups_group_id");
+
+                    b.HasOne("Zelvo.Data.Identity.UserAccount", "User")
+                        .WithMany()
+                        .HasForeignKey("UserId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired()
+                        .HasConstraintName("fk_support_group_members_users_user_id");
+
+                    b.Navigation("User");
+                });
+
+            modelBuilder.Entity("Zelvo.Data.Directory.SupportGroupRotation", b =>
+                {
+                    b.HasOne("Zelvo.Data.Directory.SupportGroupMember", null)
+                        .WithOne()
+                        .HasForeignKey("Zelvo.Data.Directory.SupportGroupRotation", "GroupId", "UserId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired()
+                        .HasConstraintName("fk_support_group_rotation_support_group_members_group_id_user_");
+                });
+
+            modelBuilder.Entity("Zelvo.Data.Directory.UserSkill", b =>
+                {
+                    b.HasOne("Zelvo.Data.Directory.Skill", "Skill")
+                        .WithMany()
+                        .HasForeignKey("SkillId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired()
+                        .HasConstraintName("fk_user_skills_skills_skill_id");
+
+                    b.HasOne("Zelvo.Data.Identity.UserAccount", null)
+                        .WithMany("Skills")
+                        .HasForeignKey("UserId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired()
+                        .HasConstraintName("fk_user_skills_users_user_id");
+
+                    b.Navigation("Skill");
+                });
+
             modelBuilder.Entity("Zelvo.Data.Identity.IdentitySettings", b =>
                 {
                     b.HasOne("Zelvo.Data.Tenancy.Tenant", null)
@@ -2130,6 +2767,12 @@ namespace Zelvo.Data.Migrations
                         .OnDelete(DeleteBehavior.Restrict)
                         .HasConstraintName("fk_tickets_users_assignee_id");
 
+                    b.HasOne("Zelvo.Data.Directory.Category", "Category")
+                        .WithMany()
+                        .HasForeignKey("CategoryId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .HasConstraintName("fk_tickets_categories_category_id");
+
                     b.HasOne("Zelvo.Data.Identity.UserAccount", null)
                         .WithMany()
                         .HasForeignKey("CreatedById")
@@ -2141,6 +2784,18 @@ namespace Zelvo.Data.Migrations
                         .HasForeignKey("FollowUpOfId")
                         .OnDelete(DeleteBehavior.NoAction)
                         .HasConstraintName("fk_tickets_tickets_follow_up_of_id");
+
+                    b.HasOne("Zelvo.Data.Directory.SupportGroup", "Group")
+                        .WithMany()
+                        .HasForeignKey("GroupId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .HasConstraintName("fk_tickets_support_groups_group_id");
+
+                    b.HasOne("Zelvo.Data.Directory.Location", "Location")
+                        .WithMany()
+                        .HasForeignKey("LocationId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .HasConstraintName("fk_tickets_locations_location_id");
 
                     b.HasOne("Zelvo.Data.Tickets.Ticket", null)
                         .WithMany()
@@ -2155,6 +2810,12 @@ namespace Zelvo.Data.Migrations
                         .IsRequired()
                         .HasConstraintName("fk_tickets_users_requester_id");
 
+                    b.HasOne("Zelvo.Data.Directory.AssignmentRule", null)
+                        .WithMany()
+                        .HasForeignKey("RoutingRuleId")
+                        .OnDelete(DeleteBehavior.SetNull)
+                        .HasConstraintName("fk_tickets_assignment_rules_routing_rule_id");
+
                     b.HasOne("Zelvo.Data.Tenancy.Tenant", null)
                         .WithMany()
                         .HasForeignKey("TenantId")
@@ -2163,6 +2824,12 @@ namespace Zelvo.Data.Migrations
                         .HasConstraintName("fk_tickets_tenants_tenant_id");
 
                     b.Navigation("Assignee");
+
+                    b.Navigation("Category");
+
+                    b.Navigation("Group");
+
+                    b.Navigation("Location");
 
                     b.Navigation("Requester");
                 });
@@ -2203,6 +2870,11 @@ namespace Zelvo.Data.Migrations
                         .HasConstraintName("fk_ticket_number_sequences_tenants_tenant_id");
                 });
 
+            modelBuilder.Entity("Zelvo.Data.Directory.SupportGroup", b =>
+                {
+                    b.Navigation("Members");
+                });
+
             modelBuilder.Entity("Zelvo.Data.Identity.Role", b =>
                 {
                     b.Navigation("FieldRules");
@@ -2213,6 +2885,8 @@ namespace Zelvo.Data.Migrations
             modelBuilder.Entity("Zelvo.Data.Identity.UserAccount", b =>
                 {
                     b.Navigation("Roles");
+
+                    b.Navigation("Skills");
                 });
 
             modelBuilder.Entity("Zelvo.Data.Tickets.Ticket", b =>

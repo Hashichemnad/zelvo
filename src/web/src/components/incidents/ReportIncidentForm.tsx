@@ -4,6 +4,7 @@ import { useId, useState } from "react";
 import { useLocale, useTranslations } from "next-intl";
 import { useRouter } from "@/i18n/navigation";
 import { ApiError, postJson } from "@/lib/client-api";
+import { selectableNodes, textOf, type GroupSummary, type TreeNode } from "@/lib/directory";
 import { levelName, staffChannels, type Incident, type IncidentSettings, type Locale, type Person, type TicketChannel } from "@/lib/incidents";
 
 export const inputClass =
@@ -22,13 +23,15 @@ export interface ReportIncidentFormProps {
   staff?: { requesters: Person[]; assignees: Person[] | null };
   /** The closed incident this one follows up. */
   followUpOf?: { id: string; number: string } | null;
+  /** Active categories and locations to choose from, and groups for staff who assign (task B2). */
+  directory?: { categories: TreeNode[]; locations: TreeNode[]; groups: GroupSummary[] | null } | null;
 }
 
 /**
  * "Report an incident" for requesters (title and description; the portal, D2, reuses it) and
  * "Log an incident" for staff, who also choose the requester, channel, impact, urgency and assignee.
  */
-export function ReportIncidentForm({ csrfToken, settings, basePath, staff, followUpOf }: ReportIncidentFormProps) {
+export function ReportIncidentForm({ csrfToken, settings, basePath, staff, followUpOf, directory }: ReportIncidentFormProps) {
   const t = useTranslations("incidents.form");
   const tIncidents = useTranslations("incidents");
   const tCommon = useTranslations("common");
@@ -42,7 +45,13 @@ export function ReportIncidentForm({ csrfToken, settings, basePath, staff, follo
   const [impact, setImpact] = useState(2);
   const [urgency, setUrgency] = useState(2);
   const [assigneeId, setAssigneeId] = useState("");
-  const [status, setStatus] = useState<"idle" | "saving" | "failed" | "invalid" | "rateLimited">("idle");
+  const [categoryId, setCategoryId] = useState("");
+  const [locationId, setLocationId] = useState("");
+  const [groupId, setGroupId] = useState("");
+  const [status, setStatus] = useState<"idle" | "saving" | "failed" | "invalid" | "rateLimited" | "notInGroup">("idle");
+  const categories = selectableNodes(directory?.categories ?? []);
+  const locations = selectableNodes(directory?.locations ?? []);
+  const groups = staff?.assignees ? (directory?.groups ?? []).filter((g) => g.active) : [];
   const matrix = settings?.priorityMatrix;
 
   async function submit(event: React.FormEvent) {
@@ -53,14 +62,25 @@ export function ReportIncidentForm({ csrfToken, settings, basePath, staff, follo
     }
     setStatus("saving");
     const body: Record<string, unknown> = { title: title.trim(), description: description.trim() || undefined, followUpOfId: followUpOf?.id };
+    if (categoryId) body.categoryId = categoryId;
+    if (locationId) body.locationId = locationId;
     if (staff) {
-      Object.assign(body, { requesterId: requesterId || undefined, channel, impact, urgency, assigneeId: assigneeId || undefined });
+      Object.assign(body, { requesterId: requesterId || undefined, channel, impact, urgency, assigneeId: assigneeId || undefined, groupId: groupId || undefined });
     }
     try {
       const created = await postJson<Incident>("/v1/incidents", body, csrfToken);
       router.push(`${basePath}/${created.id}`);
     } catch (error) {
-      setStatus(error instanceof ApiError && error.rateLimited ? "rateLimited" : error instanceof ApiError && error.status === 400 ? "invalid" : "failed");
+      const errors = error instanceof ApiError ? (error.details.errors as Record<string, unknown> | undefined) : undefined;
+      setStatus(
+        error instanceof ApiError && error.rateLimited
+          ? "rateLimited"
+          : errors && "assigneeId" in errors
+            ? "notInGroup"
+            : error instanceof ApiError && error.status === 400
+              ? "invalid"
+              : "failed",
+      );
     }
   }
 
@@ -125,6 +145,40 @@ export function ReportIncidentForm({ csrfToken, settings, basePath, staff, follo
           {t("descriptionHint")}
         </p>
       </div>
+      {(categories.length > 0 || locations.length > 0) && (
+        <div className="grid gap-4 sm:grid-cols-2">
+          {categories.length > 0 && (
+            <div className="space-y-1">
+              <label htmlFor={`${id}-category`} className="block font-semibold">
+                {t("category")}
+              </label>
+              <select id={`${id}-category`} value={categoryId} onChange={(e) => setCategoryId(e.target.value)} className={inputClass}>
+                <option value="">{t("notSure")}</option>
+                {categories.map((node) => (
+                  <option key={node.id} value={node.id}>
+                    {textOf(node.path, locale) || textOf(node.name, locale)}
+                  </option>
+                ))}
+              </select>
+            </div>
+          )}
+          {locations.length > 0 && (
+            <div className="space-y-1">
+              <label htmlFor={`${id}-location`} className="block font-semibold">
+                {t("location")}
+              </label>
+              <select id={`${id}-location`} value={locationId} onChange={(e) => setLocationId(e.target.value)} className={inputClass}>
+                <option value="">{t("notSure")}</option>
+                {locations.map((node) => (
+                  <option key={node.id} value={node.id}>
+                    {textOf(node.path, locale) || textOf(node.name, locale)}
+                  </option>
+                ))}
+              </select>
+            </div>
+          )}
+        </div>
+      )}
       {staff && (
         <fieldset className="grid gap-4 sm:grid-cols-2">
           <div className="space-y-1">
@@ -159,6 +213,24 @@ export function ReportIncidentForm({ csrfToken, settings, basePath, staff, follo
               {t("priorityPreview", { priority: levelName(matrix.priorities, matrix.matrix[impact - 1]?.[urgency - 1], locale) })}
             </p>
           )}
+          {staff.assignees && groups.length > 0 && (
+            <div className="space-y-1">
+              <label htmlFor={`${id}-group`} className="block font-semibold">
+                {t("group")}
+              </label>
+              <select id={`${id}-group`} value={groupId} onChange={(e) => setGroupId(e.target.value)} aria-describedby={`${id}-group-hint`} className={inputClass}>
+                <option value="">{t("byRules")}</option>
+                {groups.map((g) => (
+                  <option key={g.id} value={g.id}>
+                    {textOf(g.name, locale)}
+                  </option>
+                ))}
+              </select>
+              <p id={`${id}-group-hint`} className="text-sm text-ink-muted">
+                {t("groupHint")}
+              </p>
+            </div>
+          )}
           {staff.assignees && (
             <div className="space-y-1">
               <label htmlFor={`${id}-assignee`} className="block font-semibold">
@@ -181,7 +253,7 @@ export function ReportIncidentForm({ csrfToken, settings, basePath, staff, follo
           {status === "saving" ? t("submitting") : staff ? t("submitStaff") : t("submit")}
         </button>
         <p role="status" aria-live="polite" className="text-bad">
-          {status === "invalid" ? t("titleRequired") : status === "failed" ? t("failed") : status === "rateLimited" ? tCommon("rateLimited") : ""}
+          {status === "invalid" ? t("titleRequired") : status === "notInGroup" ? t("notInGroup") : status === "failed" ? t("failed") : status === "rateLimited" ? tCommon("rateLimited") : ""}
         </p>
       </div>
     </form>

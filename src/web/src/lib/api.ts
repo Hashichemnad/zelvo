@@ -120,6 +120,10 @@ export interface CurrentUser {
   pendingPermissions: string[];
   mfa: { satisfied: boolean; required: boolean };
   preferences: Preferences;
+  /** Whether round-robin may give this user tickets (task B2). */
+  availableForAssignment?: boolean;
+  /** Assignment groups the user belongs to (task B2). */
+  groups?: { id: string; name: LocalizedText; isLead: boolean }[];
 }
 
 /** Calls the API as the signed-in user, for the session's tenant. */

@@ -21,6 +21,13 @@ export interface Person {
   displayName: string | null;
 }
 
+/** A category or location of an incident, with its path ("Hardware › Laptop"). */
+export interface DirectoryRef {
+  id: string;
+  name: Bilingual;
+  path: Bilingual;
+}
+
 export interface TicketLink {
   id: string;
   number: string;
@@ -38,6 +45,12 @@ export interface Incident {
   channel?: TicketChannel;
   requester?: Person;
   assignee?: Person | null;
+  /** Category and location (task B2); requesters see them on their own incidents. */
+  category?: DirectoryRef | null;
+  location?: DirectoryRef | null;
+  /** Assignment group and the rule that last routed the incident (staff only). */
+  group?: { id: string; name: Bilingual } | null;
+  routingRule?: { id: string; name: Bilingual } | null;
   impact?: number;
   urgency?: number;
   priority?: number;

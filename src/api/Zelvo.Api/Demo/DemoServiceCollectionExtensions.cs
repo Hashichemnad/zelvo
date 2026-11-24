@@ -12,6 +12,7 @@ internal static class DemoServiceCollectionExtensions
         services.AddDemoSeeder<DemoOrganisationSeeder>();
         services.AddDemoSeeder<DemoUsersSeeder>();
         services.AddDemoSeeder<DemoIncidentsSeeder>();
+        services.AddDemoSeeder<DemoDirectorySeeder>();
         return services;
     }
 

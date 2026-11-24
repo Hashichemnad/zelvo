@@ -70,6 +70,18 @@ public sealed class UserAccount : ITenantOwned, IAuditedEntity
     /// <summary>Roles of the user.</summary>
     public List<UserRole> Roles { get; init; } = [];
 
+    /// <summary>
+    /// Round-robin may give this person tickets (task B2). Staff switch it off when they are away;
+    /// administrators and the leads of their groups can change it too.
+    /// </summary>
+    public bool AvailableForAssignment { get; set; } = true;
+
+    /// <summary>Languages the person handles tickets in (<c>en</c>, <c>ar</c>); used by round-robin rules with a language.</summary>
+    public List<string> Languages { get; set; } = [];
+
+    /// <summary>Skills of the user (task B2).</summary>
+    public List<Directory.UserSkill> Skills { get; init; } = [];
+
     /// <summary>Optimistic concurrency token (PostgreSQL <c>xmin</c>).</summary>
     public uint Version { get; init; }
 }
