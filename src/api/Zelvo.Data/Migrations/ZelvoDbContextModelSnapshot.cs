@@ -1527,6 +1527,149 @@ namespace Zelvo.Data.Migrations
                         });
                 });
 
+            modelBuilder.Entity("Zelvo.Data.Catalog.RequestTask", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<Guid?>("AssigneeId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("assignee_id");
+
+                    b.Property<DateTimeOffset?>("CompletedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("completed_at");
+
+                    b.Property<Guid?>("CompletedById")
+                        .HasColumnType("uuid")
+                        .HasColumnName("completed_by_id");
+
+                    b.Property<DateTimeOffset>("CreatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("created_at");
+
+                    b.Property<DateTimeOffset?>("DueAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("due_at");
+
+                    b.Property<Guid?>("GroupId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("group_id");
+
+                    b.Property<string>("Key")
+                        .IsRequired()
+                        .HasMaxLength(40)
+                        .HasColumnType("character varying(40)")
+                        .HasColumnName("key");
+
+                    b.Property<string>("Notes")
+                        .HasMaxLength(4000)
+                        .HasColumnType("character varying(4000)")
+                        .HasColumnName("notes");
+
+                    b.Property<DateTimeOffset?>("OpenedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("opened_at");
+
+                    b.Property<int>("Position")
+                        .HasColumnType("integer")
+                        .HasColumnName("position");
+
+                    b.Property<int>("Stage")
+                        .HasColumnType("integer")
+                        .HasColumnName("stage");
+
+                    b.Property<DateTimeOffset?>("StartedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("started_at");
+
+                    b.Property<string>("State")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("character varying(20)")
+                        .HasColumnName("state");
+
+                    b.Property<int?>("TargetMinutes")
+                        .HasColumnType("integer")
+                        .HasColumnName("target_minutes");
+
+                    b.Property<Guid>("TenantId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("tenant_id");
+
+                    b.Property<Guid>("TicketId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("ticket_id");
+
+                    b.Property<uint>("Version")
+                        .IsConcurrencyToken()
+                        .ValueGeneratedOnAddOrUpdate()
+                        .HasColumnType("xid")
+                        .HasColumnName("xmin");
+
+                    b.ComplexProperty(typeof(Dictionary<string, object>), "Description", "Zelvo.Data.Catalog.RequestTask.Description#LocalizedText", b1 =>
+                        {
+                            b1.IsRequired();
+
+                            b1.Property<string>("Ar")
+                                .HasMaxLength(1000)
+                                .HasColumnType("character varying(1000)")
+                                .HasColumnName("description_ar");
+
+                            b1.Property<string>("En")
+                                .HasMaxLength(1000)
+                                .HasColumnType("character varying(1000)")
+                                .HasColumnName("description_en");
+                        });
+
+                    b.ComplexProperty(typeof(Dictionary<string, object>), "Name", "Zelvo.Data.Catalog.RequestTask.Name#LocalizedText", b1 =>
+                        {
+                            b1.IsRequired();
+
+                            b1.Property<string>("Ar")
+                                .HasMaxLength(150)
+                                .HasColumnType("character varying(150)")
+                                .HasColumnName("name_ar");
+
+                            b1.Property<string>("En")
+                                .HasMaxLength(150)
+                                .HasColumnType("character varying(150)")
+                                .HasColumnName("name_en");
+                        });
+
+                    b.HasKey("Id")
+                        .HasName("pk_request_tasks");
+
+                    b.HasIndex("AssigneeId")
+                        .HasDatabaseName("ix_request_tasks_assignee_id");
+
+                    b.HasIndex("CompletedById")
+                        .HasDatabaseName("ix_request_tasks_completed_by_id");
+
+                    b.HasIndex("GroupId")
+                        .HasDatabaseName("ix_request_tasks_group_id");
+
+                    b.HasIndex("TicketId", "Key")
+                        .IsUnique()
+                        .HasDatabaseName("ix_request_tasks_ticket_id_key");
+
+                    b.HasIndex("TenantId", "AssigneeId", "State")
+                        .HasDatabaseName("ix_request_tasks_tenant_id_assignee_id_state");
+
+                    b.HasIndex("TenantId", "GroupId", "State")
+                        .HasDatabaseName("ix_request_tasks_tenant_id_group_id_state");
+
+                    b.ToTable("request_tasks", null, t =>
+                        {
+                            t.HasCheckConstraint("ck_request_tasks_stage", "stage >= 0");
+
+                            t.HasCheckConstraint("ck_request_tasks_state", "state IN ('Waiting', 'Open', 'InProgress', 'Done', 'Cancelled')");
+
+                            t.HasCheckConstraint("ck_request_tasks_target", "target_minutes IS NULL OR target_minutes > 0");
+                        });
+                });
+
             modelBuilder.Entity("Zelvo.Data.Catalog.ServiceCatalog", b =>
                 {
                     b.Property<Guid>("Id")
@@ -1621,6 +1764,21 @@ namespace Zelvo.Data.Migrations
                         .HasColumnType("uuid")
                         .HasColumnName("ticket_id");
 
+                    b.Property<int?>("CompletionMinutes")
+                        .HasColumnType("integer")
+                        .HasColumnName("completion_minutes");
+
+                    b.Property<string>("Escalations")
+                        .IsRequired()
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("jsonb")
+                        .HasColumnName("escalations")
+                        .HasDefaultValueSql("'[]'::jsonb");
+
+                    b.Property<int?>("OwnershipMinutes")
+                        .HasColumnType("integer")
+                        .HasColumnName("ownership_minutes");
+
                     b.Property<Guid>("ServiceId")
                         .HasColumnType("uuid")
                         .HasColumnName("service_id");
@@ -1645,7 +1803,12 @@ namespace Zelvo.Data.Migrations
                     b.HasIndex("TenantId", "ServiceId")
                         .HasDatabaseName("ix_service_requests_tenant_id_service_id");
 
-                    b.ToTable("service_requests", (string)null);
+                    b.ToTable("service_requests", null, t =>
+                        {
+                            t.HasCheckConstraint("ck_service_requests_completion", "completion_minutes IS NULL OR completion_minutes > 0");
+
+                            t.HasCheckConstraint("ck_service_requests_ownership", "ownership_minutes IS NULL OR ownership_minutes > 0");
+                        });
                 });
 
             modelBuilder.Entity("Zelvo.Data.Channels.ChatMessage", b =>
@@ -7608,6 +7771,41 @@ namespace Zelvo.Data.Migrations
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired()
                         .HasConstraintName("fk_catalog_service_versions_tenants_tenant_id");
+                });
+
+            modelBuilder.Entity("Zelvo.Data.Catalog.RequestTask", b =>
+                {
+                    b.HasOne("Zelvo.Data.Identity.UserAccount", null)
+                        .WithMany()
+                        .HasForeignKey("AssigneeId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .HasConstraintName("fk_request_tasks_users_assignee_id");
+
+                    b.HasOne("Zelvo.Data.Identity.UserAccount", null)
+                        .WithMany()
+                        .HasForeignKey("CompletedById")
+                        .OnDelete(DeleteBehavior.SetNull)
+                        .HasConstraintName("fk_request_tasks_users_completed_by_id");
+
+                    b.HasOne("Zelvo.Data.Directory.SupportGroup", null)
+                        .WithMany()
+                        .HasForeignKey("GroupId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .HasConstraintName("fk_request_tasks_support_groups_group_id");
+
+                    b.HasOne("Zelvo.Data.Tenancy.Tenant", null)
+                        .WithMany()
+                        .HasForeignKey("TenantId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired()
+                        .HasConstraintName("fk_request_tasks_tenants_tenant_id");
+
+                    b.HasOne("Zelvo.Data.Tickets.Ticket", null)
+                        .WithMany()
+                        .HasForeignKey("TicketId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired()
+                        .HasConstraintName("fk_request_tasks_tickets_ticket_id");
                 });
 
             modelBuilder.Entity("Zelvo.Data.Catalog.ServiceCatalog", b =>

@@ -92,6 +92,9 @@ public enum ServiceStepStage
     /// <summary>Received; nobody assigned yet.</summary>
     Submitted,
 
+    /// <summary>Waiting for an approval before assignment (task C4).</summary>
+    Approval,
+
     /// <summary>Assigned to someone.</summary>
     Assigned,
 
@@ -144,6 +147,73 @@ public sealed record ServiceStep
 
     /// <summary>The internal stage it maps to.</summary>
     public ServiceStepStage Stage { get; init; } = ServiceStepStage.InProgress;
+
+    /// <summary>A fulfilment task (task C4) whose start reaches this step, instead of the stage.</summary>
+    public string? TaskKey { get; init; }
+}
+
+/// <summary>
+/// How a service is fulfilled (task C4, module 2): the group that receives new requests first and
+/// overrides by form answer, the service's own ownership and completion SLAs with escalations, and
+/// the task template.
+/// </summary>
+public sealed record ServiceFulfilment
+{
+    /// <summary>The group that receives new requests first; none: the assignment rules decide.</summary>
+    public Guid? GroupId { get; init; }
+
+    /// <summary>The group's queue or round-robin among its available members.</summary>
+    public Data.Directory.AssignmentMethod Method { get; init; } = Data.Directory.AssignmentMethod.GroupQueue;
+
+    /// <summary>Another group when the answers say so (for example Location = Abu Dhabi); the first match wins.</summary>
+    public IReadOnlyList<GroupOverride> Overrides { get; init; } = [];
+
+    /// <summary>Time for an agent to take ownership (start work), in business minutes; none: the SLA policy's response target.</summary>
+    public int? OwnershipMinutes { get; init; }
+
+    /// <summary>Time to complete, in business minutes; none: to the end of the service's Nth working day (its days), else the policy's.</summary>
+    public int? CompletionMinutes { get; init; }
+
+    /// <summary>Escalation thresholds of the service's SLA; none: the SLA policy's.</summary>
+    public IReadOnlyList<Data.Catalog.ServiceEscalation> Escalations { get; init; } = [];
+
+    /// <summary>The task template, in order.</summary>
+    public IReadOnlyList<FulfilmentTask> Tasks { get; init; } = [];
+}
+
+/// <summary>A group chosen by form answers.</summary>
+public sealed record GroupOverride
+{
+    /// <summary>When all hold.</summary>
+    public IReadOnlyList<Zelvo.Workflows.Rules.WorkflowCondition> Conditions { get; init; } = [];
+
+    /// <summary>The group.</summary>
+    public Guid? GroupId { get; init; }
+
+    /// <summary>Queue or round-robin.</summary>
+    public Data.Directory.AssignmentMethod Method { get; init; } = Data.Directory.AssignmentMethod.GroupQueue;
+}
+
+/// <summary>A task of a service's template.</summary>
+public sealed record FulfilmentTask
+{
+    /// <summary>Key, camelCase, unique in the card; steps refer to it.</summary>
+    public string Key { get; init; } = string.Empty;
+
+    /// <summary>Name in English and Arabic.</summary>
+    public LocalizedText Name { get; init; } = new(null, null);
+
+    /// <summary>What to do.</summary>
+    public LocalizedText Description { get; init; } = new(null, null);
+
+    /// <summary>The group that does it; none: the request's group.</summary>
+    public Guid? GroupId { get; init; }
+
+    /// <summary>Starts together with the task before it (parallel) instead of after it (sequence).</summary>
+    public bool ParallelWithPrevious { get; init; }
+
+    /// <summary>Target time in business minutes from when it starts.</summary>
+    public int? TargetMinutes { get; init; }
 }
 
 /// <summary>Fee of a service in AED (payments come with module 15).</summary>
@@ -290,6 +360,9 @@ public sealed record ServiceCard
 
     /// <summary>Approvals before assignment and after fulfilment (task C3).</summary>
     public Zelvo.Workflows.Rules.ServiceApprovals Approvals { get; init; } = new();
+
+    /// <summary>Initial group, SLAs and tasks (task C4).</summary>
+    public ServiceFulfilment Fulfilment { get; init; } = new();
 }
 
 /// <summary>Limits, JSON and the self-contained checks of service cards.</summary>
@@ -370,7 +443,7 @@ public static partial class ServiceCards
             Description = Clean(d.Description),
             FileTypes = [.. (d.FileTypes ?? []).Select(t => t.Trim().TrimStart('.').ToLowerInvariant()).Where(t => t.Length > 0).Distinct()],
         })],
-        Steps = [.. (card.Steps ?? []).Select(s => s with { Name = Clean(s.Name), Description = Clean(s.Description) })],
+        Steps = [.. (card.Steps ?? []).Select(s => s with { Name = Clean(s.Name), Description = Clean(s.Description), TaskKey = string.IsNullOrWhiteSpace(s.TaskKey) ? null : s.TaskKey.Trim() })],
         Fee = (card.Fee ?? new ServiceFee()) with { Notes = Clean(card.Fee?.Notes), AmountAed = card.Fee?.Paid == true ? card.Fee.AmountAed : null },
         Channels = [.. (card.Channels ?? []).Distinct()],
         Audiences = [.. (card.Audiences ?? []).Distinct()],
@@ -394,6 +467,14 @@ public static partial class ServiceCards
             BeforeAssignment = [.. (card.Approvals?.BeforeAssignment ?? []).Select(CleanLevel)],
             AfterFulfilment = [.. (card.Approvals?.AfterFulfilment ?? []).Select(CleanLevel)],
         },
+        Fulfilment = CleanFulfilment(card.Fulfilment),
+    };
+
+    private static ServiceFulfilment CleanFulfilment(ServiceFulfilment? f) => f is null ? new() : f with
+    {
+        Overrides = [.. (f.Overrides ?? []).Select(o => o with { Conditions = o.Conditions ?? [] })],
+        Escalations = f.Escalations ?? [],
+        Tasks = [.. (f.Tasks ?? []).Select(t => t with { Key = t.Key?.Trim() ?? string.Empty, Name = Clean(t.Name), Description = Clean(t.Description) })],
     };
 
     private static Zelvo.Workflows.Rules.ApprovalLevelDefinition CleanLevel(Zelvo.Workflows.Rules.ApprovalLevelDefinition level) => level with
@@ -546,6 +627,7 @@ public static partial class ServiceCards
 
         Zelvo.Workflows.Rules.RuleDocuments.CheckLevels(card.Approvals.BeforeAssignment, "approvals.beforeAssignment", problems);
         Zelvo.Workflows.Rules.RuleDocuments.CheckLevels(card.Approvals.AfterFulfilment, "approvals.afterFulfilment", problems);
+        CheckFulfilment(card, problems);
         if (card.Type == ServiceType.External && card.Approvals.BeforeAssignment.Count + card.Approvals.AfterFulfilment.Count > 0)
         {
             Add("approvals", "external-has-approvals", "External services are requested on the provider's site; remove the approvals.");
@@ -566,6 +648,106 @@ public static partial class ServiceCards
             if (count > MaxItems)
             {
                 Add(field, "too-many", $"At most {MaxItems}.");
+            }
+        }
+    }
+
+    /// <summary>Most overrides, tasks and escalations.</summary>
+    public const int MaxFulfilmentItems = 20;
+
+    /// <summary>Checks the fulfilment section (task C4): overrides, SLA targets, escalations and tasks; steps refer to tasks that exist.</summary>
+    private static void CheckFulfilment(ServiceCard card, List<FormProblem> problems)
+    {
+        var f = card.Fulfilment;
+        void Add(string field, string code, string message) => problems.Add(new FormProblem(field, code, message));
+        if (card.Type == ServiceType.External && (f.GroupId is not null || f.Tasks.Count > 0 || f.Overrides.Count > 0))
+        {
+            Add("fulfilment", "external-has-fulfilment", "External services are fulfilled by the provider; remove the group and tasks.");
+        }
+
+        if (f.Overrides.Count > MaxFulfilmentItems || f.Tasks.Count > MaxFulfilmentItems || f.Escalations.Count > MaxFulfilmentItems)
+        {
+            Add("fulfilment", "too-many", $"At most {MaxFulfilmentItems} overrides, tasks and escalations.");
+        }
+
+        foreach (var (minutes, field) in new[] { (f.OwnershipMinutes, "fulfilment.ownershipMinutes"), (f.CompletionMinutes, "fulfilment.completionMinutes") })
+        {
+            if (minutes is { } m && (m < 1 || m > Data.Sla.SlaPolicyTarget.MaxMinutes))
+            {
+                Add(field, "target-invalid", $"Use 1 to {Data.Sla.SlaPolicyTarget.MaxMinutes} minutes.");
+            }
+        }
+
+        for (var i = 0; i < f.Overrides.Count; i++)
+        {
+            var o = f.Overrides[i];
+            if (o.GroupId is null)
+            {
+                Add($"fulfilment.overrides.{i}.groupId", "group-required", "Choose the group for these answers.");
+            }
+
+            if (o.Conditions.Count == 0)
+            {
+                Add($"fulfilment.overrides.{i}.conditions", "conditions-required", "Say which answers send requests to this group.");
+            }
+
+            Zelvo.Workflows.Rules.RuleDocuments.CheckConditions(o.Conditions, $"fulfilment.overrides.{i}.conditions", problems);
+        }
+
+        for (var i = 0; i < f.Escalations.Count; i++)
+        {
+            var e = f.Escalations[i];
+            if (e.Percent is < 1 or > Data.Sla.SlaEscalation.MaxPercent)
+            {
+                Add($"fulfilment.escalations.{i}.percent", "percent-invalid", $"Use 1 to {Data.Sla.SlaEscalation.MaxPercent} %.");
+            }
+
+            if (!e.NotifyAssignee && !e.NotifyGroupLeads && e.NotifyGroupId is null)
+            {
+                Add($"fulfilment.escalations.{i}", "escalation-nobody", "Say who to alert.");
+            }
+        }
+
+        var keys = new HashSet<string>(StringComparer.Ordinal);
+        for (var i = 0; i < f.Tasks.Count; i++)
+        {
+            var task = f.Tasks[i];
+            var at = $"fulfilment.tasks.{i}";
+            if (!IsDocumentKey(task.Key))
+            {
+                Add($"{at}.key", "task-key-invalid", "Task keys are camelCase letters and digits, starting with a lower-case letter.");
+            }
+            else if (!keys.Add(task.Key))
+            {
+                Add($"{at}.key", "task-key-taken", "Each task has its own key.");
+            }
+
+            if (!task.Name.HasAnyValue)
+            {
+                Add($"{at}.name", "task-name-required", "Name the task in English or Arabic.");
+            }
+
+            if ((task.Name.En?.Length ?? 0) > 150 || (task.Name.Ar?.Length ?? 0) > 150 || (task.Description.En?.Length ?? 0) > 1000 || (task.Description.Ar?.Length ?? 0) > 1000)
+            {
+                Add($"{at}.name", "text-too-long", "Use at most 150 characters for names and 1000 for descriptions.");
+            }
+
+            if (task.TargetMinutes is { } target && (target < 1 || target > Data.Sla.SlaPolicyTarget.MaxMinutes))
+            {
+                Add($"{at}.targetMinutes", "target-invalid", $"Use 1 to {Data.Sla.SlaPolicyTarget.MaxMinutes} minutes.");
+            }
+        }
+
+        if (f.Tasks.Count > 0 && f.Tasks[0].ParallelWithPrevious)
+        {
+            Add("fulfilment.tasks.0.parallelWithPrevious", "first-task-parallel", "The first task starts the work; later tasks can run alongside it.");
+        }
+
+        for (var i = 0; i < card.Steps.Count; i++)
+        {
+            if (card.Steps[i].TaskKey is { } key && !keys.Contains(key))
+            {
+                Add($"steps.{i}.taskKey", "task-unknown", "The step refers to a task the service does not have.");
             }
         }
     }

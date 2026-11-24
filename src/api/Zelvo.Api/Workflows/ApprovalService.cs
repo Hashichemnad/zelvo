@@ -186,7 +186,7 @@ internal sealed class ApprovalService(ZelvoDbContext db, IApprovalEngine engine,
         switch (process.Stage, process.State)
         {
             case (ApprovalStage.BeforeAssignment, ApprovalProcessState.Approved):
-                await ServiceRequestRouting.RouteAsync(db, settings, ticket, now, cancellationToken);
+                await Catalog.ServiceRequestRouting.ReleaseAsync(db, settings, ticket, null, now, cancellationToken);
                 break;
             case (ApprovalStage.BeforeAssignment, _):
                 // Rejected before assignment: closed with the reason (product owner decision 2026-11-24).
@@ -228,12 +228,4 @@ internal sealed class ApprovalService(ZelvoDbContext db, IApprovalEngine engine,
     /// <summary>Arabic when the text has Arabic letters, else English.</summary>
     internal static string LanguageOf(string? text) =>
         text is not null && text.Any(c => c is >= '؀' and <= 'ۿ') ? LocalizedText.Arabic : LocalizedText.English;
-}
-
-/// <summary>How a service request reaches the service desk (task B2 rules; C4 adds the service's own group).</summary>
-internal static class ServiceRequestRouting
-{
-    /// <summary>Routes <paramref name="ticket"/> now.</summary>
-    public static Task RouteAsync(ZelvoDbContext db, TenantSettingsStore settings, Ticket ticket, DateTimeOffset now, CancellationToken cancellationToken) =>
-        Incidents.IncidentEndpoints.RouteAsync(db, settings, ticket, now, cancellationToken);
 }

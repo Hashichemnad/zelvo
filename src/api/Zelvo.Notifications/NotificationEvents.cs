@@ -111,6 +111,30 @@ public static class NotificationEvents
     /// <summary>The sign-off of a fulfilled request was rejected; the work goes back to the assignee (task C3).</summary>
     public const string RequestSignOffRejected = "request.signoff-rejected";
 
+    /// <summary>A requester's service request was received (task C4).</summary>
+    public const string RequestReceived = "request.received";
+
+    /// <summary>A service request was put on hold waiting for its requester.</summary>
+    public const string RequestAwaitingRequester = "request.awaiting-requester";
+
+    /// <summary>A service request was completed (resolved).</summary>
+    public const string RequestResolved = "request.resolved";
+
+    /// <summary>A service request was closed.</summary>
+    public const string RequestClosed = "request.closed";
+
+    /// <summary>A service request was assigned to someone (not by themselves).</summary>
+    public const string RequestAssigned = "request.assigned";
+
+    /// <summary>A service request arrived in a group's queue without an assignee.</summary>
+    public const string RequestQueued = "request.queued";
+
+    /// <summary>A fulfilment task was given to someone (task C4).</summary>
+    public const string TaskAssigned = "task.assigned";
+
+    /// <summary>A fulfilment task opened in a group's queue without an assignee.</summary>
+    public const string TaskQueued = "task.queued";
+
     /// <summary>
     /// A notify action of a workflow rule (task C3). Its wording is the rule's own, carried in the
     /// notification's values; it is not listed in Settings → Notifications or Account → Notifications.
@@ -156,6 +180,18 @@ public static class NotificationEvents
         new(RequestApproved, NotificationAudience.Requester, true, [Placeholders.TicketNumber, Placeholders.TicketTitle, Placeholders.ServiceName]),
         new(RequestRejected, NotificationAudience.Requester, true, [Placeholders.TicketNumber, Placeholders.TicketTitle, Placeholders.ServiceName, Placeholders.ApprovalReason]),
         new(RequestSignOffRejected, NotificationAudience.Staff, true, [Placeholders.TicketNumber, Placeholders.TicketTitle, Placeholders.ApprovalReason]),
+        new(RequestReceived, NotificationAudience.Requester, true, [Placeholders.TicketNumber, Placeholders.TicketTitle, Placeholders.TicketCreatedAt, Placeholders.ServiceName]),
+        new(RequestAwaitingRequester, NotificationAudience.Requester, true, [Placeholders.TicketNumber, Placeholders.TicketTitle, Placeholders.ServiceName]),
+        new(RequestResolved, NotificationAudience.Requester, true, [Placeholders.TicketNumber, Placeholders.TicketTitle, Placeholders.TicketResolutionNotes, Placeholders.ServiceName]),
+        new(RequestClosed, NotificationAudience.Requester, true, [Placeholders.TicketNumber, Placeholders.TicketTitle, Placeholders.ServiceName]),
+        new(RequestAssigned, NotificationAudience.Staff, true,
+            [Placeholders.TicketNumber, Placeholders.TicketTitle, Placeholders.TicketGroup, Placeholders.RequesterName, Placeholders.ServiceName]),
+        new(RequestQueued, NotificationAudience.Staff, true,
+            [Placeholders.TicketNumber, Placeholders.TicketTitle, Placeholders.TicketGroup, Placeholders.RequesterName, Placeholders.ServiceName]),
+        new(TaskAssigned, NotificationAudience.Staff, true,
+            [Placeholders.TicketNumber, Placeholders.TicketTitle, Placeholders.TaskName, Placeholders.TaskDueAt, Placeholders.ServiceName]),
+        new(TaskQueued, NotificationAudience.Staff, true,
+            [Placeholders.TicketNumber, Placeholders.TicketTitle, Placeholders.TaskName, Placeholders.TaskDueAt, Placeholders.TicketGroup, Placeholders.ServiceName]),
     ];
 
     /// <summary>Events that are not set up in Settings (their wording comes from elsewhere).</summary>
@@ -240,6 +276,12 @@ public static class Placeholders
     public const string ReviewFeedback = "review.feedback";
     /// <summary>The requested service's name (task C3).</summary>
     public const string ServiceName = "service.name";
+
+    /// <summary>A fulfilment task's name (task C4).</summary>
+    public const string TaskName = "task.name";
+
+    /// <summary>When a fulfilment task is due.</summary>
+    public const string TaskDueAt = "task.dueAt";
 
     /// <summary>The approval level's name.</summary>
     public const string ApprovalLevel = "approval.level";

@@ -2380,7 +2380,15 @@
       "approval_requested": "A request needs your approval",
       "request_approved": "Your request was approved",
       "request_rejected": "Your request was not approved",
-      "request_signoff_rejected": "The sign-off of your work was rejected"
+      "request_signoff_rejected": "The sign-off of your work was rejected",
+      "request_received": "Your request was received",
+      "request_awaiting_requester": "Your request is waiting for you",
+      "request_resolved": "Your request was completed",
+      "request_closed": "Your request was closed",
+      "request_assigned": "A request is assigned to you",
+      "request_queued": "A new request is in your group's queue",
+      "task_assigned": "A task is assigned to you",
+      "task_queued": "A new task is waiting in your group"
     },
     "audiences": {
       "Requester": "Your incidents",
@@ -3095,7 +3103,8 @@
     "nav": {
       "catalog": "Services",
       "myRequests": "My requests",
-      "requests": "Requests"
+      "requests": "Requests",
+      "myTasks": "My tasks"
     },
     "settings": {
       "intro": "Build the service catalog: services with their full card, the catalogs that group them and who may write each catalog. A change goes live only when a publisher other than its author approves it.",
@@ -3256,7 +3265,8 @@
         "InProgress": "In progress",
         "OnHold": "On hold",
         "Resolved": "Done",
-        "Closed": "Closed"
+        "Closed": "Closed",
+        "Approval": "Waiting for approval"
       },
       "feeAndDelivery": "Fee and delivery",
       "paid": "Paid service",
@@ -3358,7 +3368,10 @@
       "approvalsBefore": "Before assignment",
       "approvalsBeforeHint": "The request reaches the service desk only after these levels approve it.",
       "approvalsAfter": "After fulfilment (sign-off)",
-      "approvalsAfterHint": "The completed work is signed off before the request is resolved."
+      "approvalsAfterHint": "The completed work is signed off before the request is resolved.",
+      "fulfilment": "Fulfilment",
+      "stepTask": "Reached when this task starts",
+      "stepTaskNone": "Use the stage"
     },
     "problems": {
       "name-required": "Give the service a name in English or Arabic.",
@@ -3554,7 +3567,92 @@
       "empty": "No requests match.",
       "backToList": "Back to the requests",
       "team": "Team handling it",
-      "noTeamYet": "Waiting for a team"
+      "noTeamYet": "Waiting for a team",
+      "backToList": "Back to the requests"
+    },
+    "fulfilment": {
+      "initialGroup": "Group that receives new requests",
+      "byRules": "Decided by the assignment rules",
+      "method": "How",
+      "methods": {
+        "GroupQueue": "To the group's queue",
+        "RoundRobin": "Round-robin among available members"
+      },
+      "overrides": "Another group by form answers",
+      "overridesHint": "The first override whose conditions all hold sends the request to its group instead (for example City equals Abu Dhabi).",
+      "overrideGroup": "Group of override {number}",
+      "chooseGroup": "Choose a group",
+      "whenAnswers": "When",
+      "removeOverride": "Remove override {number}",
+      "addOverride": "Add an override",
+      "sla": "Service SLA",
+      "slaHint": "These targets replace the SLA policy's for this service. Both count working time on the group's calendar and pause while waiting for the requester or an approval.",
+      "ownershipMinutes": "Ownership: minutes until an agent starts work",
+      "completionMinutes": "Completion: minutes until done",
+      "completionHint": "Leave empty to use the service's number of working days: due at the end of the last of those working days.",
+      "percent": "Escalation {number}: share of the target (%)",
+      "metric": "Of",
+      "metrics": {
+        "both": "Both targets",
+        "Response": "Ownership",
+        "Resolution": "Completion"
+      },
+      "alert": "Alert",
+      "alertAssignee": "The assignee",
+      "alertLeads": "The group's team leads",
+      "alertGroup": "Another group",
+      "noGroup": "No other group",
+      "removeEscalation": "Remove escalation {number}",
+      "addEscalation": "Add an escalation",
+      "tasks": "Tasks",
+      "tasksHint": "Tasks run in order; a task marked to run with the one before starts at the same time. When every task is done, the request is completed.",
+      "taskNumber": "Task {number}",
+      "moveTaskUp": "Move task {number} up",
+      "moveTaskDown": "Move task {number} down",
+      "removeTask": "Remove task {number}",
+      "up": "Up",
+      "down": "Down",
+      "remove": "Remove",
+      "taskKey": "Key",
+      "taskName": "Name",
+      "taskGroup": "Group",
+      "requestGroup": "The request's group",
+      "targetMinutes": "Target (working minutes)",
+      "parallel": "Runs at the same time as the task before",
+      "addTask": "Add a task"
+    },
+    "tasks": {
+      "title": "Tasks",
+      "myTitle": "My tasks",
+      "mine": "Assigned to me",
+      "myGroups": "In my groups",
+      "none": "No tasks.",
+      "unavailable": "Tasks cannot be shown right now.",
+      "noAccess": "You do not have access to tasks.",
+      "task": "Task",
+      "request": "Request",
+      "group": "Group",
+      "assignee": "Assignee",
+      "nobody": "Nobody yet",
+      "state": "State",
+      "due": "Due",
+      "overdue": "Overdue",
+      "actions": "Actions",
+      "stageLine": "Stage {number}",
+      "start": "Start",
+      "startNamed": "Start {name}",
+      "complete": "Mark as done",
+      "completeNamed": "Mark {name} as done",
+      "notes": "What was done (optional)",
+      "markDone": "Mark as done",
+      "cancel": "Cancel",
+      "states": {
+        "Waiting": "Waiting for earlier tasks",
+        "Open": "Open",
+        "InProgress": "In progress",
+        "Done": "Done",
+        "Cancelled": "Cancelled"
+      }
     }
   },
   "channels": {

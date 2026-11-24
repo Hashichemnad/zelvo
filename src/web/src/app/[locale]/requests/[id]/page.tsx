@@ -5,6 +5,8 @@ import { RequestAttachments, RequestFacts, RequestProgress, RequestWorkPanel } f
 import { SlaClocks } from "@/components/sla/SlaClocks";
 import { ExportPdfButton } from "@/components/ExportPdfButton";
 import { CancelApprovalButton, RequestApprovals } from "@/components/workflows/Approvals";
+import { RequestTasksPanel } from "@/components/catalog/RequestTasks";
+import type { RequestTask } from "@/lib/catalog";
 import { Link } from "@/i18n/navigation";
 import { getJsonAs } from "@/lib/api";
 import type { GroupSummary } from "@/lib/directory";
@@ -32,10 +34,11 @@ export default async function RequestPage({ params }: PageProps<"/[locale]/reque
     return <p role="alert">{user ? t("noAccess") : t("unavailable")}</p>;
   }
   const token = session.data.accessToken;
-  const [data, assignees, groups] = await Promise.all([
+  const [data, assignees, groups, tasks] = await Promise.all([
     loadRequest(id, token, tenant, locale),
     permissions.includes("requests.assign") ? getJsonAs<Person[]>("/api/v1/service-requests/assignees", token, tenant) : Promise.resolve(null),
     permissions.includes("directory.read") ? getJsonAs<GroupSummary[]>("/api/v1/groups", token, tenant) : Promise.resolve(null),
+    getJsonAs<RequestTask[]>(`/api/v1/service-requests/${encodeURIComponent(id)}/tasks`, token, tenant),
   ]);
   const { request, settings, attachments, form, display, documentNames, approvals } = data;
   if (!request) {
@@ -61,6 +64,7 @@ export default async function RequestPage({ params }: PageProps<"/[locale]/reque
       {request.sla.length > 0 && <SlaClocks clocks={request.sla} display={display} />}
       {form && <FormAnswersView view={form} attachmentBase={`/bff/api/v1/service-requests/${request.id}/attachments`} />}
       <RequestAttachments requestId={request.id} attachments={attachments} documentNames={documentNames} />
+      <RequestTasksPanel tasks={tasks ?? []} display={display} csrfToken={session.data.csrfToken} />
       <RequestApprovals processes={approvals} display={display} />
       {request.awaitingApproval && permissions.includes("requests.edit") && (
         <CancelApprovalButton requestId={request.id} csrfToken={session.data.csrfToken} requester={false} />

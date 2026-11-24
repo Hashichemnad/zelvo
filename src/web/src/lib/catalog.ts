@@ -2,7 +2,7 @@
  * Service catalog and service requests (task C2, module 2) as the API returns them. See
  * docs/architecture/catalog.md. Cards are edited as a whole and saved as the working version.
  */
-import type { ApprovalLevelDefinition } from "./workflows";
+import type { ApprovalLevelDefinition, WorkflowCondition } from "./workflows";
 import type { Bilingual, Person, TicketChannel, TicketState } from "./incidents";
 import type { FormProblem } from "./forms/types";
 import type { SlaClock } from "./sla";
@@ -14,14 +14,14 @@ export type DeliveryChannel = "Portal" | "Mobile" | "WhatsApp" | "Chat" | "Email
 export type TargetAudience = "Individuals" | "Businesses" | "GovernmentEntities" | "Employees" | "Visitors";
 export type ServiceAccessMode = "Everyone" | "Public" | "Restricted";
 export type PartnerKind = "Department" | "Entity" | "Vendor";
-export type ServiceStepStage = "Submitted" | "Assigned" | "InProgress" | "OnHold" | "Resolved" | "Closed";
+export type ServiceStepStage = "Submitted" | "Approval" | "Assigned" | "InProgress" | "OnHold" | "Resolved" | "Closed";
 
 export const serviceStates: ServiceState[] = ["Draft", "UnderReview", "Active", "Suspended", "Retired"];
 export const deliveryChannels: DeliveryChannel[] = ["Portal", "Mobile", "WhatsApp", "Chat", "Email", "CallCentre", "ServiceCentre"];
 export const targetAudiences: TargetAudience[] = ["Individuals", "Businesses", "GovernmentEntities", "Employees", "Visitors"];
 export const accessModes: ServiceAccessMode[] = ["Everyone", "Public", "Restricted"];
 export const partnerKinds: PartnerKind[] = ["Department", "Entity", "Vendor"];
-export const stepStages: ServiceStepStage[] = ["Submitted", "Assigned", "InProgress", "OnHold", "Resolved", "Closed"];
+export const stepStages: ServiceStepStage[] = ["Submitted", "Approval", "Assigned", "InProgress", "OnHold", "Resolved", "Closed"];
 
 /** Zelvo's icon set (the same list as the API's ServiceCards.Icons). */
 export const serviceIcons = [
@@ -57,6 +57,69 @@ export interface ServiceStep {
   name: Text;
   description: Text;
   stage: ServiceStepStage;
+  /** A fulfilment task whose start reaches the step (task C4). */
+  taskKey: string | null;
+}
+
+export type AssignmentMethod = "GroupQueue" | "RoundRobin";
+
+/** An escalation threshold of a service's SLA (task C4). */
+export interface ServiceEscalation {
+  metric: "Response" | "Resolution" | null;
+  percent: number;
+  notifyAssignee: boolean;
+  notifyGroupLeads: boolean;
+  notifyGroupId: string | null;
+}
+
+/** A task of a service's template (task C4). */
+export interface FulfilmentTask {
+  key: string;
+  name: Text;
+  description: Text;
+  groupId: string | null;
+  parallelWithPrevious: boolean;
+  targetMinutes: number | null;
+}
+
+/** How a service is fulfilled (task C4): first group, overrides by answer, its own SLA and the task template. */
+export interface ServiceFulfilment {
+  groupId: string | null;
+  method: AssignmentMethod;
+  overrides: { conditions: WorkflowCondition[]; groupId: string | null; method: AssignmentMethod }[];
+  ownershipMinutes: number | null;
+  completionMinutes: number | null;
+  escalations: ServiceEscalation[];
+  tasks: FulfilmentTask[];
+}
+
+export type RequestTaskState = "Waiting" | "Open" | "InProgress" | "Done" | "Cancelled";
+
+/** A fulfilment task of a request (task C4). */
+export interface RequestTask {
+  id: string;
+  requestId: string;
+  requestNumber: string;
+  requestTitle: string;
+  key: string;
+  name: Text;
+  description: Text;
+  position: number;
+  stage: number;
+  state: RequestTaskState;
+  group: { id: string; name: Text } | null;
+  assignee: Person | null;
+  targetMinutes: number | null;
+  dueAt: string | null;
+  overdue: boolean;
+  notes: string | null;
+  openedAt: string | null;
+  startedAt: string | null;
+  completedAt: string | null;
+  completedBy: Person | null;
+  mayWork: boolean;
+  mayAssign: boolean;
+  etag: string;
 }
 
 export interface ServiceCard {
@@ -88,6 +151,8 @@ export interface ServiceCard {
   onBehalfRoleKeys: string[];
   /** Approvals before assignment and after fulfilment (task C3). */
   approvals: { beforeAssignment: ApprovalLevelDefinition[]; afterFulfilment: ApprovalLevelDefinition[] };
+  /** Initial group, service SLA and tasks (task C4). */
+  fulfilment: ServiceFulfilment;
 }
 
 export const emptyText = (): Text => ({ en: null, ar: null });
@@ -102,7 +167,7 @@ export function completeCard(card: Partial<ServiceCard> | null | undefined): Ser
     departmentId: c.departmentId ?? null, ownerId: c.ownerId ?? null, type: c.type ?? "Internal", externalUrl: c.externalUrl ?? null,
     formId: c.formId ?? null,
     documents: (c.documents ?? []).map((d) => ({ key: d.key ?? "", name: text(d.name), description: text(d.description), required: !!d.required, fileTypes: d.fileTypes ?? [], maxSizeMb: d.maxSizeMb ?? null, templateFileId: d.templateFileId ?? null })),
-    steps: (c.steps ?? []).map((s) => ({ name: text(s.name), description: text(s.description), stage: s.stage ?? "InProgress" })),
+    steps: (c.steps ?? []).map((s) => ({ name: text(s.name), description: text(s.description), stage: s.stage ?? "InProgress", taskKey: s.taskKey ?? null })),
     fee: { paid: !!c.fee?.paid, amountAed: c.fee?.amountAed ?? null, notes: text(c.fee?.notes) },
     days: c.days ?? null, channels: c.channels ?? ["Portal"], audiences: c.audiences ?? [],
     partners: (c.partners ?? []).map((p) => ({ kind: p.kind ?? "Entity", departmentId: p.departmentId ?? null, name: text(p.name) })),
@@ -115,6 +180,13 @@ export function completeCard(card: Partial<ServiceCard> | null | undefined): Ser
     },
     onBehalfRoleKeys: c.onBehalfRoleKeys ?? [],
     approvals: { beforeAssignment: c.approvals?.beforeAssignment ?? [], afterFulfilment: c.approvals?.afterFulfilment ?? [] },
+    fulfilment: {
+      groupId: c.fulfilment?.groupId ?? null, method: c.fulfilment?.method ?? "GroupQueue", overrides: c.fulfilment?.overrides ?? [],
+      ownershipMinutes: c.fulfilment?.ownershipMinutes ?? null, completionMinutes: c.fulfilment?.completionMinutes ?? null,
+      escalations: c.fulfilment?.escalations ?? [],
+      tasks: (c.fulfilment?.tasks ?? []).map((t) => ({ key: t.key ?? "", name: text(t.name), description: text(t.description), groupId: t.groupId ?? null,
+        parallelWithPrevious: !!t.parallelWithPrevious, targetMinutes: t.targetMinutes ?? null })),
+    },
   };
 }
 
@@ -345,11 +417,15 @@ export function cardForApi(card: ServiceCard): ServiceCard {
     name: cleanText(card.name), summary: cleanText(card.summary), description: cleanText(card.description),
     externalUrl: card.externalUrl?.trim() || null,
     documents: card.documents.map((d) => ({ ...d, key: d.key.trim(), name: cleanText(d.name), description: cleanText(d.description) })),
-    steps: card.steps.map((s) => ({ ...s, name: cleanText(s.name), description: cleanText(s.description) })),
     fee: { ...card.fee, notes: cleanText(card.fee.notes), amountAed: card.fee.paid ? card.fee.amountAed : null },
     partners: card.partners.map((p) => ({ ...p, name: cleanText(p.name) })),
     faq: card.faq.map((f) => ({ question: cleanText(f.question), answer: cleanText(f.answer) })),
     keywords: card.keywords.map((k) => k.trim()).filter(Boolean),
+    steps: card.steps.map((s) => ({ ...s, name: cleanText(s.name), description: cleanText(s.description), taskKey: s.taskKey || null })),
+    fulfilment: {
+      ...card.fulfilment,
+      tasks: card.fulfilment.tasks.map((t) => ({ ...t, key: t.key.trim(), name: cleanText(t.name), description: cleanText(t.description) })),
+    },
     approvals: {
       beforeAssignment: card.approvals.beforeAssignment.map((l) => ({ ...l, name: cleanText(l.name) })),
       afterFulfilment: card.approvals.afterFulfilment.map((l) => ({ ...l, name: cleanText(l.name) })),

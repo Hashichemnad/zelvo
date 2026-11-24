@@ -146,6 +146,9 @@ public sealed class ZelvoDbContext(DbContextOptions<ZelvoDbContext> options) : D
 
     /// <summary>Happiness meter answers (GOV-2, task C6).</summary>
     public DbSet<Voice.HappinessRating> HappinessRatings => Set<Voice.HappinessRating>();
+    /// <summary>Fulfilment tasks of service requests (task C4).</summary>
+    public DbSet<RequestTask> RequestTasks => Set<RequestTask>();
+
     /// <summary>Workflow rules of the no-code builder (task C3).</summary>
     public DbSet<Workflows.WorkflowRule> WorkflowRules => Set<Workflows.WorkflowRule>();
 
@@ -723,6 +726,12 @@ public sealed class ZelvoDbContext(DbContextOptions<ZelvoDbContext> options) : D
             request.HasOne<CatalogServiceVersion>().WithMany().HasForeignKey(r => r.ServiceVersionId).OnDelete(DeleteBehavior.Restrict);
             request.HasIndex(r => new { r.TenantId, r.ServiceId });
             request.HasIndex(r => r.ServiceVersionId);
+            request.Property(r => r.Escalations).HasColumnType("jsonb").HasDefaultValueSql("'[]'::jsonb");
+            request.ToTable(t =>
+            {
+                t.HasCheckConstraint("ck_service_requests_ownership", "ownership_minutes IS NULL OR ownership_minutes > 0");
+                t.HasCheckConstraint("ck_service_requests_completion", "completion_minutes IS NULL OR completion_minutes > 0");
+            });
         });
     }
 
@@ -850,6 +859,35 @@ public sealed class ZelvoDbContext(DbContextOptions<ZelvoDbContext> options) : D
             ticket.HasIndex(t => new { t.TenantId, t.GroupId });
             ticket.HasIndex(t => new { t.TenantId, t.CategoryId });
             ticket.HasIndex(t => new { t.TenantId, t.LocationId });
+        });
+
+        modelBuilder.Entity<RequestTask>(task =>
+        {
+            task.ToTable("request_tasks", table =>
+            {
+                table.HasCheckConstraint("ck_request_tasks_state", EnumCheck("state", Enum.GetNames<RequestTaskState>()));
+                table.HasCheckConstraint("ck_request_tasks_stage", "stage >= 0");
+                table.HasCheckConstraint("ck_request_tasks_target", "target_minutes IS NULL OR target_minutes > 0");
+            });
+            task.HasKey(t => t.Id);
+            task.Property(t => t.Id).ValueGeneratedNever();
+            task.HasOne<Tenant>().WithMany().HasForeignKey(t => t.TenantId).OnDelete(DeleteBehavior.Restrict);
+            task.HasOne<Ticket>().WithMany().HasForeignKey(t => t.TicketId).OnDelete(DeleteBehavior.Cascade);
+            task.HasOne<SupportGroup>().WithMany().HasForeignKey(t => t.GroupId).OnDelete(DeleteBehavior.Restrict);
+            task.HasOne<UserAccount>().WithMany().HasForeignKey(t => t.AssigneeId).OnDelete(DeleteBehavior.Restrict);
+            task.HasOne<UserAccount>().WithMany().HasForeignKey(t => t.CompletedById).OnDelete(DeleteBehavior.SetNull);
+            task.Property(t => t.Key).HasMaxLength(RequestTask.KeyMaxLength);
+            task.ConfigureLocalizedText(t => t.Name, "name", 150);
+            task.ConfigureLocalizedText(t => t.Description, "description", 1000);
+            task.Property(t => t.State).HasConversion<string>().HasMaxLength(20);
+            task.Property(t => t.Notes).HasMaxLength(RequestTask.NotesMaxLength);
+            task.Property(t => t.Version).IsRowVersion();
+            task.HasIndex(t => new { t.TicketId, t.Key }).IsUnique();
+            task.HasIndex(t => new { t.TenantId, t.GroupId, t.State });
+            task.HasIndex(t => new { t.TenantId, t.AssigneeId, t.State });
+            task.HasIndex(t => t.GroupId);
+            task.HasIndex(t => t.AssigneeId);
+            task.HasIndex(t => t.CompletedById);
         });
 
         modelBuilder.Entity<Workflows.WorkflowRule>(rule =>

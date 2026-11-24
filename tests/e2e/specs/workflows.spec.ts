@@ -84,6 +84,7 @@ test.describe("workflow rules and approvals", () => {
     const before = editor.getByRole("group", { name: "Before assignment" });
     await before.getByRole("button", { name: "Add a level" }).click();
     const level = before.getByTestId("approval-level").first();
+    await expect(editor.getByTestId("fulfilment-editor")).toBeVisible();
     await level.getByRole("group", { name: "Name of the level" }).getByLabel("In English").fill("Approver check");
     await level.getByRole("group", { name: "Name of the level" }).getByLabel("In Arabic").fill("تدقيق المعتمِد");
     await level.getByLabel("Approver 1").selectOption("User");
@@ -95,6 +96,12 @@ test.describe("workflow rules and approvals", () => {
     await expect(lead.getByRole("status").filter({ hasText: "Saved." }).first()).toBeVisible();
     await lead.getByRole("button", { name: "Send for review" }).click();
     await expect(editor.getByText("Under review").first()).toBeVisible();
+    // Task C4: the lead's task list, in both languages.
+    for (const locale of ["en", "ar"]) {
+      await lead.goto(`/${locale}/tasks`);
+      await expect(lead.getByRole("heading", { level: 1 })).toBeVisible();
+      await expectAccessible(lead);
+    }
     await leadContext.close();
 
     await page.goto("/en/settings/catalog");

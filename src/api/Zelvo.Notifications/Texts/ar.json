@@ -57,7 +57,8 @@
     "ticket.state.OnHold": "معلّق",
     "ticket.state.Resolved": "تمت المعالجة",
     "ticket.state.Closed": "مغلق",
-    "ticket.state.Reopened": "أُعيد فتحه"
+    "ticket.state.Reopened": "أُعيد فتحه",
+    "request.tasks-done": "اكتملت جميع المهام: {tasks}."
   },
   "templates": {
     "incident.received": {
@@ -209,6 +210,54 @@
       "inApp": "رُفض اعتماد إنجاز «{{ticket.title}}»: {{approval.reason}}",
       "body": "حضرة {{recipient.name}} المحترم،\n\nتحية طيبة وبعد،\n\nنفيدكم بأنه رُفض اعتماد إنجاز العمل على الطلب {{ticket.number}}، «{{ticket.title}}»، وأُعيد الطلب إلى قيد التنفيذ.\n\nالسبب: {{approval.reason}}\n\nوتفضلوا بقبول فائق الاحترام والتقدير،\n{{tenant.name}}",
       "action": "فتح الطلب"
+    },
+    "request.received": {
+      "subject": "{{ticket.number}}: تم استلام طلبكم",
+      "inApp": "تم استلام طلبكم لخدمة «{{service.name}}».",
+      "body": "حضرة {{recipient.name}} المحترم،\n\nتحية طيبة وبعد،\n\nنفيدكم باستلام طلبكم رقم {{ticket.number}} لخدمة «{{service.name}}» المقدّم بتاريخ {{ticket.createdAt}}. ويمكنكم متابعة مراحل الطلب عبر البوابة، وسنوافيكم بالمستجدات.\n\nوتفضلوا بقبول فائق الاحترام والتقدير،\n{{tenant.name}}",
+      "action": "عرض طلبكم"
+    },
+    "request.awaiting-requester": {
+      "subject": "{{ticket.number}}: نحتاج إلى معلومات منكم",
+      "inApp": "طلبكم «{{ticket.title}}» بانتظار معلومات منكم.",
+      "body": "حضرة {{recipient.name}} المحترم،\n\nتحية طيبة وبعد،\n\nطلبكم رقم {{ticket.number}} لخدمة «{{service.name}}» بانتظار معلومات منكم. يُرجى فتح الطلب وإضافة ما يلزم لنتمكن من المتابعة.\n\nوتفضلوا بقبول فائق الاحترام والتقدير،\n{{tenant.name}}",
+      "action": "عرض طلبكم"
+    },
+    "request.resolved": {
+      "subject": "{{ticket.number}}: تم تنفيذ طلبكم",
+      "inApp": "تم تنفيذ طلبكم «{{ticket.title}}».",
+      "body": "حضرة {{recipient.name}} المحترم،\n\nتحية طيبة وبعد،\n\nنفيدكم بأنه تم تنفيذ طلبكم رقم {{ticket.number}} لخدمة «{{service.name}}».\n\n{{ticket.resolutionNotes}}\n\nوفي حال وجود أي نقص، يمكنكم إعادة فتح الطلب قبل إغلاقه.\n\nوتفضلوا بقبول فائق الاحترام والتقدير،\n{{tenant.name}}",
+      "action": "عرض طلبكم"
+    },
+    "request.closed": {
+      "subject": "{{ticket.number}}: تم إغلاق طلبكم",
+      "inApp": "تم إغلاق طلبكم «{{ticket.title}}».",
+      "body": "حضرة {{recipient.name}} المحترم،\n\nتحية طيبة وبعد،\n\nنفيدكم بأنه تم إغلاق طلبكم رقم {{ticket.number}} لخدمة «{{service.name}}». شاكرين لكم استخدام خدماتنا.\n\nوتفضلوا بقبول فائق الاحترام والتقدير،\n{{tenant.name}}",
+      "action": "عرض طلبكم"
+    },
+    "request.assigned": {
+      "subject": "أُسند إليكم الطلب {{ticket.number}}",
+      "inApp": "أُسند إليكم الطلب «{{ticket.title}}» لخدمة {{service.name}}.",
+      "body": "حضرة {{recipient.name}} المحترم،\n\nأُسند إليكم طلب الخدمة {{ticket.number}}، «{{ticket.title}}» ({{service.name}})، المقدّم من {{requester.name}} ضمن {{ticket.group}}.\n\nمع التحية،\n{{tenant.name}}",
+      "action": "فتح الطلب"
+    },
+    "request.queued": {
+      "subject": "الطلب {{ticket.number}} بانتظار {{ticket.group}}",
+      "inApp": "طلب جديد «{{ticket.title}}» بانتظار {{ticket.group}}.",
+      "body": "حضرة {{recipient.name}} المحترم،\n\nطلب الخدمة {{ticket.number}}، «{{ticket.title}}» ({{service.name}})، المقدّم من {{requester.name}} بانتظار المعالجة في قائمة {{ticket.group}}.\n\nمع التحية،\n{{tenant.name}}",
+      "action": "فتح الطلب"
+    },
+    "task.assigned": {
+      "subject": "{{ticket.number}}: المهمة «{{task.name}}» مسندة إليكم",
+      "inApp": "المهمة «{{task.name}}» من الطلب {{ticket.number}} مسندة إليكم (موعدها {{task.dueAt}}).",
+      "body": "حضرة {{recipient.name}} المحترم،\n\nأُسندت إليكم المهمة «{{task.name}}» من طلب الخدمة {{ticket.number}}، «{{ticket.title}}» ({{service.name}})، وموعد إنجازها {{task.dueAt}}.\n\nمع التحية،\n{{tenant.name}}",
+      "action": "فتح مهامي"
+    },
+    "task.queued": {
+      "subject": "{{ticket.number}}: المهمة «{{task.name}}» لدى {{ticket.group}}",
+      "inApp": "المهمة «{{task.name}}» من الطلب {{ticket.number}} بانتظار {{ticket.group}}.",
+      "body": "حضرة {{recipient.name}} المحترم،\n\nالمهمة «{{task.name}}» من طلب الخدمة {{ticket.number}}، «{{ticket.title}}» ({{service.name}})، بانتظار {{ticket.group}}، وموعد إنجازها {{task.dueAt}}.\n\nمع التحية،\n{{tenant.name}}",
+      "action": "فتح المهام"
     }
   },
   "samples": {
@@ -225,6 +274,7 @@
     "review.feedback": "نشكركم على اقتراحكم، وسيتم تمديد ساعات العمل المسائية في مركز الخدمة اعتبارًا من الشهر المقبل.",
     "service.name": "حاسوب محمول جديد",
     "approval.level": "اعتماد المدير",
-    "approval.reason": "تم استنفاد ميزانية هذا الربع."
+    "approval.reason": "تم استنفاد ميزانية هذا الربع.",
+    "task.name": "تجهيز الحاسوب"
   }
 }

@@ -57,7 +57,8 @@
     "ticket.state.OnHold": "On hold",
     "ticket.state.Resolved": "Resolved",
     "ticket.state.Closed": "Closed",
-    "ticket.state.Reopened": "Reopened"
+    "ticket.state.Reopened": "Reopened",
+    "request.tasks-done": "All tasks are done: {tasks}."
   },
   "templates": {
     "incident.received": {
@@ -209,6 +210,54 @@
       "inApp": "The sign-off of “{{ticket.title}}” was rejected: {{approval.reason}}",
       "body": "Dear {{recipient.name}},\n\nThe sign-off of the completed work on {{ticket.number}}, “{{ticket.title}}”, was rejected, and the request is back in progress.\n\nReason: {{approval.reason}}\n\nKind regards,\n{{tenant.name}}",
       "action": "Open the request"
+    },
+    "request.received": {
+      "subject": "{{ticket.number}}: we have received your request",
+      "inApp": "We have received your request for “{{service.name}}”.",
+      "body": "Dear {{recipient.name}},\n\nWe have received your request {{ticket.number}} for “{{service.name}}”, submitted on {{ticket.createdAt}}. You can follow each step of it in the portal, and we will keep you informed.\n\nKind regards,\n{{tenant.name}}",
+      "action": "View your request"
+    },
+    "request.awaiting-requester": {
+      "subject": "{{ticket.number}}: we need information from you",
+      "inApp": "Your request “{{ticket.title}}” is waiting for information from you.",
+      "body": "Dear {{recipient.name}},\n\nYour request {{ticket.number}} for “{{service.name}}” is waiting for information from you. Please open the request and add what is needed so that we can continue.\n\nKind regards,\n{{tenant.name}}",
+      "action": "View your request"
+    },
+    "request.resolved": {
+      "subject": "{{ticket.number}}: your request has been completed",
+      "inApp": "Your request “{{ticket.title}}” has been completed.",
+      "body": "Dear {{recipient.name}},\n\nYour request {{ticket.number}} for “{{service.name}}” has been completed.\n\n{{ticket.resolutionNotes}}\n\nIf anything is still missing, you can reopen the request until it closes.\n\nKind regards,\n{{tenant.name}}",
+      "action": "View your request"
+    },
+    "request.closed": {
+      "subject": "{{ticket.number}}: your request has been closed",
+      "inApp": "Your request “{{ticket.title}}” has been closed.",
+      "body": "Dear {{recipient.name}},\n\nYour request {{ticket.number}} for “{{service.name}}” has been closed. Thank you for using our services.\n\nKind regards,\n{{tenant.name}}",
+      "action": "View your request"
+    },
+    "request.assigned": {
+      "subject": "{{ticket.number}} is assigned to you",
+      "inApp": "The request “{{ticket.title}}” for {{service.name}} is assigned to you.",
+      "body": "Dear {{recipient.name}},\n\nThe service request {{ticket.number}}, “{{ticket.title}}” ({{service.name}}), from {{requester.name}} is assigned to you in {{ticket.group}}.\n\nKind regards,\n{{tenant.name}}",
+      "action": "Open the request"
+    },
+    "request.queued": {
+      "subject": "{{ticket.number}} is waiting in {{ticket.group}}",
+      "inApp": "A new request “{{ticket.title}}” is waiting in {{ticket.group}}.",
+      "body": "Dear {{recipient.name}},\n\nThe service request {{ticket.number}}, “{{ticket.title}}” ({{service.name}}), from {{requester.name}} is waiting in the queue of {{ticket.group}}.\n\nKind regards,\n{{tenant.name}}",
+      "action": "Open the request"
+    },
+    "task.assigned": {
+      "subject": "{{ticket.number}}: task “{{task.name}}” is yours",
+      "inApp": "The task “{{task.name}}” of {{ticket.number}} is yours (due {{task.dueAt}}).",
+      "body": "Dear {{recipient.name}},\n\nThe task “{{task.name}}” of the service request {{ticket.number}}, “{{ticket.title}}” ({{service.name}}), is yours. It is due on {{task.dueAt}}.\n\nKind regards,\n{{tenant.name}}",
+      "action": "Open my tasks"
+    },
+    "task.queued": {
+      "subject": "{{ticket.number}}: task “{{task.name}}” for {{ticket.group}}",
+      "inApp": "The task “{{task.name}}” of {{ticket.number}} is waiting in {{ticket.group}}.",
+      "body": "Dear {{recipient.name}},\n\nThe task “{{task.name}}” of the service request {{ticket.number}}, “{{ticket.title}}” ({{service.name}}), is waiting for {{ticket.group}}. It is due on {{task.dueAt}}.\n\nKind regards,\n{{tenant.name}}",
+      "action": "Open the tasks"
     }
   },
   "samples": {
@@ -225,6 +274,7 @@
     "review.feedback": "Thank you. We will add evening hours at the service centre from next month.",
     "service.name": "New laptop",
     "approval.level": "Manager approval",
-    "approval.reason": "The budget for this quarter has been used."
+    "approval.reason": "The budget for this quarter has been used.",
+    "task.name": "Prepare the laptop"
   }
 }

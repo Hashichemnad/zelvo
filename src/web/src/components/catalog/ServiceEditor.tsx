@@ -17,6 +17,7 @@ import {
 import { CatalogStatusLine, ServiceStateBadge } from "./common";
 import { PeopleList } from "./PeopleList";
 import { ApprovalLevelsEditor } from "@/components/workflows/WorkflowEditors";
+import { FulfilmentEditor } from "./FulfilmentEditor";
 
 export interface ServiceEditorChoices {
   services: ServiceSummary[];
@@ -263,13 +264,18 @@ export function ServiceEditor({ initial, choices, csrfToken }: ServiceEditorProp
 
         <Section title={t("steps")}>
           <ListEditor items={card.steps} onChange={(steps) => update({ steps })} addLabel={t("addStep")} ordered
-            blank={() => ({ name: emptyText(), description: emptyText(), stage: "InProgress" as const })}
+            blank={() => ({ name: emptyText(), description: emptyText(), stage: "InProgress" as const, taskKey: null })}
             render={(step, i, set) => (
               <div className="space-y-2">
                 <TextPair id={`${id}-step-${i}-name`} label={t("stepName")} value={step.name} max={500} onChange={(name) => set({ ...step, name })} />
                 <TextPair id={`${id}-step-${i}-description`} label={t("stepDescription")} value={step.description} max={500} onChange={(description) => set({ ...step, description })} />
                 <Select id={`${id}-step-${i}-stage`} label={t("stage")} value={step.stage} onChange={(v) => set({ ...step, stage: v as typeof step.stage })}
                   options={stepStages.map((s) => ({ value: s, label: t(`stages.${s}`) }))} />
+                {card.fulfilment.tasks.length > 0 && (
+                  <Select id={`${id}-step-${i}-task`} label={t("stepTask")} value={step.taskKey ?? ""} none={t("stepTaskNone")}
+                    onChange={(v) => set({ ...step, taskKey: v || null })}
+                    options={card.fulfilment.tasks.filter((x) => x.key).map((x) => ({ value: x.key, label: textOf(x.name, locale) || x.key }))} />
+                )}
               </div>
             )} />
         </Section>
@@ -341,6 +347,12 @@ export function ServiceEditor({ initial, choices, csrfToken }: ServiceEditorProp
               </div>
             )} />
         </Section>
+
+        {card.type === "Internal" && (
+          <Section title={t("fulfilment")}>
+            <FulfilmentEditor value={card.fulfilment} choices={choices} onChange={(fulfilment) => update({ fulfilment })} />
+          </Section>
+        )}
 
         {card.type === "Internal" && (
           <Section title={t("approvals")}>
