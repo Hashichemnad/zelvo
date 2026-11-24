@@ -42,6 +42,19 @@ x-ai-env: &ai-env
   Ai__AllowedPrivateNetworks__1: 192.168.0.0/16
   Ai__AllowedPrivateNetworks__2: 10.0.0.0/8
 
+# Notifications (module 10, task B5; product owner decision 2026-11-24): one mail server for the
+# whole installation, set by the operator. Development sends to Mailpit (http://localhost:8025)
+# without TLS; installs set their own relay, port, user and password (from .env, never committed)
+# and Security (Auto, StartTls or SslOnConnect). WebUrl is the address in the emails' links.
+x-notifications-env: &notifications-env
+  Notifications__WebUrl: http://localhost:${WEB_PORT:-3000}/
+  Notifications__Smtp__Host: ${ZELVO_SMTP_HOST:-mailpit}
+  Notifications__Smtp__Port: ${ZELVO_SMTP_PORT:-1025}
+  Notifications__Smtp__Security: ${ZELVO_SMTP_SECURITY:-None}
+  Notifications__Smtp__User: ${ZELVO_SMTP_USER:-}
+  Notifications__Smtp__Password: ${ZELVO_SMTP_PASSWORD:-}
+  Notifications__Smtp__From: ${ZELVO_SMTP_FROM:-no-reply@zelvo.test}
+
 x-secrets-env: &secrets-env
   Secrets__Provider: File
   Secrets__File__Path: /run/secrets/zelvo-master-key
@@ -355,7 +368,7 @@ services:
       Search__Password: ${OPENSEARCH_API_PASSWORD}
       Search__CaFile: /run/certs/ca.crt
       Services__KeycloakHealth: http://keycloak:9000/health/ready
-      <<: [*identity, *secrets-env, *telemetry-env, *integrations-env, *ai-env]
+      <<: [*identity, *secrets-env, *telemetry-env, *integrations-env, *ai-env, *notifications-env]
       # Development: everything in the Compose network (the web app's server) may forward client
       # addresses. Installs list their proxies' exact addresses.
       Network__TrustedProxies__0: 172.16.0.0/12
@@ -414,7 +427,7 @@ services:
       AttachmentScanning__Enabled: ${ZELVO_ATTACHMENT_SCANNING:-true}
       AttachmentScanning__Host: clamav
       AttachmentScanning__Port: "3310"
-      <<: [*secrets-env, *telemetry-env, *integrations-env, *ai-env]
+      <<: [*secrets-env, *telemetry-env, *integrations-env, *ai-env, *notifications-env]
     secrets: [zelvo-master-key]
     volumes: [*ca-volume]
     depends_on:
@@ -424,6 +437,8 @@ services:
       opensearch: { condition: service_healthy }
       # Not "healthy": ClamAV can take minutes to load its definitions, and files simply wait.
       clamav: { condition: service_started }
+      # Notifications (B5): emails wait and are retried while the mail server is away.
+      mailpit: { condition: service_started }
     healthcheck:
       test: ["CMD-SHELL", "find /tmp/zelvo-worker.heartbeat -mmin -1 | grep -q ."]
       interval: 10s
