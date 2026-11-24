@@ -108,7 +108,7 @@ Calendars, periods, holidays, customer groups and members, policies, targets, es
 
 ## Not in B3
 
-- Delivering the alerts by email and in-app (B5) and live timers over SignalR in the agent workspace (B4); public replies as a response (B4).
+- Live timers over SignalR in the agent workspace (B4); public replies as a response (B4). Delivering the alerts by email and in-app is now built (B5, `notifications.md`): each new `sla_alerts` row notifies its recipients and `delivered_at` is set when the first notification is out.
 - SLAs of service requests, complaints, inquiries and suggestions: the model takes any record type (`sla_policies.record_type`); C4 and C6 add their record types and service-specific targets.
 - Special working hours for a period (for example shorter hours in Ramadan) and half-day holidays: holidays are whole days. To confirm with the product owner.
 - SLA compliance dashboards (F2).

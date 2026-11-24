@@ -84,6 +84,12 @@ internal static class Permissions
 
     /// <summary>Approve or send back articles written by others, and retire articles.</summary>
     public const string KnowledgePublish = "knowledge.publish";
+
+    /// <summary>
+    /// Settings → Notifications (module 10, task B5): which events notify people, their email
+    /// wording in English and Arabic, test emails and the email delivery log.
+    /// </summary>
+    public const string NotificationsManage = "notifications.manage";
 }
 
 /// <summary>A field of a resource that field rules can hide or make read-only.</summary>
@@ -142,6 +148,7 @@ internal static class PermissionCatalog
         Permissions.KnowledgeWrite,
         Permissions.KnowledgePublish,
         Permissions.SlaManage,
+        Permissions.NotificationsManage,
     ];
 
     /// <summary>
@@ -154,6 +161,9 @@ internal static class PermissionCatalog
         // Not in the 2026-11-22 decision; added with E4 for the product owner's approval: an
         // integration could point a provider at its own endpoint and receive the stored key's use.
         Permissions.AiManage,
+        // Added with B5 for the product owner's approval: templates reach every person's mailbox,
+        // so a leaked key could turn them into convincing phishing.
+        Permissions.NotificationsManage,
     };
 
     /// <summary>Permissions an integration may be given as scopes.</summary>

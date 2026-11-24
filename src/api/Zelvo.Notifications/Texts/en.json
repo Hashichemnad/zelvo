@@ -1,0 +1,125 @@
+{
+  "layout": {
+    "poweredBy": "Powered by Zelvo",
+    "automated": "This email was sent automatically. Please do not reply to it.",
+    "preferences": "Choose which emails you receive",
+    "linkHint": "If the button does not work, copy this address into your browser:"
+  },
+  "dates": {
+    "months": [
+      "January",
+      "February",
+      "March",
+      "April",
+      "May",
+      "June",
+      "July",
+      "August",
+      "September",
+      "October",
+      "November",
+      "December"
+    ],
+    "hijriMonths": [
+      "Muharram",
+      "Safar",
+      "Rabi al-Awwal",
+      "Rabi al-Thani",
+      "Jumada al-Ula",
+      "Jumada al-Akhirah",
+      "Rajab",
+      "Shaban",
+      "Ramadan",
+      "Shawwal",
+      "Dhu al-Qadah",
+      "Dhu al-Hijjah"
+    ],
+    "am": "AM",
+    "pm": "PM",
+    "gregorianSuffix": "",
+    "hijriSuffix": " AH",
+    "separator": ", "
+  },
+  "terms": {
+    "sla.target.response": "response",
+    "sla.target.resolution": "resolution"
+  },
+  "templates": {
+    "incident.received": {
+      "subject": "{{ticket.number}}: we have received your incident",
+      "inApp": "We have received your incident “{{ticket.title}}”.",
+      "body": "Dear {{recipient.name}},\n\nWe have received your incident {{ticket.number}}, “{{ticket.title}}”, logged on {{ticket.createdAt}}. Our service desk will look into it and keep you informed.\n\nYou can follow its progress and add information at any time.\n\nKind regards,\n{{tenant.name}}",
+      "action": "View your incident"
+    },
+    "incident.awaiting-requester": {
+      "subject": "{{ticket.number}}: we need information from you",
+      "inApp": "Your incident “{{ticket.title}}” is waiting for information from you.",
+      "body": "Dear {{recipient.name}},\n\nYour incident {{ticket.number}}, “{{ticket.title}}”, is on hold until we hear from you. Please open it and add the information our service desk asked for.\n\nKind regards,\n{{tenant.name}}",
+      "action": "Open your incident"
+    },
+    "incident.resolved": {
+      "subject": "{{ticket.number}}: your incident is resolved",
+      "inApp": "Your incident “{{ticket.title}}” is resolved.",
+      "body": "Dear {{recipient.name}},\n\nYour incident {{ticket.number}}, “{{ticket.title}}”, is resolved.\n\nHow it was resolved: {{ticket.resolutionNotes}}\n\nIf the problem is not solved, you can reopen the incident until it closes.\n\nKind regards,\n{{tenant.name}}",
+      "action": "View or reopen your incident"
+    },
+    "incident.closed": {
+      "subject": "{{ticket.number}}: your incident is closed",
+      "inApp": "Your incident “{{ticket.title}}” is closed.",
+      "body": "Dear {{recipient.name}},\n\nYour incident {{ticket.number}}, “{{ticket.title}}”, is now closed. If you need more help with it, please report a new incident and mention this number.\n\nKind regards,\n{{tenant.name}}",
+      "action": "View your incident"
+    },
+    "incident.major-update": {
+      "subject": "{{ticket.number}}: update on a service disruption",
+      "inApp": "{{update.text}}",
+      "body": "Dear {{recipient.name}},\n\nThere is a new update on {{ticket.number}}, “{{ticket.title}}”, which affects your incident:\n\n{{update.text}}\n\nPosted on {{update.postedAt}}.\n\nKind regards,\n{{tenant.name}}",
+      "action": "View the updates"
+    },
+    "incident.assigned": {
+      "subject": "{{ticket.number}} is assigned to you",
+      "inApp": "{{ticket.priority}}: “{{ticket.title}}” from {{requester.name}}.",
+      "body": "Hello {{recipient.name}},\n\nIncident {{ticket.number}}, “{{ticket.title}}”, is assigned to you.\n\nPriority: {{ticket.priority}}\nGroup: {{ticket.group}}\nRequester: {{requester.name}}\n\n{{tenant.name}}",
+      "action": "Open the incident"
+    },
+    "incident.queued": {
+      "subject": "New incident in the {{ticket.group}} queue: {{ticket.number}}",
+      "inApp": "{{ticket.priority}}: “{{ticket.title}}” is waiting in the {{ticket.group}} queue.",
+      "body": "Hello {{recipient.name}},\n\nIncident {{ticket.number}}, “{{ticket.title}}”, is waiting in the queue of {{ticket.group}} with nobody assigned.\n\nPriority: {{ticket.priority}}\nRequester: {{requester.name}}\n\n{{tenant.name}}",
+      "action": "Open the incident"
+    },
+    "sla.threshold": {
+      "subject": "{{ticket.number}} has used {{sla.percent}} of its {{sla.target}} time",
+      "inApp": "“{{ticket.title}}” has used {{sla.percent}} of its {{sla.target}} time; due {{sla.dueAt}}.",
+      "body": "Hello {{recipient.name}},\n\nIncident {{ticket.number}}, “{{ticket.title}}”, has used {{sla.percent}} of its {{sla.target}} time. The target is due on {{sla.dueAt}}.\n\nPriority: {{ticket.priority}}\n\nPlease act before the target is missed.\n\n{{tenant.name}}",
+      "action": "Open the incident"
+    },
+    "sla.breached": {
+      "subject": "{{ticket.number}} missed its {{sla.target}} target",
+      "inApp": "“{{ticket.title}}” missed its {{sla.target}} target, due {{sla.dueAt}}.",
+      "body": "Hello {{recipient.name}},\n\nIncident {{ticket.number}}, “{{ticket.title}}”, missed its {{sla.target}} target, which was due on {{sla.dueAt}}.\n\nPriority: {{ticket.priority}}\n\n{{tenant.name}}",
+      "action": "Open the incident"
+    },
+    "knowledge.review-requested": {
+      "subject": "{{article.number}} is waiting for your review",
+      "inApp": "{{author.name}} submitted “{{article.title}}” for review.",
+      "body": "Hello {{recipient.name}},\n\n{{author.name}} submitted the knowledge article {{article.number}}, “{{article.title}}”, for review. It is published once a reviewer other than its author approves it.\n\n{{tenant.name}}",
+      "action": "Review the article"
+    },
+    "notifications.test": {
+      "subject": "Test email from {{tenant.name}}",
+      "inApp": "This is a test email.",
+      "body": "Hello {{recipient.name}},\n\nThis is a test email from Settings → Notifications. If you can read it, notifications reach your mailbox.\n\n{{tenant.name}}",
+      "action": "Open notification settings"
+    }
+  },
+  "samples": {
+    "ticket.title": "The printer on floor 3 is not working",
+    "ticket.resolutionNotes": "The printer driver was reinstalled and a test page printed.",
+    "ticket.group": "IT service desk",
+    "requester.name": "Fatima Al Shamsi",
+    "update.text": "Email is slow for some users. Engineers are working on it; next update within an hour.",
+    "article.title": "How to connect to the office Wi-Fi",
+    "author.name": "Omar Al Hashimi",
+    "recipient.name": "Mariam Al Ketbi"
+  }
+}

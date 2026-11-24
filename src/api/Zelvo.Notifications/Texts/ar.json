@@ -1,0 +1,125 @@
+{
+  "layout": {
+    "poweredBy": "بتقنية زيلفو",
+    "automated": "هذه رسالة آلية، يُرجى عدم الرد عليها.",
+    "preferences": "اختيار الرسائل التي تصلكم بالبريد الإلكتروني",
+    "linkHint": "إذا لم يعمل الزر، يُرجى نسخ العنوان التالي في المتصفح:"
+  },
+  "dates": {
+    "months": [
+      "يناير",
+      "فبراير",
+      "مارس",
+      "أبريل",
+      "مايو",
+      "يونيو",
+      "يوليو",
+      "أغسطس",
+      "سبتمبر",
+      "أكتوبر",
+      "نوفمبر",
+      "ديسمبر"
+    ],
+    "hijriMonths": [
+      "محرم",
+      "صفر",
+      "ربيع الأول",
+      "ربيع الآخر",
+      "جمادى الأولى",
+      "جمادى الآخرة",
+      "رجب",
+      "شعبان",
+      "رمضان",
+      "شوال",
+      "ذو القعدة",
+      "ذو الحجة"
+    ],
+    "am": "ص",
+    "pm": "م",
+    "gregorianSuffix": "م",
+    "hijriSuffix": "هـ",
+    "separator": "، "
+  },
+  "terms": {
+    "sla.target.response": "الاستجابة",
+    "sla.target.resolution": "المعالجة"
+  },
+  "templates": {
+    "incident.received": {
+      "subject": "بلاغ رقم {{ticket.number}}: تم استلام بلاغكم",
+      "inApp": "تم استلام بلاغكم «{{ticket.title}}».",
+      "body": "تحية طيبة، {{recipient.name}}\n\nتم استلام بلاغكم رقم {{ticket.number}} بعنوان «{{ticket.title}}» بتاريخ {{ticket.createdAt}}، وسيتولى فريق الدعم دراسته وإفادتكم بالمستجدات.\n\nلمتابعة حالة البلاغ أو إضافة معلومات، يُرجى زيارة بوابة الخدمات.\n\nمع خالص التحية،\n{{tenant.name}}",
+      "action": "عرض البلاغ"
+    },
+    "incident.awaiting-requester": {
+      "subject": "بلاغ رقم {{ticket.number}}: بانتظار ردّكم",
+      "inApp": "بلاغكم «{{ticket.title}}» بانتظار معلومات منكم.",
+      "body": "تحية طيبة، {{recipient.name}}\n\nنحيطكم علمًا بأن بلاغكم رقم {{ticket.number}} بعنوان «{{ticket.title}}» معلّق إلى حين ورود ردّكم. يُرجى فتح البلاغ وتزويد فريق الدعم بالمعلومات المطلوبة.\n\nمع خالص التحية،\n{{tenant.name}}",
+      "action": "فتح البلاغ"
+    },
+    "incident.resolved": {
+      "subject": "بلاغ رقم {{ticket.number}}: تمت معالجة بلاغكم",
+      "inApp": "تمت معالجة بلاغكم «{{ticket.title}}».",
+      "body": "تحية طيبة، {{recipient.name}}\n\nيسرّنا إفادتكم بأنه تمت معالجة بلاغكم رقم {{ticket.number}} بعنوان «{{ticket.title}}».\n\nطريقة المعالجة: {{ticket.resolutionNotes}}\n\nفي حال استمرار المشكلة، يمكنكم إعادة فتح البلاغ ما دام لم يُغلق.\n\nمع خالص التحية،\n{{tenant.name}}",
+      "action": "عرض البلاغ أو إعادة فتحه"
+    },
+    "incident.closed": {
+      "subject": "بلاغ رقم {{ticket.number}}: تم إغلاق بلاغكم",
+      "inApp": "تم إغلاق بلاغكم «{{ticket.title}}».",
+      "body": "تحية طيبة، {{recipient.name}}\n\nنحيطكم علمًا بأنه تم إغلاق بلاغكم رقم {{ticket.number}} بعنوان «{{ticket.title}}». إذا احتجتم إلى مزيد من المساعدة، يُرجى تقديم بلاغ جديد مع ذكر رقم هذا البلاغ.\n\nمع خالص التحية،\n{{tenant.name}}",
+      "action": "عرض البلاغ"
+    },
+    "incident.major-update": {
+      "subject": "بلاغ رقم {{ticket.number}}: مستجدات بشأن انقطاع الخدمة",
+      "inApp": "{{update.text}}",
+      "body": "تحية طيبة، {{recipient.name}}\n\nنحيطكم علمًا بوجود تحديث جديد بشأن البلاغ رقم {{ticket.number}} بعنوان «{{ticket.title}}» المرتبط ببلاغكم:\n\n{{update.text}}\n\nتاريخ التحديث: {{update.postedAt}}.\n\nمع خالص التحية،\n{{tenant.name}}",
+      "action": "عرض المستجدات"
+    },
+    "incident.assigned": {
+      "subject": "تم إسناد البلاغ رقم {{ticket.number}} إليكم",
+      "inApp": "{{ticket.priority}}: «{{ticket.title}}» من {{requester.name}}.",
+      "body": "تحية طيبة، {{recipient.name}}\n\nتم إسناد البلاغ رقم {{ticket.number}} بعنوان «{{ticket.title}}» إليكم.\n\nالأولوية: {{ticket.priority}}\nالفريق: {{ticket.group}}\nمقدّم البلاغ: {{requester.name}}\n\nمع خالص التحية،\n{{tenant.name}}",
+      "action": "فتح البلاغ"
+    },
+    "incident.queued": {
+      "subject": "بلاغ جديد في قائمة {{ticket.group}}: {{ticket.number}}",
+      "inApp": "{{ticket.priority}}: «{{ticket.title}}» بانتظار الإسناد في قائمة {{ticket.group}}.",
+      "body": "تحية طيبة، {{recipient.name}}\n\nوصل البلاغ رقم {{ticket.number}} بعنوان «{{ticket.title}}» إلى قائمة {{ticket.group}}، ولم يُسند إلى أحد بعد.\n\nالأولوية: {{ticket.priority}}\nمقدّم البلاغ: {{requester.name}}\n\nمع خالص التحية،\n{{tenant.name}}",
+      "action": "فتح البلاغ"
+    },
+    "sla.threshold": {
+      "subject": "البلاغ رقم {{ticket.number}}: انقضى {{sla.percent}} من مدة {{sla.target}}",
+      "inApp": "«{{ticket.title}}»: انقضى {{sla.percent}} من مدة {{sla.target}}، وموعدها {{sla.dueAt}}.",
+      "body": "تحية طيبة، {{recipient.name}}\n\nنحيطكم علمًا بأنه انقضى {{sla.percent}} من مدة {{sla.target}} المحددة للبلاغ رقم {{ticket.number}} بعنوان «{{ticket.title}}»، وموعدها {{sla.dueAt}}.\n\nالأولوية: {{ticket.priority}}\n\nيُرجى اتخاذ الإجراء اللازم قبل تجاوز المدة المحددة.\n\nمع خالص التحية،\n{{tenant.name}}",
+      "action": "فتح البلاغ"
+    },
+    "sla.breached": {
+      "subject": "البلاغ رقم {{ticket.number}}: تجاوز مدة {{sla.target}} المحددة",
+      "inApp": "«{{ticket.title}}» تجاوز مدة {{sla.target}} المحددة، وكان موعدها {{sla.dueAt}}.",
+      "body": "تحية طيبة، {{recipient.name}}\n\nنحيطكم علمًا بأن البلاغ رقم {{ticket.number}} بعنوان «{{ticket.title}}» تجاوز مدة {{sla.target}} المحددة، وكان موعدها {{sla.dueAt}}.\n\nالأولوية: {{ticket.priority}}\n\nمع خالص التحية،\n{{tenant.name}}",
+      "action": "فتح البلاغ"
+    },
+    "knowledge.review-requested": {
+      "subject": "المقال رقم {{article.number}} بانتظار مراجعتكم",
+      "inApp": "تم تقديم المقال «{{article.title}}» للمراجعة من قِبل {{author.name}}.",
+      "body": "تحية طيبة، {{recipient.name}}\n\nتم تقديم المقال المعرفي رقم {{article.number}} بعنوان «{{article.title}}» للمراجعة من قِبل {{author.name}}. يُنشر المقال بعد اعتماده من مراجع غير كاتبه.\n\nمع خالص التحية،\n{{tenant.name}}",
+      "action": "مراجعة المقال"
+    },
+    "notifications.test": {
+      "subject": "رسالة تجريبية من {{tenant.name}}",
+      "inApp": "هذه رسالة تجريبية.",
+      "body": "تحية طيبة، {{recipient.name}}\n\nهذه رسالة تجريبية من الإعدادات ← الإشعارات. إذا وصلتكم هذه الرسالة، فإن الإشعارات تصل إلى بريدكم الإلكتروني.\n\nمع خالص التحية،\n{{tenant.name}}",
+      "action": "فتح إعدادات الإشعارات"
+    }
+  },
+  "samples": {
+    "ticket.title": "الطابعة في الطابق الثالث لا تعمل",
+    "ticket.resolutionNotes": "أُعيد تثبيت برنامج تشغيل الطابعة وطُبعت صفحة تجريبية.",
+    "ticket.group": "مكتب خدمات تقنية المعلومات",
+    "requester.name": "فاطمة الشامسي",
+    "update.text": "يعاني بعض المستخدمين من بطء في البريد الإلكتروني، ويعمل الفريق الفني على حل المشكلة، وسيصدر التحديث التالي خلال ساعة.",
+    "article.title": "طريقة الاتصال بشبكة المكتب اللاسلكية",
+    "author.name": "عمر الهاشمي",
+    "recipient.name": "مريم الكتبي"
+  }
+}

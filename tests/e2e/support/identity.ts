@@ -48,11 +48,31 @@ export async function emailedCode(address: string, timeoutMs = 10_000): Promise<
   while (Date.now() < deadline) {
     const search = await fetch(`${mailpitUrl}/api/v1/search?query=${encodeURIComponent(`to:${address}`)}`);
     const result = (await search.json()) as { messages?: { ID: string }[] };
-    if (result.messages?.length) {
-      const message = (await (await fetch(`${mailpitUrl}/api/v1/message/${result.messages[0].ID}`)).json()) as { Text: string };
+    for (const found of result.messages ?? []) {
+      // Zelvo's notification emails (task B5, Auto-Submitted) carry numbers such as INC-000123; only sign-in emails count.
+      const headers = (await (await fetch(`${mailpitUrl}/api/v1/message/${found.ID}/headers`)).json()) as Record<string, string[]>;
+      if (headers["Auto-Submitted"]) {
+        continue;
+      }
+      const message = (await (await fetch(`${mailpitUrl}/api/v1/message/${found.ID}`)).json()) as { Text: string };
       return message.Text.match(/\b(\d{6})\b/)?.[1] ?? null;
     }
     await new Promise((resolve) => setTimeout(resolve, 500));
+  }
+  return null;
+}
+
+/** The newest Zelvo notification email to `address` whose subject contains `subject`, or null when none arrives. */
+export async function notificationEmail(address: string, subject: string, timeoutMs = 30_000): Promise<{ Subject: string; Text: string; HTML: string } | null> {
+  const deadline = Date.now() + timeoutMs;
+  while (Date.now() < deadline) {
+    const search = await fetch(`${mailpitUrl}/api/v1/search?query=${encodeURIComponent(`to:${address}`)}`);
+    const result = (await search.json()) as { messages?: { ID: string; Subject: string }[] };
+    const found = result.messages?.find((m) => m.Subject.includes(subject));
+    if (found) {
+      return (await (await fetch(`${mailpitUrl}/api/v1/message/${found.ID}`)).json()) as { Subject: string; Text: string; HTML: string };
+    }
+    await new Promise((resolve) => setTimeout(resolve, 1_000));
   }
   return null;
 }

@@ -3,7 +3,9 @@ import { getTranslations, setRequestLocale } from "next-intl/server";
 import { getDirection, otherLocale, type Locale } from "@/i18n/routing";
 import { PreferencesForm } from "@/components/PreferencesForm";
 import { AvailabilitySwitch } from "@/components/directory/AvailabilitySwitch";
-import { getCurrentUser, getLocalizationSettings, type LocalizedText } from "@/lib/api";
+import { NotificationPreferencesForm } from "@/components/notifications/NotificationPreferencesForm";
+import { getCurrentUser, getJsonAs, getLocalizationSettings, type LocalizedText } from "@/lib/api";
+import type { NotificationPreference } from "@/lib/notifications";
 import { getRequestAuthConfig } from "@/lib/auth/config";
 import { getSession } from "@/lib/auth/session";
 
@@ -33,11 +35,13 @@ export default async function AccountPage({ params }: PageProps<"/[locale]/accou
     redirect(`/auth/login?${new URLSearchParams({ locale, returnTo: `/${locale}/account` })}`);
   }
   const tenant = (await getRequestAuthConfig()).tenant;
-  const [user, tenantSettings, t, tPreferences] = await Promise.all([
+  const [user, tenantSettings, t, tPreferences, tNotifications, notificationPreferences] = await Promise.all([
     getCurrentUser(session.data.accessToken, tenant),
     getLocalizationSettings(tenant),
     getTranslations({ locale, namespace: "account" }),
     getTranslations({ locale, namespace: "preferences" }),
+    getTranslations({ locale, namespace: "notifications.preferences" }),
+    getJsonAs<NotificationPreference[]>("/api/v1/me/notification-preferences", session.data.accessToken, tenant),
   ]);
 
   if (!user) {
@@ -89,6 +93,16 @@ export default async function AccountPage({ params }: PageProps<"/[locale]/accou
           }
         />
       </section>
+
+      {notificationPreferences && (
+        <section id="notifications" aria-labelledby="notification-preferences-heading" className="space-y-3">
+          <h2 id="notification-preferences-heading" className="text-xl font-bold">
+            {tNotifications("heading")}
+          </h2>
+          <p className="max-w-2xl text-ink-muted">{tNotifications("intro")}</p>
+          <NotificationPreferencesForm initial={notificationPreferences} csrfToken={session.data.csrfToken} />
+        </section>
+      )}
 
       {user.permissions.includes("incidents.edit") && (
         <section aria-labelledby="availability-heading" className="space-y-3" data-testid="availability">

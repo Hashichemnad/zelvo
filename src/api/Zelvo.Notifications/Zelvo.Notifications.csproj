@@ -1,0 +1,20 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <RootNamespace>Zelvo.Notifications</RootNamespace>
+    <Description>Zelvo notification engine (module 10, task B5): notifications queued with the changes that cause them, rendered in each recipient's language with their calendar and digits (LANG-6, LANG-8), bilingual templates with formal Arabic (GOV-8), the in-app list and email over SMTP, and the worker jobs that deliver them. SMS, WhatsApp and Teams plug in as channels with module 6.</Description>
+  </PropertyGroup>
+  <ItemGroup>
+    <PackageReference Include="Microsoft.Extensions.Hosting.Abstractions" />
+    <PackageReference Include="MailKit" />
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\Zelvo.Data\Zelvo.Data.csproj" />
+    <ProjectReference Include="..\Zelvo.Tickets\Zelvo.Tickets.csproj" />
+  </ItemGroup>
+  <ItemGroup>
+    <EmbeddedResource Include="Texts\*.json" LogicalName="Zelvo.Notifications.Texts.%(Filename).json" />
+  </ItemGroup>
+  <ItemGroup>
+    <InternalsVisibleTo Include="Zelvo.Api.Tests" />
+  </ItemGroup>
+</Project>

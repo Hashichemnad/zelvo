@@ -1,6 +1,6 @@
 # Formal Arabic in templates (GOV-8, base)
 
-These guidelines apply to every Arabic text that Zelvo sends or prints on behalf of an entity: email and notification templates (task B5), approval messages (C3), receipts (E8) and PDF exports (F1). Government entities in the UAE expect the tone of official correspondence. The guidelines are the base for GOV-8. The entity letterhead itself comes with branding in F1.
+These guidelines apply to every Arabic text that Zelvo sends or prints on behalf of an entity: email and notification templates (task B5, now built: `docs/architecture/notifications.md`), approval messages (C3), receipts (E8) and PDF exports (F1). Government entities in the UAE expect the tone of official correspondence. The guidelines are the base for GOV-8. The entity letterhead itself comes with branding in F1.
 
 Whoever writes or reviews an Arabic template (Zelvo staff, a partner or a tenant administrator) works through the checklist at the end.
 
@@ -50,12 +50,12 @@ Whoever writes or reviews an Arabic template (Zelvo staff, a partner or a tenant
 | --- | --- | --- |
 | Zelvo | زيلفو | Approved 2026-11-13 |
 | Powered by Zelvo | بتقنية زيلفو | Approved 2026-11-13 |
-| Customer (government) | المتعامل | Proposed |
-| Request | طلب | Proposed |
-| Complaint / inquiry / suggestion | شكوى / استفسار / اقتراح | Proposed |
-| Approval | اعتماد | Proposed |
+| Customer (government) | المتعامل | Approved 2026-11-24 |
+| Request | طلب | Approved 2026-11-24 |
+| Complaint / inquiry / suggestion | شكوى / استفسار / اقتراح | Approved 2026-11-24 |
+| Approval | اعتماد | Approved 2026-11-24 |
 
-The product owner approves proposed terms when task B5 builds the first templates. Approved terms then move into this table.
+The product owner approved the proposed terms on 2026-11-24, when task B5 built the first templates. New terms are proposed here and approved the same way. Zelvo's own Arabic templates are in `src/api/Zelvo.Notifications/Texts/ar.json`; a test checks them against the punctuation and register rules above (see `docs/architecture/notifications.md`).
 
 ## Review checklist
 

@@ -211,6 +211,10 @@
       "customerGroups": {
         "title": "Customer groups",
         "description": "Groups of requesters with their own SLA policies, by email domain or by name."
+      },
+      "notifications": {
+        "title": "Notifications",
+        "description": "Which events notify people, their wording in English and Arabic, test emails and the email delivery log."
       }
     },
     "missingWarning": "{count, plural, one {# text is} other {# texts are}} missing a translation.",
@@ -237,7 +241,8 @@
       "entityTypes": {
         "tenant": "Organisation",
         "role": "Role",
-        "incident_settings": "Incident settings"
+        "incident_settings": "Incident settings",
+        "notification_template": "Notification wording"
       },
       "fields": {
         "name": "Name"
@@ -409,7 +414,8 @@
         "ai_manage": "Manage AI providers, features, the MCP server and MCP servers",
         "knowledge_read": "Read internal knowledge articles",
         "knowledge_write": "Write knowledge articles",
-        "knowledge_publish": "Review, publish and retire knowledge articles"
+        "knowledge_publish": "Review, publish and retire knowledge articles",
+        "notifications_manage": "Change notifications and see the email delivery log"
       },
       "events": {
         "user_created": "A user was created",
@@ -987,6 +993,75 @@
       "prefixInvalid": "Use 1–10 capital letters or digits, starting with a letter.",
       "failed": "That did not work. Try again.",
       "save": "Save"
+    },
+    "notifications": {
+      "intro": "Each notification reaches people in their own language, with their calendar and digits. Switch events off or send them in Zelvo only, and change their wording. Arabic wording should follow the formal correspondence guidelines.",
+      "tabs": {
+        "label": "Notification pages",
+        "events": "Events and wording",
+        "deliveries": "Email delivery log"
+      },
+      "noMailServer": "This installation has no mail server set up, so notifications appear in Zelvo only. Ask the installation's operator to set one up.",
+      "enabled": "On",
+      "email": "Send email",
+      "emailFixed": "People cannot turn this email off.",
+      "customised": "Own wording",
+      "standard": "Zelvo's wording",
+      "edit": "Edit wording",
+      "closeEditor": "Close",
+      "fields": {
+        "subject": "Subject and in-app title",
+        "inApp": "In-app text",
+        "body": "Email text",
+        "action": "Link label"
+      },
+      "english": "English",
+      "arabic": "Arabic",
+      "placeholders": "Placeholders you can use",
+      "placeholdersHelp": "Write a placeholder in double braces, for example {example}. Leave a language empty to use Zelvo's wording in that language. Separate paragraphs of the email with an empty line.",
+      "previewIn": "Preview in {language}",
+      "previewHeading": "Preview with sample values",
+      "previewSubject": "Subject",
+      "previewInApp": "In-app text",
+      "previewFrame": "Email as it will look",
+      "save": "Save wording",
+      "saved": "The wording is saved.",
+      "reset": "Use Zelvo's wording",
+      "resetDone": "Zelvo's wording is used again.",
+      "invalid": "Check the wording: {problems}",
+      "eventSaved": "The change is saved.",
+      "failed": "That did not work. Please try again.",
+      "testEmail": "Send a test email to me",
+      "testQueued": "A test email is on its way to your address. The delivery log shows the result.",
+      "noEmail": "Your account has no email address.",
+      "deliveries": {
+        "intro": "Emails of the last 30 days, newest first. Addresses are partly hidden; opening an email shows it in full and is recorded in the audit log.",
+        "filter": "Status",
+        "all": "All",
+        "status": {
+          "Pending": "Waiting",
+          "Sent": "Sent",
+          "Failed": "Failed"
+        },
+        "columns": {
+          "event": "Notification",
+          "to": "To",
+          "subject": "Subject",
+          "status": "Status",
+          "attempts": "Attempts",
+          "when": "Queued"
+        },
+        "empty": "No emails yet.",
+        "view": "View",
+        "resend": "Send again",
+        "resent": "The email will be sent again in a few seconds.",
+        "nextAttempt": "Next attempt: {date}",
+        "manual": "Queued by an administrator",
+        "detailHeading": "Email to {address}",
+        "close": "Close",
+        "previous": "Previous page",
+        "next": "Next page"
+      }
     }
   },
   "demo": {
@@ -1480,7 +1555,8 @@
         "directory": "Directory and assignment",
         "sla": "SLA management",
         "ai": "AI",
-        "knowledge": "Knowledge base"
+        "knowledge": "Knowledge base",
+        "notifications": "Notifications"
       },
       "tenant_manage": "Change the organisation's name",
       "translations_read": "See missing translations",
@@ -1504,7 +1580,8 @@
       "ai_manage": "Manage AI providers, features, the MCP server and MCP servers",
       "knowledge_read": "Read internal knowledge articles",
       "knowledge_write": "Write knowledge articles",
-      "knowledge_publish": "Review, publish and retire knowledge articles"
+      "knowledge_publish": "Review, publish and retire knowledge articles",
+      "notifications_manage": "Change notifications and see the email delivery log"
     },
     "assignment": {
       "intro": "The rules are checked in order and the first that matches decides where a new ticket goes. They run when a ticket is created and when an agent chooses \"Route again\"; they never move a ticket on their own later.",
@@ -1974,5 +2051,52 @@
     "failed": "That did not work. Try again.",
     "noAccess": "You have no permissions to decide AI agents' changes.",
     "unavailable": "AI approvals are not available right now."
+  },
+  "notifications": {
+    "title": "Notifications",
+    "intro": "What happened to your incidents, your work and the articles you review, newest first. Notifications are kept for 90 days.",
+    "bell": {
+      "label": "Notifications",
+      "unread": "{count, plural, =0 {no unread notifications} one {# unread notification} other {# unread notifications}}"
+    },
+    "empty": "You have no notifications.",
+    "emptyUnread": "You have no unread notifications.",
+    "unreadOnly": "Show unread only",
+    "unread": "Unread",
+    "markRead": "Mark as read",
+    "markAllRead": "Mark all as read",
+    "allRead": "All your notifications are marked as read.",
+    "failed": "That did not work. Please try again.",
+    "unavailable": "Your notifications cannot be shown right now. Please try again later.",
+    "more": "Show more",
+    "events": {
+      "incident_received": "Your incident was received",
+      "incident_awaiting_requester": "Your incident is waiting for you",
+      "incident_resolved": "Your incident was resolved",
+      "incident_closed": "Your incident was closed",
+      "incident_major_update": "Updates on a major incident that affects you",
+      "incident_assigned": "An incident is assigned to you",
+      "incident_queued": "A new incident is in your group's queue",
+      "sla_threshold": "An incident reached an SLA escalation threshold",
+      "sla_breached": "An incident missed an SLA target",
+      "knowledge_review_requested": "A knowledge article is waiting for review",
+      "notifications_test": "Test email"
+    },
+    "audiences": {
+      "Requester": "Your incidents",
+      "Staff": "Your work",
+      "Publisher": "Knowledge reviews"
+    },
+    "preferences": {
+      "heading": "Notifications",
+      "intro": "Notifications always appear in Zelvo. Choose which ones also reach you by email.",
+      "email": "Also send me an email",
+      "alwaysEmail": "Always sent by email; it cannot be turned off.",
+      "offByOrganisation": "Your organisation has turned this notification off.",
+      "appOnlyByOrganisation": "Your organisation sends this notification in Zelvo only.",
+      "save": "Save email choices",
+      "saved": "Your email choices are saved.",
+      "failed": "Your choices could not be saved. Please try again."
+    }
   }
 }

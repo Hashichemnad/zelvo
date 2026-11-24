@@ -8,6 +8,7 @@ using Zelvo.Data.Integrations;
 using Zelvo.Data.Knowledge;
 using Zelvo.Data.Localization;
 using Zelvo.Data.Mcp;
+using Zelvo.Data.Notifications;
 using Zelvo.Data.Search;
 using Zelvo.Data.Secrets;
 using Zelvo.Data.Settings;
@@ -180,6 +181,18 @@ public sealed class ZelvoDbContext(DbContextOptions<ZelvoDbContext> options) : D
     /// <summary>Customers' own MCP servers that Zelvo's AI may use as tools.</summary>
     public DbSet<McpServerConnection> McpServers => Set<McpServerConnection>();
 
+    /// <summary>Notifications of people: queue and in-app list (module 10, task B5).</summary>
+    public DbSet<Notification> Notifications => Set<Notification>();
+
+    /// <summary>Emails of notifications: queue and delivery log.</summary>
+    public DbSet<NotificationDelivery> NotificationDeliveries => Set<NotificationDelivery>();
+
+    /// <summary>Tenants' own wording of notifications.</summary>
+    public DbSet<NotificationTemplate> NotificationTemplates => Set<NotificationTemplate>();
+
+    /// <summary>People's email choices per event.</summary>
+    public DbSet<NotificationPreference> NotificationPreferences => Set<NotificationPreference>();
+
     /// <inheritdoc />
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -253,6 +266,7 @@ public sealed class ZelvoDbContext(DbContextOptions<ZelvoDbContext> options) : D
         ConfigureAi(modelBuilder);
         ConfigureMcp(modelBuilder);
         ConfigureKnowledge(modelBuilder);
+        ConfigureNotifications(modelBuilder);
 
         modelBuilder.Entity<TenantDataKey>(key =>
         {
@@ -725,6 +739,94 @@ public sealed class ZelvoDbContext(DbContextOptions<ZelvoDbContext> options) : D
             entry.HasIndex(e => new { e.TenantId, e.OccurredAt });
             entry.HasIndex(e => new { e.TenantId, e.ApiClientId, e.Id }).HasFilter("api_client_id IS NOT NULL");
             entry.HasIndex(e => new { e.TenantId, e.SubscriptionId, e.Id }).HasFilter("subscription_id IS NOT NULL");
+        });
+    }
+
+    private static void ConfigureNotifications(ModelBuilder modelBuilder)
+    {
+        modelBuilder.Entity<Notification>(notification =>
+        {
+            notification.ToTable("notifications", table =>
+            {
+                table.HasCheckConstraint("ck_notifications_status", EnumCheck("status", Enum.GetNames<NotificationStatus>()));
+                table.HasCheckConstraint("ck_notifications_language", "language IS NULL OR language IN ('en', 'ar')");
+                table.HasCheckConstraint("ck_notifications_link_path", "link_path IS NULL OR link_path ~ '^/[A-Za-z0-9/_?=&.-]*$'");
+            });
+            notification.HasKey(n => n.Id);
+            notification.Property(n => n.Id).ValueGeneratedNever();
+            notification.HasOne<Tenant>().WithMany().HasForeignKey(n => n.TenantId).OnDelete(DeleteBehavior.Restrict);
+            notification.HasOne<UserAccount>().WithMany().HasForeignKey(n => n.RecipientId).OnDelete(DeleteBehavior.Cascade);
+            notification.HasOne<Ticket>().WithMany().HasForeignKey(n => n.TicketId).OnDelete(DeleteBehavior.Cascade);
+            notification.HasOne<KbArticle>().WithMany().HasForeignKey(n => n.ArticleId).OnDelete(DeleteBehavior.Cascade);
+            notification.HasOne<SlaAlert>().WithMany().HasForeignKey(n => n.SlaAlertId).OnDelete(DeleteBehavior.Cascade);
+            notification.Property(n => n.EventType).HasMaxLength(Notification.EventTypeMaxLength);
+            notification.Property(n => n.Data).HasColumnType("jsonb");
+            notification.Property(n => n.LinkPath).HasMaxLength(Notification.LinkPathMaxLength);
+            notification.Property(n => n.Status).HasConversion<string>().HasMaxLength(20);
+            notification.Property(n => n.Language).HasMaxLength(2);
+            notification.Property(n => n.Title).HasMaxLength(Notification.TitleMaxLength);
+            notification.Property(n => n.Text).HasMaxLength(Notification.TextMaxLength);
+
+            // The worker looks for pending ones; people list theirs newest first and count the unread.
+            notification.HasIndex(n => new { n.TenantId, n.CreatedAt }).HasFilter("status = 'Pending'").HasDatabaseName("ix_notifications_pending");
+            notification.HasIndex(n => new { n.RecipientId, n.Id }).HasFilter("status = 'Delivered'");
+            notification.HasIndex(n => n.RecipientId).HasFilter("status = 'Delivered' AND read_at IS NULL").HasDatabaseName("ix_notifications_unread");
+            notification.HasIndex(n => n.TicketId);
+            notification.HasIndex(n => n.ArticleId);
+            notification.HasIndex(n => n.SlaAlertId);
+            // Retention removes old ones in every tenant.
+            notification.HasIndex(n => n.CreatedAt);
+        });
+
+        modelBuilder.Entity<NotificationDelivery>(delivery =>
+        {
+            delivery.ToTable("notification_deliveries", table =>
+            {
+                table.HasCheckConstraint("ck_notification_deliveries_status", EnumCheck("status", Enum.GetNames<NotificationDeliveryStatus>()));
+                table.HasCheckConstraint("ck_notification_deliveries_language", "language IN ('en', 'ar')");
+            });
+            delivery.HasKey(d => d.Id);
+            delivery.Property(d => d.Id).UseIdentityAlwaysColumn();
+            delivery.HasOne<Tenant>().WithMany().HasForeignKey(d => d.TenantId).OnDelete(DeleteBehavior.Restrict);
+            delivery.HasOne<Notification>().WithMany().HasForeignKey(d => d.NotificationId).OnDelete(DeleteBehavior.SetNull);
+            delivery.HasOne<UserAccount>().WithMany().HasForeignKey(d => d.RecipientId).OnDelete(DeleteBehavior.SetNull);
+            delivery.Property(d => d.EventType).HasMaxLength(Notification.EventTypeMaxLength);
+            delivery.Property(d => d.Address).HasMaxLength(UserAccount.EmailMaxLength);
+            delivery.Property(d => d.Language).HasMaxLength(2);
+            delivery.Property(d => d.Subject).HasMaxLength(NotificationDelivery.SubjectMaxLength);
+            delivery.Property(d => d.HtmlBody).HasMaxLength(NotificationDelivery.BodyMaxLength);
+            delivery.Property(d => d.TextBody).HasMaxLength(NotificationDelivery.BodyMaxLength);
+            delivery.Property(d => d.Status).HasConversion<string>().HasMaxLength(20);
+            delivery.Property(d => d.LastError).HasMaxLength(NotificationDelivery.ErrorMaxLength);
+
+            delivery.HasIndex(d => new { d.TenantId, d.NextAttemptAt }).HasFilter("status = 'Pending'");
+            delivery.HasIndex(d => new { d.TenantId, d.Id });
+            delivery.HasIndex(d => new { d.TenantId, d.CreatedAt });
+            delivery.HasIndex(d => d.NotificationId);
+            delivery.HasIndex(d => d.RecipientId);
+        });
+
+        modelBuilder.Entity<NotificationTemplate>(template =>
+        {
+            template.ToTable("notification_templates");
+            template.HasKey(t => new { t.TenantId, t.EventType });
+            template.HasOne<Tenant>().WithMany().HasForeignKey(t => t.TenantId).OnDelete(DeleteBehavior.Restrict);
+            template.Property(t => t.EventType).HasMaxLength(Notification.EventTypeMaxLength);
+            template.ConfigureLocalizedText(t => t.Subject, "subject", NotificationTemplate.SubjectMaxLength);
+            template.ConfigureLocalizedText(t => t.Body, "body", NotificationTemplate.BodyMaxLength);
+            template.ConfigureLocalizedText(t => t.InApp, "in_app", NotificationTemplate.InAppMaxLength);
+            template.ConfigureLocalizedText(t => t.Action, "action", NotificationTemplate.ActionMaxLength);
+            template.Property(t => t.Version).IsRowVersion();
+        });
+
+        modelBuilder.Entity<NotificationPreference>(preference =>
+        {
+            preference.ToTable("notification_preferences");
+            preference.HasKey(p => new { p.UserId, p.EventType });
+            preference.HasOne<Tenant>().WithMany().HasForeignKey(p => p.TenantId).OnDelete(DeleteBehavior.Restrict);
+            preference.HasOne<UserAccount>().WithMany().HasForeignKey(p => p.UserId).OnDelete(DeleteBehavior.Cascade);
+            preference.Property(p => p.EventType).HasMaxLength(Notification.EventTypeMaxLength);
+            preference.HasIndex(p => p.TenantId);
         });
     }
 

@@ -8,7 +8,10 @@ import { isKnowledgeStaff } from "@/lib/knowledge";
 import { canDecideAiActions } from "@/lib/mcp";
 import { formatDateTime } from "@/lib/format";
 import { sectionsFor } from "@/lib/settings-sections";
+import { getJsonAs } from "@/lib/api";
+import { toDigitSystem } from "@/lib/format";
 import { AccountMenu } from "./AccountMenu";
+import { NotificationBell } from "./notifications/NotificationBell";
 import { DemoPanel } from "./DemoPanel";
 import { LanguageSwitcher } from "./LanguageSwitcher";
 import { TestInstallationBanner } from "./TestInstallationBanner";
@@ -23,6 +26,9 @@ export async function SiteHeader() {
   const user = session ? await getCurrentUser(session.data.accessToken, config.tenant) : null;
   // Demo installations only: the API says whether this is one.
   const demo = config.demoTenants.length > 0 ? await getDemo(config.tenant) : null;
+  const unread = session && user
+    ? await getJsonAs<{ count: number }>("/api/v1/me/notifications/unread-count", session.data.accessToken, config.tenant)
+    : null;
   let lastReset: string | null = null;
   if (demo?.lastResetAt) {
     const format = await getDisplayFormat();
@@ -76,6 +82,9 @@ export async function SiteHeader() {
             </nav>
           </div>
           <div className="flex flex-wrap items-center gap-3">
+            {user && unread && (
+              <NotificationBell initialCount={unread.count} locale={await getLocale()} digits={toDigitSystem(user.preferences.effective.digits)} />
+            )}
             <AccountMenu
               userName={session ? (session.data.name ?? session.data.email ?? session.data.subject) : null}
               csrfToken={session?.data.csrfToken ?? null}

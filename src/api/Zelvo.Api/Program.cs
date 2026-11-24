@@ -11,6 +11,7 @@ using Zelvo.Api.Identity;
 using Zelvo.Api.Incidents;
 using Zelvo.Api.Integrations;
 using Zelvo.Api.Knowledge;
+using Zelvo.Api.Notifications;
 using Zelvo.Api.Localization;
 using Zelvo.Api.Mcp;
 using Zelvo.Api.OpenApi;
@@ -82,6 +83,7 @@ builder.Services.AddZelvoApiIntegrations(builder.Configuration);
 builder.Services.AddZelvoApiAi(builder.Configuration);
 builder.Services.AddZelvoKnowledge();
 builder.Services.AddZelvoMcpServer();
+builder.Services.AddZelvoApiNotifications(builder.Configuration);
 
 var app = builder.Build();
 
@@ -131,6 +133,7 @@ v1.MapZelvoKnowledgeEndpoints();
 v1.MapZelvoMcp();
 v1.MapMcpEndpoints();
 v1.MapMcpServerEndpoints();
+v1.MapNotificationEndpoints();
 
 await app.RunAsync();
 return 0;

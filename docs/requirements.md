@@ -275,6 +275,9 @@ Admins build and change the whole service catalog themselves, with a drag-and-dr
 ### 10. Notifications, reporting and administration
 
 - Notifications by email, SMS, WhatsApp, Teams and in-app, in the recipient's language.
+- Notification events of Phase 1 task B5 (2026-11-24): requesters hear about their own incidents (received, waiting for them, resolved, closed, major-incident updates for requesters); staff hear about incidents assigned to them or arriving in their group's queue; SLA alerts go to the recipients of each threshold; publishers hear about articles waiting for review. Administrators switch each event on or off, with or without email, and change its wording in English and Arabic. The workflow builder adds more rules later.
+- People's choices (2026-11-24): in-app notifications are always on; each person can turn off the email of an event in their account; SLA alerts always send email.
+- Mail server (2026-11-24): one per installation, set by the operator; emails carry the organisation's name as sender. The organisation's own sender domain comes with white-label branding (module 11).
 - Dashboards: volumes, backlog, SLA compliance, agent performance, happiness scores; scheduled reports to email.
 - Admin: setup wizard, users and groups, roles and permissions, forms, categories, SLA policies, business hours, branding, language defaults.
 - No-code workflow builder for assignment, approval and notification rules.
@@ -559,7 +562,7 @@ These requirements make the platform ready for UAE government tenders; they are 
 | GOV-5 | Compliance with the UAE Personal Data Protection Law and sector rules | Consent, retention periods, data subject requests, export and deletion |
 | GOV-6 | Alignment with the UAE Information Assurance standard | Control mapping delivered as evidence for security reviews |
 | GOV-7 | UAE business calendar | Friday half-day / Saturday–Sunday weekend patterns and public holidays per tenant |
-| GOV-8 | Arabic official correspondence | Arabic email and notification templates with formal tone, entity letterhead |
+| GOV-8 | Arabic official correspondence | Arabic email and notification templates with formal tone, entity letterhead. Terms approved 2026-11-24: المتعامل, طلب, شكوى / استفسار / اقتراح, اعتماد (`docs/guidelines/arabic-formal-correspondence.md`) |
 | GOV-9 | Accessibility | WCAG 2.2 AA in both languages |
 | GOV-10 | Integration with government channels | Entity websites, call centres and existing case systems via API |
 

@@ -124,6 +124,9 @@ public sealed class DemoModeTests(DatabaseFixture database) : IAsyncDisposable
             Assert.Single(await db.CustomerGroupMembers.ToListAsync(Ct));
             Assert.True(await db.SupportGroups.AnyAsync(g => g.CalendarId != null, Ct));
             Assert.Equal(await db.Tickets.CountAsync(Ct) * 2, await db.TicketSlas.CountAsync(Ct));
+            // Task B5: in the API, saving the sample incidents queued their notifications once.
+            Assert.Equal(await db.Tickets.CountAsync(Ct),
+                await db.Notifications.CountAsync(n => n.EventType == Zelvo.Notifications.NotificationEvents.IncidentReceived, Ct));
             Assert.True(await db.TicketSlas.AnyAsync(c => c.TargetMinutes != null && c.State == Data.Sla.SlaClockState.Running, Ct));
         }
     }
@@ -141,8 +144,12 @@ public sealed class DemoModeTests(DatabaseFixture database) : IAsyncDisposable
         var ran = await services.GetRequiredService<DemoSeeding>().SeedPendingAsync(DemoCatalog.Government, tenant, Ct);
 
         Assert.Contains("b3-sla", ran);
+        Assert.Contains("b5-notifications", ran);
         await using var db = TestData.AppContext(database, tenant);
         Assert.True(await db.TicketSlas.AnyAsync(Ct));
+        // Task B5: migrate has no notification interceptor; the seeder queues one "received" per sample incident.
+        Assert.Equal(await db.Tickets.CountAsync(Ct),
+            await db.Notifications.CountAsync(n => n.EventType == Zelvo.Notifications.NotificationEvents.IncidentReceived, Ct));
     }
 
     [Fact]

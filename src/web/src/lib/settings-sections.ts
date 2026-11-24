@@ -20,6 +20,7 @@ export interface SettingsSection {
     | "incidents"
     | "attachments"
     | "knowledge"
+    | "notifications"
     | "search"
     | "integrations"
     | "ai"
@@ -47,6 +48,7 @@ export const settingsSections: readonly SettingsSection[] = [
   { key: "incidents", href: "/settings/incidents", permission: "settings.manage" },
   { key: "attachments", href: "/settings/attachments", permission: "settings.manage" },
   { key: "knowledge", href: "/settings/knowledge", permission: "settings.manage" },
+  { key: "notifications", href: "/settings/notifications", permission: "notifications.manage" },
   { key: "search", href: "/settings/search", permission: "search.manage" },
   { key: "integrations", href: "/settings/integrations", permission: "integrations.manage" },
   { key: "ai", href: "/settings/ai", permission: "ai.manage" },
