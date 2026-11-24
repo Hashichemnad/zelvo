@@ -928,6 +928,721 @@ namespace Zelvo.Data.Migrations
                     b.ToTable("service_requests", (string)null);
                 });
 
+            modelBuilder.Entity("Zelvo.Data.Channels.ChatMessage", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<Guid?>("AuthorId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("author_id");
+
+                    b.Property<string>("Body")
+                        .IsRequired()
+                        .HasMaxLength(4000)
+                        .HasColumnType("character varying(4000)")
+                        .HasColumnName("body");
+
+                    b.Property<DateTimeOffset>("CreatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("created_at");
+
+                    b.Property<string>("Event")
+                        .HasMaxLength(40)
+                        .HasColumnType("character varying(40)")
+                        .HasColumnName("event");
+
+                    b.Property<string>("Sender")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("character varying(20)")
+                        .HasColumnName("sender");
+
+                    b.Property<long>("Sequence")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bigint")
+                        .HasColumnName("sequence");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityAlwaysColumn(b.Property<long>("Sequence"));
+
+                    b.Property<Guid>("SessionId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("session_id");
+
+                    b.Property<Guid>("TenantId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("tenant_id");
+
+                    b.HasKey("Id")
+                        .HasName("pk_chat_messages");
+
+                    b.HasIndex("AuthorId")
+                        .HasDatabaseName("ix_chat_messages_author_id");
+
+                    b.HasIndex("SessionId")
+                        .HasDatabaseName("ix_chat_messages_session_id");
+
+                    b.HasIndex("TenantId", "SessionId", "Sequence")
+                        .HasDatabaseName("ix_chat_messages_tenant_id_session_id_sequence");
+
+                    b.ToTable("chat_messages", null, t =>
+                        {
+                            t.HasCheckConstraint("ck_chat_messages_sender", "sender IN ('Visitor', 'Agent', 'System')");
+                        });
+                });
+
+            modelBuilder.Entity("Zelvo.Data.Channels.ChatSession", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<DateTimeOffset?>("AcceptedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("accepted_at");
+
+                    b.Property<Guid?>("AgentId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("agent_id");
+
+                    b.Property<DateTimeOffset?>("EndedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("ended_at");
+
+                    b.Property<string>("EndedBy")
+                        .HasMaxLength(20)
+                        .HasColumnType("character varying(20)")
+                        .HasColumnName("ended_by");
+
+                    b.Property<Guid>("GroupId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("group_id");
+
+                    b.Property<string>("Language")
+                        .IsRequired()
+                        .HasMaxLength(5)
+                        .HasColumnType("character varying(5)")
+                        .HasColumnName("language");
+
+                    b.Property<DateTimeOffset>("LastVisitorActivityAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("last_visitor_activity_at");
+
+                    b.Property<string>("Origin")
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)")
+                        .HasColumnName("origin");
+
+                    b.Property<DateTimeOffset>("StartedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("started_at");
+
+                    b.Property<string>("State")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("character varying(20)")
+                        .HasColumnName("state");
+
+                    b.Property<Guid>("TenantId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("tenant_id");
+
+                    b.Property<Guid?>("TicketId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("ticket_id");
+
+                    b.Property<uint>("Version")
+                        .IsConcurrencyToken()
+                        .ValueGeneratedOnAddOrUpdate()
+                        .HasColumnType("xid")
+                        .HasColumnName("xmin");
+
+                    b.Property<string>("VisitorEmail")
+                        .IsRequired()
+                        .HasMaxLength(254)
+                        .HasColumnType("character varying(254)")
+                        .HasColumnName("visitor_email");
+
+                    b.Property<string>("VisitorName")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)")
+                        .HasColumnName("visitor_name");
+
+                    b.Property<string>("VisitorTokenHash")
+                        .HasMaxLength(64)
+                        .HasColumnType("character(64)")
+                        .HasColumnName("visitor_token_hash")
+                        .IsFixedLength();
+
+                    b.Property<Guid?>("VisitorUserId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("visitor_user_id");
+
+                    b.Property<Guid>("WidgetId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("widget_id");
+
+                    b.HasKey("Id")
+                        .HasName("pk_chat_sessions");
+
+                    b.HasIndex("AgentId")
+                        .HasDatabaseName("ix_chat_sessions_agent_id");
+
+                    b.HasIndex("GroupId")
+                        .HasDatabaseName("ix_chat_sessions_group_id");
+
+                    b.HasIndex("TicketId")
+                        .HasDatabaseName("ix_chat_sessions_ticket_id");
+
+                    b.HasIndex("VisitorUserId")
+                        .HasDatabaseName("ix_chat_sessions_visitor_user_id");
+
+                    b.HasIndex("WidgetId")
+                        .HasDatabaseName("ix_chat_sessions_widget_id");
+
+                    b.HasIndex("State", "LastVisitorActivityAt")
+                        .HasDatabaseName("ix_chat_sessions_state_last_visitor_activity_at")
+                        .HasFilter("state <> 'Ended'");
+
+                    b.HasIndex("TenantId", "VisitorUserId")
+                        .HasDatabaseName("ix_chat_sessions_tenant_id_visitor_user_id");
+
+                    b.HasIndex("TenantId", "AgentId", "State")
+                        .HasDatabaseName("ix_chat_sessions_tenant_id_agent_id_state");
+
+                    b.HasIndex("TenantId", "GroupId", "State")
+                        .HasDatabaseName("ix_chat_sessions_tenant_id_group_id_state");
+
+                    b.ToTable("chat_sessions", null, t =>
+                        {
+                            t.HasCheckConstraint("ck_chat_sessions_agent", "state <> 'Active' OR agent_id IS NOT NULL");
+
+                            t.HasCheckConstraint("ck_chat_sessions_ended_by", "ended_by IS NULL OR ended_by IN ('Visitor', 'Agent', 'System')");
+
+                            t.HasCheckConstraint("ck_chat_sessions_language", "language IN ('en', 'ar')");
+
+                            t.HasCheckConstraint("ck_chat_sessions_state", "state IN ('Waiting', 'Active', 'Ended')");
+                        });
+                });
+
+            modelBuilder.Entity("Zelvo.Data.Channels.ChatWidget", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<bool>("Active")
+                        .HasColumnType("boolean")
+                        .HasColumnName("active");
+
+                    b.PrimitiveCollection<string[]>("AllowedOrigins")
+                        .IsRequired()
+                        .HasColumnType("text[]")
+                        .HasColumnName("allowed_origins");
+
+                    b.Property<Guid?>("CategoryId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("category_id");
+
+                    b.Property<DateTimeOffset>("CreatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("created_at");
+
+                    b.Property<Guid>("GroupId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("group_id");
+
+                    b.Property<bool>("OnPortal")
+                        .HasColumnType("boolean")
+                        .HasColumnName("on_portal");
+
+                    b.Property<Guid>("TenantId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("tenant_id");
+
+                    b.Property<DateTimeOffset>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("updated_at");
+
+                    b.Property<uint>("Version")
+                        .IsConcurrencyToken()
+                        .ValueGeneratedOnAddOrUpdate()
+                        .HasColumnType("xid")
+                        .HasColumnName("xmin");
+
+                    b.ComplexProperty(typeof(Dictionary<string, object>), "Greeting", "Zelvo.Data.Channels.ChatWidget.Greeting#LocalizedText", b1 =>
+                        {
+                            b1.IsRequired();
+
+                            b1.Property<string>("Ar")
+                                .HasMaxLength(500)
+                                .HasColumnType("character varying(500)")
+                                .HasColumnName("greeting_ar");
+
+                            b1.Property<string>("En")
+                                .HasMaxLength(500)
+                                .HasColumnType("character varying(500)")
+                                .HasColumnName("greeting_en");
+                        });
+
+                    b.ComplexProperty(typeof(Dictionary<string, object>), "Name", "Zelvo.Data.Channels.ChatWidget.Name#LocalizedText", b1 =>
+                        {
+                            b1.IsRequired();
+
+                            b1.Property<string>("Ar")
+                                .HasMaxLength(100)
+                                .HasColumnType("character varying(100)")
+                                .HasColumnName("name_ar");
+
+                            b1.Property<string>("En")
+                                .HasMaxLength(100)
+                                .HasColumnType("character varying(100)")
+                                .HasColumnName("name_en");
+                        });
+
+                    b.HasKey("Id")
+                        .HasName("pk_chat_widgets");
+
+                    b.HasIndex("CategoryId")
+                        .HasDatabaseName("ix_chat_widgets_category_id");
+
+                    b.HasIndex("GroupId")
+                        .HasDatabaseName("ix_chat_widgets_group_id");
+
+                    b.HasIndex("TenantId")
+                        .HasDatabaseName("ix_chat_widgets_tenant_id");
+
+                    b.ToTable("chat_widgets", (string)null);
+                });
+
+            modelBuilder.Entity("Zelvo.Data.Channels.InboundEmail", b =>
+                {
+                    b.Property<long>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bigint")
+                        .HasColumnName("id");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityAlwaysColumn(b.Property<long>("Id"));
+
+                    b.Property<int>("Attempts")
+                        .HasColumnType("integer")
+                        .HasColumnName("attempts");
+
+                    b.Property<Guid?>("CommentId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("comment_id");
+
+                    b.Property<string>("FromAddress")
+                        .HasMaxLength(254)
+                        .HasColumnType("character varying(254)")
+                        .HasColumnName("from_address");
+
+                    b.Property<Guid>("MailboxId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("mailbox_id");
+
+                    b.Property<string>("MessageId")
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)")
+                        .HasColumnName("message_id");
+
+                    b.Property<string>("Outcome")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("character varying(20)")
+                        .HasColumnName("outcome");
+
+                    b.Property<DateTimeOffset>("ProcessedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("processed_at");
+
+                    b.Property<string>("ProviderMessageId")
+                        .IsRequired()
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)")
+                        .HasColumnName("provider_message_id");
+
+                    b.Property<string>("Reason")
+                        .HasMaxLength(64)
+                        .HasColumnType("character varying(64)")
+                        .HasColumnName("reason");
+
+                    b.Property<DateTimeOffset>("ReceivedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("received_at");
+
+                    b.Property<string>("Subject")
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)")
+                        .HasColumnName("subject");
+
+                    b.Property<Guid>("TenantId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("tenant_id");
+
+                    b.Property<Guid?>("TicketId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("ticket_id");
+
+                    b.HasKey("Id")
+                        .HasName("pk_inbound_emails");
+
+                    b.HasIndex("CommentId")
+                        .HasDatabaseName("ix_inbound_emails_comment_id");
+
+                    b.HasIndex("TicketId")
+                        .HasDatabaseName("ix_inbound_emails_ticket_id");
+
+                    b.HasIndex("MailboxId", "ProviderMessageId")
+                        .IsUnique()
+                        .HasDatabaseName("ix_inbound_emails_mailbox_id_provider_message_id");
+
+                    b.HasIndex("TenantId", "MessageId")
+                        .HasDatabaseName("ix_inbound_emails_tenant_id_message_id")
+                        .HasFilter("message_id IS NOT NULL");
+
+                    b.HasIndex("TenantId", "MailboxId", "ReceivedAt")
+                        .HasDatabaseName("ix_inbound_emails_tenant_id_mailbox_id_received_at");
+
+                    b.ToTable("inbound_emails", null, t =>
+                        {
+                            t.HasCheckConstraint("ck_inbound_emails_outcome", "outcome IN ('Created', 'Added', 'FollowUp', 'Rejected', 'Ignored', 'Failed')");
+                        });
+                });
+
+            modelBuilder.Entity("Zelvo.Data.Channels.Mailbox", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<string>("Address")
+                        .IsRequired()
+                        .HasMaxLength(254)
+                        .HasColumnType("character varying(254)")
+                        .HasColumnName("address");
+
+                    b.PrimitiveCollection<string[]>("AllowedDomains")
+                        .IsRequired()
+                        .HasColumnType("text[]")
+                        .HasColumnName("allowed_domains");
+
+                    b.Property<string>("Auth")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("character varying(20)")
+                        .HasColumnName("auth");
+
+                    b.Property<Guid?>("CategoryId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("category_id");
+
+                    b.Property<string>("ClientId")
+                        .HasMaxLength(254)
+                        .HasColumnType("character varying(254)")
+                        .HasColumnName("client_id");
+
+                    b.Property<int>("ConsecutiveFailures")
+                        .HasColumnType("integer")
+                        .HasColumnName("consecutive_failures");
+
+                    b.Property<DateTimeOffset>("CreatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("created_at");
+
+                    b.Property<string>("CredentialCiphertext")
+                        .HasColumnType("text")
+                        .HasColumnName("credential_ciphertext");
+
+                    b.Property<DateTimeOffset?>("CredentialSetAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("credential_set_at");
+
+                    b.Property<string>("DirectoryId")
+                        .HasMaxLength(254)
+                        .HasColumnType("character varying(254)")
+                        .HasColumnName("directory_id");
+
+                    b.Property<Guid?>("GroupId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("group_id");
+
+                    b.Property<string>("ImapHost")
+                        .HasMaxLength(253)
+                        .HasColumnType("character varying(253)")
+                        .HasColumnName("imap_host");
+
+                    b.Property<int?>("ImapPort")
+                        .HasColumnType("integer")
+                        .HasColumnName("imap_port");
+
+                    b.Property<string>("ImapSecurity")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("character varying(20)")
+                        .HasColumnName("imap_security");
+
+                    b.Property<bool?>("LastCheckSucceeded")
+                        .HasColumnType("boolean")
+                        .HasColumnName("last_check_succeeded");
+
+                    b.Property<DateTimeOffset?>("LastCheckedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("last_checked_at");
+
+                    b.Property<string>("LastError")
+                        .HasMaxLength(1000)
+                        .HasColumnType("character varying(1000)")
+                        .HasColumnName("last_error");
+
+                    b.Property<DateTimeOffset?>("LeaseUntil")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("lease_until");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)")
+                        .HasColumnName("name");
+
+                    b.Property<string>("NewSenders")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("character varying(20)")
+                        .HasColumnName("new_senders");
+
+                    b.Property<DateTimeOffset>("NextCheckAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("next_check_at");
+
+                    b.Property<string>("OAuthPending")
+                        .HasColumnType("text")
+                        .HasColumnName("o_auth_pending");
+
+                    b.Property<string>("Provider")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("character varying(20)")
+                        .HasColumnName("provider");
+
+                    b.Property<string>("SignedInAs")
+                        .HasMaxLength(254)
+                        .HasColumnType("character varying(254)")
+                        .HasColumnName("signed_in_as");
+
+                    b.Property<string>("SmtpHost")
+                        .HasMaxLength(253)
+                        .HasColumnType("character varying(253)")
+                        .HasColumnName("smtp_host");
+
+                    b.Property<int?>("SmtpPort")
+                        .HasColumnType("integer")
+                        .HasColumnName("smtp_port");
+
+                    b.Property<string>("SmtpSecurity")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("character varying(20)")
+                        .HasColumnName("smtp_security");
+
+                    b.Property<string>("Status")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("character varying(20)")
+                        .HasColumnName("status");
+
+                    b.Property<string>("SyncState")
+                        .HasColumnType("jsonb")
+                        .HasColumnName("sync_state");
+
+                    b.Property<Guid>("TenantId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("tenant_id");
+
+                    b.Property<DateTimeOffset>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("updated_at");
+
+                    b.Property<string>("Username")
+                        .HasMaxLength(254)
+                        .HasColumnType("character varying(254)")
+                        .HasColumnName("username");
+
+                    b.Property<uint>("Version")
+                        .IsConcurrencyToken()
+                        .ValueGeneratedOnAddOrUpdate()
+                        .HasColumnType("xid")
+                        .HasColumnName("xmin");
+
+                    b.HasKey("Id")
+                        .HasName("pk_mailboxes");
+
+                    b.HasIndex("CategoryId")
+                        .HasDatabaseName("ix_mailboxes_category_id");
+
+                    b.HasIndex("GroupId")
+                        .HasDatabaseName("ix_mailboxes_group_id");
+
+                    b.HasIndex("Status", "NextCheckAt")
+                        .HasDatabaseName("ix_mailboxes_status_next_check_at");
+
+                    b.HasIndex("TenantId", "Address")
+                        .IsUnique()
+                        .HasDatabaseName("ix_mailboxes_tenant_id_address");
+
+                    b.ToTable("mailboxes", null, t =>
+                        {
+                            t.HasCheckConstraint("ck_mailboxes_auth", "auth IN ('Password', 'ClientSecret', 'ServiceAccount', 'OAuthSignIn')");
+
+                            t.HasCheckConstraint("ck_mailboxes_imap_security", "imap_security IN ('Auto', 'SslOnConnect', 'StartTls', 'None')");
+
+                            t.HasCheckConstraint("ck_mailboxes_new_senders", "new_senders IN ('Anyone', 'AllowedDomains', 'KnownUsers')");
+
+                            t.HasCheckConstraint("ck_mailboxes_ports", "(imap_port IS NULL OR imap_port BETWEEN 1 AND 65535) AND (smtp_port IS NULL OR smtp_port BETWEEN 1 AND 65535)");
+
+                            t.HasCheckConstraint("ck_mailboxes_provider", "provider IN ('Imap', 'Microsoft365', 'Gmail')");
+
+                            t.HasCheckConstraint("ck_mailboxes_smtp_security", "smtp_security IN ('Auto', 'SslOnConnect', 'StartTls', 'None')");
+
+                            t.HasCheckConstraint("ck_mailboxes_status", "status IN ('Active', 'Disabled')");
+                        });
+                });
+
+            modelBuilder.Entity("Zelvo.Data.Channels.OutboundEmail", b =>
+                {
+                    b.Property<long>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bigint")
+                        .HasColumnName("id");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityAlwaysColumn(b.Property<long>("Id"));
+
+                    b.Property<int>("Attempts")
+                        .HasColumnType("integer")
+                        .HasColumnName("attempts");
+
+                    b.Property<Guid?>("CommentId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("comment_id");
+
+                    b.Property<DateTimeOffset>("CreatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("created_at");
+
+                    b.Property<string>("HtmlBody")
+                        .IsRequired()
+                        .HasColumnType("text")
+                        .HasColumnName("html_body");
+
+                    b.Property<string>("InReplyTo")
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)")
+                        .HasColumnName("in_reply_to");
+
+                    b.Property<string>("Language")
+                        .IsRequired()
+                        .HasMaxLength(5)
+                        .HasColumnType("character varying(5)")
+                        .HasColumnName("language");
+
+                    b.Property<string>("LastError")
+                        .HasMaxLength(1000)
+                        .HasColumnType("character varying(1000)")
+                        .HasColumnName("last_error");
+
+                    b.Property<DateTimeOffset?>("LeaseUntil")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("lease_until");
+
+                    b.Property<Guid>("MailboxId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("mailbox_id");
+
+                    b.Property<string>("MessageId")
+                        .IsRequired()
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)")
+                        .HasColumnName("message_id");
+
+                    b.Property<DateTimeOffset?>("NextAttemptAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("next_attempt_at");
+
+                    b.Property<Guid?>("NotificationId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("notification_id");
+
+                    b.Property<string>("References")
+                        .HasMaxLength(4000)
+                        .HasColumnType("character varying(4000)")
+                        .HasColumnName("references");
+
+                    b.Property<DateTimeOffset?>("SentAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("sent_at");
+
+                    b.Property<string>("Status")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("character varying(20)")
+                        .HasColumnName("status");
+
+                    b.Property<string>("Subject")
+                        .IsRequired()
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)")
+                        .HasColumnName("subject");
+
+                    b.Property<Guid>("TenantId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("tenant_id");
+
+                    b.Property<string>("TextBody")
+                        .IsRequired()
+                        .HasColumnType("text")
+                        .HasColumnName("text_body");
+
+                    b.Property<Guid>("TicketId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("ticket_id");
+
+                    b.Property<string>("ToAddress")
+                        .IsRequired()
+                        .HasMaxLength(254)
+                        .HasColumnType("character varying(254)")
+                        .HasColumnName("to_address");
+
+                    b.HasKey("Id")
+                        .HasName("pk_outbound_emails");
+
+                    b.HasIndex("CommentId")
+                        .HasDatabaseName("ix_outbound_emails_comment_id");
+
+                    b.HasIndex("MailboxId")
+                        .HasDatabaseName("ix_outbound_emails_mailbox_id");
+
+                    b.HasIndex("NotificationId")
+                        .IsUnique()
+                        .HasDatabaseName("ix_outbound_emails_notification_id")
+                        .HasFilter("notification_id IS NOT NULL");
+
+                    b.HasIndex("TicketId")
+                        .HasDatabaseName("ix_outbound_emails_ticket_id");
+
+                    b.HasIndex("TenantId", "MailboxId", "CreatedAt")
+                        .HasDatabaseName("ix_outbound_emails_tenant_id_mailbox_id_created_at");
+
+                    b.HasIndex("TenantId", "Status", "NextAttemptAt")
+                        .HasDatabaseName("ix_outbound_emails_tenant_id_status_next_attempt_at");
+
+                    b.ToTable("outbound_emails", null, t =>
+                        {
+                            t.HasCheckConstraint("ck_outbound_emails_status", "status IN ('Pending', 'Sent', 'Failed')");
+                        });
+                });
+
             modelBuilder.Entity("Zelvo.Data.Directory.AssignmentRule", b =>
                 {
                     b.Property<Guid>("Id")
@@ -1284,6 +1999,10 @@ namespace Zelvo.Data.Migrations
                         .HasColumnType("uuid")
                         .HasColumnName("calendar_id");
 
+                    b.Property<int>("ChatLimit")
+                        .HasColumnType("integer")
+                        .HasColumnName("chat_limit");
+
                     b.Property<DateTimeOffset>("CreatedAt")
                         .HasColumnType("timestamp with time zone")
                         .HasColumnName("created_at");
@@ -1341,7 +2060,10 @@ namespace Zelvo.Data.Migrations
                     b.HasIndex("TenantId")
                         .HasDatabaseName("ix_support_groups_tenant_id");
 
-                    b.ToTable("support_groups", (string)null);
+                    b.ToTable("support_groups", null, t =>
+                        {
+                            t.HasCheckConstraint("ck_support_groups_chat_limit", "chat_limit BETWEEN 1 AND 20");
+                        });
                 });
 
             modelBuilder.Entity("Zelvo.Data.Directory.SupportGroupMember", b =>
@@ -3298,6 +4020,10 @@ namespace Zelvo.Data.Migrations
                         .HasColumnType("integer")
                         .HasColumnName("attempts");
 
+                    b.Property<Guid?>("CommentId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("comment_id");
+
                     b.Property<DateTimeOffset>("CreatedAt")
                         .HasColumnType("timestamp with time zone")
                         .HasColumnName("created_at");
@@ -4657,6 +5383,10 @@ namespace Zelvo.Data.Migrations
                         .HasColumnType("uuid")
                         .HasColumnName("location_id");
 
+                    b.Property<Guid?>("MailboxId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("mailbox_id");
+
                     b.Property<string>("Number")
                         .IsRequired()
                         .HasMaxLength(30)
@@ -4757,6 +5487,9 @@ namespace Zelvo.Data.Migrations
                     b.HasIndex("LocationId")
                         .HasDatabaseName("ix_tickets_location_id");
 
+                    b.HasIndex("MailboxId")
+                        .HasDatabaseName("ix_tickets_mailbox_id");
+
                     b.HasIndex("ParentId")
                         .HasDatabaseName("ix_tickets_parent_id");
 
@@ -4821,6 +5554,10 @@ namespace Zelvo.Data.Migrations
                     b.Property<Guid?>("ArticleId")
                         .HasColumnType("uuid")
                         .HasColumnName("article_id");
+
+                    b.Property<Guid?>("CommentId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("comment_id");
 
                     b.Property<string>("ContentType")
                         .IsRequired()
@@ -4895,6 +5632,10 @@ namespace Zelvo.Data.Migrations
                     b.HasIndex("ArticleId")
                         .HasDatabaseName("ix_ticket_attachments_article_id");
 
+                    b.HasIndex("CommentId")
+                        .HasDatabaseName("ix_ticket_attachments_comment_id")
+                        .HasFilter("comment_id IS NOT NULL");
+
                     b.HasIndex("ServiceId")
                         .HasDatabaseName("ix_ticket_attachments_service_id");
 
@@ -4921,6 +5662,8 @@ namespace Zelvo.Data.Migrations
 
                     b.ToTable("ticket_attachments", null, t =>
                         {
+                            t.HasCheckConstraint("ck_ticket_attachments_comment", "comment_id IS NULL OR ticket_id IS NOT NULL");
+
                             t.HasCheckConstraint("ck_ticket_attachments_form_field_key", "form_field_key ~ '^[a-z][a-zA-Z0-9]{0,59}$'");
 
                             t.HasCheckConstraint("ck_ticket_attachments_owner", "num_nonnulls(ticket_id, article_id, service_id) = 1 OR (ticket_id IS NULL AND article_id IS NULL AND service_id IS NULL AND form_field_key IS NOT NULL)");
@@ -4981,15 +5724,41 @@ namespace Zelvo.Data.Migrations
                         .HasColumnType("uuid")
                         .HasColumnName("canned_response_id");
 
+                    b.Property<Guid?>("ChatSessionId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("chat_session_id");
+
                     b.Property<DateTimeOffset>("CreatedAt")
                         .HasColumnType("timestamp with time zone")
                         .HasColumnName("created_at");
+
+                    b.Property<string>("EmailInReplyTo")
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)")
+                        .HasColumnName("email_in_reply_to");
+
+                    b.Property<string>("EmailMessageId")
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)")
+                        .HasColumnName("email_message_id");
 
                     b.Property<string>("Language")
                         .IsRequired()
                         .HasMaxLength(2)
                         .HasColumnType("character varying(2)")
                         .HasColumnName("language");
+
+                    b.Property<Guid?>("MailboxId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("mailbox_id");
+
+                    b.Property<string>("Source")
+                        .IsRequired()
+                        .ValueGeneratedOnAdd()
+                        .HasMaxLength(20)
+                        .HasColumnType("character varying(20)")
+                        .HasDefaultValue("Web")
+                        .HasColumnName("source");
 
                     b.Property<Guid>("TenantId")
                         .HasColumnType("uuid")
@@ -5017,14 +5786,22 @@ namespace Zelvo.Data.Migrations
                     b.HasIndex("TicketId")
                         .HasDatabaseName("ix_ticket_comments_ticket_id");
 
+                    b.HasIndex("TenantId", "EmailMessageId")
+                        .HasDatabaseName("ix_ticket_comments_tenant_id_email_message_id")
+                        .HasFilter("email_message_id IS NOT NULL");
+
                     b.HasIndex("TenantId", "TicketId", "CreatedAt")
                         .HasDatabaseName("ix_ticket_comments_tenant_id_ticket_id_created_at");
 
                     b.ToTable("ticket_comments", null, t =>
                         {
+                            t.HasCheckConstraint("ck_ticket_comments_channel_public", "source = 'Web' OR visibility = 'Public'");
+
                             t.HasCheckConstraint("ck_ticket_comments_internal_by_staff", "visibility = 'Public' OR by_staff");
 
                             t.HasCheckConstraint("ck_ticket_comments_language", "language IN ('en', 'ar')");
+
+                            t.HasCheckConstraint("ck_ticket_comments_source", "source IN ('Web', 'Email', 'Chat')");
 
                             t.HasCheckConstraint("ck_ticket_comments_visibility", "visibility IN ('Public', 'Internal')");
                         });
@@ -5480,6 +6257,183 @@ namespace Zelvo.Data.Migrations
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired()
                         .HasConstraintName("fk_service_requests_tickets_ticket_id");
+                });
+
+            modelBuilder.Entity("Zelvo.Data.Channels.ChatMessage", b =>
+                {
+                    b.HasOne("Zelvo.Data.Identity.UserAccount", null)
+                        .WithMany()
+                        .HasForeignKey("AuthorId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .HasConstraintName("fk_chat_messages_users_author_id");
+
+                    b.HasOne("Zelvo.Data.Channels.ChatSession", null)
+                        .WithMany()
+                        .HasForeignKey("SessionId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired()
+                        .HasConstraintName("fk_chat_messages_chat_sessions_session_id");
+
+                    b.HasOne("Zelvo.Data.Tenancy.Tenant", null)
+                        .WithMany()
+                        .HasForeignKey("TenantId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired()
+                        .HasConstraintName("fk_chat_messages_tenants_tenant_id");
+                });
+
+            modelBuilder.Entity("Zelvo.Data.Channels.ChatSession", b =>
+                {
+                    b.HasOne("Zelvo.Data.Identity.UserAccount", "Agent")
+                        .WithMany()
+                        .HasForeignKey("AgentId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .HasConstraintName("fk_chat_sessions_users_agent_id");
+
+                    b.HasOne("Zelvo.Data.Directory.SupportGroup", null)
+                        .WithMany()
+                        .HasForeignKey("GroupId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired()
+                        .HasConstraintName("fk_chat_sessions_support_groups_group_id");
+
+                    b.HasOne("Zelvo.Data.Tenancy.Tenant", null)
+                        .WithMany()
+                        .HasForeignKey("TenantId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired()
+                        .HasConstraintName("fk_chat_sessions_tenants_tenant_id");
+
+                    b.HasOne("Zelvo.Data.Tickets.Ticket", null)
+                        .WithMany()
+                        .HasForeignKey("TicketId")
+                        .OnDelete(DeleteBehavior.SetNull)
+                        .HasConstraintName("fk_chat_sessions_tickets_ticket_id");
+
+                    b.HasOne("Zelvo.Data.Identity.UserAccount", null)
+                        .WithMany()
+                        .HasForeignKey("VisitorUserId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .HasConstraintName("fk_chat_sessions_users_visitor_user_id");
+
+                    b.HasOne("Zelvo.Data.Channels.ChatWidget", null)
+                        .WithMany()
+                        .HasForeignKey("WidgetId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired()
+                        .HasConstraintName("fk_chat_sessions_chat_widgets_widget_id");
+
+                    b.Navigation("Agent");
+                });
+
+            modelBuilder.Entity("Zelvo.Data.Channels.ChatWidget", b =>
+                {
+                    b.HasOne("Zelvo.Data.Directory.Category", null)
+                        .WithMany()
+                        .HasForeignKey("CategoryId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .HasConstraintName("fk_chat_widgets_categories_category_id");
+
+                    b.HasOne("Zelvo.Data.Directory.SupportGroup", null)
+                        .WithMany()
+                        .HasForeignKey("GroupId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired()
+                        .HasConstraintName("fk_chat_widgets_support_groups_group_id");
+
+                    b.HasOne("Zelvo.Data.Tenancy.Tenant", null)
+                        .WithMany()
+                        .HasForeignKey("TenantId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired()
+                        .HasConstraintName("fk_chat_widgets_tenants_tenant_id");
+                });
+
+            modelBuilder.Entity("Zelvo.Data.Channels.InboundEmail", b =>
+                {
+                    b.HasOne("Zelvo.Data.Tickets.TicketComment", null)
+                        .WithMany()
+                        .HasForeignKey("CommentId")
+                        .OnDelete(DeleteBehavior.NoAction)
+                        .HasConstraintName("fk_inbound_emails_ticket_comments_comment_id");
+
+                    b.HasOne("Zelvo.Data.Channels.Mailbox", null)
+                        .WithMany()
+                        .HasForeignKey("MailboxId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired()
+                        .HasConstraintName("fk_inbound_emails_mailboxes_mailbox_id");
+
+                    b.HasOne("Zelvo.Data.Tenancy.Tenant", null)
+                        .WithMany()
+                        .HasForeignKey("TenantId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired()
+                        .HasConstraintName("fk_inbound_emails_tenants_tenant_id");
+
+                    b.HasOne("Zelvo.Data.Tickets.Ticket", null)
+                        .WithMany()
+                        .HasForeignKey("TicketId")
+                        .OnDelete(DeleteBehavior.SetNull)
+                        .HasConstraintName("fk_inbound_emails_tickets_ticket_id");
+                });
+
+            modelBuilder.Entity("Zelvo.Data.Channels.Mailbox", b =>
+                {
+                    b.HasOne("Zelvo.Data.Directory.Category", null)
+                        .WithMany()
+                        .HasForeignKey("CategoryId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .HasConstraintName("fk_mailboxes_categories_category_id");
+
+                    b.HasOne("Zelvo.Data.Directory.SupportGroup", null)
+                        .WithMany()
+                        .HasForeignKey("GroupId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .HasConstraintName("fk_mailboxes_support_groups_group_id");
+
+                    b.HasOne("Zelvo.Data.Tenancy.Tenant", null)
+                        .WithMany()
+                        .HasForeignKey("TenantId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired()
+                        .HasConstraintName("fk_mailboxes_tenants_tenant_id");
+                });
+
+            modelBuilder.Entity("Zelvo.Data.Channels.OutboundEmail", b =>
+                {
+                    b.HasOne("Zelvo.Data.Tickets.TicketComment", null)
+                        .WithMany()
+                        .HasForeignKey("CommentId")
+                        .OnDelete(DeleteBehavior.NoAction)
+                        .HasConstraintName("fk_outbound_emails_ticket_comments_comment_id");
+
+                    b.HasOne("Zelvo.Data.Channels.Mailbox", null)
+                        .WithMany()
+                        .HasForeignKey("MailboxId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired()
+                        .HasConstraintName("fk_outbound_emails_mailboxes_mailbox_id");
+
+                    b.HasOne("Zelvo.Data.Notifications.Notification", null)
+                        .WithMany()
+                        .HasForeignKey("NotificationId")
+                        .OnDelete(DeleteBehavior.SetNull)
+                        .HasConstraintName("fk_outbound_emails_notifications_notification_id");
+
+                    b.HasOne("Zelvo.Data.Tenancy.Tenant", null)
+                        .WithMany()
+                        .HasForeignKey("TenantId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired()
+                        .HasConstraintName("fk_outbound_emails_tenants_tenant_id");
+
+                    b.HasOne("Zelvo.Data.Tickets.Ticket", null)
+                        .WithMany()
+                        .HasForeignKey("TicketId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired()
+                        .HasConstraintName("fk_outbound_emails_tickets_ticket_id");
                 });
 
             modelBuilder.Entity("Zelvo.Data.Directory.AssignmentRule", b =>
@@ -6440,6 +7394,12 @@ namespace Zelvo.Data.Migrations
                         .OnDelete(DeleteBehavior.Restrict)
                         .HasConstraintName("fk_tickets_locations_location_id");
 
+                    b.HasOne("Zelvo.Data.Channels.Mailbox", null)
+                        .WithMany()
+                        .HasForeignKey("MailboxId")
+                        .OnDelete(DeleteBehavior.SetNull)
+                        .HasConstraintName("fk_tickets_mailboxes_mailbox_id");
+
                     b.HasOne("Zelvo.Data.Tickets.Ticket", null)
                         .WithMany()
                         .HasForeignKey("ParentId")
@@ -6484,6 +7444,12 @@ namespace Zelvo.Data.Migrations
                         .HasForeignKey("ArticleId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .HasConstraintName("fk_ticket_attachments_kb_articles_article_id");
+
+                    b.HasOne("Zelvo.Data.Tickets.TicketComment", null)
+                        .WithMany()
+                        .HasForeignKey("CommentId")
+                        .OnDelete(DeleteBehavior.NoAction)
+                        .HasConstraintName("fk_ticket_attachments_ticket_comments_comment_id");
 
                     b.HasOne("Zelvo.Data.Catalog.CatalogService", null)
                         .WithMany()

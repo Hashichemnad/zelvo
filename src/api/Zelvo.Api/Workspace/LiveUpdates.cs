@@ -29,7 +29,12 @@ internal sealed class LiveHub : Hub
     /// <summary>Message: the person's notifications changed. No argument.</summary>
     public const string NotificationsChanged = "notificationsChanged";
 
+    /// <summary>Message: a live chat changed (task E2). Argument: <c>{ chatId }</c>. Sent to people who answer chats.</summary>
+    public const string ChatChanged = "chatChanged";
+
     public static string StaffGroup(Guid tenant) => $"staff:{tenant:N}";
+
+    public static string ChatAgentsGroup(Guid tenant) => $"chat:{tenant:N}";
 
     public static string UserGroup(Guid tenant, Guid user) => $"user:{tenant:N}:{user:N}";
 
@@ -51,6 +56,11 @@ internal sealed class LiveHub : Hub
         if (user.Has(Permissions.IncidentsRead))
         {
             await Groups.AddToGroupAsync(Context.ConnectionId, StaffGroup(tenantId)).ConfigureAwait(false);
+        }
+
+        if (user.Has(Permissions.ChatHandle))
+        {
+            await Groups.AddToGroupAsync(Context.ConnectionId, ChatAgentsGroup(tenantId)).ConfigureAwait(false);
         }
 
         await base.OnConnectedAsync().ConfigureAwait(false);
@@ -120,6 +130,7 @@ internal sealed partial class LiveListener(IHubContext<LiveHub> hub, IConfigurat
             LiveEvent.Ticket => hub.Clients.Group(LiveHub.StaffGroup(live.Tenant)).SendAsync(LiveHub.TicketChanged, new { ticketId = live.Id }),
             LiveEvent.RefreshAll => hub.Clients.Group(LiveHub.StaffGroup(live.Tenant)).SendAsync(LiveHub.Refresh),
             LiveEvent.Notifications when live.Id is { } user => hub.Clients.Group(LiveHub.UserGroup(live.Tenant, user)).SendAsync(LiveHub.NotificationsChanged),
+            LiveEvent.Chat => hub.Clients.Group(LiveHub.ChatAgentsGroup(live.Tenant)).SendAsync(LiveHub.ChatChanged, new { chatId = live.Id }),
             _ => Task.CompletedTask,
         };
         _ = send.ContinueWith(t => LogSendFailed(logger, t.Exception!), TaskContinuationOptions.OnlyOnFaulted | TaskContinuationOptions.ExecuteSynchronously);

@@ -111,6 +111,16 @@ internal static class Permissions
     public const string WorkspaceViewsShare = "workspace.views.share";
 
     /// <summary>
+    /// Settings → Mailboxes and Settings → Live chat (module 6, task E2): mailboxes with their
+    /// credentials, who may raise tickets by email, the mailbox log, and chat widgets with the
+    /// websites that may embed them. Never available to integrations (mailbox credentials).
+    /// </summary>
+    public const string ChannelsManage = "channels.manage";
+
+    /// <summary>Answer live chats of one's groups: accept, reply, transfer, end, and make tickets from them (task E2).</summary>
+    public const string ChatHandle = "chat.handle";
+
+    /// <summary>
     /// Build the whole service catalog (task C2, module 2): catalogs and their editors, services in
     /// every catalog, templates, bulk import and export. Editors named on a catalog write that
     /// catalog's services without it.
@@ -190,6 +200,8 @@ internal static class PermissionCatalog
         Permissions.FormsManage,
         Permissions.ResponsesManage,
         Permissions.WorkspaceViewsShare,
+        Permissions.ChannelsManage,
+        Permissions.ChatHandle,
         Permissions.CatalogManage,
         Permissions.CatalogPublish,
         Permissions.RequestsRead,
@@ -210,6 +222,9 @@ internal static class PermissionCatalog
         // Added with B5 for the product owner's approval: templates reach every person's mailbox,
         // so a leaked key could turn them into convincing phishing.
         Permissions.NotificationsManage,
+        // Task E2, for the product owner's approval: mailbox settings hold credentials, and an
+        // integration could point a mailbox at a server of its own.
+        Permissions.ChannelsManage,
     };
 
     /// <summary>Permissions an integration may be given as scopes.</summary>
@@ -270,11 +285,11 @@ internal static class PermissionCatalog
         new(BuiltInRoles.Requester, new LocalizedText("Requester", "مقدّم الطلب"), [], new Dictionary<string, FieldAccess>()),
         new(BuiltInRoles.Agent, new LocalizedText("Agent", "موظف الدعم"),
             [Permissions.UsersRead, Permissions.IncidentsRead, Permissions.IncidentsCreate, Permissions.IncidentsEdit, Permissions.IncidentsAssign, Permissions.DirectoryRead,
-                Permissions.KnowledgeRead, Permissions.KnowledgeWrite, Permissions.RequestsRead, Permissions.RequestsEdit, Permissions.RequestsAssign],
+                Permissions.KnowledgeRead, Permissions.KnowledgeWrite, Permissions.RequestsRead, Permissions.RequestsEdit, Permissions.RequestsAssign, Permissions.ChatHandle],
             new Dictionary<string, FieldAccess> { ["users.email"] = FieldAccess.Read }),
         new(BuiltInRoles.TeamLead, new LocalizedText("Team lead", "قائد الفريق"),
             [Permissions.UsersRead, Permissions.IncidentsRead, Permissions.IncidentsCreate, Permissions.IncidentsEdit, Permissions.IncidentsAssign, Permissions.IncidentsMajor, Permissions.DirectoryRead,
-                Permissions.KnowledgeRead, Permissions.KnowledgeWrite, Permissions.KnowledgePublish, Permissions.RequestsRead, Permissions.RequestsEdit, Permissions.RequestsAssign],
+                Permissions.KnowledgeRead, Permissions.KnowledgeWrite, Permissions.KnowledgePublish, Permissions.RequestsRead, Permissions.RequestsEdit, Permissions.RequestsAssign, Permissions.ChatHandle],
             new Dictionary<string, FieldAccess> { ["users.email"] = FieldAccess.Read }),
         new(BuiltInRoles.Approver, new LocalizedText("Approver", "المعتمِد"), [], new Dictionary<string, FieldAccess>()),
         new(BuiltInRoles.TenantAdmin, new LocalizedText("Tenant administrator", "مسؤول الجهة"),

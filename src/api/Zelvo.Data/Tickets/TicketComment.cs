@@ -44,8 +44,43 @@ public sealed class TicketComment : ITenantOwned, IAuditedEntity
     /// <summary>The canned response it started from, if any.</summary>
     public Guid? CannedResponseId { get; init; }
 
+    /// <summary>How it was written: in Zelvo, by email or in a live chat (task E2).</summary>
+    public CommentSource Source { get; init; } = CommentSource.Web;
+
+    /// <summary>
+    /// Task E2: the mailbox it came in through, or, for a staff reply on a ticket that came in by
+    /// email, the mailbox it goes out from. Kept as a plain id (no foreign key): comments never
+    /// change, and the record stays when a mailbox is removed.
+    /// </summary>
+    public Guid? MailboxId { get; init; }
+
+    /// <summary>Its email <c>Message-ID</c> (without angle brackets): received, or given to the email that sends it.</summary>
+    public string? EmailMessageId { get; init; }
+
+    /// <summary>The <c>Message-ID</c> of the email it answers (<c>In-Reply-To</c>), for threading.</summary>
+    public string? EmailInReplyTo { get; init; }
+
+    /// <summary>The live chat it was written in, when a chat's transcript was added to the ticket (plain id, as <see cref="MailboxId"/>).</summary>
+    public Guid? ChatSessionId { get; init; }
+
+    /// <summary>Maximum length of <see cref="EmailMessageId"/> and <see cref="EmailInReplyTo"/>.</summary>
+    public const int MessageIdMaxLength = 500;
+
     /// <summary>When it was written.</summary>
     public DateTimeOffset CreatedAt { get; init; } = DateTimeOffset.UtcNow;
+}
+
+/// <summary>How a comment was written (task E2).</summary>
+public enum CommentSource
+{
+    /// <summary>In Zelvo (the workspace, the portal or the API).</summary>
+    Web,
+
+    /// <summary>An email to one of the tenant's mailboxes.</summary>
+    Email,
+
+    /// <summary>A live chat, added to the ticket as its transcript.</summary>
+    Chat,
 }
 
 /// <summary>Who may read a comment.</summary>

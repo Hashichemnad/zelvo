@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { hasLocale, NextIntlClientProvider } from "next-intl";
 import { getTranslations, setRequestLocale } from "next-intl/server";
+import { PortalChatLauncher } from "@/components/channels/PortalChatLauncher";
 import { PoweredByFooter } from "@/components/PoweredByFooter";
 import { SiteHeader } from "@/components/SiteHeader";
 import { getDirection, routing } from "@/i18n/routing";
@@ -39,6 +40,7 @@ export default async function LocaleLayout({ children, params }: LayoutProps<"/[
           <main id="main" className="mx-auto w-full max-w-5xl flex-1 px-4 py-10 has-[[data-layout=wide]]:max-w-none has-[[data-layout=wide]]:py-4">
             {children}
           </main>
+          <PortalChatLauncher />
           <PoweredByFooter />
         </NextIntlClientProvider>
       </body>

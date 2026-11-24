@@ -2,6 +2,7 @@ using Microsoft.EntityFrameworkCore;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 using Zelvo.Data.Ai;
 using Zelvo.Data.Auditing;
+using Zelvo.Data.Channels;
 using Zelvo.Data.Directory;
 using Zelvo.Data.Catalog;
 using Zelvo.Data.Forms;
@@ -225,6 +226,23 @@ public sealed class ZelvoDbContext(DbContextOptions<ZelvoDbContext> options) : D
 
     /// <summary>Saved views of the agent workspace.</summary>
     public DbSet<SavedView> SavedViews => Set<SavedView>();
+    /// <summary>Mailboxes that turn emails into tickets (module 6).</summary>
+    public DbSet<Mailbox> Mailboxes => Set<Mailbox>();
+
+    /// <summary>Mailbox log: every email read.</summary>
+    public DbSet<InboundEmail> InboundEmails => Set<InboundEmail>();
+
+    /// <summary>Staff replies going out by email.</summary>
+    public DbSet<OutboundEmail> OutboundEmails => Set<OutboundEmail>();
+
+    /// <summary>Live chat widgets (module 6).</summary>
+    public DbSet<ChatWidget> ChatWidgets => Set<ChatWidget>();
+
+    /// <summary>Live chats.</summary>
+    public DbSet<ChatSession> ChatSessions => Set<ChatSession>();
+
+    /// <summary>Messages of live chats.</summary>
+    public DbSet<ChatMessage> ChatMessages => Set<ChatMessage>();
 
     /// <inheritdoc />
     /// <summary>Departments (task C1).</summary>
@@ -323,6 +341,7 @@ public sealed class ZelvoDbContext(DbContextOptions<ZelvoDbContext> options) : D
         ConfigureNotifications(modelBuilder);
         ConfigureForms(modelBuilder);
         ConfigureWorkspace(modelBuilder);
+        ConfigureChannels(modelBuilder);
         ConfigureCatalog(modelBuilder);
 
         modelBuilder.Entity<TenantDataKey>(key =>
@@ -364,7 +383,7 @@ public sealed class ZelvoDbContext(DbContextOptions<ZelvoDbContext> options) : D
 
         modelBuilder.Entity<SupportGroup>(group =>
         {
-            group.ToTable("support_groups");
+            group.ToTable("support_groups", table => table.HasCheckConstraint("ck_support_groups_chat_limit", "chat_limit BETWEEN 1 AND 20"));
             group.HasKey(g => g.Id);
             group.Property(g => g.Id).ValueGeneratedNever();
             group.HasOne<Tenant>().WithMany().HasForeignKey(g => g.TenantId).OnDelete(DeleteBehavior.Restrict);
@@ -726,6 +745,7 @@ public sealed class ZelvoDbContext(DbContextOptions<ZelvoDbContext> options) : D
             ticket.HasOne(t => t.Category).WithMany().HasForeignKey(t => t.CategoryId).OnDelete(DeleteBehavior.Restrict);
             ticket.HasOne(t => t.Location).WithMany().HasForeignKey(t => t.LocationId).OnDelete(DeleteBehavior.Restrict);
             ticket.HasOne(t => t.Group).WithMany().HasForeignKey(t => t.GroupId).OnDelete(DeleteBehavior.Restrict);
+            ticket.HasOne<Mailbox>().WithMany().HasForeignKey(t => t.MailboxId).OnDelete(DeleteBehavior.SetNull);
             // The rule may be deleted later; the ticket then simply no longer names it.
             ticket.HasOne<AssignmentRule>().WithMany().HasForeignKey(t => t.RoutingRuleId).OnDelete(DeleteBehavior.SetNull);
             ticket.HasIndex(t => new { t.TenantId, t.GroupId });
@@ -764,6 +784,7 @@ public sealed class ZelvoDbContext(DbContextOptions<ZelvoDbContext> options) : D
                 table.HasCheckConstraint("ck_ticket_attachments_sha256", "sha256 ~ '^[0-9a-f]{64}$'");
                 table.HasCheckConstraint("ck_ticket_attachments_owner", "num_nonnulls(ticket_id, article_id, service_id) = 1 OR (ticket_id IS NULL AND article_id IS NULL AND service_id IS NULL AND form_field_key IS NOT NULL)");
                 table.HasCheckConstraint("ck_ticket_attachments_form_field_key", "form_field_key ~ '^[a-z][a-zA-Z0-9]{0,59}$'");
+                table.HasCheckConstraint("ck_ticket_attachments_comment", "comment_id IS NULL OR ticket_id IS NOT NULL");
             });
             attachment.HasKey(a => a.Id);
             attachment.Property(a => a.Id).ValueGeneratedNever();
@@ -773,6 +794,9 @@ public sealed class ZelvoDbContext(DbContextOptions<ZelvoDbContext> options) : D
             attachment.HasIndex(a => new { a.TenantId, a.ServiceId }).HasFilter("service_id IS NOT NULL");
             attachment.Property(a => a.FormFieldKey).HasMaxLength(TicketAttachment.FormFieldKeyMaxLength);
             attachment.HasIndex(a => new { a.TenantId, a.UploadedAt }).HasFilter("ticket_id IS NULL AND article_id IS NULL AND service_id IS NULL").HasDatabaseName("ix_ticket_attachments_form_uploads");
+            // Comments are never removed, so the link never needs to change.
+            attachment.HasOne<TicketComment>().WithMany().HasForeignKey(a => a.CommentId).OnDelete(DeleteBehavior.NoAction);
+            attachment.HasIndex(a => a.CommentId).HasFilter("comment_id IS NOT NULL");
             attachment.HasIndex(a => new { a.TenantId, a.ArticleId }).HasFilter("article_id IS NOT NULL");
             attachment.HasOne<UserAccount>().WithMany().HasForeignKey(a => a.UploadedById).OnDelete(DeleteBehavior.Restrict);
             attachment.Property(a => a.FileName).HasMaxLength(TicketAttachment.FileNameMaxLength);
@@ -817,6 +841,9 @@ public sealed class ZelvoDbContext(DbContextOptions<ZelvoDbContext> options) : D
                 table.HasCheckConstraint("ck_ticket_comments_language", "language IN ('en', 'ar')");
                 // Requesters write public replies only.
                 table.HasCheckConstraint("ck_ticket_comments_internal_by_staff", "visibility = 'Public' OR by_staff");
+                // Task E2: email and chat messages are public; only Zelvo writes them.
+                table.HasCheckConstraint("ck_ticket_comments_source", EnumCheck("source", Enum.GetNames<CommentSource>()));
+                table.HasCheckConstraint("ck_ticket_comments_channel_public", "source = 'Web' OR visibility = 'Public'");
             });
             comment.HasKey(c => c.Id);
             comment.Property(c => c.Id).ValueGeneratedNever();
@@ -827,6 +854,11 @@ public sealed class ZelvoDbContext(DbContextOptions<ZelvoDbContext> options) : D
             comment.Property(c => c.Body).HasMaxLength(TicketComment.BodyMaxLength);
             comment.Property(c => c.Language).HasMaxLength(2);
             comment.HasIndex(c => new { c.TenantId, c.TicketId, c.CreatedAt });
+            comment.Property(c => c.Source).HasConversion<string>().HasMaxLength(20).HasDefaultValue(CommentSource.Web).HasSentinel(CommentSource.Web);
+            comment.Property(c => c.EmailMessageId).HasMaxLength(TicketComment.MessageIdMaxLength);
+            comment.Property(c => c.EmailInReplyTo).HasMaxLength(TicketComment.MessageIdMaxLength);
+            // Threading (task E2): replies name earlier Message-IDs in In-Reply-To and References.
+            comment.HasIndex(c => new { c.TenantId, c.EmailMessageId }).HasFilter("email_message_id IS NOT NULL");
         });
 
         modelBuilder.Entity<TicketCommentMention>(mention =>
@@ -1597,6 +1629,155 @@ public sealed class ZelvoDbContext(DbContextOptions<ZelvoDbContext> options) : D
             settings.HasOne<Tenant>().WithMany().HasForeignKey(s => s.TenantId).OnDelete(DeleteBehavior.Restrict);
             settings.Property(s => s.EmailCodeSignIn).HasConversion<string>().HasMaxLength(20);
             settings.Property(s => s.Version).IsRowVersion();
+        });
+    }
+
+    private static void ConfigureChannels(ModelBuilder modelBuilder)
+    {
+        modelBuilder.Entity<Mailbox>(mailbox =>
+        {
+            mailbox.ToTable("mailboxes", table =>
+            {
+                table.HasCheckConstraint("ck_mailboxes_provider", EnumCheck("provider", Enum.GetNames<MailboxProvider>()));
+                table.HasCheckConstraint("ck_mailboxes_auth", EnumCheck("auth", Enum.GetNames<MailboxAuth>()));
+                table.HasCheckConstraint("ck_mailboxes_imap_security", EnumCheck("imap_security", Enum.GetNames<MailSecurity>()));
+                table.HasCheckConstraint("ck_mailboxes_smtp_security", EnumCheck("smtp_security", Enum.GetNames<MailSecurity>()));
+                table.HasCheckConstraint("ck_mailboxes_new_senders", EnumCheck("new_senders", Enum.GetNames<NewSenderPolicy>()));
+                table.HasCheckConstraint("ck_mailboxes_status", EnumCheck("status", Enum.GetNames<MailboxStatus>()));
+                table.HasCheckConstraint("ck_mailboxes_ports", "(imap_port IS NULL OR imap_port BETWEEN 1 AND 65535) AND (smtp_port IS NULL OR smtp_port BETWEEN 1 AND 65535)");
+            });
+            mailbox.HasKey(m => m.Id);
+            mailbox.Property(m => m.Id).ValueGeneratedNever();
+            mailbox.HasOne<Tenant>().WithMany().HasForeignKey(m => m.TenantId).OnDelete(DeleteBehavior.Restrict);
+            mailbox.HasOne<Category>().WithMany().HasForeignKey(m => m.CategoryId).OnDelete(DeleteBehavior.Restrict);
+            mailbox.HasOne<SupportGroup>().WithMany().HasForeignKey(m => m.GroupId).OnDelete(DeleteBehavior.Restrict);
+            mailbox.Property(m => m.Name).HasMaxLength(Mailbox.NameMaxLength);
+            mailbox.Property(m => m.Address).HasMaxLength(Mailbox.AddressMaxLength);
+            mailbox.Property(m => m.Provider).HasConversion<string>().HasMaxLength(20);
+            mailbox.Property(m => m.Auth).HasConversion<string>().HasMaxLength(20);
+            mailbox.Property(m => m.ImapSecurity).HasConversion<string>().HasMaxLength(20);
+            mailbox.Property(m => m.SmtpSecurity).HasConversion<string>().HasMaxLength(20);
+            mailbox.Property(m => m.NewSenders).HasConversion<string>().HasMaxLength(20);
+            mailbox.Property(m => m.Status).HasConversion<string>().HasMaxLength(20);
+            mailbox.Property(m => m.ImapHost).HasMaxLength(Mailbox.HostMaxLength);
+            mailbox.Property(m => m.SmtpHost).HasMaxLength(Mailbox.HostMaxLength);
+            mailbox.Property(m => m.Username).HasMaxLength(Mailbox.IdentifierMaxLength);
+            mailbox.Property(m => m.ClientId).HasMaxLength(Mailbox.IdentifierMaxLength);
+            mailbox.Property(m => m.DirectoryId).HasMaxLength(Mailbox.IdentifierMaxLength);
+            mailbox.Property(m => m.SignedInAs).HasMaxLength(Mailbox.AddressMaxLength);
+            mailbox.Property(m => m.SyncState).HasColumnType("jsonb");
+            mailbox.Property(m => m.LastError).HasMaxLength(Mailbox.ErrorMaxLength);
+            mailbox.Property(m => m.Version).IsRowVersion();
+            // One mailbox per address in a tenant: threading and loop checks rely on it.
+            mailbox.HasIndex(m => new { m.TenantId, m.Address }).IsUnique();
+            mailbox.HasIndex(m => new { m.Status, m.NextCheckAt });
+        });
+
+        modelBuilder.Entity<InboundEmail>(email =>
+        {
+            email.ToTable("inbound_emails", table =>
+                table.HasCheckConstraint("ck_inbound_emails_outcome", EnumCheck("outcome", Enum.GetNames<InboundEmailOutcome>())));
+            email.HasKey(e => e.Id);
+            email.Property(e => e.Id).UseIdentityAlwaysColumn();
+            email.HasOne<Tenant>().WithMany().HasForeignKey(e => e.TenantId).OnDelete(DeleteBehavior.Restrict);
+            email.HasOne<Mailbox>().WithMany().HasForeignKey(e => e.MailboxId).OnDelete(DeleteBehavior.Cascade);
+            email.HasOne<Ticket>().WithMany().HasForeignKey(e => e.TicketId).OnDelete(DeleteBehavior.SetNull);
+            email.HasOne<TicketComment>().WithMany().HasForeignKey(e => e.CommentId).OnDelete(DeleteBehavior.NoAction);
+            email.Property(e => e.ProviderMessageId).HasMaxLength(InboundEmail.ProviderIdMaxLength);
+            email.Property(e => e.MessageId).HasMaxLength(TicketComment.MessageIdMaxLength);
+            email.Property(e => e.FromAddress).HasMaxLength(Mailbox.AddressMaxLength);
+            email.Property(e => e.Subject).HasMaxLength(InboundEmail.SubjectMaxLength);
+            email.Property(e => e.Outcome).HasConversion<string>().HasMaxLength(20);
+            email.Property(e => e.Reason).HasMaxLength(InboundEmail.ReasonMaxLength);
+            // Each email is read once.
+            email.HasIndex(e => new { e.MailboxId, e.ProviderMessageId }).IsUnique();
+            email.HasIndex(e => new { e.TenantId, e.MailboxId, e.ReceivedAt });
+            email.HasIndex(e => new { e.TenantId, e.MessageId }).HasFilter("message_id IS NOT NULL");
+        });
+
+        modelBuilder.Entity<OutboundEmail>(email =>
+        {
+            email.ToTable("outbound_emails", table =>
+                table.HasCheckConstraint("ck_outbound_emails_status", EnumCheck("status", Enum.GetNames<OutboundEmailStatus>())));
+            email.HasKey(e => e.Id);
+            email.Property(e => e.Id).UseIdentityAlwaysColumn();
+            email.HasOne<Tenant>().WithMany().HasForeignKey(e => e.TenantId).OnDelete(DeleteBehavior.Restrict);
+            email.HasOne<Mailbox>().WithMany().HasForeignKey(e => e.MailboxId).OnDelete(DeleteBehavior.Cascade);
+            email.HasOne<Ticket>().WithMany().HasForeignKey(e => e.TicketId).OnDelete(DeleteBehavior.Cascade);
+            email.HasOne<TicketComment>().WithMany().HasForeignKey(e => e.CommentId).OnDelete(DeleteBehavior.NoAction);
+            email.HasOne<Notification>().WithMany().HasForeignKey(e => e.NotificationId).OnDelete(DeleteBehavior.SetNull);
+            email.HasIndex(e => e.NotificationId).IsUnique().HasFilter("notification_id IS NOT NULL");
+            email.Property(e => e.ToAddress).HasMaxLength(Mailbox.AddressMaxLength);
+            email.Property(e => e.Subject).HasMaxLength(OutboundEmail.SubjectMaxLength);
+            email.Property(e => e.MessageId).HasMaxLength(TicketComment.MessageIdMaxLength);
+            email.Property(e => e.InReplyTo).HasMaxLength(TicketComment.MessageIdMaxLength);
+            email.Property(e => e.References).HasMaxLength(OutboundEmail.ReferencesMaxLength);
+            email.Property(e => e.Language).HasMaxLength(5);
+            email.Property(e => e.Status).HasConversion<string>().HasMaxLength(20);
+            email.Property(e => e.LastError).HasMaxLength(Mailbox.ErrorMaxLength);
+            email.HasIndex(e => new { e.TenantId, e.Status, e.NextAttemptAt });
+            email.HasIndex(e => new { e.TenantId, e.MailboxId, e.CreatedAt });
+        });
+
+        modelBuilder.Entity<ChatWidget>(widget =>
+        {
+            widget.ToTable("chat_widgets");
+            widget.HasKey(w => w.Id);
+            widget.Property(w => w.Id).ValueGeneratedNever();
+            widget.HasOne<Tenant>().WithMany().HasForeignKey(w => w.TenantId).OnDelete(DeleteBehavior.Restrict);
+            widget.HasOne<SupportGroup>().WithMany().HasForeignKey(w => w.GroupId).OnDelete(DeleteBehavior.Restrict);
+            widget.HasOne<Category>().WithMany().HasForeignKey(w => w.CategoryId).OnDelete(DeleteBehavior.Restrict);
+            widget.ConfigureLocalizedText(w => w.Name, "name", ChatWidget.NameMaxLength);
+            widget.ConfigureLocalizedText(w => w.Greeting, "greeting", ChatWidget.GreetingMaxLength);
+            widget.Property(w => w.Version).IsRowVersion();
+            widget.HasIndex(w => w.TenantId);
+        });
+
+        modelBuilder.Entity<ChatSession>(session =>
+        {
+            session.ToTable("chat_sessions", table =>
+            {
+                table.HasCheckConstraint("ck_chat_sessions_state", EnumCheck("state", Enum.GetNames<ChatState>()));
+                table.HasCheckConstraint("ck_chat_sessions_ended_by", $"ended_by IS NULL OR {EnumCheck("ended_by", Enum.GetNames<ChatEndedBy>())}");
+                table.HasCheckConstraint("ck_chat_sessions_language", "language IN ('en', 'ar')");
+                table.HasCheckConstraint("ck_chat_sessions_agent", "state <> 'Active' OR agent_id IS NOT NULL");
+            });
+            session.HasKey(c => c.Id);
+            session.Property(c => c.Id).ValueGeneratedNever();
+            session.HasOne<Tenant>().WithMany().HasForeignKey(c => c.TenantId).OnDelete(DeleteBehavior.Restrict);
+            session.HasOne<ChatWidget>().WithMany().HasForeignKey(c => c.WidgetId).OnDelete(DeleteBehavior.Restrict);
+            session.HasOne<SupportGroup>().WithMany().HasForeignKey(c => c.GroupId).OnDelete(DeleteBehavior.Restrict);
+            session.HasOne<UserAccount>().WithMany().HasForeignKey(c => c.VisitorUserId).OnDelete(DeleteBehavior.Restrict);
+            session.HasOne(c => c.Agent).WithMany().HasForeignKey(c => c.AgentId).OnDelete(DeleteBehavior.Restrict);
+            session.HasOne<Ticket>().WithMany().HasForeignKey(c => c.TicketId).OnDelete(DeleteBehavior.SetNull);
+            session.Property(c => c.VisitorName).HasMaxLength(ChatSession.NameMaxLength);
+            session.Property(c => c.VisitorEmail).HasMaxLength(Mailbox.AddressMaxLength);
+            session.Property(c => c.VisitorTokenHash).HasMaxLength(64).IsFixedLength();
+            session.Property(c => c.Language).HasMaxLength(5);
+            session.Property(c => c.Origin).HasMaxLength(ChatSession.OriginMaxLength);
+            session.Property(c => c.State).HasConversion<string>().HasMaxLength(20);
+            session.Property(c => c.EndedBy).HasConversion<string>().HasMaxLength(20);
+            session.Property(c => c.Version).IsRowVersion();
+            session.HasIndex(c => new { c.TenantId, c.GroupId, c.State });
+            session.HasIndex(c => new { c.TenantId, c.AgentId, c.State });
+            session.HasIndex(c => new { c.TenantId, c.VisitorUserId });
+            session.HasIndex(c => new { c.State, c.LastVisitorActivityAt }).HasFilter("state <> 'Ended'");
+        });
+
+        modelBuilder.Entity<ChatMessage>(message =>
+        {
+            message.ToTable("chat_messages", table =>
+                table.HasCheckConstraint("ck_chat_messages_sender", EnumCheck("sender", Enum.GetNames<ChatSender>())));
+            message.HasKey(m => m.Id);
+            message.Property(m => m.Id).ValueGeneratedNever();
+            message.Property(m => m.Sequence).UseIdentityAlwaysColumn();
+            message.HasOne<Tenant>().WithMany().HasForeignKey(m => m.TenantId).OnDelete(DeleteBehavior.Restrict);
+            message.HasOne<ChatSession>().WithMany().HasForeignKey(m => m.SessionId).OnDelete(DeleteBehavior.Cascade);
+            message.HasOne<UserAccount>().WithMany().HasForeignKey(m => m.AuthorId).OnDelete(DeleteBehavior.Restrict);
+            message.Property(m => m.Sender).HasConversion<string>().HasMaxLength(20);
+            message.Property(m => m.Body).HasMaxLength(ChatMessage.BodyMaxLength);
+            message.Property(m => m.Event).HasMaxLength(ChatMessage.EventMaxLength);
+            message.HasIndex(m => new { m.TenantId, m.SessionId, m.Sequence });
         });
     }
 

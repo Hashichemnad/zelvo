@@ -35,7 +35,7 @@ worker NotificationDispatcher (every 2 s, per tenant, lease + SKIP LOCKED)  ▼
    | `incident.queued` | Members of the group | An incident arrives in a group with nobody assigned (created, or moved to another group) |
    | `sla.threshold`, `sla.breached` | The recipients B3 recorded on the `sla_alerts` row | A threshold is reached; 100 % is the breach |
    | `knowledge.review-requested` | Active people with `knowledge.publish`, except the version's creator, last editor and submitter (four-eyes rule) | A version is submitted for review |
-   | `incident.replied` (B4) | The requester | A staff member posts a public reply on their incident |
+   | `incident.replied` (B4) | The requester | A staff member posts a public reply on their incident (from the workspace or by email; not for chat transcripts) |
    | `incident.mentioned` (B4) | The people mentioned | Someone @mentions them in a reply or internal note (links to the workspace) |
 
 3. **Rendered for the recipient** (`NotificationProcessor`, in the worker). The event must be on and the recipient active, otherwise the notification is *Suppressed*. The language is the recipient's own, then the tenant default, then English (LANG-2, LANG-6); calendar and digits likewise (LANG-8); dates are shown in the time zone of the tenant's default business calendar (`Asia/Dubai` without one). The wording is the tenant's template for that language, field by field, else Zelvo's default. The in-app title and text are stored in the recipient's language; later language changes do not rewrite old notifications, so the list marks them with their own language and direction.
@@ -108,6 +108,10 @@ Compose sends to Mailpit (`http://localhost:8025`) without TLS; `ZELVO_SMTP_*` i
 
 Seeder `b5-notifications` queues "received" for each sample incident's requester and "assigned" for each assignee, so every persona finds notifications; the worker writes them and emails them to Mailpit. When "Reset demo" runs in the API, saving the sample incidents already raised them and the seeder adds nothing.
 
+## Email tickets (task E2)
+
+Requester notifications of tickets that came in by email go out **from the ticket's mailbox** in the same email thread (`outbound_emails`, sent by the worker's mail job) instead of the installation's mail server, with the same wording in the requester's language; staff replies (`incident.replied`) go out with the reply's own `Message-ID` even when that event's email is switched off. See `channels.md`.
+
 ## Channels later
 
 `IEmailSender` is the email channel; SMS, WhatsApp and Teams arrive with module 6 (E3) as further channels of the same pipeline, with their own templates (the template table is per event today; a channel column is added then). The bell follows live updates over SignalR since B4 (`workspace.md`): it hears when the person's notifications change and polls only as a fallback.
@@ -118,3 +122,4 @@ Seeder `b5-notifications` queues "received" for each sample incident's requester
 - Logo letterhead, a tenant's own sender domain and branded colours (F1); both calendars on official letters (F1 letterhead option).
 - Digests and quiet hours (not in the requirements).
 - Notifications for B4's public replies and mentions: added with B4 (`incident.replied`, `incident.mentioned`; see `workspace.md`).
+- Notifications for B4's internal notes and mentions (added with B4; public replies came with E2).

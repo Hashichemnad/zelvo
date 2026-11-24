@@ -240,6 +240,17 @@ Admins build and change the whole service catalog themselves, with a drag-and-dr
 - REST API and webhooks for any other channel.
 - *Story:* As a customer, I want to send a WhatsApp message and get a ticket number back, so that I can use the app I already have.
 
+**Email and live chat settings** (product owner decisions 2026-11-24, task E2):
+
+1. Tickets have a shared public **conversation** (requester and staff, from the portal, email and chat); internal notes, mentions and canned responses come with the agent workspace (module 5).
+2. **Mailboxes:** Microsoft 365 (Microsoft Graph), Gmail (Google Workspace API), IMAP + SMTP (Exchange on-premises and other servers), and an administrator's sign-in to Microsoft or Google. Zelvo reads each mailbox about every 30 seconds (no push, so offline installations work).
+3. **Senders without an account:** per mailbox, anyone (default; a requester account is made), allowed email domains, or known users only. Rejected emails get no automatic reply and are listed in the mailbox log.
+4. A reply to a **closed** ticket becomes a new follow-up ticket linked to it.
+5. A chat becomes a ticket when the **agent decides**; a message left while nobody is online always becomes a ticket.
+6. Visitors who are not signed in give their **name and email** before chatting.
+7. Chats wait in the widget's **group**; available members who answer chats accept them, up to a limit per member set on the group (default 3), and can pass them to a colleague or another group. With nobody online, visitors leave a message.
+8. Widgets list the **websites** that may embed them; the chat runs in a frame from Zelvo; visitors are rate-limited per address; no captcha.
+
 ### 7. Knowledge base
 
 - Articles in English and Arabic with draft, review, published and retired states.

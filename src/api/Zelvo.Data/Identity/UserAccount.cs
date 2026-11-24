@@ -35,7 +35,7 @@ public sealed class UserAccount : ITenantOwned, IAuditedEntity
     public Guid TenantId { get; set; }
 
     /// <summary>The user's id in the tenant's Keycloak realm (the token's <c>sub</c>).</summary>
-    public required string Subject { get; init; }
+    public required string Subject { get; set; }
 
     /// <summary>Email address, kept in step with Keycloak at sign-in.</summary>
     [SensitiveData]

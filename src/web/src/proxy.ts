@@ -1,7 +1,7 @@
 import createMiddleware from "next-intl/middleware";
 import { NextResponse, type NextRequest } from "next/server";
 import { routing } from "./i18n/routing";
-import { getLocalizationSettings } from "./lib/api";
+import { getLocalizationSettings, getWidgetOrigins } from "./lib/api";
 import { authConfigFor } from "./lib/auth/config";
 import { sessionCookieName } from "./lib/auth/session";
 import { hasLanguagePrefix, languageCookieName, resolveLanguage, withLanguage } from "./lib/localization";
@@ -15,6 +15,14 @@ const intl = createMiddleware(routing);
  */
 export default async function proxy(request: NextRequest) {
   const { pathname, search } = request.nextUrl;
+  // The chat widget's frame (task E2): only the websites listed for the widget may frame it.
+  const widget = /^\/chat-widget\/(en|ar)\/([0-9a-f-]{36})$/i.exec(pathname);
+  if (widget) {
+    const origins = await getWidgetOrigins(authConfigFor(request).tenant, widget[2] ?? "");
+    const response = NextResponse.next();
+    response.headers.set("Content-Security-Policy", `frame-ancestors 'self' ${origins.join(" ")}`.trim());
+    return response;
+  }
   if (hasLanguagePrefix(pathname)) {
     return intl(request);
   }

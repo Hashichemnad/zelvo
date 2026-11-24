@@ -342,6 +342,7 @@ public static class TicketServiceCollectionExtensions
         services.TryAddSingleton<IMalwareScanner, ClamAvScanner>();
         services.AddScoped<ISearchDocumentSource, IncidentSearchSource>();
         services.TryAddScoped<Sla.SlaTracker>();
+        services.TryAddScoped<IncidentIntake>();
         if (!services.Any(d => d.ImplementationType == typeof(Sla.SlaWebhookEvents)))
         {
             services.AddWebhookEventSource<Sla.SlaWebhookEvents>();

@@ -13,6 +13,8 @@ import { inputClass, secondaryButtonClass } from "@/components/incidents/ReportI
  * The conversation of an incident (module 5): public replies, which the requester sees, and
  * internal notes for staff, oldest first. Each message keeps the language it was written in and is
  * marked with it, so the agent and the requester can each work in their own language (LANG-7).
+ * Task E2: messages that came by email or from a live chat say so, with the files of an email, and
+ * staff see whether the email of a reply to an email ticket went out.
  */
 export function ConversationList({ comments, display, staff }: { comments: Comment[]; display: DateDisplayOptions; staff: boolean }) {
   const t = useTranslations("workspace.conversation");
@@ -38,10 +40,19 @@ export function ConversationList({ comments, display, staff }: { comments: Comme
               )}
               <span className="text-ink-muted">{formatDateTime(new Date(comment.createdAt), display)}</span>
               <span className="text-xs text-ink-muted">{t("writtenIn", { language: tLanguages(comment.language) })}</span>
+              {comment.source && comment.source !== "Web" && <span className="text-xs text-ink-muted">{t(`sources.${comment.source}`)}</span>}
+              {staff && comment.emailDelivery && (
+                <span className={`text-xs ${comment.emailDelivery === "Failed" ? "font-semibold text-bad" : "text-ink-muted"}`}>{t(`delivery.${comment.emailDelivery}`)}</span>
+              )}
             </p>
             <p lang={comment.language} dir="auto" className="whitespace-pre-wrap">
               {comment.body}
             </p>
+            {comment.attachments && comment.attachments.length > 0 && (
+              <p className="text-xs text-ink-muted">
+                {t("files", { count: comment.attachments.length })}: <span dir="auto">{comment.attachments.map((a) => a.fileName).join(locale === "ar" ? "، " : ", ")}</span>
+              </p>
+            )}
             {comment.mentions.length > 0 && (
               <p className="text-xs text-ink-muted">{t("mentioned", { names: comment.mentions.map((m) => m.displayName ?? "").join(locale === "ar" ? "، " : ", ") })}</p>
             )}

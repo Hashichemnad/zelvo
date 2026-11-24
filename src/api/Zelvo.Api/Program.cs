@@ -3,6 +3,7 @@ using System.Text.Json.Serialization;
 using Zelvo.Api;
 using Zelvo.Api.Ai;
 using Zelvo.Api.Auditing;
+using Zelvo.Api.Channels;
 using Zelvo.Api.Commands;
 using Zelvo.Api.Conventions;
 using Zelvo.Api.Demo;
@@ -91,6 +92,7 @@ builder.Services.AddZelvoMcpServer();
 builder.Services.AddZelvoApiNotifications(builder.Configuration);
 // Agent workspace (task B4): live updates over SignalR.
 builder.Services.AddZelvoLiveUpdates();
+builder.Services.AddZelvoApiChannels(builder.Configuration);
 
 var app = builder.Build();
 
@@ -149,6 +151,7 @@ v1.MapMcpServerEndpoints();
 v1.MapNotificationEndpoints();
 v1.MapWorkspaceEndpoints();
 app.MapZelvoLiveUpdates();
+v1.MapZelvoChannels();
 
 await app.RunAsync();
 return 0;

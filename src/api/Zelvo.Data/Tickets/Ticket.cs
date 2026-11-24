@@ -86,6 +86,9 @@ public sealed class Ticket : ITenantOwned, IAuditedEntity
     /// <summary>The assignment rule that last routed the ticket; <see langword="null"/> when the tenant default or a person placed it.</summary>
     public Guid? RoutingRuleId { get; set; }
 
+    /// <summary>The mailbox the ticket came in through (task E2); staff replies go out from it by email.</summary>
+    public Guid? MailboxId { get; set; }
+
     /// <summary>Parent ticket; children are resolved with it.</summary>
     public Guid? ParentId { get; set; }
 

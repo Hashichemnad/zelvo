@@ -8,6 +8,7 @@ using Zelvo.Data.Auditing;
 using Zelvo.Data.Identity;
 using Zelvo.Data.Notifications;
 using Zelvo.Data.Tenancy;
+using Zelvo.Tickets;
 
 namespace Zelvo.Notifications;
 
@@ -56,7 +57,13 @@ public sealed partial class NotificationProcessor(
         var setting = NotificationSettings.For(await NotificationSettings.ReadAsync(db, cancellationToken).ConfigureAwait(false), notification.EventType);
         notification.ProcessedAt = now;
         notification.LeaseUntil = null;
-        if (definition is null || recipient is not { Status: UserStatus.Active } || !setting.Enabled)
+        // Task E2: tickets that came in by email hear from their mailbox, in the same thread. Staff
+        // replies to them are the conversation itself, so they go out even when the event is off.
+        var mailbox = definition?.Audience == NotificationAudience.Requester && notification.TicketId is { } ticketId
+            ? await MailboxOfAsync(ticketId, cancellationToken).ConfigureAwait(false)
+            : null;
+        var conversation = mailbox is not null && definition!.Type == NotificationEvents.IncidentReplied;
+        if (definition is null || recipient is not { Status: UserStatus.Active } || (!setting.Enabled && !conversation))
         {
             notification.Status = NotificationStatus.Suppressed;
             await db.SaveChangesAsync(cancellationToken).ConfigureAwait(false);
@@ -72,22 +79,33 @@ public sealed partial class NotificationProcessor(
         notification.Title = rendered.Subject;
         notification.Text = rendered.InApp;
 
-        if (setting.Email && recipient.Email is { Length: > 0 } address && await WantsEmailAsync(recipient, definition, cancellationToken).ConfigureAwait(false))
+        if (conversation && recipient.Email is { Length: > 0 } conversationAddress)
         {
-            db.NotificationDeliveries.Add(new NotificationDelivery
+            await QueueFromMailboxAsync(notification, mailbox!, conversationAddress, format.Language, rendered, now, cancellationToken).ConfigureAwait(false);
+        }
+        else if (setting.Email && recipient.Email is { Length: > 0 } address && await WantsEmailAsync(recipient, definition, cancellationToken).ConfigureAwait(false))
+        {
+            if (mailbox is not null)
             {
-                TenantId = notification.TenantId,
-                NotificationId = notification.Id,
-                RecipientId = recipient.Id,
-                EventType = notification.EventType,
-                Address = address,
-                Language = format.Language,
-                Subject = rendered.Subject,
-                HtmlBody = rendered.Html,
-                TextBody = rendered.Text,
-                CreatedAt = now,
-                NextAttemptAt = now,
-            });
+                await QueueFromMailboxAsync(notification, mailbox, address, format.Language, rendered, now, cancellationToken).ConfigureAwait(false);
+            }
+            else
+            {
+                db.NotificationDeliveries.Add(new NotificationDelivery
+                {
+                    TenantId = notification.TenantId,
+                    NotificationId = notification.Id,
+                    RecipientId = recipient.Id,
+                    EventType = notification.EventType,
+                    Address = address,
+                    Language = format.Language,
+                    Subject = rendered.Subject,
+                    HtmlBody = rendered.Html,
+                    TextBody = rendered.Text,
+                    CreatedAt = now,
+                    NextAttemptAt = now,
+                });
+            }
         }
 
         // B3 recorded the alert; it counts as delivered once its first notification is out.
@@ -98,6 +116,54 @@ public sealed partial class NotificationProcessor(
         }
 
         await db.SaveChangesAsync(cancellationToken).ConfigureAwait(false);
+    }
+
+    /// <summary>The mailbox a ticket came in through, if it still exists.</summary>
+    private async Task<Data.Channels.Mailbox?> MailboxOfAsync(Guid ticketId, CancellationToken cancellationToken)
+    {
+        var mailboxId = await db.Tickets.AsNoTracking().Where(t => t.Id == ticketId).Select(t => t.MailboxId).FirstOrDefaultAsync(cancellationToken).ConfigureAwait(false);
+        return mailboxId is { } id
+            ? await db.Mailboxes.AsNoTracking().FirstOrDefaultAsync(m => m.Id == id, cancellationToken).ConfigureAwait(false)
+            : null;
+    }
+
+    /// <summary>
+    /// Queues the email for the ticket's mailbox (task E2): the ticket number in brackets in the
+    /// subject, and In-Reply-To and References from the thread's earlier emails.
+    /// </summary>
+    private async Task QueueFromMailboxAsync(
+        Notification notification, Data.Channels.Mailbox mailbox, string address, string language, RenderedNotification rendered, DateTimeOffset now,
+        CancellationToken cancellationToken)
+    {
+        var ticket = await db.Tickets.AsNoTracking().Where(t => t.Id == notification.TicketId).Select(t => new { t.Id, t.Number }).SingleAsync(cancellationToken).ConfigureAwait(false);
+        // A staff reply carries the Message-ID and In-Reply-To fixed when it was written; other
+        // notifications get new ones and answer the thread's last email.
+        var reply = notification.CommentId is { } commentId
+            ? await db.TicketComments.AsNoTracking().Where(c => c.Id == commentId).Select(c => new { c.EmailMessageId, c.EmailInReplyTo }).FirstOrDefaultAsync(cancellationToken).ConfigureAwait(false)
+            : null;
+        var thread = (await EmailThread.IdsAsync(db, ticket.Id, cancellationToken).ConfigureAwait(false))
+            .Where(id => !string.Equals(id, reply?.EmailMessageId, StringComparison.Ordinal)).ToList();
+        var references = string.Join(' ', thread.TakeLast(20).Select(r => $"<{r}>"));
+        var token = $"[{ticket.Number}]";
+        var subject = rendered.Subject.Contains(token, StringComparison.Ordinal) ? rendered.Subject : $"{rendered.Subject} {token}";
+        db.OutboundEmails.Add(new Data.Channels.OutboundEmail
+        {
+            TenantId = notification.TenantId,
+            MailboxId = mailbox.Id,
+            TicketId = ticket.Id,
+            CommentId = reply is not null ? notification.CommentId : null,
+            NotificationId = notification.Id,
+            ToAddress = address,
+            Subject = subject.Length <= Data.Channels.OutboundEmail.SubjectMaxLength ? subject : subject[..Data.Channels.OutboundEmail.SubjectMaxLength],
+            MessageId = reply?.EmailMessageId ?? MessageIds.Create(ticket.Id, mailbox.Address),
+            InReplyTo = reply?.EmailInReplyTo ?? (thread.Count > 0 ? thread[^1] : null),
+            References = references.Length == 0 ? null : references.Length <= Data.Channels.OutboundEmail.ReferencesMaxLength ? references : references[^Data.Channels.OutboundEmail.ReferencesMaxLength..].TrimStart(),
+            Language = language,
+            HtmlBody = rendered.Html,
+            TextBody = rendered.Text,
+            CreatedAt = now,
+            NextAttemptAt = now,
+        });
     }
 
     private async Task<bool> WantsEmailAsync(UserAccount recipient, NotificationEventDefinition definition, CancellationToken cancellationToken) =>

@@ -55,6 +55,15 @@ x-notifications-env: &notifications-env
   Notifications__Smtp__Password: ${ZELVO_SMTP_PASSWORD:-}
   Notifications__Smtp__From: ${ZELVO_SMTP_FROM:-no-reply@zelvo.test}
 
+# Email and live chat (E2): links in replies and the mailbox sign-in address use the web app's
+# address. Development: mail servers in the Compose network (the GreenMail test server) may be
+# reached; installations list only their own internal mail networks.
+x-channels-env: &channels-env
+  Channels__WebUrl: http://localhost:${WEB_PORT:-3000}/
+  Channels__Network__AllowedPrivateNetworks__0: 172.16.0.0/12
+  Channels__Network__AllowedPrivateNetworks__1: 192.168.0.0/16
+  Channels__Network__AllowedPrivateNetworks__2: 10.0.0.0/8
+
 x-secrets-env: &secrets-env
   Secrets__Provider: File
   Secrets__File__Path: /run/secrets/zelvo-master-key
@@ -248,6 +257,18 @@ services:
       timeout: 5s
       retries: 20
 
+  # Development mail server for email-to-ticket (E2), GreenMail (Apache 2.0), not for installations:
+  # IMAP on greenmail:3143 and SMTP on greenmail:3025 without TLS, any user name and password
+  # accepted. Add a mailbox in Settings → Mailboxes with provider IMAP, both hosts "greenmail",
+  # security "No TLS", and send it mail from the host with any SMTP client on localhost:3025.
+  greenmail:
+    <<: *restart
+    image: greenmail/standalone:2.1.5
+    environment:
+      GREENMAIL_OPTS: -Dgreenmail.setup.test.smtp -Dgreenmail.setup.test.imap -Dgreenmail.hostname=0.0.0.0 -Dgreenmail.auth.disabled -Dgreenmail.verbose=false
+    ports:
+      - "127.0.0.1:${GREENMAIL_SMTP_PORT:-3025}:3025"
+
   # Development stand-in for UAE PASS (GOV-1): http://localhost:8095. Choose "Mock" as the UAE PASS
   # environment in Settings → UAE PASS, with client ID zelvo-mock and UAEPASS_MOCK_CLIENT_SECRET.
   # Plain Node.js without packages, so the official image runs it as is.
@@ -368,7 +389,7 @@ services:
       Search__Password: ${OPENSEARCH_API_PASSWORD}
       Search__CaFile: /run/certs/ca.crt
       Services__KeycloakHealth: http://keycloak:9000/health/ready
-      <<: [*identity, *secrets-env, *telemetry-env, *integrations-env, *ai-env, *notifications-env]
+      <<: [*identity, *secrets-env, *telemetry-env, *integrations-env, *ai-env, *notifications-env, *channels-env]
       # Development: everything in the Compose network (the web app's server) may forward client
       # addresses. Installs list their proxies' exact addresses.
       Network__TrustedProxies__0: 172.16.0.0/12
@@ -427,7 +448,7 @@ services:
       AttachmentScanning__Enabled: ${ZELVO_ATTACHMENT_SCANNING:-true}
       AttachmentScanning__Host: clamav
       AttachmentScanning__Port: "3310"
-      <<: [*secrets-env, *telemetry-env, *integrations-env, *ai-env, *notifications-env]
+      <<: [*secrets-env, *telemetry-env, *integrations-env, *ai-env, *notifications-env, *channels-env]
     secrets: [zelvo-master-key]
     volumes: [*ca-volume]
     depends_on:
