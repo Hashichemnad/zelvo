@@ -427,7 +427,8 @@
         "knowledge_read": "Read internal knowledge articles",
         "knowledge_write": "Write knowledge articles",
         "knowledge_publish": "Review, publish and retire knowledge articles",
-        "notifications_manage": "Change notifications and see the email delivery log"
+        "notifications_manage": "Change notifications and see the email delivery log",
+        "forms_manage": "Change forms, field sets and which form each category uses"
       },
       "events": {
         "user_created": "A user was created",

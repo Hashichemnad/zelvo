@@ -18,7 +18,7 @@ internal sealed class DemoFormsSeeder : IDemoSeeder
 {
     public string Key => "c1-forms";
 
-    public int Order => 130;
+    public int Order => 140;
 
     private static LocalizedText T(string en, string ar) => new(en, ar);
 

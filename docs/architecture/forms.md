@@ -186,7 +186,7 @@ Everything is in English and Arabic, right to left, and WCAG 2.2 AA. Axe runs in
 
 ## Demo data
 
-Seeder `c1-forms` (order 130) adds three departments with the demo users in them, plus the requester's manager, location, employee number and a fictional phone number. It also adds:
+Seeder `c1-forms` (order 140, after B5) adds three departments with the demo users in them, plus the requester's manager, location, employee number and a fictional phone number. It also adds:
 
 - a published field set "Requester details": department (read-only), employee number and mobile, all from the profile;
 - a published default incident form, "General incident";
