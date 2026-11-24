@@ -86,9 +86,10 @@ internal static class AuditChangeCollector
             }
 
             var prefix = FieldName(complex.Metadata.Name);
+            var lengthOnly = complex.Metadata.PropertyInfo?.GetCustomAttribute<AuditLengthOnlyAttribute>() is not null;
             foreach (var property in single.Properties)
             {
-                Add(changes, entry.State, $"{prefix}.{FieldName(property.Metadata.Name)}", property, property.Metadata.PropertyInfo);
+                Add(changes, entry.State, $"{prefix}.{FieldName(property.Metadata.Name)}", property, property.Metadata.PropertyInfo, lengthOnly);
             }
         }
 
@@ -96,7 +97,7 @@ internal static class AuditChangeCollector
     }
 
     private static void Add(
-        SortedDictionary<string, FieldChange> changes, EntityState state, string field, PropertyEntry property, PropertyInfo? info)
+        SortedDictionary<string, FieldChange> changes, EntityState state, string field, PropertyEntry property, PropertyInfo? info, bool lengthOnly = false)
     {
         if (property.Metadata.IsConcurrencyToken || property.Metadata.IsShadowProperty())
         {
@@ -104,7 +105,10 @@ internal static class AuditChangeCollector
         }
 
         var sensitive = info?.GetCustomAttribute<SensitiveDataAttribute>() is not null;
-        object? Value(object? value) => sensitive && value is not null ? AuditJson.Masked : value;
+        lengthOnly |= info?.GetCustomAttribute<AuditLengthOnlyAttribute>() is not null;
+        object? Value(object? value) => sensitive && value is not null
+            ? AuditJson.Masked
+            : lengthOnly && value is string text ? $"({text.Length} characters)" : value;
 
         switch (state)
         {

@@ -12,3 +12,11 @@ public interface IAuditedEntity;
 /// </summary>
 [AttributeUsage(AttributeTargets.Property)]
 public sealed class SensitiveDataAttribute : Attribute;
+
+/// <summary>
+/// Marks long text (for example an article body) whose old and new values would bloat the audit
+/// log: the log records that it changed and its length, not the text. The full text is kept
+/// elsewhere (for articles, in every version).
+/// </summary>
+[AttributeUsage(AttributeTargets.Property)]
+public sealed class AuditLengthOnlyAttribute : Attribute;

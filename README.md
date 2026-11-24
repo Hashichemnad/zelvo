@@ -44,6 +44,8 @@ make up
 
 **AI (E4):** AI is off until it is set up. As `admin@zelvo.test`, open Settings → AI, connect a provider (Anthropic Claude, OpenAI, Azure OpenAI, Google Gemini or any OpenAI-compatible endpoint) with your own key, test it, and choose a provider and model per feature; Usage and cost shows the month's calls, tokens and cost against the monthly limit, and the AI log every call with personal data masked. In development, the `ai-mock` service needs no key: add an "OpenAI-compatible" provider with the endpoint `http://ai-mock:8097/v1` and the model `zelvo-mock-fast`; http://localhost:8097/received shows what it was sent. See `docs/architecture/ai-gateway.md`.
 
+**Knowledge base (D1):** as `agent@zelvo.test`, open Knowledge → New article, write it in English and/or Arabic (Markdown, with images) and send it for review; as `lead@zelvo.test`, open the review queue and approve it (someone other than the author must). External articles appear in Help (`/en/help`), also for visitors who are not signed in unless Settings → Knowledge turns that off. A resolved incident has "Turn into a knowledge article". See `docs/architecture/knowledge.md`.
+
 `make down` stops the stack, `make reset` also deletes its data, `make logs` follows the logs. Local Compose changes go in `deploy/compose/compose.override.yaml`, which is git-ignored.
 
 ## Repository layout

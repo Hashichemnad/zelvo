@@ -156,6 +156,10 @@
         "title": "Attachments",
         "description": "Largest file and accepted file types; malware scanning."
       },
+      "knowledge": {
+        "title": "Knowledge",
+        "description": "Whether visitors can read external articles, and the article number prefix."
+      },
       "integrations": {
         "title": "Integrations",
         "description": "API keys, OAuth clients, webhooks and the integration log."
@@ -831,6 +835,17 @@
         "next": "Next",
         "pageOf": "Page {page} of {pages}"
       }
+    },
+    "knowledge": {
+      "intro": "How the knowledge base works for your organisation.",
+      "publicAccess": "Visitors who are not signed in can read external articles",
+      "publicAccessHelp": "Like a public help centre. When off, people sign in to read them; internal articles are always for staff only.",
+      "numberPrefix": "Article number prefix",
+      "numberPrefixHelp": "1–10 capital letters or digits, for example KB in KB-000123. Applies to new articles.",
+      "saved": "Saved.",
+      "prefixInvalid": "Use 1–10 capital letters or digits, starting with a letter.",
+      "failed": "That did not work. Try again.",
+      "save": "Save"
     }
   },
   "demo": {
@@ -1394,6 +1409,213 @@
       "defaultName": "The default",
       "queue": "group queue",
       "resultNoGroup": "No rule matches and there is no default group: the ticket would have no group."
+    }
+  },
+  "knowledge": {
+    "title": "Knowledge base",
+    "intro": "Articles for staff and the portal: write a draft, send it for review, and a publisher other than you approves it. Changes to published articles are reviewed again; readers see the published version until then.",
+    "noAccess": "You need a knowledge permission to open the knowledge base.",
+    "unavailable": "The knowledge base is not available right now. Try again later.",
+    "notFound": "The article does not exist.",
+    "newArticle": "New article",
+    "newIntro": "Write the article in English, Arabic or both. It is saved as a draft; send it for review when it is ready.",
+    "nav": {
+      "help": "Help",
+      "knowledge": "Knowledge"
+    },
+    "states": {
+      "Draft": "Draft",
+      "InReview": "In review",
+      "Published": "Published",
+      "Retired": "Retired"
+    },
+    "versionStates": {
+      "Draft": "Draft",
+      "InReview": "In review",
+      "Published": "Published",
+      "Superseded": "Replaced",
+      "Retired": "Retired"
+    },
+    "visibility": {
+      "Internal": "Internal",
+      "External": "External",
+      "InternalHelp": "staff only",
+      "ExternalHelp": "in the portal"
+    },
+    "errors": {
+      "own-article": "Someone other than the author reviews an article. Ask another publisher.",
+      "article-in-review": "The article is in review. It can change after the reviewer approves it or sends it back.",
+      "version-mismatch": "The article changed meanwhile. Load the page again.",
+      "not-in-review": "The article is not waiting for review any more.",
+      "no-draft": "There is no draft.",
+      "rate-limited": "Too many requests. Wait a moment and try again.",
+      "validation-failed": "Check the article: it needs a title, and a body in at least one language before review.",
+      "other": "That did not work. Try again."
+    },
+    "reader": {
+      "updated": "Updated {date}",
+      "views": "{count, plural, one {{formatted} view} other {{formatted} views}}",
+      "otherLanguage": "This article is not available in your language yet, so it is shown in the language it was written in."
+    },
+    "feedback": {
+      "question": "Was this helpful?",
+      "yes": "Yes",
+      "no": "No",
+      "commentYes": "What helped? (optional)",
+      "commentNo": "What was missing? (optional)",
+      "sendComment": "Send",
+      "thanks": "Thank you for your answer.",
+      "failed": "Your answer could not be saved. Try again.",
+      "totals": "{count, plural, one {# person found this helpful.} other {# people found this helpful.}}"
+    },
+    "help": {
+      "title": "Help",
+      "intro": "Answers to common questions. Search, or open one of the most read articles.",
+      "searchLabel": "Search the help articles",
+      "search": "Search",
+      "failed": "Searching did not work. Try again.",
+      "results": "{count, plural, one {# article} other {# articles}} for “{text}”.",
+      "noResults": "No articles match. Try other words, or report an incident.",
+      "empty": "No articles yet.",
+      "resultsLabel": "Search results",
+      "popular": "Most read articles",
+      "signInRequired": "Sign in to read the help articles.",
+      "signIn": "Sign in",
+      "notFound": "The article does not exist or is no longer available.",
+      "back": "All help articles"
+    },
+    "editor": {
+      "heading": "Article editor",
+      "languages": "Article language",
+      "language": {
+        "en": "English",
+        "ar": "Arabic"
+      },
+      "incomplete": "incomplete",
+      "title": "Title",
+      "summary": "Summary",
+      "body": "Article",
+      "write": "Write",
+      "preview": "Preview",
+      "nothingToPreview": "Nothing written in this language yet.",
+      "bodyHelp": "Markdown: ## heading, **bold**, - list, 1. steps, [link](https://…), tables. HTML is shown as text.",
+      "addImage": "Add an image",
+      "imageHelp": "PNG, JPEG, GIF or WebP. It is checked for malware before anyone can see it, and added where the cursor is.",
+      "imageErrors": {
+        "image-too-large": "The image is too large.",
+        "image-type-not-allowed": "Use a PNG, JPEG, GIF or WebP image.",
+        "image-content-mismatch": "The file's content does not match its type.",
+        "other": "The image could not be added."
+      },
+      "images": "Images of this article",
+      "insertImage": "Insert {name}",
+      "imageScanning": "(being checked)",
+      "imagesAfterSave": "You can add images after the first save.",
+      "visibility": "Who reads it",
+      "category": "Category",
+      "noCategory": "No category",
+      "keywords": "Keywords",
+      "keywordsHelp": "Separated by commas; they help search find the article.",
+      "changeNote": "What changed (optional)",
+      "titleRequired": "Give the article a title in English or Arabic."
+    },
+    "workspace": {
+      "back": "Knowledge base",
+      "untitled": "Untitled",
+      "state": "State",
+      "visibility": "Visibility",
+      "pending": "Changes",
+      "pendingStates": {
+        "Draft": "Draft of version {number}",
+        "InReview": "Version {number} in review",
+        "Published": "Version {number} published",
+        "Superseded": "Version {number} replaced",
+        "Retired": "Version {number} retired"
+      },
+      "views": "Views",
+      "helpful": "Helpful",
+      "helpfulValue": "{yes} yes · {no} no",
+      "fromTicket": "From",
+      "sentBack": "Sent back by {name}:",
+      "editDraft": "Edit draft",
+      "change": "Change",
+      "submit": "Send for review",
+      "submitted": "Sent for review.",
+      "retire": "Retire",
+      "retireConfirm": "Retire this article? Readers will no longer see or find it.",
+      "retired": "The article is retired.",
+      "reopen": "Reopen as draft",
+      "reopened": "A new draft was made from the last published version.",
+      "discardChanges": "Discard changes",
+      "deleteDraft": "Delete draft",
+      "discardConfirm": "Discard this draft? This cannot be undone.",
+      "discarded": "The draft was discarded.",
+      "openPublished": "Open as readers see it",
+      "saveDraft": "Save draft",
+      "saved": "Draft saved.",
+      "approved": "Approved and published.",
+      "rejected": "Sent back to the author.",
+      "waitingForReview": "Waiting for another publisher to review it.",
+      "workingHeading": "Version {number} (not published)",
+      "publishedHeading": "Published version {number}",
+      "reviewHeading": "Review",
+      "reviewHelp": "Approve to publish this version, or send it back with what to change.",
+      "reviewComment": "Comment for the author",
+      "commentRequired": "Say what the author should change.",
+      "approve": "Approve and publish",
+      "reject": "Send back",
+      "showLanguage": "Language shown",
+      "language": {
+        "en": "English",
+        "ar": "Arabic"
+      },
+      "versionBy": "By {name}, {date}",
+      "languageMissing": "Not written in this language yet.",
+      "history": "History",
+      "loading": "Loading…",
+      "versionNumber": "Version {number}",
+      "reviewedBy": "reviewed by {name}",
+      "feedback": "Feedback",
+      "noFeedback": "No answers yet.",
+      "wasHelpful": "Helpful",
+      "wasNotHelpful": "Not helpful",
+      "visitor": "Visitor",
+      "createDraft": "Save as draft"
+    },
+    "list": {
+      "text": "Title or number",
+      "state": "State",
+      "all": "All",
+      "visibility": "Visibility",
+      "mine": "Only mine",
+      "filter": "Show",
+      "failed": "The list could not be loaded.",
+      "empty": "No articles match.",
+      "label": "Articles",
+      "article": "Article",
+      "usage": "Views and feedback",
+      "updated": "Last change",
+      "untitled": "Untitled",
+      "missingLanguage": "A language is missing",
+      "changesInReview": "changes in review",
+      "changesDraft": "changes being written",
+      "usageValue": "{views} views · {yes} helpful · {no} not helpful",
+      "pages": "Article pages",
+      "previous": "Previous",
+      "next": "Next",
+      "pageOf": "Page {page} of {pages}"
+    },
+    "review": {
+      "title": "Review queue",
+      "intro": "Articles and changes waiting for review, oldest first. You cannot review what you wrote or last changed.",
+      "empty": "Nothing is waiting for review.",
+      "submitted": "sent {date}",
+      "ownArticle": "yours: another publisher reviews it"
+    },
+    "fromIncident": {
+      "button": "Turn into a knowledge article",
+      "help": "Starts a draft from the description and resolution notes, with personal data replaced by placeholders.",
+      "failed": "The article could not be created."
     }
   }
 }

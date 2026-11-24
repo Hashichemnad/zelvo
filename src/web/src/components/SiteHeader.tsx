@@ -4,6 +4,7 @@ import { getCurrentUser, getDemo } from "@/lib/api";
 import { getRequestAuthConfig } from "@/lib/auth/config";
 import { getSession } from "@/lib/auth/session";
 import { getDisplayFormat } from "@/lib/display";
+import { isKnowledgeStaff } from "@/lib/knowledge";
 import { formatDateTime } from "@/lib/format";
 import { sectionsFor } from "@/lib/settings-sections";
 import { AccountMenu } from "./AccountMenu";
@@ -14,6 +15,7 @@ import { TestInstallationBanner } from "./TestInstallationBanner";
 export async function SiteHeader() {
   const t = await getTranslations("common");
   const tIncidents = await getTranslations("incidents.nav");
+  const tKnowledge = await getTranslations("knowledge.nav");
   const config = await getRequestAuthConfig();
   const session = await getSession(config).catch(() => null);
   const user = session ? await getCurrentUser(session.data.accessToken, config.tenant) : null;
@@ -31,9 +33,15 @@ export async function SiteHeader() {
         <div className="mx-auto flex max-w-5xl flex-wrap items-center justify-between gap-4 px-4 py-3">
           <div className="flex flex-wrap items-center gap-4">
             <span className="text-lg font-bold text-brand">{t("productName")}</span>
-            {user && (
-              <nav aria-label={tIncidents("label")}>
-                <ul className="flex flex-wrap gap-3 text-sm font-semibold">
+            <nav aria-label={tIncidents("label")}>
+              <ul className="flex flex-wrap gap-3 text-sm font-semibold">
+                <li>
+                  <Link href="/help" className="text-brand underline-offset-4 hover:underline">
+                    {tKnowledge("help")}
+                  </Link>
+                </li>
+                {user && (
+                  <>
                   <li>
                     <Link href="/my-incidents" className="text-brand underline-offset-4 hover:underline">
                       {tIncidents("myIncidents")}
@@ -46,9 +54,17 @@ export async function SiteHeader() {
                       </Link>
                     </li>
                   )}
-                </ul>
-              </nav>
-            )}
+                  {isKnowledgeStaff(user.permissions) && (
+                    <li>
+                      <Link href="/knowledge" className="text-brand underline-offset-4 hover:underline">
+                        {tKnowledge("knowledge")}
+                      </Link>
+                    </li>
+                  )}
+                  </>
+                )}
+              </ul>
+            </nav>
           </div>
           <div className="flex flex-wrap items-center gap-3">
             <AccountMenu

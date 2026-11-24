@@ -62,6 +62,7 @@ test.describe("settings and localization", () => {
         "Assignment",
         "Incidents",
         "Attachments",
+        "Knowledge",
         "Search",
         "Integrations",
         "AI",

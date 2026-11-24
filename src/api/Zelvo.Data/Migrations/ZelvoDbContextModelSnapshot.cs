@@ -1643,6 +1643,390 @@ namespace Zelvo.Data.Migrations
                         });
                 });
 
+            modelBuilder.Entity("Zelvo.Data.Knowledge.KbArticle", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<Guid?>("CategoryId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("category_id");
+
+                    b.Property<DateTimeOffset>("CreatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("created_at");
+
+                    b.Property<Guid?>("CreatedById")
+                        .HasColumnType("uuid")
+                        .HasColumnName("created_by_id");
+
+                    b.Property<int>("HelpfulCount")
+                        .HasColumnType("integer")
+                        .HasColumnName("helpful_count");
+
+                    b.Property<int>("NotHelpfulCount")
+                        .HasColumnType("integer")
+                        .HasColumnName("not_helpful_count");
+
+                    b.Property<string>("Number")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("character varying(20)")
+                        .HasColumnName("number");
+
+                    b.Property<DateTimeOffset?>("PublishedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("published_at");
+
+                    b.Property<Guid?>("PublishedVersionId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("published_version_id");
+
+                    b.Property<DateTimeOffset?>("RetiredAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("retired_at");
+
+                    b.Property<long>("Sequence")
+                        .HasColumnType("bigint")
+                        .HasColumnName("sequence");
+
+                    b.Property<Guid?>("SourceTicketId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("source_ticket_id");
+
+                    b.Property<string>("State")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("character varying(20)")
+                        .HasColumnName("state");
+
+                    b.Property<Guid>("TenantId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("tenant_id");
+
+                    b.Property<DateTimeOffset>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("updated_at");
+
+                    b.Property<long>("ViewCount")
+                        .HasColumnType("bigint")
+                        .HasColumnName("view_count");
+
+                    b.Property<string>("Visibility")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("character varying(20)")
+                        .HasColumnName("visibility");
+
+                    b.Property<Guid?>("WorkingVersionId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("working_version_id");
+
+                    b.HasKey("Id")
+                        .HasName("pk_kb_articles");
+
+                    b.HasIndex("CategoryId")
+                        .HasDatabaseName("ix_kb_articles_category_id");
+
+                    b.HasIndex("CreatedById")
+                        .HasDatabaseName("ix_kb_articles_created_by_id");
+
+                    b.HasIndex("SourceTicketId")
+                        .HasDatabaseName("ix_kb_articles_source_ticket_id")
+                        .HasFilter("source_ticket_id IS NOT NULL");
+
+                    b.HasIndex("TenantId", "Number")
+                        .IsUnique()
+                        .HasDatabaseName("ix_kb_articles_tenant_id_number");
+
+                    b.HasIndex("TenantId", "Sequence")
+                        .IsUnique()
+                        .HasDatabaseName("ix_kb_articles_tenant_id_sequence");
+
+                    b.HasIndex("TenantId", "State", "Visibility")
+                        .HasDatabaseName("ix_kb_articles_tenant_id_state_visibility");
+
+                    b.ToTable("kb_articles", null, t =>
+                        {
+                            t.HasCheckConstraint("ck_kb_articles_counts", "view_count >= 0 AND helpful_count >= 0 AND not_helpful_count >= 0");
+
+                            t.HasCheckConstraint("ck_kb_articles_published", "state <> 'Published' OR published_version_id IS NOT NULL");
+
+                            t.HasCheckConstraint("ck_kb_articles_state", "state IN ('Draft', 'InReview', 'Published', 'Retired')");
+
+                            t.HasCheckConstraint("ck_kb_articles_visibility", "visibility IN ('Internal', 'External')");
+                        });
+                });
+
+            modelBuilder.Entity("Zelvo.Data.Knowledge.KbArticleVersion", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<Guid>("ArticleId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("article_id");
+
+                    b.Property<Guid?>("CategoryId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("category_id");
+
+                    b.Property<string>("ChangeNote")
+                        .HasMaxLength(1000)
+                        .HasColumnType("character varying(1000)")
+                        .HasColumnName("change_note");
+
+                    b.Property<DateTimeOffset>("CreatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("created_at");
+
+                    b.Property<Guid?>("CreatedById")
+                        .HasColumnType("uuid")
+                        .HasColumnName("created_by_id");
+
+                    b.PrimitiveCollection<string[]>("Keywords")
+                        .IsRequired()
+                        .HasColumnType("text[]")
+                        .HasColumnName("keywords");
+
+                    b.Property<Guid?>("LastEditedById")
+                        .HasColumnType("uuid")
+                        .HasColumnName("last_edited_by_id");
+
+                    b.Property<int>("Number")
+                        .HasColumnType("integer")
+                        .HasColumnName("number");
+
+                    b.Property<DateTimeOffset?>("PublishedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("published_at");
+
+                    b.Property<string>("ReviewComment")
+                        .HasMaxLength(1000)
+                        .HasColumnType("character varying(1000)")
+                        .HasColumnName("review_comment");
+
+                    b.Property<DateTimeOffset?>("ReviewedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("reviewed_at");
+
+                    b.Property<Guid?>("ReviewedById")
+                        .HasColumnType("uuid")
+                        .HasColumnName("reviewed_by_id");
+
+                    b.Property<string>("State")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("character varying(20)")
+                        .HasColumnName("state");
+
+                    b.Property<DateTimeOffset?>("SubmittedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("submitted_at");
+
+                    b.Property<Guid?>("SubmittedById")
+                        .HasColumnType("uuid")
+                        .HasColumnName("submitted_by_id");
+
+                    b.Property<Guid>("TenantId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("tenant_id");
+
+                    b.Property<DateTimeOffset>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("updated_at");
+
+                    b.Property<uint>("Version")
+                        .IsConcurrencyToken()
+                        .ValueGeneratedOnAddOrUpdate()
+                        .HasColumnType("xid")
+                        .HasColumnName("xmin");
+
+                    b.Property<string>("Visibility")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("character varying(20)")
+                        .HasColumnName("visibility");
+
+                    b.ComplexProperty(typeof(Dictionary<string, object>), "Body", "Zelvo.Data.Knowledge.KbArticleVersion.Body#LocalizedText", b1 =>
+                        {
+                            b1.IsRequired();
+
+                            b1.Property<string>("Ar")
+                                .HasMaxLength(100000)
+                                .HasColumnType("character varying(100000)")
+                                .HasColumnName("body_ar");
+
+                            b1.Property<string>("En")
+                                .HasMaxLength(100000)
+                                .HasColumnType("character varying(100000)")
+                                .HasColumnName("body_en");
+                        });
+
+                    b.ComplexProperty(typeof(Dictionary<string, object>), "Summary", "Zelvo.Data.Knowledge.KbArticleVersion.Summary#LocalizedText", b1 =>
+                        {
+                            b1.IsRequired();
+
+                            b1.Property<string>("Ar")
+                                .HasMaxLength(500)
+                                .HasColumnType("character varying(500)")
+                                .HasColumnName("summary_ar");
+
+                            b1.Property<string>("En")
+                                .HasMaxLength(500)
+                                .HasColumnType("character varying(500)")
+                                .HasColumnName("summary_en");
+                        });
+
+                    b.ComplexProperty(typeof(Dictionary<string, object>), "Title", "Zelvo.Data.Knowledge.KbArticleVersion.Title#LocalizedText", b1 =>
+                        {
+                            b1.IsRequired();
+
+                            b1.Property<string>("Ar")
+                                .HasMaxLength(200)
+                                .HasColumnType("character varying(200)")
+                                .HasColumnName("title_ar");
+
+                            b1.Property<string>("En")
+                                .HasMaxLength(200)
+                                .HasColumnType("character varying(200)")
+                                .HasColumnName("title_en");
+                        });
+
+                    b.HasKey("Id")
+                        .HasName("pk_kb_article_versions");
+
+                    b.HasIndex("CategoryId")
+                        .HasDatabaseName("ix_kb_article_versions_category_id");
+
+                    b.HasIndex("ArticleId", "Number")
+                        .IsUnique()
+                        .HasDatabaseName("ix_kb_article_versions_article_id_number");
+
+                    b.HasIndex("TenantId", "State")
+                        .HasDatabaseName("ix_kb_article_versions_tenant_id_state");
+
+                    b.ToTable("kb_article_versions", null, t =>
+                        {
+                            t.HasCheckConstraint("ck_kb_article_versions_number", "number >= 1");
+
+                            t.HasCheckConstraint("ck_kb_article_versions_state", "state IN ('Draft', 'InReview', 'Published', 'Superseded', 'Retired')");
+
+                            t.HasCheckConstraint("ck_kb_article_versions_title", "title_en IS NOT NULL OR title_ar IS NOT NULL");
+
+                            t.HasCheckConstraint("ck_kb_article_versions_visibility", "visibility IN ('Internal', 'External')");
+                        });
+                });
+
+            modelBuilder.Entity("Zelvo.Data.Knowledge.KbArticleView", b =>
+                {
+                    b.Property<Guid>("ArticleId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("article_id");
+
+                    b.Property<string>("ViewerHash")
+                        .HasMaxLength(64)
+                        .HasColumnType("character(64)")
+                        .HasColumnName("viewer_hash")
+                        .IsFixedLength();
+
+                    b.Property<DateOnly>("Day")
+                        .HasColumnType("date")
+                        .HasColumnName("day");
+
+                    b.Property<Guid>("TenantId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("tenant_id");
+
+                    b.HasKey("ArticleId", "ViewerHash", "Day")
+                        .HasName("pk_kb_article_views");
+
+                    b.HasIndex("TenantId", "Day")
+                        .HasDatabaseName("ix_kb_article_views_tenant_id_day");
+
+                    b.ToTable("kb_article_views", null, t =>
+                        {
+                            t.HasCheckConstraint("ck_kb_article_views_viewer_hash", "viewer_hash ~ '^[0-9a-f]{64}$'");
+                        });
+                });
+
+            modelBuilder.Entity("Zelvo.Data.Knowledge.KbFeedback", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<Guid>("ArticleId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("article_id");
+
+                    b.Property<string>("Comment")
+                        .HasMaxLength(1000)
+                        .HasColumnType("character varying(1000)")
+                        .HasColumnName("comment");
+
+                    b.Property<DateTimeOffset>("CreatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("created_at");
+
+                    b.Property<bool>("Helpful")
+                        .HasColumnType("boolean")
+                        .HasColumnName("helpful");
+
+                    b.Property<Guid>("TenantId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("tenant_id");
+
+                    b.Property<DateTimeOffset>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("updated_at");
+
+                    b.Property<Guid?>("UserId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("user_id");
+
+                    b.Property<Guid?>("VersionId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("version_id");
+
+                    b.Property<string>("VisitorHash")
+                        .HasMaxLength(64)
+                        .HasColumnType("character(64)")
+                        .HasColumnName("visitor_hash")
+                        .IsFixedLength();
+
+                    b.HasKey("Id")
+                        .HasName("pk_kb_feedback");
+
+                    b.HasIndex("UserId")
+                        .HasDatabaseName("ix_kb_feedback_user_id");
+
+                    b.HasIndex("VersionId")
+                        .HasDatabaseName("ix_kb_feedback_version_id");
+
+                    b.HasIndex("ArticleId", "UserId")
+                        .IsUnique()
+                        .HasDatabaseName("ix_kb_feedback_article_id_user_id")
+                        .HasFilter("user_id IS NOT NULL");
+
+                    b.HasIndex("ArticleId", "VisitorHash")
+                        .IsUnique()
+                        .HasDatabaseName("ix_kb_feedback_article_id_visitor_hash")
+                        .HasFilter("visitor_hash IS NOT NULL");
+
+                    b.HasIndex("TenantId", "ArticleId", "CreatedAt")
+                        .HasDatabaseName("ix_kb_feedback_tenant_id_article_id_created_at");
+
+                    b.ToTable("kb_feedback", null, t =>
+                        {
+                            t.HasCheckConstraint("ck_kb_feedback_visitor_hash", "visitor_hash ~ '^[0-9a-f]{64}$'");
+
+                            t.HasCheckConstraint("ck_kb_feedback_who", "(user_id IS NULL) <> (visitor_hash IS NULL)");
+                        });
+                });
+
             modelBuilder.Entity("Zelvo.Data.Search.SearchIndexState", b =>
                 {
                     b.Property<Guid>("TenantId")
@@ -2217,6 +2601,10 @@ namespace Zelvo.Data.Migrations
                         .HasColumnType("uuid")
                         .HasColumnName("id");
 
+                    b.Property<Guid?>("ArticleId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("article_id");
+
                     b.Property<string>("ContentType")
                         .IsRequired()
                         .HasMaxLength(100)
@@ -2263,7 +2651,7 @@ namespace Zelvo.Data.Migrations
                         .HasColumnType("uuid")
                         .HasColumnName("tenant_id");
 
-                    b.Property<Guid>("TicketId")
+                    b.Property<Guid?>("TicketId")
                         .HasColumnType("uuid")
                         .HasColumnName("ticket_id");
 
@@ -2278,11 +2666,18 @@ namespace Zelvo.Data.Migrations
                     b.HasKey("Id")
                         .HasName("pk_ticket_attachments");
 
+                    b.HasIndex("ArticleId")
+                        .HasDatabaseName("ix_ticket_attachments_article_id");
+
                     b.HasIndex("TicketId")
                         .HasDatabaseName("ix_ticket_attachments_ticket_id");
 
                     b.HasIndex("UploadedById")
                         .HasDatabaseName("ix_ticket_attachments_uploaded_by_id");
+
+                    b.HasIndex("TenantId", "ArticleId")
+                        .HasDatabaseName("ix_ticket_attachments_tenant_id_article_id")
+                        .HasFilter("article_id IS NOT NULL");
 
                     b.HasIndex("TenantId", "TicketId")
                         .HasDatabaseName("ix_ticket_attachments_tenant_id_ticket_id");
@@ -2293,6 +2688,8 @@ namespace Zelvo.Data.Migrations
 
                     b.ToTable("ticket_attachments", null, t =>
                         {
+                            t.HasCheckConstraint("ck_ticket_attachments_owner", "(ticket_id IS NULL) <> (article_id IS NULL)");
+
                             t.HasCheckConstraint("ck_ticket_attachments_scan_status", "scan_status IN ('Pending', 'Clean', 'Infected', 'NotScanned')");
 
                             t.HasCheckConstraint("ck_ticket_attachments_sha256", "sha256 ~ '^[0-9a-f]{64}$'");
@@ -2686,6 +3083,103 @@ namespace Zelvo.Data.Migrations
                         .HasConstraintName("fk_webhook_subscriptions_tenants_tenant_id");
                 });
 
+            modelBuilder.Entity("Zelvo.Data.Knowledge.KbArticle", b =>
+                {
+                    b.HasOne("Zelvo.Data.Directory.Category", null)
+                        .WithMany()
+                        .HasForeignKey("CategoryId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .HasConstraintName("fk_kb_articles_categories_category_id");
+
+                    b.HasOne("Zelvo.Data.Identity.UserAccount", null)
+                        .WithMany()
+                        .HasForeignKey("CreatedById")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .HasConstraintName("fk_kb_articles_users_created_by_id");
+
+                    b.HasOne("Zelvo.Data.Tickets.Ticket", null)
+                        .WithMany()
+                        .HasForeignKey("SourceTicketId")
+                        .OnDelete(DeleteBehavior.SetNull)
+                        .HasConstraintName("fk_kb_articles_tickets_source_ticket_id");
+
+                    b.HasOne("Zelvo.Data.Tenancy.Tenant", null)
+                        .WithMany()
+                        .HasForeignKey("TenantId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired()
+                        .HasConstraintName("fk_kb_articles_tenants_tenant_id");
+                });
+
+            modelBuilder.Entity("Zelvo.Data.Knowledge.KbArticleVersion", b =>
+                {
+                    b.HasOne("Zelvo.Data.Knowledge.KbArticle", null)
+                        .WithMany()
+                        .HasForeignKey("ArticleId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired()
+                        .HasConstraintName("fk_kb_article_versions_kb_articles_article_id");
+
+                    b.HasOne("Zelvo.Data.Directory.Category", null)
+                        .WithMany()
+                        .HasForeignKey("CategoryId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .HasConstraintName("fk_kb_article_versions_categories_category_id");
+
+                    b.HasOne("Zelvo.Data.Tenancy.Tenant", null)
+                        .WithMany()
+                        .HasForeignKey("TenantId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired()
+                        .HasConstraintName("fk_kb_article_versions_tenants_tenant_id");
+                });
+
+            modelBuilder.Entity("Zelvo.Data.Knowledge.KbArticleView", b =>
+                {
+                    b.HasOne("Zelvo.Data.Knowledge.KbArticle", null)
+                        .WithMany()
+                        .HasForeignKey("ArticleId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired()
+                        .HasConstraintName("fk_kb_article_views_kb_articles_article_id");
+
+                    b.HasOne("Zelvo.Data.Tenancy.Tenant", null)
+                        .WithMany()
+                        .HasForeignKey("TenantId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired()
+                        .HasConstraintName("fk_kb_article_views_tenants_tenant_id");
+                });
+
+            modelBuilder.Entity("Zelvo.Data.Knowledge.KbFeedback", b =>
+                {
+                    b.HasOne("Zelvo.Data.Knowledge.KbArticle", null)
+                        .WithMany()
+                        .HasForeignKey("ArticleId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired()
+                        .HasConstraintName("fk_kb_feedback_kb_articles_article_id");
+
+                    b.HasOne("Zelvo.Data.Tenancy.Tenant", null)
+                        .WithMany()
+                        .HasForeignKey("TenantId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired()
+                        .HasConstraintName("fk_kb_feedback_tenants_tenant_id");
+
+                    b.HasOne("Zelvo.Data.Identity.UserAccount", null)
+                        .WithMany()
+                        .HasForeignKey("UserId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .HasConstraintName("fk_kb_feedback_users_user_id");
+
+                    b.HasOne("Zelvo.Data.Knowledge.KbArticleVersion", null)
+                        .WithMany()
+                        .HasForeignKey("VersionId")
+                        .OnDelete(DeleteBehavior.SetNull)
+                        .HasConstraintName("fk_kb_feedback_kb_article_versions_version_id");
+                });
+
             modelBuilder.Entity("Zelvo.Data.Search.SearchIndexState", b =>
                 {
                     b.HasOne("Zelvo.Data.Tenancy.Tenant", null)
@@ -2836,11 +3330,16 @@ namespace Zelvo.Data.Migrations
 
             modelBuilder.Entity("Zelvo.Data.Tickets.TicketAttachment", b =>
                 {
+                    b.HasOne("Zelvo.Data.Knowledge.KbArticle", null)
+                        .WithMany()
+                        .HasForeignKey("ArticleId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .HasConstraintName("fk_ticket_attachments_kb_articles_article_id");
+
                     b.HasOne("Zelvo.Data.Tickets.Ticket", null)
                         .WithMany()
                         .HasForeignKey("TicketId")
                         .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired()
                         .HasConstraintName("fk_ticket_attachments_tickets_ticket_id");
 
                     b.HasOne("Zelvo.Data.Identity.UserAccount", null)
