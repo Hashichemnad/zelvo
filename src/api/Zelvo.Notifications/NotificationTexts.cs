@@ -114,6 +114,9 @@ public static class NotificationSamples
             [Placeholders.ArticleNumber] = PlaceholderValue.OfText("KB-000042"),
             [Placeholders.ArticleTitle] = Both(Placeholders.ArticleTitle),
             [Placeholders.AuthorName] = Both(Placeholders.AuthorName),
+            [Placeholders.TicketType] = PlaceholderValue.OfTerm("ticket.type.Complaint"),
+            [Placeholders.ReviewState] = PlaceholderValue.OfTerm("review.Accepted"),
+            [Placeholders.ReviewFeedback] = Both(Placeholders.ReviewFeedback),
         };
     }
 }

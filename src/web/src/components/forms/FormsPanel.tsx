@@ -90,6 +90,9 @@ export function FormsPanel({ initial, csrfToken }: { initial: FormSummary[]; csr
   );
 }
 
+/** Record types whose new tickets fill a form chosen per category (service requests use their service's form). */
+const bindableTypes = ["Incident", "Complaint", "Inquiry", "Suggestion"] as const;
+
 /** Which form each category uses (module 2: "each category can ask its own questions"). */
 export function FormBindingsPanel({ initial, forms, categories, csrfToken }: { initial: FormBinding[]; forms: FormSummary[]; categories: TreeNode[]; csrfToken: string }) {
   const t = useTranslations("forms.bindings");
@@ -99,6 +102,8 @@ export function FormBindingsPanel({ initial, forms, categories, csrfToken }: { i
   const [bindings, setBindings] = useState(initial);
   const [categoryId, setCategoryId] = useState("");
   const [formId, setFormId] = useState("");
+  // Task C6: complaints, inquiries and suggestions have their own forms per category too.
+  const [recordType, setRecordType] = useState<(typeof bindableTypes)[number]>("Incident");
   const { status, run, busy } = useSaver();
   const usable = forms.filter((f) => f.state !== "Retired");
   const nodes = selectableNodes(categories);
@@ -120,7 +125,9 @@ export function FormBindingsPanel({ initial, forms, categories, csrfToken }: { i
           </thead>
           <tbody>
             {bindings.map((b) => {
-              const where = b.category ? textOf(b.category.path, locale) : tList("defaultFor", { type: tList(`recordTypes.${b.recordType}`) });
+              const where = b.category
+                ? `${tList(`recordTypes.${b.recordType}`)}: ${textOf(b.category.path, locale)}`
+                : tList("defaultFor", { type: tList(`recordTypes.${b.recordType}`) });
               return (
                 <tr key={b.id}>
                   <td className={cellClass}>{where}</td>
@@ -140,18 +147,24 @@ export function FormBindingsPanel({ initial, forms, categories, csrfToken }: { i
           </tbody>
         </table>
       )}
-      <form className="grid gap-2 rounded-lg border border-line p-3 sm:grid-cols-3" aria-label={t("add")}
+      <form className="grid gap-2 rounded-lg border border-line p-3 sm:grid-cols-4" aria-label={t("add")}
         onSubmit={(e) => {
           e.preventDefault();
           void run(async () => {
-            await putJson("/v1/form-bindings", { recordType: "Incident", categoryId: categoryId || null, formId }, csrfToken);
+            await putJson("/v1/form-bindings", { recordType, categoryId: categoryId || null, formId }, csrfToken);
             await reload();
           });
         }}>
         <div className="space-y-1">
+          <label htmlFor={`${id}-type`} className="block font-semibold">{t("recordType")}</label>
+          <select id={`${id}-type`} value={recordType} onChange={(e) => setRecordType(e.target.value as (typeof bindableTypes)[number])} className={fieldInput}>
+            {bindableTypes.map((type) => <option key={type} value={type}>{tList(`recordTypes.${type}`)}</option>)}
+          </select>
+        </div>
+        <div className="space-y-1">
           <label htmlFor={`${id}-category`} className="block font-semibold">{t("category")}</label>
           <select id={`${id}-category`} value={categoryId} onChange={(e) => setCategoryId(e.target.value)} className={fieldInput}>
-            <option value="">{tList("defaultFor", { type: tList("recordTypes.Incident") })}</option>
+            <option value="">{tList("defaultFor", { type: tList(`recordTypes.${recordType}`) })}</option>
             {nodes.map((n) => <option key={n.id} value={n.id}>{textOf(n.path, locale) || textOf(n.name, locale)}</option>)}
           </select>
         </div>

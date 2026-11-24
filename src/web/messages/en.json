@@ -243,6 +243,10 @@
       "liveChat": {
         "title": "Live chat",
         "description": "Chat widgets for the portal and your websites, and the group that answers."
+      },
+      "customerVoice": {
+        "title": "Customer voice",
+        "description": "Anonymous messages, complaint severities and root causes, and the happiness meter."
       }
     },
     "missingWarning": "{count, plural, one {# text is} other {# texts are}} missing a translation.",
@@ -455,7 +459,12 @@
         "requests_edit": "Change the state of service requests",
         "requests_assign": "Assign service requests",
         "channels_manage": "Set up mailboxes and live chat widgets",
-        "chat_handle": "Answer live chats of their groups"
+        "chat_handle": "Answer live chats of their groups",
+        "voice_read": "See every complaint, inquiry and suggestion",
+        "voice_edit": "Work on complaints, inquiries and suggestions",
+        "voice_assign": "Assign complaints, inquiries and suggestions",
+        "voice_report": "See the customer voice and happiness report",
+        "voice_manage": "Change customer voice settings and the happiness meter"
       },
       "events": {
         "user_created": "A user was created",
@@ -1620,7 +1629,8 @@
         "catalog": "Service catalog",
         "requests": "Service requests",
         "channels": "Email and chat",
-        "chat": "Live chat"
+        "chat": "Live chat",
+        "voice": "Customer voice"
       },
       "tenant_manage": "Change the organisation's name",
       "translations_read": "See missing translations",
@@ -1655,7 +1665,12 @@
       "requests_edit": "Work on service requests",
       "requests_assign": "Assign service requests",
       "channels_manage": "Set up mailboxes and live chat widgets",
-      "chat_handle": "Answer live chats of their groups"
+      "chat_handle": "Answer live chats of their groups",
+      "voice_read": "See every complaint, inquiry and suggestion",
+      "voice_edit": "Work on complaints, inquiries and suggestions",
+      "voice_assign": "Assign complaints, inquiries and suggestions",
+      "voice_report": "See the customer voice and happiness report",
+      "voice_manage": "Change customer voice settings and the happiness meter"
     },
     "assignment": {
       "intro": "The rules are checked in order and the first that matches decides where a new ticket goes. They run when a ticket is created and when an agent chooses \"Route again\"; they never move a ticket on their own later.",
@@ -2119,7 +2134,16 @@
       "responseShort": "Response",
       "resolutionShort": "Resolution",
       "resultNone": "No policy applies: the incident would have no targets.",
-      "allDay": "around the clock"
+      "allDay": "around the clock",
+      "recordType": "Record type",
+      "anyRecordType": "Any record type",
+      "recordTypes": {
+        "Incident": "Incidents",
+        "ServiceRequest": "Service requests",
+        "Complaint": "Complaints",
+        "Inquiry": "Inquiries",
+        "Suggestion": "Suggestions"
+      }
     }
   },
   "aiApprovals": {
@@ -2174,7 +2198,14 @@
       "knowledge_review_requested": "A knowledge article is waiting for review",
       "notifications_test": "Test email",
       "incident_replied": "Staff replied on your incident",
-      "incident_mentioned": "Someone mentioned you on an incident"
+      "incident_mentioned": "Someone mentioned you on an incident",
+      "voice_received": "Your complaint, inquiry or suggestion was received",
+      "voice_replied": "Staff replied on your complaint, inquiry or suggestion",
+      "complaint_resolved": "Your complaint was resolved (please confirm)",
+      "inquiry_answered": "Your inquiry was answered",
+      "suggestion_reviewed": "Your suggestion was reviewed",
+      "voice_assigned": "A complaint, inquiry or suggestion is assigned to you",
+      "voice_queued": "A new complaint, inquiry or suggestion is in your group's queue"
     },
     "audiences": {
       "Requester": "Your incidents",
@@ -2533,7 +2564,11 @@
       },
       "defaultFor": "All {type} (default)",
       "recordTypes": {
-        "Incident": "incidents"
+        "Incident": "incidents",
+        "ServiceRequest": "service requests",
+        "Complaint": "complaints",
+        "Inquiry": "inquiries",
+        "Suggestion": "suggestions"
       },
       "createForm": "Create a form",
       "createFieldSet": "Create a field set",
@@ -2551,7 +2586,8 @@
       "remove": "Stop using a form for {where}",
       "add": "Use this form",
       "category": "Category",
-      "chooseForm": "Choose a form"
+      "chooseForm": "Choose a form",
+      "recordType": "Record type"
     },
     "details": {
       "title": "Key, name and description",
@@ -3624,6 +3660,326 @@
       "originsInvalid": "Enter website addresses such as https://www.entity.gov.ae, without paths.",
       "invalid": "Please check the name and group.",
       "failed": "That did not work. Please try again."
+    }
+  },
+  "voice": {
+    "saving": "Saving…",
+    "saved": "Saved.",
+    "failed": "That did not work. Please try again.",
+    "errors": {
+      "confirmation-pending": "A resolved complaint closes when the customer confirms the resolution, or after the auto-close period.",
+      "confirmation-not-pending": "This complaint is not waiting for a confirmation any more.",
+      "review-required": "Suggestions are resolved by their review: Implemented or Declined, with feedback.",
+      "anonymous-request": "Anonymous inquiries cannot become service requests. Ask the person to sign in and request the service.",
+      "anonymous-disabled": "Your organisation does not accept anonymous messages. Please sign in.",
+      "already-rated": "This was rated already. Thank you.",
+      "not-resolved": "It can be rated once it is resolved.",
+      "happiness-off": "The happiness meter is turned off.",
+      "ticket-not-open": "Only open records can be changed this way.",
+      "transition-not-allowed": "That state change is not allowed now.",
+      "assignee-required": "Assign it before starting work on it.",
+      "version-mismatch": "Someone else changed it meanwhile. Reload the page and try again.",
+      "validation-failed": "Some details are missing or not valid. Check the form and try again.",
+      "forbidden": "You may not do this."
+    },
+    "anonymous": "Anonymous",
+    "nobody": "Nobody",
+    "notSet": "Not set yet",
+    "reopen": "Reopen the inquiry",
+    "types": {
+      "Complaint": "Complaint",
+      "Inquiry": "Inquiry",
+      "Suggestion": "Suggestion"
+    },
+    "confirmations": {
+      "Pending": "Waiting for the customer's confirmation",
+      "Confirmed": "Confirmed by the customer",
+      "Rejected": "Rejected by the customer",
+      "NotConfirmed": "Closed without the customer's answer"
+    },
+    "reviews": {
+      "UnderReview": "Under review",
+      "Accepted": "Accepted",
+      "Implemented": "Implemented",
+      "Declined": "Declined"
+    },
+    "fields": {
+      "number": "Number",
+      "type": "Type",
+      "title": "Title",
+      "state": "State",
+      "requester": "From",
+      "assignee": "Assignee",
+      "created": "Sent",
+      "resolved": "Resolved",
+      "category": "Category",
+      "service": "Service",
+      "severity": "Severity",
+      "rootCause": "Root cause",
+      "confirmation": "Confirmation",
+      "review": "Review",
+      "convertedTo": "Converted to",
+      "convertedFrom": "Converted from",
+      "description": "Details",
+      "feedback": "Feedback",
+      "answer": "Answer",
+      "resolution": "How it was resolved"
+    },
+    "nav": {
+      "contact": "Contact us",
+      "mine": "My messages",
+      "staff": "Customer voice"
+    },
+    "progress": {
+      "heading": "Progress",
+      "stepOf": "Step {current} of {total}: {name}",
+      "received": "Received",
+      "handling": "Being handled",
+      "resolved": "Resolved",
+      "closed": "Closed",
+      "done": "Done",
+      "current": "Current step",
+      "upcoming": "Upcoming"
+    },
+    "conversation": {
+      "heading": "Conversation",
+      "empty": "No replies yet.",
+      "you": "You",
+      "internal": "Internal note",
+      "reply": "Your reply",
+      "internalNote": "Internal note (staff only)",
+      "addNote": "Add the note",
+      "send": "Send the reply"
+    },
+    "confirm": {
+      "heading": "Does this resolve your complaint?",
+      "intro": "Please confirm the resolution, or tell us why it does not settle your complaint so that we look into it again.",
+      "accept": "Yes, it is resolved",
+      "reject": "No, it is not resolved",
+      "why": "Why is it not resolved?",
+      "sendRejection": "Send",
+      "cancel": "Cancel"
+    },
+    "happiness": {
+      "thanks": "Thank you for your rating",
+      "yourRating": "You rated: {label}",
+      "comment": "Anything you would like to add (optional)",
+      "send": "Send my rating",
+      "saving": "Sending…",
+      "failed": "Your rating could not be sent. Please try again.",
+      "already": "You have already rated this. Thank you."
+    },
+    "form": {
+      "suggestions": "These articles may answer your question",
+      "sentHeading": "Thank you, we have received your message",
+      "sentIntro": "Keep this number and tracking code to follow your message. You will not see the code again.",
+      "number": "Number",
+      "code": "Tracking code",
+      "keepCode": "Write the code down or take a screenshot now.",
+      "trackLink": "Follow your message",
+      "anonymousNotice": "You are not signed in, so your message is sent anonymously. Nothing identifies you; you follow it with the number and tracking code you get next.",
+      "title": {
+        "Complaint": "What is your complaint about?",
+        "Inquiry": "What would you like to know?",
+        "Suggestion": "What do you suggest?"
+      },
+      "titleHint": "A short summary, at least 3 characters.",
+      "description": {
+        "Complaint": "What happened?",
+        "Inquiry": "More details (optional)",
+        "Suggestion": "Tell us more about your idea"
+      },
+      "category": "Category",
+      "notSure": "Not sure",
+      "send": "Send",
+      "sendAnonymously": "Send anonymously",
+      "status": {
+        "invalid": "Write a summary of at least 3 characters.",
+        "failed": "Your message could not be sent. Please try again.",
+        "rateLimited": "Too many messages in a short time. Please wait a minute, then try again.",
+        "formInvalid": "Some answers need your attention.",
+        "formChanged": "The form was changed meanwhile and has been reloaded. Check your answers and send again.",
+        "disabled": "Your organisation does not accept anonymous messages. Please sign in."
+      }
+    },
+    "work": {
+      "heading": "Work on it",
+      "assignment": "Assignment",
+      "group": "Group",
+      "noGroup": "No group",
+      "assignee": "Assignee",
+      "saveAssignment": "Save the assignment",
+      "routeAgain": "Route again",
+      "complaint": "Complaint details",
+      "chooseCause": "Choose a root cause",
+      "saveComplaint": "Save the details",
+      "changeState": "Change the state",
+      "chooseState": "Choose a state",
+      "onHoldReason": "Why is it on hold?",
+      "chooseReason": "Choose a reason",
+      "answer": "The answer",
+      "resolutionSummary": "Resolution summary",
+      "confirmationHint": "The customer is asked to confirm the resolution; without an answer the complaint closes after the auto-close period.",
+      "apply": "Apply",
+      "review": "Review",
+      "feedback": "Feedback to the submitter",
+      "feedbackHint": "Needed for Implemented and Declined, which resolve the suggestion. The submitter is told.",
+      "saveReview": "Save the review",
+      "convert": "Convert the inquiry",
+      "convertHint": "Makes a new complaint or service request for the same person and resolves the inquiry with a link to it.",
+      "convertTo": {
+        "Complaint": "To a complaint",
+        "ServiceRequest": "To a service request"
+      },
+      "chooseService": "Choose a service",
+      "convertButton": "Convert"
+    },
+    "track": {
+      "title": "Follow an anonymous message",
+      "intro": "Enter the number and tracking code you got when you sent your complaint, inquiry or suggestion.",
+      "number": "Number",
+      "code": "Tracking code",
+      "show": "Show",
+      "notFound": "No message matches this number and tracking code.",
+      "failed": "This did not work. Please try again."
+    },
+    "settings": {
+      "intro": "How people send complaints, inquiries and suggestions, how complaints are classified, and the happiness meter's scale and wording.",
+      "english": "English",
+      "arabic": "Arabic",
+      "priority": "Priority {level}",
+      "anonymousHeading": "Anonymous messages",
+      "anonymous": "Visitors may send complaints, inquiries and suggestions without signing in",
+      "anonymousHint": "They follow them with the number and a tracking code. Anonymous messages carry no name or contact details.",
+      "severities": "Complaint severities",
+      "severitiesHint": "Each severity gives its complaints a priority for the SLA policies.",
+      "severity": "Severity {level}",
+      "slaPriority": "SLA priority",
+      "inquiryPriority": "SLA priority of inquiries",
+      "suggestionPriority": "SLA priority of suggestions",
+      "rootCauses": "Root causes",
+      "rootCausesHint": "Agents choose one before resolving a complaint. Root causes in use can be made inactive but not removed.",
+      "key": "Key",
+      "active": "Can be chosen",
+      "remove": "Remove",
+      "name": "Name",
+      "addCause": "Add a root cause",
+      "happiness": "Happiness meter",
+      "happinessHint": "Word the meter to your entity's customer-happiness charter.",
+      "happinessEnabled": "Show the happiness meter",
+      "askOnClosure": "Ask when a ticket is resolved",
+      "inPortal": "Show a general rating in the portal",
+      "points": "Scale",
+      "threeFaces": "Three faces",
+      "fivePoints": "Five points",
+      "defaultLabels": "Save to get the default labels of this scale, then change them.",
+      "question": "Question about a ticket",
+      "portalQuestion": "Question of the portal rating",
+      "label": "Label of point {point}",
+      "save": "Save"
+    },
+    "contact": {
+      "title": "Contact us",
+      "intro": "Tell us about a problem with our service, ask a question, or share an idea. We answer every message.",
+      "types": {
+        "Complaint": {
+          "name": "Make a complaint",
+          "hint": "Something about our service was not right.",
+          "send": "Make a complaint",
+          "intro": "Tell us what happened. We look into every complaint and ask you to confirm when it is resolved."
+        },
+        "Inquiry": {
+          "name": "Ask a question",
+          "hint": "Find out how something works.",
+          "send": "Ask a question",
+          "intro": "Ask us anything about our services. Articles that may answer you appear as you type."
+        },
+        "Suggestion": {
+          "name": "Make a suggestion",
+          "hint": "An idea to make our services better.",
+          "send": "Make a suggestion",
+          "intro": "Share your idea. We review every suggestion and tell you what we decided."
+        }
+      },
+      "mine": "See my messages",
+      "track": "Follow an anonymous message",
+      "signInInstead": "Sign in instead, to follow your message in the portal and by email",
+      "signInToSend": "Sign in to send"
+    },
+    "mine": {
+      "title": "My messages",
+      "new": "New message",
+      "unavailable": "Your messages cannot be shown right now. Please try again later.",
+      "empty": "You have not sent any complaints, inquiries or suggestions yet.",
+      "notFound": "This message was not found.",
+      "back": "Back to my messages"
+    },
+    "staff": {
+      "title": "Customer voice",
+      "report": "Report",
+      "filters": "Filters",
+      "anyType": "Any type",
+      "anyState": "Any state",
+      "openFilter": "Show",
+      "openOnly": "Open only",
+      "all": "All",
+      "anyone": "Anyone",
+      "me": "Me",
+      "group": "Group",
+      "anyGroup": "Any group",
+      "myGroups": "My groups",
+      "noGroup": "No group",
+      "applyFilters": "Apply",
+      "unavailable": "This cannot be shown right now. Please try again later.",
+      "empty": "Nothing matches these filters.",
+      "noAccess": "You do not have access to complaints, inquiries and suggestions.",
+      "notFound": "This record was not found.",
+      "back": "Back to customer voice",
+      "rating": "Happiness rating",
+      "score": "{score} of {points}"
+    },
+    "report": {
+      "title": "Customer voice report",
+      "noAccess": "You do not have access to this report.",
+      "unavailable": "The report cannot be shown right now. Please try again later.",
+      "noRatings": "No ratings",
+      "recordTypes": {
+        "Complaint": "Complaints",
+        "Inquiry": "Inquiries",
+        "Suggestion": "Suggestions",
+        "Incident": "Incidents",
+        "ServiceRequest": "Service requests",
+        "Portal": "Portal rating"
+      },
+      "none": "Nothing in this period.",
+      "back": "Back to customer voice",
+      "intro": "Complaints, inquiries, suggestions and happiness for a period, per service and channel. The last 12 months unless you choose dates.",
+      "period": "Period",
+      "from": "From",
+      "to": "To",
+      "show": "Show",
+      "csv": "Download the monthly trend (CSV)",
+      "summary": "Summary",
+      "openResolved": "{open} open · {resolved} resolved",
+      "hoursToResolve": "{hours} hours to resolve on average",
+      "anonymousCount": "{count} anonymous",
+      "happiness": "Happiness",
+      "ratings": "{count} ratings",
+      "happinessExplained": "Happiness is the average rating as a share of the scale: the lowest face counts 0 % and the highest 100 %.",
+      "trend": "Month by month",
+      "month": "Month",
+      "ratingsColumn": "Ratings",
+      "bySeverity": "Complaints by severity",
+      "byRootCause": "Complaints by root cause",
+      "byConfirmation": "Complaint confirmations",
+      "byReview": "Suggestion reviews",
+      "byChannel": "By channel",
+      "byState": "By state",
+      "happinessBy": "Happiness by record type and channel",
+      "byRecordType": "By record type",
+      "group": "Group",
+      "byService": "By service",
+      "service": "Service"
     }
   }
 }

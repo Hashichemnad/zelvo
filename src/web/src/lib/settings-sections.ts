@@ -23,6 +23,7 @@ export interface SettingsSection {
     | "forms"
     | "fieldSets"
     | "catalog"
+    | "customerVoice"
     | "knowledge"
     | "notifications"
     | "cannedResponses"
@@ -61,6 +62,7 @@ export const settingsSections: readonly SettingsSection[] = [
   { key: "fieldSets", href: "/settings/field-sets", permission: "forms.manage" },
   // Task C2: managers build the catalog; publishers review and approve services.
   { key: "catalog", href: "/settings/catalog", permission: "catalog.manage", orPermissions: ["catalog.publish"] },
+  { key: "customerVoice", href: "/settings/customer-voice", permission: "voice.manage" },
   { key: "knowledge", href: "/settings/knowledge", permission: "settings.manage" },
   { key: "notifications", href: "/settings/notifications", permission: "notifications.manage" },
   // Task B4: everyone who works on incidents keeps their own; leads and administrators share them.

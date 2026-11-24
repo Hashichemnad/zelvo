@@ -142,14 +142,29 @@ public sealed partial class TicketAutoCloseJob(IServiceScopeFactory scopes, ILog
 
         var ids = tickets.Select(t => t.Id).ToList();
         await db.Incidents.Where(i => ids.Contains(i.TicketId)).LoadAsync(cancellationToken).ConfigureAwait(false);
+        await db.CustomerVoiceRecords.Where(v => ids.Contains(v.TicketId)).LoadAsync(cancellationToken).ConfigureAwait(false);
 
         var staff = await IncidentSearch.StaffRolesAsync(db, cancellationToken).ConfigureAwait(false);
+        IReadOnlyList<string>? voiceStaff = null;
         foreach (var ticket in tickets)
         {
             TicketWorkflow.Apply(ticket, TicketState.Closed, null, null, now);
             if (ticket.Type == TicketType.Incident)
             {
                 indexer.Upsert(IncidentSearch.Document(ticket, staff));
+            }
+            else if (ticket.Voice is { } voice)
+            {
+                // Task C6 (product owner decision 2026-11-24): a resolved complaint the customer did
+                // not answer closes after the period and is recorded as not confirmed.
+                if (voice.Confirmation == Data.Voice.ComplaintConfirmation.Pending)
+                {
+                    voice.Confirmation = Data.Voice.ComplaintConfirmation.NotConfirmed;
+                    voice.ConfirmationAt = now;
+                }
+
+                voiceStaff ??= await VoiceSearch.StaffRolesAsync(db, cancellationToken).ConfigureAwait(false);
+                indexer.Upsert(VoiceSearch.Document(ticket, voiceStaff));
             }
         }
 
@@ -341,6 +356,7 @@ public static class TicketServiceCollectionExtensions
         services.TryAddScoped<IAttachmentStore, PostgresAttachmentStore>();
         services.TryAddSingleton<IMalwareScanner, ClamAvScanner>();
         services.AddScoped<ISearchDocumentSource, IncidentSearchSource>();
+        services.AddScoped<ISearchDocumentSource, VoiceSearchSource>();
         services.TryAddScoped<Sla.SlaTracker>();
         services.TryAddScoped<IncidentIntake>();
         if (!services.Any(d => d.ImplementationType == typeof(Sla.SlaWebhookEvents)))
@@ -349,6 +365,7 @@ public static class TicketServiceCollectionExtensions
         }
 
         services.AddSearchType(IncidentSearch.Type, null);
+        services.AddSearchType(VoiceSearch.Type, null);
         return services;
     }
 

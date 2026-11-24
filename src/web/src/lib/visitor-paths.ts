@@ -15,8 +15,22 @@ export function isVisitorPath(method: string, path: string[]): boolean {
   if (area === "chat") {
     return isChatVisitorPath(method, kind, id, sub, subId);
   }
-  if (area === "settings" && kind === "knowledge" && id === undefined) {
+  if (area === "settings" && (kind === "knowledge" || kind === "customer-voice") && id === undefined) {
     return method === "GET";
+  }
+  // Task C6: anonymous complaints, inquiries and suggestions, following them with the tracking
+  // code, and the portal's happiness meter. The API decides whether the tenant allows anonymous ones.
+  if (area === "public" && kind === "customer-voice") {
+    if (method !== "POST" || subId !== undefined) {
+      return false;
+    }
+    if (id === undefined) {
+      return sub === undefined;
+    }
+    return id === "track" && (sub === undefined || sub === "comments" || sub === "confirmation" || sub === "happiness");
+  }
+  if (area === "happiness" && kind === "portal" && id === undefined) {
+    return method === "POST";
   }
   // Task C2: public catalog services, their cards and their images and document templates.
   if (area === "catalog" && kind === "published") {

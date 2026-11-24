@@ -213,6 +213,8 @@ Admins build and change the whole service catalog themselves, with a drag-and-dr
 - Inquiries: fast answer flow with knowledge suggestions; convert to a request or complaint when needed.
 - Suggestions: review states (Under review, Accepted, Implemented, Declined) with feedback to the submitter.
 - Anonymous submission option, configurable per tenant.
+- Anonymous submission (2026-11-24): complaints, inquiries and suggestions only (not service requests); the visitor gets the number and a one-time tracking code to follow status and replies in the portal.
+- Unanswered complaints (2026-11-24): a resolved complaint the customer does not confirm closes after the tenant's auto-close period and is recorded as "not confirmed by the customer"; until then the customer can reject the resolution, which reopens it.
 - *Story:* As a citizen, I want to track my complaint and be told how it was resolved, so that I trust the entity listened.
 
 ### 4. Self-service portal
@@ -576,7 +578,7 @@ These requirements make the platform ready for UAE government tenders; they are 
 | ID | Requirement | Notes |
 | --- | --- | --- |
 | GOV-1 | Login with UAE PASS for portal users and staff | Integration terms to confirm with the UAE PASS programme. Tenant settings under Settings → Sign-in → UAE PASS; see GOV-1 settings below |
-| GOV-2 | Happiness meter on ticket closure and in the portal | Rating scale and wording configurable to the entity's customer-happiness charter |
+| GOV-2 | Happiness meter on ticket closure and in the portal | Rating scale and wording configurable to the entity's customer-happiness charter. Decided 2026-11-24: three faces by default (five points as an option), asked when any of the requester's tickets is resolved, plus a general rating in the portal |
 | GOV-3 | Happiness and customer-voice reporting | Complaints, inquiries, suggestions and happiness trends per service and channel |
 | GOV-4 | Data hosted in the UAE | Each customer hosts Zelvo on its own servers or its own UAE cloud account |
 | GOV-5 | Compliance with the UAE Personal Data Protection Law and sector rules | Consent, retention periods, data subject requests, export and deletion |

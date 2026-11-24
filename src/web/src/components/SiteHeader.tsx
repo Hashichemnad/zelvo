@@ -23,6 +23,7 @@ export async function SiteHeader() {
   const tApprovals = await getTranslations("aiApprovals");
   const tChats = await getTranslations("channels.agent");
   const tCatalog = await getTranslations("catalog.nav");
+  const tVoice = await getTranslations("voice.nav");
   const config = await getRequestAuthConfig();
   const session = await getSession(config).catch(() => null);
   const user = session ? await getCurrentUser(session.data.accessToken, config.tenant) : null;
@@ -55,6 +56,11 @@ export async function SiteHeader() {
                     {tCatalog("catalog")}
                   </Link>
                 </li>
+                <li>
+                  <Link href="/contact" className="text-brand underline-offset-4 hover:underline">
+                    {tVoice("contact")}
+                  </Link>
+                </li>
                 {user && (
                   <>
                   <li>
@@ -67,6 +73,18 @@ export async function SiteHeader() {
                       {tCatalog("myRequests")}
                     </Link>
                   </li>
+                  <li>
+                    <Link href="/my-voice" className="text-brand underline-offset-4 hover:underline">
+                      {tVoice("mine")}
+                    </Link>
+                  </li>
+                  {user.permissions.includes("voice.read") && (
+                    <li>
+                      <Link href="/customer-voice" className="text-brand underline-offset-4 hover:underline">
+                        {tVoice("staff")}
+                      </Link>
+                    </li>
+                  )}
                   {user.permissions.includes("requests.read") && (
                     <li>
                       <Link href="/requests" className="text-brand underline-offset-4 hover:underline">

@@ -138,6 +138,21 @@ internal static class Permissions
 
     /// <summary>Assign service requests to groups and agents.</summary>
     public const string RequestsAssign = "requests.assign";
+
+    /// <summary>See every complaint, inquiry and suggestion (task C6). Requesters always see their own.</summary>
+    public const string VoiceRead = Zelvo.Tickets.VoicePermissions.Read;
+
+    /// <summary>Work on complaints, inquiries and suggestions: states, severity, root cause, reviews, conversions, replies and notes.</summary>
+    public const string VoiceEdit = Zelvo.Tickets.VoicePermissions.Edit;
+
+    /// <summary>Assign complaints, inquiries and suggestions to groups and agents.</summary>
+    public const string VoiceAssign = Zelvo.Tickets.VoicePermissions.Assign;
+
+    /// <summary>Happiness and customer-voice reporting (GOV-3).</summary>
+    public const string VoiceReport = Zelvo.Tickets.VoicePermissions.Report;
+
+    /// <summary>Settings → Customer voice: anonymous submission, severities, root causes and the happiness meter (GOV-2).</summary>
+    public const string VoiceManage = Zelvo.Tickets.VoicePermissions.Manage;
 }
 
 /// <summary>A field of a resource that field rules can hide or make read-only.</summary>
@@ -207,6 +222,11 @@ internal static class PermissionCatalog
         Permissions.RequestsRead,
         Permissions.RequestsEdit,
         Permissions.RequestsAssign,
+        Permissions.VoiceRead,
+        Permissions.VoiceEdit,
+        Permissions.VoiceAssign,
+        Permissions.VoiceReport,
+        Permissions.VoiceManage,
     ];
 
     /// <summary>
@@ -285,18 +305,21 @@ internal static class PermissionCatalog
         new(BuiltInRoles.Requester, new LocalizedText("Requester", "مقدّم الطلب"), [], new Dictionary<string, FieldAccess>()),
         new(BuiltInRoles.Agent, new LocalizedText("Agent", "موظف الدعم"),
             [Permissions.UsersRead, Permissions.IncidentsRead, Permissions.IncidentsCreate, Permissions.IncidentsEdit, Permissions.IncidentsAssign, Permissions.DirectoryRead,
-                Permissions.KnowledgeRead, Permissions.KnowledgeWrite, Permissions.RequestsRead, Permissions.RequestsEdit, Permissions.RequestsAssign, Permissions.ChatHandle],
+                Permissions.KnowledgeRead, Permissions.KnowledgeWrite, Permissions.RequestsRead, Permissions.RequestsEdit, Permissions.RequestsAssign, Permissions.ChatHandle,
+                Permissions.VoiceRead, Permissions.VoiceEdit, Permissions.VoiceAssign],
             new Dictionary<string, FieldAccess> { ["users.email"] = FieldAccess.Read }),
         new(BuiltInRoles.TeamLead, new LocalizedText("Team lead", "قائد الفريق"),
             [Permissions.UsersRead, Permissions.IncidentsRead, Permissions.IncidentsCreate, Permissions.IncidentsEdit, Permissions.IncidentsAssign, Permissions.IncidentsMajor, Permissions.DirectoryRead,
-                Permissions.KnowledgeRead, Permissions.KnowledgeWrite, Permissions.KnowledgePublish, Permissions.RequestsRead, Permissions.RequestsEdit, Permissions.RequestsAssign, Permissions.ChatHandle],
+                Permissions.KnowledgeRead, Permissions.KnowledgeWrite, Permissions.KnowledgePublish, Permissions.RequestsRead, Permissions.RequestsEdit, Permissions.RequestsAssign, Permissions.ChatHandle,
+                Permissions.VoiceRead, Permissions.VoiceEdit, Permissions.VoiceAssign, Permissions.VoiceReport],
             new Dictionary<string, FieldAccess> { ["users.email"] = FieldAccess.Read }),
         new(BuiltInRoles.Approver, new LocalizedText("Approver", "المعتمِد"), [], new Dictionary<string, FieldAccess>()),
         new(BuiltInRoles.TenantAdmin, new LocalizedText("Tenant administrator", "مسؤول الجهة"),
             All,
             new Dictionary<string, FieldAccess> { ["users.email"] = FieldAccess.Read, ["users.emiratesId"] = FieldAccess.Edit, ["users.phone"] = FieldAccess.Edit }),
         new(BuiltInRoles.ExecutiveAuditor, new LocalizedText("Executive / auditor", "تنفيذي / مدقق"),
-            [Permissions.AuditRead, Permissions.UsersRead, Permissions.IncidentsRead, Permissions.DirectoryRead, Permissions.KnowledgeRead, Permissions.RequestsRead],
+            [Permissions.AuditRead, Permissions.UsersRead, Permissions.IncidentsRead, Permissions.DirectoryRead, Permissions.KnowledgeRead, Permissions.RequestsRead,
+                Permissions.VoiceRead, Permissions.VoiceReport],
             new Dictionary<string, FieldAccess> { ["users.email"] = FieldAccess.Read }),
     ];
 

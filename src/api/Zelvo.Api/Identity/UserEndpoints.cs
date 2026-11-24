@@ -420,7 +420,8 @@ internal static partial class UserEndpoints
     }
 
     private static IQueryable<UserAccount> WithRoles(ZelvoDbContext db) =>
-        db.Users.Include(u => u.Roles).ThenInclude(r => r.Role).Include(u => u.Skills).ThenInclude(s => s.Skill).AsSplitQuery();
+        // Task C6: the anonymous account of anonymous submissions is not a person and is never listed or changed.
+        db.Users.Where(u => !u.Subject.StartsWith("system:")).Include(u => u.Roles).ThenInclude(r => r.Role).Include(u => u.Skills).ThenInclude(s => s.Skill).AsSplitQuery();
 
     private static bool IsTenantAdmin(UserAccount account) => account.Roles.Any(r => r.Role!.Key == BuiltInRoles.TenantAdmin);
 

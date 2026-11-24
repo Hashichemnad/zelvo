@@ -35,4 +35,19 @@ describe("visitor paths of the API proxy", () => {
     expect(isVisitorPath("GET", ["v1", "incidents"])).toBe(false);
     expect(isVisitorPath("GET", ["v2", "knowledge", "published"])).toBe(false);
   });
+
+  it("lets visitors send and follow anonymous complaints, inquiries and suggestions and rate the portal (task C6)", () => {
+    expect(isVisitorPath("GET", ["v1", "settings", "customer-voice"])).toBe(true);
+    expect(isVisitorPath("PUT", ["v1", "settings", "customer-voice"])).toBe(false);
+    expect(isVisitorPath("POST", ["v1", "public", "customer-voice"])).toBe(true);
+    expect(isVisitorPath("POST", ["v1", "public", "customer-voice", "track"])).toBe(true);
+    for (const sub of ["comments", "confirmation", "happiness"]) {
+      expect(isVisitorPath("POST", ["v1", "public", "customer-voice", "track", sub])).toBe(true);
+    }
+    expect(isVisitorPath("GET", ["v1", "public", "customer-voice", "track"])).toBe(false);
+    expect(isVisitorPath("POST", ["v1", "public", "customer-voice", "track", "other"])).toBe(false);
+    expect(isVisitorPath("POST", ["v1", "happiness", "portal"])).toBe(true);
+    expect(isVisitorPath("GET", ["v1", "customer-voice"])).toBe(false);
+    expect(isVisitorPath("POST", ["v1", "tickets", id, "happiness"])).toBe(false);
+  });
 });

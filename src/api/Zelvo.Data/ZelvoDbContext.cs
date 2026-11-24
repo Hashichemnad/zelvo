@@ -140,6 +140,12 @@ public sealed class ZelvoDbContext(DbContextOptions<ZelvoDbContext> options) : D
     /// <summary>Service details of service request tickets.</summary>
     public DbSet<ServiceRequestDetails> ServiceRequests => Set<ServiceRequestDetails>();
 
+    /// <summary>Customer voice details of complaints, inquiries and suggestions (task C6).</summary>
+    public DbSet<Voice.CustomerVoiceRecord> CustomerVoiceRecords => Set<Voice.CustomerVoiceRecord>();
+
+    /// <summary>Happiness meter answers (GOV-2, task C6).</summary>
+    public DbSet<Voice.HappinessRating> HappinessRatings => Set<Voice.HappinessRating>();
+
     /// <summary>Knowledge articles (module 7).</summary>
     public DbSet<KbArticle> KbArticles => Set<KbArticle>();
 
@@ -343,6 +349,7 @@ public sealed class ZelvoDbContext(DbContextOptions<ZelvoDbContext> options) : D
         ConfigureWorkspace(modelBuilder);
         ConfigureChannels(modelBuilder);
         ConfigureCatalog(modelBuilder);
+        ConfigureVoice(modelBuilder);
 
         modelBuilder.Entity<TenantDataKey>(key =>
         {
@@ -683,6 +690,61 @@ public sealed class ZelvoDbContext(DbContextOptions<ZelvoDbContext> options) : D
         });
     }
 
+    private static void ConfigureVoice(ModelBuilder modelBuilder)
+    {
+        modelBuilder.Entity<Voice.CustomerVoiceRecord>(voice =>
+        {
+            voice.ToTable("customer_voice_records", table =>
+            {
+                table.HasCheckConstraint("ck_customer_voice_records_priority", "priority BETWEEN 1 AND 5");
+                table.HasCheckConstraint("ck_customer_voice_records_severity", "severity IS NULL OR severity BETWEEN 1 AND 3");
+                table.HasCheckConstraint("ck_customer_voice_records_confirmation", EnumCheck("confirmation", Enum.GetNames<Voice.ComplaintConfirmation>()));
+                table.HasCheckConstraint("ck_customer_voice_records_review", EnumCheck("review", Enum.GetNames<Voice.SuggestionReview>()));
+                table.HasCheckConstraint("ck_customer_voice_records_tracking", "anonymous = (tracking_code_hash IS NOT NULL)");
+                table.HasCheckConstraint("ck_customer_voice_records_tracking_hash", "tracking_code_hash IS NULL OR tracking_code_hash ~ '^[0-9a-f]{64}$'");
+            });
+            voice.HasKey(v => v.TicketId);
+            voice.HasOne<Tenant>().WithMany().HasForeignKey(v => v.TenantId).OnDelete(DeleteBehavior.Restrict);
+            voice.Property(v => v.RootCauseKey).HasMaxLength(Voice.CustomerVoiceRecord.KeyMaxLength);
+            voice.Property(v => v.Confirmation).HasConversion<string>().HasMaxLength(20);
+            voice.Property(v => v.Review).HasConversion<string>().HasMaxLength(20);
+            voice.Property(v => v.ConfirmationComment).HasMaxLength(Voice.CustomerVoiceRecord.TextMaxLength);
+            voice.Property(v => v.ReviewFeedback).HasMaxLength(Voice.CustomerVoiceRecord.TextMaxLength);
+            voice.Property(v => v.TrackingCodeHash).HasMaxLength(64);
+            // NO ACTION, so a tenant's tickets can be deleted together.
+            voice.HasOne<Ticket>().WithMany().HasForeignKey(v => v.ConvertedToId).OnDelete(DeleteBehavior.NoAction);
+            voice.HasOne<CatalogService>().WithMany().HasForeignKey(v => v.ServiceId).OnDelete(DeleteBehavior.SetNull);
+            voice.HasIndex(v => v.ConvertedToId);
+            voice.HasIndex(v => new { v.TenantId, v.ServiceId });
+        });
+
+        modelBuilder.Entity<Voice.HappinessRating>(rating =>
+        {
+            rating.ToTable("happiness_ratings", table =>
+            {
+                table.HasCheckConstraint("ck_happiness_ratings_points", "points IN (3, 5)");
+                table.HasCheckConstraint("ck_happiness_ratings_score", "score BETWEEN 1 AND points");
+                table.HasCheckConstraint("ck_happiness_ratings_record_type", EnumCheck("record_type", Enum.GetNames<TicketType>()));
+                table.HasCheckConstraint("ck_happiness_ratings_channel", EnumCheck("channel", Enum.GetNames<TicketChannel>()));
+                table.HasCheckConstraint("ck_happiness_ratings_device_hash", "device_hash IS NULL OR device_hash ~ '^[0-9a-f]{64}$'");
+            });
+            rating.HasKey(r => r.Id);
+            rating.Property(r => r.Id).ValueGeneratedNever();
+            rating.HasOne<Tenant>().WithMany().HasForeignKey(r => r.TenantId).OnDelete(DeleteBehavior.Restrict);
+            rating.HasOne<Ticket>().WithMany().HasForeignKey(r => r.TicketId).OnDelete(DeleteBehavior.Cascade);
+            rating.HasOne<UserAccount>().WithMany().HasForeignKey(r => r.UserId).OnDelete(DeleteBehavior.SetNull);
+            rating.HasOne<CatalogService>().WithMany().HasForeignKey(r => r.ServiceId).OnDelete(DeleteBehavior.SetNull);
+            rating.Property(r => r.RecordType).HasConversion<string>().HasMaxLength(30);
+            rating.Property(r => r.Channel).HasConversion<string>().HasMaxLength(20);
+            rating.Property(r => r.DeviceHash).HasMaxLength(64);
+            rating.Property(r => r.Comment).HasMaxLength(Voice.HappinessRating.CommentMaxLength);
+            rating.HasIndex(r => r.TicketId).IsUnique().HasFilter("ticket_id IS NOT NULL");
+            rating.HasIndex(r => new { r.TenantId, r.CreatedAt });
+            rating.HasIndex(r => r.UserId);
+            rating.HasIndex(r => r.ServiceId);
+        });
+    }
+
     private static void ConfigureTree<TNode>(Microsoft.EntityFrameworkCore.Metadata.Builders.EntityTypeBuilder<TNode> node, string table)
         where TNode : TreeNode
     {
@@ -735,6 +797,7 @@ public sealed class ZelvoDbContext(DbContextOptions<ZelvoDbContext> options) : D
             ticket.HasOne<Ticket>().WithMany().HasForeignKey(t => t.ParentId).OnDelete(DeleteBehavior.NoAction);
             ticket.HasOne<Ticket>().WithMany().HasForeignKey(t => t.FollowUpOfId).OnDelete(DeleteBehavior.NoAction);
             ticket.HasOne(t => t.Incident).WithOne().HasForeignKey<Incident>(i => i.TicketId).OnDelete(DeleteBehavior.Cascade);
+            ticket.HasOne(t => t.Voice).WithOne().HasForeignKey<Voice.CustomerVoiceRecord>(v => v.TicketId).OnDelete(DeleteBehavior.Cascade);
             ticket.HasIndex(t => new { t.TenantId, t.Number }).IsUnique();
             ticket.HasIndex(t => new { t.TenantId, t.Type, t.Sequence }).IsUnique();
             ticket.HasIndex(t => new { t.TenantId, t.RequesterId, t.CreatedAt });
