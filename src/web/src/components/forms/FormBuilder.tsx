@@ -51,12 +51,14 @@ interface Item {
 }
 
 let counter = 0;
-const uid = () => `el-${Date.now().toString(36)}-${(counter++).toString(36)}`;
+/** Ids of elements added in the browser (never rendered on the server). */
+const uid = () => `el-new-${(counter++).toString(36)}`;
 
-function toItems(kind: FormBuilderProps["kind"], detail: FormDetail | FieldSetDetail): Item[] {
+/** Ids of the elements loaded with the page: stable, so the server and the browser render the same. */
+function toItems(kind: FormBuilderProps["kind"], detail: FormDetail | FieldSetDetail, prefix = "el"): Item[] {
   const elements: FormElement[] =
     kind === "form" ? ((detail as FormDetail).draft?.elements ?? []) : ((detail as FieldSetDetail).draft?.fields ?? []).map((field) => ({ type: "Field", field }));
-  return elements.map((element) => ({ uid: uid(), element }));
+  return elements.map((element, index) => ({ uid: `${prefix}-${index}`, element }));
 }
 
 /** A key not used yet, from the type: text1, text2, … */
@@ -263,7 +265,7 @@ export function FormBuilder({ kind, initial, csrfToken, fieldSets, locations, pr
     try {
       const reset = await postJson<FormDetail>(`${base}/${detail.id}/discard`, undefined, csrfToken);
       setDetail(reset);
-      setItems(toItems(kind, reset));
+      setItems(toItems(kind, reset, uid()));
       setProblems(reset.problems);
       setDirty(false);
       setStatus({ kind: "saved" });
@@ -317,7 +319,7 @@ export function FormBuilder({ kind, initial, csrfToken, fieldSets, locations, pr
       )}
 
       {view === "build" ? (
-        <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={onDragEnd}
+        <DndContext id={`${id}-dnd`} sensors={sensors} collisionDetection={closestCenter} onDragEnd={onDragEnd}
           accessibility={{ announcements, screenReaderInstructions: { draggable: t("dndInstructions") } }}>
           <div className="grid gap-4 lg:grid-cols-[14rem_minmax(0,1fr)_minmax(0,24rem)]">
             <aside aria-labelledby={`${id}-palette`} className="space-y-3">
