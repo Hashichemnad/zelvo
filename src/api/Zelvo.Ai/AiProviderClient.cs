@@ -154,7 +154,7 @@ public sealed class AiProviderClient : IDisposable
             return [];
         }
 
-        var json = await SendAsync(HttpMethod.Get, url, connection, null, cancellationToken).ConfigureAwait(false);
+        var json = await SendAsync(HttpMethod.Get, url, connection, (JsonObject?)null, cancellationToken).ConfigureAwait(false);
         var models = connection.Kind == AiProviderKind.Gemini
             ? (json["models"] as JsonArray ?? [])
                 .Where(m => (m?["supportedGenerationMethods"] as JsonArray)?.Any(x => (string?)x == "generateContent") ?? true)
@@ -166,13 +166,59 @@ public sealed class AiProviderClient : IDisposable
     /// <inheritdoc />
     public void Dispose() => _http.Dispose();
 
-    private async Task<JsonNode> SendAsync(HttpMethod method, Uri url, AiProviderConnection connection, JsonObject? body, CancellationToken cancellationToken)
+    private Task<JsonNode> SendAsync(HttpMethod method, Uri url, AiProviderConnection connection, JsonObject? body, CancellationToken cancellationToken) =>
+        SendAsync(method, url, connection, body is null ? null : new StringContent(body.ToJsonString(), Encoding.UTF8, "application/json"), cancellationToken);
+
+    /// <summary>
+    /// Task E3: what is said in a voice note. OpenAI, Azure OpenAI and OpenAI-compatible servers
+    /// (for example a self-hosted Whisper) use <c>audio/transcriptions</c>; Gemini hears the audio in
+    /// <c>generateContent</c>. Anthropic's API does not take audio.
+    /// </summary>
+    public async Task<AiProviderResponse> TranscribeAsync(AiProviderConnection connection, string model, byte[] audio, string contentType, string instructions, CancellationToken cancellationToken)
     {
-        using var request = new HttpRequestMessage(method, url);
-        if (body is not null)
+        ArgumentNullException.ThrowIfNull(connection);
+        ArgumentNullException.ThrowIfNull(audio);
+        if (connection.Kind == AiProviderKind.Anthropic)
         {
-            request.Content = new StringContent(body.ToJsonString(), Encoding.UTF8, "application/json");
+            throw new AiProviderException("not-supported", "This provider does not transcribe audio. Choose OpenAI, Azure OpenAI, Gemini or an OpenAI-compatible server.");
         }
+
+        if (connection.Kind == AiProviderKind.Gemini)
+        {
+            var body = new JsonObject
+            {
+                ["contents"] = new JsonArray(new JsonObject
+                {
+                    ["role"] = "user",
+                    ["parts"] = new JsonArray(
+                        new JsonObject { ["text"] = instructions },
+                        new JsonObject { ["inline_data"] = new JsonObject { ["mime_type"] = contentType, ["data"] = Convert.ToBase64String(audio) } }),
+                }),
+            };
+            return ParseGemini(await SendAsync(HttpMethod.Post, Combine(connection.Endpoint ?? GeminiEndpoint, $"models/{Uri.EscapeDataString(model)}:generateContent"),
+                connection, body, cancellationToken).ConfigureAwait(false));
+        }
+
+        var url = connection.Kind switch
+        {
+            AiProviderKind.AzureOpenAI => AzureUrl(connection, model, "audio/transcriptions"),
+            AiProviderKind.OpenAI => Combine(connection.Endpoint ?? OpenAIEndpoint, "audio/transcriptions"),
+            _ => Combine(RequireEndpoint(connection), "audio/transcriptions"),
+        };
+        var form = new MultipartFormDataContent();
+        var file = new ByteArrayContent(audio);
+        file.Headers.ContentType = new MediaTypeHeaderValue(contentType.Split(';')[0].Trim());
+        form.Add(file, "file", "voice-note" + contentType.Split(';')[0].Trim() switch { "audio/ogg" => ".ogg", "audio/mpeg" => ".mp3", "audio/mp4" => ".m4a", "audio/wav" => ".wav", _ => ".ogg" });
+        form.Add(new StringContent(model), "model");
+        form.Add(new StringContent("json"), "response_format");
+        form.Add(new StringContent(instructions), "prompt");
+        var json = await SendAsync(HttpMethod.Post, url, connection, form, cancellationToken).ConfigureAwait(false);
+        return Answer((string?)json["text"], Int(json["usage"]?["input_tokens"]), Int(json["usage"]?["output_tokens"]), false);
+    }
+
+    private async Task<JsonNode> SendAsync(HttpMethod method, Uri url, AiProviderConnection connection, HttpContent? content, CancellationToken cancellationToken)
+    {
+        using var request = new HttpRequestMessage(method, url) { Content = content };
 
         Authenticate(request, connection);
         using var timeout = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);

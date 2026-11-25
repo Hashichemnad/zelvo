@@ -259,7 +259,7 @@ internal static class NotificationEndpoints
 
         var current = new Dictionary<string, EventSetting>(await store.GetAsync(Events, cancellationToken), StringComparer.Ordinal)
         {
-            [definition.Type] = new EventSetting(request.Enabled, request.Email),
+            [definition.Type] = new EventSetting(request.Enabled, request.Email, request.Messaging ?? true),
         };
         await store.SetAsync<IReadOnlyDictionary<string, EventSetting>>(Events, current, cancellationToken);
         await db.SaveChangesAsync(cancellationToken);
@@ -523,9 +523,10 @@ internal sealed record NotificationTemplateDto(LocalizedTextDto Subject, Localiz
 /// <param name="Customised">Whether the tenant has its own wording.</param>
 /// <param name="Template">The tenant's wording, or <see langword="null"/> when it uses Zelvo's.</param>
 /// <param name="Default">Zelvo's default wording.</param>
+/// <param name="Messaging">Task E3: whether it also goes by WhatsApp, SMS and Teams.</param>
 internal sealed record NotificationEventResponse(
     string EventType, NotificationAudience Audience, bool EmailOptional, bool Enabled, bool Email, IReadOnlyList<string> Placeholders,
-    bool Customised, NotificationTemplateDto? Template, NotificationTemplateDto Default)
+    bool Customised, NotificationTemplateDto? Template, NotificationTemplateDto Default, bool Messaging = true)
 {
     public static NotificationEventResponse From(NotificationEventDefinition definition, IReadOnlyDictionary<string, EventSetting> settings, NotificationTemplate? row)
     {
@@ -538,7 +539,7 @@ internal sealed record NotificationEventResponse(
             ? null
             : new NotificationTemplateDto(LocalizedTextDto.From(row.Subject), LocalizedTextDto.From(row.Body), LocalizedTextDto.From(row.InApp), LocalizedTextDto.From(row.Action));
         return new(definition.Type, definition.Audience, definition.EmailOptional, setting.Enabled, setting.Email, definition.AllPlaceholders,
-            row is not null, template, defaults);
+            row is not null, template, defaults, setting.Messaging);
     }
 }
 
@@ -550,6 +551,9 @@ public sealed class UpdateNotificationEventRequest
 
     /// <summary>Whether it also sends email.</summary>
     public bool Email { get; init; }
+
+    /// <summary>Task E3: whether it also goes by WhatsApp, SMS and Teams to people who chose them (on when left out).</summary>
+    public bool? Messaging { get; init; }
 }
 
 /// <summary>One field of a template in both languages (either may be empty).</summary>

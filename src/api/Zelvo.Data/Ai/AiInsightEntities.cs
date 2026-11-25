@@ -14,6 +14,9 @@ public enum AiJobKind
 
     /// <summary>Look for open incidents about the same problem.</summary>
     Duplicates,
+
+    /// <summary>Transcribe a voice note (task E3).</summary>
+    Transcription,
 }
 
 /// <summary>Where an AI job is.</summary>

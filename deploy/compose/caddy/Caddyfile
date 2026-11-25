@@ -15,11 +15,28 @@
 	}
 }
 
+# Task E3: incoming messages from WhatsApp (Meta), SMS gateways (Twilio and others), Microsoft
+# Teams and, from E7, monitoring alerts reach the API at /hooks/{tenant}/... with the raw body,
+# so the providers' signatures can be checked. The tenant comes from the path and replaces any
+# X-Zelvo-Tenant the caller sent; everything else still goes to the web app only.
+(zelvo_hooks) {
+	@hooks path_regexp hooks ^/hooks/([a-z0-9][a-z0-9-]{0,62})/(.+)$
+	handle @hooks {
+		rewrite * /api/v1/hooks/{re.hooks.2}?{query}
+		reverse_proxy api:8080 {
+			header_up X-Zelvo-Tenant {re.hooks.1}
+		}
+	}
+}
+
 # The installation's own address. Development uses Caddy's internal certificate authority.
 {$ZELVO_PUBLIC_HOST:localhost} {
 	tls {$ZELVO_PUBLIC_TLS:internal}
 	encode zstd gzip
-	reverse_proxy web:3000
+	import zelvo_hooks
+	handle {
+		reverse_proxy web:3000
+	}
 }
 
 # Tenants' custom domains.
@@ -29,5 +46,8 @@ https:// {
 		on_demand
 	}
 	encode zstd gzip
-	reverse_proxy web:3000
+	import zelvo_hooks
+	handle {
+		reverse_proxy web:3000
+	}
 }

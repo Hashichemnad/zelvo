@@ -89,6 +89,12 @@ public sealed class Ticket : ITenantOwned, IAuditedEntity
     /// <summary>The mailbox the ticket came in through (task E2); staff replies go out from it by email.</summary>
     public Guid? MailboxId { get; set; }
 
+    /// <summary>
+    /// The WhatsApp, SMS or Teams conversation the ticket came in through (task E3); the
+    /// requester's updates and staff replies go back through it.
+    /// </summary>
+    public Guid? MessagingContactId { get; set; }
+
     /// <summary>Parent ticket; children are resolved with it.</summary>
     public Guid? ParentId { get; set; }
 
@@ -213,6 +219,12 @@ public enum TicketChannel
 
     /// <summary>Phone call, logged by an agent.</summary>
     Phone,
+
+    /// <summary>A text message through an SMS gateway (task E3).</summary>
+    Sms,
+
+    /// <summary>Microsoft Teams (task E3).</summary>
+    Teams,
 
     /// <summary>An integration, through the API.</summary>
     Api,

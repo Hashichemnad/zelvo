@@ -29,7 +29,7 @@ namespace Zelvo.Data;
 /// PostgreSQL row-level security limits every query to the tenant set by
 /// <see cref="TenantConnectionInterceptor"/>. Schema changes are made only through migrations.
 /// </summary>
-public sealed class ZelvoDbContext(DbContextOptions<ZelvoDbContext> options) : DbContext(options)
+public sealed partial class ZelvoDbContext(DbContextOptions<ZelvoDbContext> options) : DbContext(options)
 {
     /// <summary>Tenants. The application role sees only the current tenant.</summary>
     public DbSet<Tenant> Tenants => Set<Tenant>();
@@ -417,6 +417,7 @@ public sealed class ZelvoDbContext(DbContextOptions<ZelvoDbContext> options) : D
         ConfigureChannels(modelBuilder);
         ConfigureCatalog(modelBuilder);
         ConfigureVoice(modelBuilder);
+        ConfigureMessaging(modelBuilder);
 
         modelBuilder.Entity<TenantDataKey>(key =>
         {

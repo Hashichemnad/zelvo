@@ -22,11 +22,15 @@ export interface Comment {
   cannedResponseId: string | null;
   createdAt: string;
   /** Task E2: written in Zelvo, by email, or in a live chat (its transcript). */
-  source?: "Web" | "Email" | "Chat";
+  source?: "Web" | "Email" | "Chat" | "WhatsApp" | "Sms" | "Teams";
   /** Task E2: files that came with an email. */
   attachments?: { id: string; fileName: string }[];
   /** Task E2, staff only: how the email of a staff reply from the ticket's mailbox went. */
   emailDelivery?: "Pending" | "Sent" | "Failed" | null;
+  /** Task E3: a WhatsApp voice note, with what the AI heard when transcription is on. */
+  voiceNote?: { attachmentId: string; status: "Pending" | "Done" | "Failed" | "Off"; transcript: string | null; language: "en" | "ar" | null } | null;
+  /** Task E3, staff only: how a staff reply went out by WhatsApp, SMS or Teams. */
+  messageDelivery?: "Pending" | "Sent" | "Delivered" | "Read" | "Failed" | null;
 }
 
 export type WorkspaceScope = "Personal" | "Group" | "Tenant";

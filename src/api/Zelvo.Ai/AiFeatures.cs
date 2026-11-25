@@ -34,8 +34,15 @@ public static class AiFeatures
     /// <summary>Not a feature: the test button of Settings → AI. Recorded in usage like any call.</summary>
     public const string Test = "test";
 
+    /// <summary>
+    /// Task E3: transcribe WhatsApp voice notes. Off by default; the audio goes to the provider
+    /// unmasked (it cannot be masked), the transcript is masked like any text for later AI use
+    /// (product owner decision 2026-11-25). Not available with Anthropic (no audio input).
+    /// </summary>
+    public const string Transcription = "transcription";
+
     /// <summary>Every feature, in the order Settings shows them.</summary>
-    public static IReadOnlyList<string> All { get; } = [Triage, Summary, Reply, Translation, Duplicates, Sentiment, VirtualAgent, ArticleDrafts];
+    public static IReadOnlyList<string> All { get; } = [Triage, Summary, Reply, Translation, Duplicates, Sentiment, VirtualAgent, ArticleDrafts, Transcription];
 
     /// <summary>Whether <paramref name="key"/> is a feature of <see cref="All"/>.</summary>
     public static bool IsFeature(string? key) => key is not null && All.Contains(key, StringComparer.Ordinal);

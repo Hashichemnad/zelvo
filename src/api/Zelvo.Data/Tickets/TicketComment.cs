@@ -63,6 +63,12 @@ public sealed class TicketComment : ITenantOwned, IAuditedEntity
     /// <summary>The live chat it was written in, when a chat's transcript was added to the ticket (plain id, as <see cref="MailboxId"/>).</summary>
     public Guid? ChatSessionId { get; init; }
 
+    /// <summary>
+    /// Task E3: the WhatsApp, SMS or Teams channel it came in through, or a staff reply goes out
+    /// through (plain id, as <see cref="MailboxId"/>).
+    /// </summary>
+    public Guid? MessagingChannelId { get; init; }
+
     /// <summary>Maximum length of <see cref="EmailMessageId"/> and <see cref="EmailInReplyTo"/>.</summary>
     public const int MessageIdMaxLength = 500;
 
@@ -81,6 +87,15 @@ public enum CommentSource
 
     /// <summary>A live chat, added to the ticket as its transcript.</summary>
     Chat,
+
+    /// <summary>A WhatsApp message (task E3).</summary>
+    WhatsApp,
+
+    /// <summary>A text message (task E3).</summary>
+    Sms,
+
+    /// <summary>A Microsoft Teams message (task E3).</summary>
+    Teams,
 }
 
 /// <summary>Who may read a comment.</summary>

@@ -29,7 +29,9 @@ internal sealed partial class ZelvoBearerHandler(
     protected override async Task<AuthenticateResult> HandleAuthenticateAsync()
     {
         var header = Request.Headers.Authorization.ToString();
-        if (!header.StartsWith("Bearer ", StringComparison.OrdinalIgnoreCase))
+        // Task E3: providers' webhooks carry their own proof (Teams sends a Bot Framework token),
+        // checked by the webhook itself; they are never a Zelvo sign-in.
+        if (!header.StartsWith("Bearer ", StringComparison.OrdinalIgnoreCase) || Request.Path.StartsWithSegments("/api/v1/hooks", StringComparison.OrdinalIgnoreCase))
         {
             return AuthenticateResult.NoResult();
         }

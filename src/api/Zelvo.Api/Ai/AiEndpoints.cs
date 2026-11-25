@@ -356,6 +356,12 @@ internal static class AiEndpoints
             {
                 return UserEndpoints.Validation("providerId", "Choose one of the tenant's AI providers.");
             }
+
+            // Task E3: Anthropic's API takes no audio.
+            if (feature == AiFeatures.Transcription && provider.Kind == AiProviderKind.Anthropic)
+            {
+                return UserEndpoints.Validation("providerId", "This provider does not transcribe audio. Choose OpenAI, Azure OpenAI, Gemini or an OpenAI-compatible server.");
+            }
         }
 
         if (request.Enabled == true && (provider is null || model is null))

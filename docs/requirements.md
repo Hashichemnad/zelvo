@@ -204,7 +204,7 @@ Admins build and change the whole service catalog themselves, with a drag-and-dr
   - *Before assignment* — the request goes to agents only after approval (for example, manager or budget approval).
   - *After fulfilment* — the agent's completed work is checked and signed off before the request closes (for example, quality or supervisor sign-off).
   - Approvals can be single, multi-level, parallel, or chosen by role, amount or form answer; approve from email, Teams, WhatsApp or the portal; rejection returns the request with a reason.
-  - Approvals in Phase 1 task C3 (2026-11-24): run on the embedded Elsa engine (confirmed by the C3 spike). The email's Approve and Reject buttons open the approval in Zelvo with the choice made; the approver signs in and confirms. A request rejected before assignment is closed with the reason; a rejected sign-off after fulfilment goes back to the assignee with the reason. Teams and WhatsApp approvals come with task E3.
+  - Approvals in Phase 1 task C3 (2026-11-24): run on the embedded Elsa engine (confirmed by the C3 spike). The email's Approve and Reject buttons open the approval in Zelvo with the choice made; the approver signs in and confirms. A request rejected before assignment is closed with the reason; a rejected sign-off after fulfilment goes back to the assignee with the reason. Teams and WhatsApp approvals come with task E3: Teams buttons decide in Teams for the linked person; WhatsApp and SMS carry the two links of the email (2026-11-25).
 - **Fulfilment tasks:** each service has its own task template, assigned to one or more teams in sequence or in parallel, each task with its own target time.
 - Fulfilment in Phase 1 task C4 (2026-11-24): the ownership SLA stops when an agent starts work (In progress or a public reply; round-robin assignment alone does not count). The default completion SLA is due at the end of the service's Nth working day after submission on the business calendar. When every task is done the request resolves (after its sign-off, if any); agents can still resolve by hand and open tasks are then cancelled. Requesters hear when a request is received, waits for them, is completed or closed; staff when a request or task is assigned to them or arrives in their group.
 - *Story:* As an employee, I want to request a new laptop from a catalog with my manager's approval routed automatically, so that I don't chase anyone.
@@ -247,6 +247,13 @@ Admins build and change the whole service catalog themselves, with a drag-and-dr
 - Microsoft Teams: raise tickets and approve requests.
 - REST API and webhooks for any other channel.
 - *Story:* As a customer, I want to send a WhatsApp message and get a ticket number back, so that I can use the app I already have.
+
+**WhatsApp, SMS and Teams settings** (product owner decisions 2026-11-25, task E3):
+
+1. **WhatsApp** through Meta's **WhatsApp Cloud API** (incoming messages by a webhook Meta signs, so the installation needs a public HTTPS address). Messages more than 24 hours after the person last wrote use **templates Meta approved**, which the administrator maps to each notification event and language.
+2. **Approvals:** **Teams buttons decide in Teams**, because Microsoft signs each action with the person's Entra identity, linked to the Zelvo account once; **WhatsApp (and SMS) buttons open the approval in Zelvo** like the email, because a phone number is not a sign-in.
+3. **Voice notes:** transcription is its **own AI feature, off by default**, with its own provider and model (OpenAI, Azure OpenAI, Gemini or an OpenAI-compatible server such as self-hosted Whisper). The audio is sent unmasked (audio cannot be masked; Settings says so); the transcript is masked for later AI use. Without it, the voice note is attached to the ticket.
+4. **SMS gateways:** **Twilio** plus a **generic HTTP gateway** set up on screen (works with e&, du, Unifonic, Infobip and others); outgoing notifications, and incoming text messages as ticket updates.
 
 **Email and live chat settings** (product owner decisions 2026-11-24, task E2):
 

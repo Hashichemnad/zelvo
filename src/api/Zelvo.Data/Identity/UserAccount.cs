@@ -104,6 +104,15 @@ public sealed class UserAccount : ITenantOwned, IAuditedEntity
     [SensitiveData]
     public string? Phone { get; set; }
 
+    /// <summary>Task E3: notifications also go by WhatsApp to <see cref="Phone"/> (the person opts in).</summary>
+    public bool NotifyWhatsApp { get; set; }
+
+    /// <summary>Task E3: notifications also go by SMS to <see cref="Phone"/> (the person opts in).</summary>
+    public bool NotifySms { get; set; }
+
+    /// <summary>Task E3: notifications also go to Microsoft Teams once the person has used the tenant's Teams app.</summary>
+    public bool NotifyTeams { get; set; } = true;
+
     /// <summary>Optimistic concurrency token (PostgreSQL <c>xmin</c>).</summary>
     public uint Version { get; init; }
 }

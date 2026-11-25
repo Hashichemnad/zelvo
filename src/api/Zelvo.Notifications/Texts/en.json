@@ -60,7 +60,20 @@
     "ticket.state.Reopened": "Reopened",
     "request.tasks-done": "All tasks are done: {tasks}.",
     "request.bundle-done": "All parts of the bundle are complete: {parts}.",
-    "payment.expired-note": "Closed: the fee was not paid in time."
+    "payment.expired-note": "Closed: the fee was not paid in time.",
+    "approval.approve": "Approve",
+    "approval.reason": "Reason (needed to reject)",
+    "approval.open": "Open the approval",
+    "teams.welcome": "Welcome. Send a message here to raise a ticket. To add to one of your tickets, start the message with its number, for example {number}.",
+    "teams.approved": "Your approval of {number} is recorded.",
+    "teams.rejected": "Your rejection of {number} is recorded with your reason.",
+    "teams.reason-required": "Please enter the reason before you reject.",
+    "teams.already-decided": "This approval has already been decided or is no longer needed.",
+    "teams.not-allowed": "This approval is not yours to decide.",
+    "teams.not-linked": "Your Teams account is not linked to an account of {tenant}. Please contact your administrator.",
+    "messaging.test": "This is a test message from your service desk.",
+    "teams.app.short": "Raise tickets, follow them and decide approvals.",
+    "teams.app.full": "Raise tickets by sending a message, receive updates on your tickets and decide the approvals you are asked for, all in Microsoft Teams."
   },
   "templates": {
     "incident.received": {

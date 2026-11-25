@@ -22,6 +22,8 @@ internal static class ChannelsSetup
     {
         group.MapMailboxEndpoints();
         group.MapChatEndpoints();
+        group.MapMessagingEndpoints();
+        group.MapMessagingHooks();
         return group;
     }
 }

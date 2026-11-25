@@ -357,7 +357,7 @@ namespace Zelvo.Data.Migrations
 
                     b.ToTable("ai_jobs", null, t =>
                         {
-                            t.HasCheckConstraint("ck_ai_jobs_kind", "kind IN ('Triage', 'Sentiment', 'Duplicates')");
+                            t.HasCheckConstraint("ck_ai_jobs_kind", "kind IN ('Triage', 'Sentiment', 'Duplicates', 'Transcription')");
 
                             t.HasCheckConstraint("ck_ai_jobs_status", "status IN ('Pending', 'Done', 'Failed')");
                         });
@@ -1982,6 +1982,150 @@ namespace Zelvo.Data.Migrations
                         });
                 });
 
+            modelBuilder.Entity("Zelvo.Data.Channels.ChannelMessage", b =>
+                {
+                    b.Property<long>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bigint")
+                        .HasColumnName("id");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityAlwaysColumn(b.Property<long>("Id"));
+
+                    b.Property<string>("Address")
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)")
+                        .HasColumnName("address");
+
+                    b.Property<Guid?>("ApprovalDecisionId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("approval_decision_id");
+
+                    b.Property<int>("Attempts")
+                        .HasColumnType("integer")
+                        .HasColumnName("attempts");
+
+                    b.Property<Guid>("ChannelId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("channel_id");
+
+                    b.Property<Guid?>("CommentId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("comment_id");
+
+                    b.Property<Guid?>("ContactId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("contact_id");
+
+                    b.Property<DateTimeOffset>("CreatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("created_at");
+
+                    b.Property<string>("Direction")
+                        .IsRequired()
+                        .HasMaxLength(10)
+                        .HasColumnType("character varying(10)")
+                        .HasColumnName("direction");
+
+                    b.Property<string>("Kind")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("character varying(20)")
+                        .HasColumnName("kind");
+
+                    b.Property<string>("Language")
+                        .HasMaxLength(2)
+                        .HasColumnType("character varying(2)")
+                        .HasColumnName("language");
+
+                    b.Property<DateTimeOffset?>("LeaseUntil")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("lease_until");
+
+                    b.Property<DateTimeOffset?>("NextAttemptAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("next_attempt_at");
+
+                    b.Property<Guid?>("NotificationId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("notification_id");
+
+                    b.Property<string>("Payload")
+                        .HasColumnType("jsonb")
+                        .HasColumnName("payload");
+
+                    b.Property<string>("ProviderMessageId")
+                        .HasMaxLength(300)
+                        .HasColumnType("character varying(300)")
+                        .HasColumnName("provider_message_id");
+
+                    b.Property<string>("Reason")
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)")
+                        .HasColumnName("reason");
+
+                    b.Property<DateTimeOffset?>("SentAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("sent_at");
+
+                    b.Property<string>("Status")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("character varying(20)")
+                        .HasColumnName("status");
+
+                    b.Property<Guid>("TenantId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("tenant_id");
+
+                    b.Property<string>("Text")
+                        .HasMaxLength(4096)
+                        .HasColumnType("character varying(4096)")
+                        .HasColumnName("text");
+
+                    b.Property<Guid?>("TicketId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("ticket_id");
+
+                    b.HasKey("Id")
+                        .HasName("pk_channel_messages");
+
+                    b.HasIndex("CommentId")
+                        .HasDatabaseName("ix_channel_messages_comment_id");
+
+                    b.HasIndex("ContactId")
+                        .HasDatabaseName("ix_channel_messages_contact_id");
+
+                    b.HasIndex("TicketId")
+                        .HasDatabaseName("ix_channel_messages_ticket_id");
+
+                    b.HasIndex("ChannelId", "ProviderMessageId")
+                        .IsUnique()
+                        .HasDatabaseName("ix_channel_messages_channel_id_provider_message_id_out")
+                        .HasFilter("direction = 'Out' AND provider_message_id IS NOT NULL");
+
+                    b.HasIndex("NotificationId", "ChannelId")
+                        .IsUnique()
+                        .HasDatabaseName("ix_channel_messages_notification_id_channel_id")
+                        .HasFilter("notification_id IS NOT NULL");
+
+                    b.HasIndex("TenantId", "ChannelId", "CreatedAt")
+                        .HasDatabaseName("ix_channel_messages_tenant_id_channel_id_created_at");
+
+                    b.HasIndex("TenantId", "Status", "NextAttemptAt")
+                        .HasDatabaseName("ix_channel_messages_tenant_id_status_next_attempt_at");
+
+                    b.ToTable("channel_messages", null, t =>
+                        {
+                            t.HasCheckConstraint("ck_channel_messages_direction", "direction IN ('In', 'Out')");
+
+                            t.HasCheckConstraint("ck_channel_messages_kind", "kind IN ('Text', 'Voice', 'Media', 'Template', 'Card', 'Action', 'Event')");
+
+                            t.HasCheckConstraint("ck_channel_messages_language", "language IS NULL OR language IN ('en', 'ar')");
+
+                            t.HasCheckConstraint("ck_channel_messages_status", "status IN ('Received', 'Ignored', 'Rejected', 'Pending', 'Sent', 'Delivered', 'Read', 'Failed')");
+                        });
+                });
+
             modelBuilder.Entity("Zelvo.Data.Channels.ChatMessage", b =>
                 {
                     b.Property<Guid>("Id")
@@ -2572,6 +2716,202 @@ namespace Zelvo.Data.Migrations
                         });
                 });
 
+            modelBuilder.Entity("Zelvo.Data.Channels.MessagingChannel", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<string>("AccountId")
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)")
+                        .HasColumnName("account_id");
+
+                    b.Property<bool>("Active")
+                        .HasColumnType("boolean")
+                        .HasColumnName("active");
+
+                    b.Property<Guid?>("CategoryId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("category_id");
+
+                    b.Property<DateTimeOffset>("CreatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("created_at");
+
+                    b.Property<string>("CredentialCiphertext")
+                        .HasColumnType("text")
+                        .HasColumnName("credential_ciphertext");
+
+                    b.Property<DateTimeOffset?>("CredentialSetAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("credential_set_at");
+
+                    b.Property<string>("DirectoryId")
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)")
+                        .HasColumnName("directory_id");
+
+                    b.Property<Guid?>("GroupId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("group_id");
+
+                    b.Property<string>("Kind")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("character varying(20)")
+                        .HasColumnName("kind");
+
+                    b.Property<string>("LastError")
+                        .HasMaxLength(1000)
+                        .HasColumnType("character varying(1000)")
+                        .HasColumnName("last_error");
+
+                    b.Property<DateTimeOffset?>("LastErrorAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("last_error_at");
+
+                    b.Property<DateTimeOffset?>("LastInboundAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("last_inbound_at");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)")
+                        .HasColumnName("name");
+
+                    b.Property<string>("NewSenders")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("character varying(20)")
+                        .HasColumnName("new_senders");
+
+                    b.Property<string>("Provider")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("character varying(20)")
+                        .HasColumnName("provider");
+
+                    b.Property<string>("Sender")
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)")
+                        .HasColumnName("sender");
+
+                    b.Property<string>("Settings")
+                        .IsRequired()
+                        .HasColumnType("jsonb")
+                        .HasColumnName("settings");
+
+                    b.Property<Guid>("TenantId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("tenant_id");
+
+                    b.Property<DateTimeOffset>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("updated_at");
+
+                    b.Property<uint>("Version")
+                        .IsConcurrencyToken()
+                        .ValueGeneratedOnAddOrUpdate()
+                        .HasColumnType("xid")
+                        .HasColumnName("xmin");
+
+                    b.Property<string>("WebhookSecretCiphertext")
+                        .HasColumnType("text")
+                        .HasColumnName("webhook_secret_ciphertext");
+
+                    b.HasKey("Id")
+                        .HasName("pk_messaging_channels");
+
+                    b.HasIndex("CategoryId")
+                        .HasDatabaseName("ix_messaging_channels_category_id");
+
+                    b.HasIndex("GroupId")
+                        .HasDatabaseName("ix_messaging_channels_group_id");
+
+                    b.HasIndex("TenantId", "Kind")
+                        .HasDatabaseName("ix_messaging_channels_tenant_id_kind");
+
+                    b.ToTable("messaging_channels", null, t =>
+                        {
+                            t.HasCheckConstraint("ck_messaging_channels_kind", "kind IN ('WhatsApp', 'Sms', 'Teams')");
+
+                            t.HasCheckConstraint("ck_messaging_channels_kind_provider", "(kind = 'WhatsApp' AND provider = 'WhatsAppCloud') OR (kind = 'Sms' AND provider IN ('Twilio', 'GenericHttp')) OR (kind = 'Teams' AND provider = 'TeamsBot')");
+
+                            t.HasCheckConstraint("ck_messaging_channels_new_senders", "new_senders IN ('Anyone', 'KnownUsers')");
+
+                            t.HasCheckConstraint("ck_messaging_channels_provider", "provider IN ('WhatsAppCloud', 'Twilio', 'GenericHttp', 'TeamsBot')");
+                        });
+                });
+
+            modelBuilder.Entity("Zelvo.Data.Channels.MessagingContact", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<string>("Address")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)")
+                        .HasColumnName("address");
+
+                    b.Property<Guid>("ChannelId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("channel_id");
+
+                    b.Property<DateTimeOffset>("CreatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("created_at");
+
+                    b.Property<DateTimeOffset?>("LastInboundAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("last_inbound_at");
+
+                    b.Property<string>("TeamsConversationId")
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)")
+                        .HasColumnName("teams_conversation_id");
+
+                    b.Property<string>("TeamsServiceUrl")
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)")
+                        .HasColumnName("teams_service_url");
+
+                    b.Property<string>("TeamsUserId")
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)")
+                        .HasColumnName("teams_user_id");
+
+                    b.Property<Guid>("TenantId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("tenant_id");
+
+                    b.Property<Guid?>("TicketId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("ticket_id");
+
+                    b.Property<Guid?>("UserId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("user_id");
+
+                    b.HasKey("Id")
+                        .HasName("pk_messaging_contacts");
+
+                    b.HasIndex("UserId")
+                        .HasDatabaseName("ix_messaging_contacts_user_id");
+
+                    b.HasIndex("ChannelId", "Address")
+                        .IsUnique()
+                        .HasDatabaseName("ix_messaging_contacts_channel_id_address");
+
+                    b.HasIndex("TenantId", "UserId")
+                        .HasDatabaseName("ix_messaging_contacts_tenant_id_user_id");
+
+                    b.ToTable("messaging_contacts", (string)null);
+                });
+
             modelBuilder.Entity("Zelvo.Data.Channels.OutboundEmail", b =>
                 {
                     b.Property<long>("Id")
@@ -2702,6 +3042,70 @@ namespace Zelvo.Data.Migrations
                     b.ToTable("outbound_emails", null, t =>
                         {
                             t.HasCheckConstraint("ck_outbound_emails_status", "status IN ('Pending', 'Sent', 'Failed')");
+                        });
+                });
+
+            modelBuilder.Entity("Zelvo.Data.Channels.VoiceNote", b =>
+                {
+                    b.Property<Guid>("CommentId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("comment_id");
+
+                    b.Property<long?>("AiCallId")
+                        .HasColumnType("bigint")
+                        .HasColumnName("ai_call_id");
+
+                    b.Property<Guid>("AttachmentId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("attachment_id");
+
+                    b.Property<DateTimeOffset>("CreatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("created_at");
+
+                    b.Property<string>("Language")
+                        .HasMaxLength(2)
+                        .HasColumnType("character varying(2)")
+                        .HasColumnName("language");
+
+                    b.Property<string>("Status")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("character varying(20)")
+                        .HasColumnName("status");
+
+                    b.Property<Guid>("TenantId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("tenant_id");
+
+                    b.Property<Guid>("TicketId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("ticket_id");
+
+                    b.Property<DateTimeOffset?>("TranscribedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("transcribed_at");
+
+                    b.Property<string>("Transcript")
+                        .HasMaxLength(20000)
+                        .HasColumnType("character varying(20000)")
+                        .HasColumnName("transcript");
+
+                    b.HasKey("CommentId")
+                        .HasName("pk_voice_notes");
+
+                    b.HasIndex("AttachmentId")
+                        .HasDatabaseName("ix_voice_notes_attachment_id");
+
+                    b.HasIndex("TicketId")
+                        .HasDatabaseName("ix_voice_notes_ticket_id");
+
+                    b.HasIndex("TenantId", "TicketId")
+                        .HasDatabaseName("ix_voice_notes_tenant_id_ticket_id");
+
+                    b.ToTable("voice_notes", null, t =>
+                        {
+                            t.HasCheckConstraint("ck_voice_notes_status", "status IN ('Pending', 'Done', 'Failed', 'Off')");
                         });
                 });
 
@@ -3897,6 +4301,18 @@ namespace Zelvo.Data.Migrations
                     b.Property<Guid?>("ManagerId")
                         .HasColumnType("uuid")
                         .HasColumnName("manager_id");
+
+                    b.Property<bool>("NotifySms")
+                        .HasColumnType("boolean")
+                        .HasColumnName("notify_sms");
+
+                    b.Property<bool>("NotifyTeams")
+                        .HasColumnType("boolean")
+                        .HasColumnName("notify_teams");
+
+                    b.Property<bool>("NotifyWhatsApp")
+                        .HasColumnType("boolean")
+                        .HasColumnName("notify_whats_app");
 
                     b.Property<string>("Phone")
                         .HasMaxLength(16)
@@ -7107,6 +7523,10 @@ namespace Zelvo.Data.Migrations
                         .HasColumnType("uuid")
                         .HasColumnName("mailbox_id");
 
+                    b.Property<Guid?>("MessagingContactId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("messaging_contact_id");
+
                     b.Property<string>("Number")
                         .IsRequired()
                         .HasMaxLength(30)
@@ -7210,6 +7630,9 @@ namespace Zelvo.Data.Migrations
                     b.HasIndex("MailboxId")
                         .HasDatabaseName("ix_tickets_mailbox_id");
 
+                    b.HasIndex("MessagingContactId")
+                        .HasDatabaseName("ix_tickets_messaging_contact_id");
+
                     b.HasIndex("ParentId")
                         .HasDatabaseName("ix_tickets_parent_id");
 
@@ -7253,7 +7676,7 @@ namespace Zelvo.Data.Migrations
 
                     b.ToTable("tickets", null, t =>
                         {
-                            t.HasCheckConstraint("ck_tickets_channel", "channel IN ('Portal', 'Email', 'Chat', 'WhatsApp', 'Phone', 'Api', 'AiAgent', 'Proactive')");
+                            t.HasCheckConstraint("ck_tickets_channel", "channel IN ('Portal', 'Email', 'Chat', 'WhatsApp', 'Phone', 'Sms', 'Teams', 'Api', 'AiAgent', 'Proactive')");
 
                             t.HasCheckConstraint("ck_tickets_not_own_parent", "parent_id IS NULL OR parent_id <> id");
 
@@ -7479,6 +7902,10 @@ namespace Zelvo.Data.Migrations
                         .HasColumnType("uuid")
                         .HasColumnName("mailbox_id");
 
+                    b.Property<Guid?>("MessagingChannelId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("messaging_channel_id");
+
                     b.Property<string>("Source")
                         .IsRequired()
                         .ValueGeneratedOnAdd()
@@ -7528,7 +7955,7 @@ namespace Zelvo.Data.Migrations
 
                             t.HasCheckConstraint("ck_ticket_comments_language", "language IN ('en', 'ar')");
 
-                            t.HasCheckConstraint("ck_ticket_comments_source", "source IN ('Web', 'Email', 'Chat')");
+                            t.HasCheckConstraint("ck_ticket_comments_source", "source IN ('Web', 'Email', 'Chat', 'WhatsApp', 'Sms', 'Teams')");
 
                             t.HasCheckConstraint("ck_ticket_comments_visibility", "visibility IN ('Public', 'Internal')");
                         });
@@ -7756,7 +8183,7 @@ namespace Zelvo.Data.Migrations
 
                     b.ToTable("happiness_ratings", null, t =>
                         {
-                            t.HasCheckConstraint("ck_happiness_ratings_channel", "channel IN ('Portal', 'Email', 'Chat', 'WhatsApp', 'Phone', 'Api', 'AiAgent', 'Proactive')");
+                            t.HasCheckConstraint("ck_happiness_ratings_channel", "channel IN ('Portal', 'Email', 'Chat', 'WhatsApp', 'Phone', 'Sms', 'Teams', 'Api', 'AiAgent', 'Proactive')");
 
                             t.HasCheckConstraint("ck_happiness_ratings_device_hash", "device_hash IS NULL OR device_hash ~ '^[0-9a-f]{64}$'");
 
@@ -8727,6 +9154,47 @@ namespace Zelvo.Data.Migrations
                         .HasConstraintName("fk_service_requests_tickets_ticket_id");
                 });
 
+            modelBuilder.Entity("Zelvo.Data.Channels.ChannelMessage", b =>
+                {
+                    b.HasOne("Zelvo.Data.Channels.MessagingChannel", null)
+                        .WithMany()
+                        .HasForeignKey("ChannelId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired()
+                        .HasConstraintName("fk_channel_messages_messaging_channels_channel_id");
+
+                    b.HasOne("Zelvo.Data.Tickets.TicketComment", null)
+                        .WithMany()
+                        .HasForeignKey("CommentId")
+                        .OnDelete(DeleteBehavior.NoAction)
+                        .HasConstraintName("fk_channel_messages_ticket_comments_comment_id");
+
+                    b.HasOne("Zelvo.Data.Channels.MessagingContact", null)
+                        .WithMany()
+                        .HasForeignKey("ContactId")
+                        .OnDelete(DeleteBehavior.SetNull)
+                        .HasConstraintName("fk_channel_messages_messaging_contacts_contact_id");
+
+                    b.HasOne("Zelvo.Data.Notifications.Notification", null)
+                        .WithMany()
+                        .HasForeignKey("NotificationId")
+                        .OnDelete(DeleteBehavior.SetNull)
+                        .HasConstraintName("fk_channel_messages_notifications_notification_id");
+
+                    b.HasOne("Zelvo.Data.Tenancy.Tenant", null)
+                        .WithMany()
+                        .HasForeignKey("TenantId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired()
+                        .HasConstraintName("fk_channel_messages_tenants_tenant_id");
+
+                    b.HasOne("Zelvo.Data.Tickets.Ticket", null)
+                        .WithMany()
+                        .HasForeignKey("TicketId")
+                        .OnDelete(DeleteBehavior.SetNull)
+                        .HasConstraintName("fk_channel_messages_tickets_ticket_id");
+                });
+
             modelBuilder.Entity("Zelvo.Data.Channels.ChatMessage", b =>
                 {
                     b.HasOne("Zelvo.Data.Identity.UserAccount", null)
@@ -8868,6 +9336,51 @@ namespace Zelvo.Data.Migrations
                         .HasConstraintName("fk_mailboxes_tenants_tenant_id");
                 });
 
+            modelBuilder.Entity("Zelvo.Data.Channels.MessagingChannel", b =>
+                {
+                    b.HasOne("Zelvo.Data.Directory.Category", null)
+                        .WithMany()
+                        .HasForeignKey("CategoryId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .HasConstraintName("fk_messaging_channels_categories_category_id");
+
+                    b.HasOne("Zelvo.Data.Directory.SupportGroup", null)
+                        .WithMany()
+                        .HasForeignKey("GroupId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .HasConstraintName("fk_messaging_channels_support_groups_group_id");
+
+                    b.HasOne("Zelvo.Data.Tenancy.Tenant", null)
+                        .WithMany()
+                        .HasForeignKey("TenantId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired()
+                        .HasConstraintName("fk_messaging_channels_tenants_tenant_id");
+                });
+
+            modelBuilder.Entity("Zelvo.Data.Channels.MessagingContact", b =>
+                {
+                    b.HasOne("Zelvo.Data.Channels.MessagingChannel", null)
+                        .WithMany()
+                        .HasForeignKey("ChannelId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired()
+                        .HasConstraintName("fk_messaging_contacts_messaging_channels_channel_id");
+
+                    b.HasOne("Zelvo.Data.Tenancy.Tenant", null)
+                        .WithMany()
+                        .HasForeignKey("TenantId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired()
+                        .HasConstraintName("fk_messaging_contacts_tenants_tenant_id");
+
+                    b.HasOne("Zelvo.Data.Identity.UserAccount", null)
+                        .WithMany()
+                        .HasForeignKey("UserId")
+                        .OnDelete(DeleteBehavior.SetNull)
+                        .HasConstraintName("fk_messaging_contacts_users_user_id");
+                });
+
             modelBuilder.Entity("Zelvo.Data.Channels.OutboundEmail", b =>
                 {
                     b.HasOne("Zelvo.Data.Tickets.TicketComment", null)
@@ -8902,6 +9415,37 @@ namespace Zelvo.Data.Migrations
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired()
                         .HasConstraintName("fk_outbound_emails_tickets_ticket_id");
+                });
+
+            modelBuilder.Entity("Zelvo.Data.Channels.VoiceNote", b =>
+                {
+                    b.HasOne("Zelvo.Data.Tickets.TicketAttachment", null)
+                        .WithMany()
+                        .HasForeignKey("AttachmentId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired()
+                        .HasConstraintName("fk_voice_notes_ticket_attachments_attachment_id");
+
+                    b.HasOne("Zelvo.Data.Tickets.TicketComment", null)
+                        .WithMany()
+                        .HasForeignKey("CommentId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired()
+                        .HasConstraintName("fk_voice_notes_ticket_comments_comment_id");
+
+                    b.HasOne("Zelvo.Data.Tenancy.Tenant", null)
+                        .WithMany()
+                        .HasForeignKey("TenantId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired()
+                        .HasConstraintName("fk_voice_notes_tenants_tenant_id");
+
+                    b.HasOne("Zelvo.Data.Tickets.Ticket", null)
+                        .WithMany()
+                        .HasForeignKey("TicketId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired()
+                        .HasConstraintName("fk_voice_notes_tickets_ticket_id");
                 });
 
             modelBuilder.Entity("Zelvo.Data.Directory.AssignmentRule", b =>
@@ -10035,6 +10579,12 @@ namespace Zelvo.Data.Migrations
                         .HasForeignKey("MailboxId")
                         .OnDelete(DeleteBehavior.SetNull)
                         .HasConstraintName("fk_tickets_mailboxes_mailbox_id");
+
+                    b.HasOne("Zelvo.Data.Channels.MessagingContact", null)
+                        .WithMany()
+                        .HasForeignKey("MessagingContactId")
+                        .OnDelete(DeleteBehavior.SetNull)
+                        .HasConstraintName("fk_tickets_messaging_contacts_messaging_contact_id");
 
                     b.HasOne("Zelvo.Data.Tickets.Ticket", null)
                         .WithMany()

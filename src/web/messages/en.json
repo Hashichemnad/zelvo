@@ -83,6 +83,18 @@
       "hint": "While this is off, round-robin gives your groups' new tickets to other members. Tickets already assigned to you stay with you.",
       "groups": "Your groups",
       "lead": "team lead"
+    },
+    "notificationChannels": {
+      "heading": "Also send my notifications to",
+      "whatsApp": "WhatsApp",
+      "sms": "Text message (SMS)",
+      "teams": "Microsoft Teams",
+      "toPhone": "To {phone}, the mobile number of your profile.",
+      "needsPhone": "Add your mobile number to your profile first.",
+      "teamsLinked": "To your chat with the organisation's Teams app.",
+      "teamsNotLinked": "Open the organisation's app in Teams once, so it can reach you.",
+      "saved": "Saved.",
+      "error": "This could not be saved. Try again."
     }
   },
   "signInProblem": {
@@ -245,6 +257,10 @@
       "liveChat": {
         "title": "Live chat",
         "description": "Chat widgets for the portal and your websites, and the group that answers."
+      },
+      "messaging": {
+        "title": "Messaging",
+        "description": "WhatsApp, SMS gateways and the Microsoft Teams app: tickets and updates by message."
       },
       "customerVoice": {
         "title": "Customer voice",
@@ -753,7 +769,8 @@
         "virtualAgent": "Virtual agent",
         "articleDrafts": "Article drafts",
         "test": "Connection test",
-        "unknown": "Other"
+        "unknown": "Other",
+        "transcription": "Voice-note transcription"
       },
       "errors": {
         "provider-auth-failed": "The provider refused the API key. Check the key and the account.",
@@ -856,7 +873,8 @@
           "duplicates": "Finds tickets that report the same issue.",
           "sentiment": "Detects frustrated customers so they can be escalated.",
           "virtualAgent": "Answers questions in the portal and chat from the knowledge base and hands over to a person.",
-          "articleDrafts": "Drafts knowledge articles from resolved tickets for review."
+          "articleDrafts": "Drafts knowledge articles from resolved tickets for review.",
+          "transcription": "Turns WhatsApp voice notes into text. The recording is sent to the provider without masking, because audio cannot be masked; the text is masked like any other for later AI use. Not available with Anthropic."
         },
         "provider": "Provider",
         "noProvider": "None",
@@ -1397,6 +1415,8 @@
       "Chat": "Chat",
       "WhatsApp": "WhatsApp",
       "Phone": "Phone",
+      "Sms": "SMS",
+      "Teams": "Microsoft Teams",
       "Api": "Integration (API)",
       "AiAgent": "AI agent (MCP)",
       "Proactive": "Proactive (started by Zelvo)"
@@ -2923,14 +2943,31 @@
       "mentioned": "Mentioned: {names}",
       "sources": {
         "Email": "By email",
-        "Chat": "From a chat"
+        "Chat": "From a chat",
+        "WhatsApp": "By WhatsApp",
+        "Sms": "By SMS",
+        "Teams": "From Microsoft Teams"
       },
       "delivery": {
         "Pending": "Email waiting to be sent",
         "Sent": "Email sent",
         "Failed": "Email not sent"
       },
-      "files": "{count, plural, one {# file} other {# files}}"
+      "files": "{count, plural, one {# file} other {# files}}",
+      "messageDelivery": {
+        "Pending": "Message waiting to be sent",
+        "Sent": "Message sent",
+        "Delivered": "Message delivered",
+        "Read": "Message read",
+        "Failed": "Message not sent"
+      },
+      "voiceNote": {
+        "title": "Voice note",
+        "transcript": "Transcript",
+        "Pending": "The voice note is being transcribed.",
+        "Failed": "The voice note could not be transcribed. Listen to the recording in the attachments.",
+        "Off": "Listen to the recording in the attachments. Transcription is off."
+      }
     },
     "composer": {
       "noteHeading": "Internal note",
@@ -4157,6 +4194,200 @@
       "virtualAgent": "Virtual agent answers first",
       "virtualAgentOn": "Virtual agent",
       "virtualAgentHelp": "Answers from published knowledge articles and passes the chat to the group when asked or when it cannot help, also when nobody is online. Needs the AI feature \"Virtual agent\"."
+    },
+    "messaging": {
+      "title": "Messaging",
+      "unavailable": "The messaging channels cannot be loaded right now.",
+      "intro": "People raise tickets and follow them by WhatsApp, text message or Microsoft Teams. Register each channel's webhook address with its provider; Zelvo checks the provider's signature on every message. Credentials are stored encrypted and never shown again.",
+      "empty": "No messaging channels yet.",
+      "lastInbound": "Last message in",
+      "never": "Never",
+      "off": "Turned off",
+      "open": "Open",
+      "close": "Close",
+      "add": {
+        "WhatsApp": "Add WhatsApp",
+        "Sms": "Add an SMS gateway",
+        "Teams": "Add Microsoft Teams"
+      },
+      "kinds": {
+        "WhatsApp": "WhatsApp",
+        "Sms": "SMS",
+        "Teams": "Microsoft Teams"
+      },
+      "providers": {
+        "WhatsAppCloud": "WhatsApp Cloud API (Meta)",
+        "Twilio": "Twilio",
+        "GenericHttp": "Other gateway (HTTP)",
+        "TeamsBot": "Teams app"
+      },
+      "fields": {
+        "name": "Name",
+        "kind": "Channel",
+        "provider": "Provider",
+        "phoneNumberId": "Phone number id",
+        "whatsAppNumber": "WhatsApp number",
+        "businessAccountId": "Business account id (optional)",
+        "accessToken": "Access token",
+        "accessTokenKeep": "New access token (leave empty to keep the current one)",
+        "appSecret": "App secret",
+        "appSecretKeep": "New app secret (leave empty to keep the current one)",
+        "templates": "Message templates",
+        "defaultTemplate": "Template for updates",
+        "englishCode": "Template language for English",
+        "arabicCode": "Template language for Arabic",
+        "accountSid": "Account SID",
+        "smsSender": "Sender",
+        "authToken": "Auth token",
+        "authTokenKeep": "New auth token (leave empty to keep the current one)",
+        "secret": "Gateway secret",
+        "secretKeep": "New gateway secret (leave empty to keep the current one)",
+        "appId": "Microsoft app (client) id",
+        "directoryId": "Entra directory (tenant) id",
+        "clientSecret": "Client secret",
+        "clientSecretKeep": "New client secret (leave empty to keep the current one)",
+        "newSenders": "People without an account",
+        "category": "Category of new tickets",
+        "group": "Group of new tickets",
+        "active": "Take in and send messages"
+      },
+      "hints": {
+        "phoneNumberId": "From WhatsApp Manager → API setup (digits only).",
+        "e164": "In international form, for example +97142345678.",
+        "appSecret": "From the Meta app's basic settings; it signs the messages Meta sends to Zelvo.",
+        "templates": "More than 24 hours after a person last wrote, WhatsApp only delivers templates Meta approved. Create a utility template with one variable, {{1}}, which receives the update's text, in English and Arabic, and enter its name here. Without one, such updates are not sent and are listed in the log.",
+        "smsSender": "A number such as +97142345678, a Twilio messaging service (MG…) or a sender name registered with TDRA (up to 11 letters).",
+        "appId": "Register the app in your Entra directory as a single-tenant bot, then download the Teams app below and upload it in the Teams admin centre."
+      },
+      "senders": {
+        "Anyone": "Anyone may write in (a requester account is made)",
+        "KnownUsers": "Only people whose number or Teams account belongs to a user"
+      },
+      "none": "None",
+      "byRules": "By the assignment rules",
+      "gateway": {
+        "title": "Gateway request",
+        "url": "Address",
+        "method": "Method",
+        "body": "Body",
+        "bodies": {
+          "Json": "JSON",
+          "Form": "Form fields"
+        },
+        "template": "Request template",
+        "templateHint": "Write the request the gateway expects. {{to}} is the number, {{text}} the message and {{from}} the sender; Zelvo escapes the values.",
+        "auth": "Authentication",
+        "auths": {
+          "None": "None",
+          "Basic": "User name and password",
+          "Bearer": "Bearer token",
+          "Header": "Key in a header"
+        },
+        "username": "User name",
+        "authHeader": "Header name",
+        "messageIdPath": "Message id in the answer (optional, for example messages.0.id)",
+        "withoutPlus": "Write numbers without the leading +",
+        "inboundHint": "For incoming messages, the gateway posts to the webhook address below. Name the fields that hold the sender, the text and the message id.",
+        "inboundFrom": "Sender field",
+        "inboundText": "Text field",
+        "inboundId": "Message id field"
+      },
+      "webhook": {
+        "title": "Webhook address",
+        "WhatsAppCloud": "In the Meta app, under WhatsApp → Configuration, enter this address and the verify token, and subscribe to messages.",
+        "Twilio": "In Twilio, set this address for incoming messages and status callbacks of the sender.",
+        "GenericHttp": "Give this address to the gateway for incoming messages; it contains the channel's token.",
+        "TeamsBot": "Enter this address as the bot's messaging endpoint in Azure Bot Service.",
+        "verifyToken": "Verify token"
+      },
+      "teamsApp": "Download the Teams app",
+      "teamsAppHint": "Upload it in the Teams admin centre (Manage apps → Upload) and make it available to your organisation.",
+      "testTo": "Test number (optional)",
+      "test": "Test",
+      "testOk": "The provider accepted the account: {detail}.",
+      "testQueued": "A test message is on its way.",
+      "log": {
+        "show": "Show the log",
+        "title": "Channel log (last 30 days)",
+        "when": "When",
+        "direction": "Message",
+        "who": "Number",
+        "status": "What happened",
+        "ticket": "Ticket",
+        "empty": "No messages yet.",
+        "resend": "Send again",
+        "directions": {
+          "In": "In",
+          "Out": "Out"
+        },
+        "kinds": {
+          "Text": "text",
+          "Voice": "voice note",
+          "Media": "file",
+          "Template": "template",
+          "Card": "card",
+          "Action": "button",
+          "Event": "event"
+        },
+        "statuses": {
+          "Received": "Taken in",
+          "Ignored": "Left alone",
+          "Rejected": "Rejected",
+          "Pending": "Waiting",
+          "Sent": "Sent",
+          "Delivered": "Delivered",
+          "Read": "Read",
+          "Failed": "Not sent"
+        },
+        "reasons": {
+          "no-template": "No template for messages after 24 hours",
+          "outside-window": "More than 24 hours since the person wrote",
+          "sender-not-allowed": "Sender not accepted",
+          "sender-disabled": "Account disabled",
+          "channel-off": "Channel turned off",
+          "empty": "No text",
+          "event": "No message",
+          "file-skipped": "File not accepted",
+          "not-reachable": "No Teams conversation with this person yet",
+          "refused": "Refused by the provider"
+        }
+      },
+      "edit": "Change settings",
+      "save": "Save",
+      "cancel": "Cancel",
+      "saved": "Saved.",
+      "problems": {
+        "name": "Give the channel a name.",
+        "accountId": "Check the account, number or app id.",
+        "sender": "Check the sender.",
+        "directoryId": "Check the directory id.",
+        "credential": "Enter the credential (again).",
+        "appSecret": "Enter the app secret.",
+        "gateway": "Set up the gateway's request.",
+        "gateway_url": "Check the gateway's address: HTTPS, and not an internal address.",
+        "gateway_bodyTemplate": "The template needs {{to}} and {{text}} and only known placeholders.",
+        "gateway_username": "Enter the user name.",
+        "gateway_authHeader": "Enter the header name.",
+        "gateway_inboundFrom": "Name the fields of incoming messages.",
+        "whatsApp_templates": "Template names use lower-case letters, digits and underscores.",
+        "whatsApp_languages": "Language codes look like en, en_US or ar.",
+        "categoryId": "Choose a category.",
+        "groupId": "Choose a group.",
+        "provider": "Choose a provider.",
+        "other": "Check the highlighted settings."
+      },
+      "errors": {
+        "sign-in-failed": "The provider refused the credential.",
+        "access-denied": "The credential may not use this account.",
+        "not-found": "The provider does not know this account or number.",
+        "unreachable": "The provider could not be reached.",
+        "address-not-allowed": "Zelvo may not connect to this address.",
+        "key-unreadable": "The stored credential cannot be decrypted. Enter it again.",
+        "not-set-up": "The channel is not fully set up.",
+        "rate-limited": "The provider is limiting requests.",
+        "testNumber": "Enter the test number in international form, for example +971501234567.",
+        "other": "Something went wrong. Try again."
+      }
     }
   },
   "voice": {
@@ -4709,6 +4940,8 @@
       "Chat": "Chat",
       "WhatsApp": "WhatsApp",
       "Phone": "Phone",
+      "Sms": "SMS",
+      "Teams": "Microsoft Teams",
       "Api": "API",
       "AiAgent": "AI agent",
       "Proactive": "Proactive (started by Zelvo)"

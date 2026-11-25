@@ -46,6 +46,10 @@ test.describe("live chat", () => {
       await page.goto(`/${locale}/settings/mailboxes`);
       await expect(page.getByTestId("mailboxes-panel")).toBeVisible();
       await expectAccessible(page);
+      // Task E3: WhatsApp, SMS gateways and the Teams app.
+      await page.goto(`/${locale}/settings/messaging`);
+      await expect(page.getByTestId("messaging-panel")).toBeVisible();
+      await expectAccessible(page);
     }
 
     await page.goto("/en/settings/chat");

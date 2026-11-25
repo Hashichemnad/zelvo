@@ -114,6 +114,10 @@ public sealed partial class NotificationProcessor(
             }
         }
 
+        // Task E3: WhatsApp, SMS and Teams.
+        await new MessagingNotifications(db).QueueAsync(notification, recipient, definition, setting, rendered, format.Language,
+            composer.LinksFor(notification.EventType, format.Language, notification.LinkPath), now, cancellationToken).ConfigureAwait(false);
+
         // B3 recorded the alert; it counts as delivered once its first notification is out.
         if (notification.SlaAlertId is { } alertId
             && await db.SlaAlerts.FirstOrDefaultAsync(a => a.Id == alertId && a.DeliveredAt == null, cancellationToken).ConfigureAwait(false) is { } alert)

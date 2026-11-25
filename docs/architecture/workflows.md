@@ -198,7 +198,7 @@ Requesting a laptop as the sample requester starts a real approval.
 
 ## Not in C3
 
-- Teams and WhatsApp approvals (task E3), reminders and expiry of waiting approvals, delegation while an approver is away.
+- (Done in E3: approvals in Teams, which decide there, and WhatsApp and SMS messages with the approval links; see `messaging.md`.) Reminders and expiry of waiting approvals, delegation while an approver is away.
 - Plain-language rules built by AI and a visual view (module 20, Phase 2).
 - Rule actions that call other systems (the REST connector builder, task E7).
 - Fulfilment tasks, the service's own group and SLAs, and the journey (task C4).

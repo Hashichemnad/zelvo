@@ -94,6 +94,12 @@ public interface IAiGateway
 
     /// <summary>The provider's models, where its API lists them.</summary>
     Task<IReadOnlyList<string>> ListModelsAsync(Guid providerId, CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Task E3: what is said in a voice note, with the provider and model of the transcription
+    /// feature. The audio cannot be masked; the AI log keeps the transcript masked.
+    /// </summary>
+    Task<AiResult> TranscribeAsync(byte[] audio, string contentType, string? entityType, string? entityId, CancellationToken cancellationToken = default);
 }
 
 /// <inheritdoc />
@@ -220,6 +226,92 @@ public sealed class AiGateway(
         var provider = await db.AiProviders.AsNoTracking().SingleOrDefaultAsync(p => p.Id == providerId, cancellationToken).ConfigureAwait(false)
             ?? throw new KeyNotFoundException("The AI provider does not exist.");
         return await client.ListModelsAsync(await ConnectionAsync(provider, cancellationToken).ConfigureAwait(false), cancellationToken).ConfigureAwait(false);
+    }
+
+    /// <summary>What the transcription asks (the provider hears both languages).</summary>
+    public const string TranscriptionInstructions =
+        "Transcribe this voice note word for word in the language spoken: Modern Standard Arabic, Gulf Arabic or English. Answer with the transcript only.";
+
+    /// <inheritdoc />
+    public async Task<AiResult> TranscribeAsync(byte[] audio, string contentType, string? entityType, string? entityId, CancellationToken cancellationToken = default)
+    {
+        ArgumentNullException.ThrowIfNull(audio);
+        ArgumentNullException.ThrowIfNull(contentType);
+        RequireTenant();
+        var setting = await db.AiFeatureSettings.AsNoTracking().SingleOrDefaultAsync(f => f.Feature == AiFeatures.Transcription, cancellationToken).ConfigureAwait(false);
+        var provider = setting is { Enabled: true, ProviderId: { } providerId }
+            ? await db.AiProviders.AsNoTracking().SingleOrDefaultAsync(p => p.Id == providerId && p.Status == AiProviderStatus.Active, cancellationToken).ConfigureAwait(false)
+            : null;
+        if (provider is null || string.IsNullOrEmpty(setting?.Model))
+        {
+            return Failure("ai-off", "This AI feature is off. An administrator turns it on in Settings → AI.", null);
+        }
+
+        var call = new AiCall
+        {
+            Feature = AiFeatures.Transcription,
+            ProviderId = provider.Id,
+            ProviderKind = provider.Kind,
+            Model = setting.Model!,
+            EntityType = Cut(entityType, AiCall.EntityMaxLength),
+            EntityId = Cut(entityId, AiCall.EntityMaxLength),
+            Prompt = $"[system]\n{TranscriptionInstructions}\n\n[audio]\n{contentType}, {audio.LongLength.ToString(System.Globalization.CultureInfo.InvariantCulture)} bytes",
+            CorrelationId = Activity.Current?.TraceId.ToString(),
+        };
+        var budget = await AiBudget.StatusAsync(db, time.GetUtcNow(), cancellationToken).ConfigureAwait(false);
+        if (budget.State == AiBudgetState.Reached)
+        {
+            call.Outcome = AiCallOutcome.LimitReached;
+            call.ErrorCode = "limit-reached";
+            call.Error = $"The monthly AI limit of {AiBudget.Format(budget.LimitUsd!.Value)} USD is reached.";
+            return Failure("limit-reached", call.Error, await RecordAsync(call, cancellationToken).ConfigureAwait(false));
+        }
+
+        using var activity = AiTelemetry.Source.StartActivity("ai.transcribe " + setting.Model, ActivityKind.Client);
+        activity?.SetTag("gen_ai.operation.name", "transcription");
+        activity?.SetTag("gen_ai.system", AiTelemetry.SystemName(provider.Kind));
+        activity?.SetTag("gen_ai.request.model", setting.Model);
+        activity?.SetTag("zelvo.ai.feature", AiFeatures.Transcription);
+        var watch = Stopwatch.StartNew();
+        string? text = null;
+        try
+        {
+            var response = await client.TranscribeAsync(await ConnectionAsync(provider, cancellationToken).ConfigureAwait(false), setting.Model!, audio, contentType,
+                TranscriptionInstructions, cancellationToken).ConfigureAwait(false);
+            text = response.Text.Trim();
+            call.InputTokens = response.InputTokens;
+            call.OutputTokens = response.OutputTokens;
+            // The log keeps what the AI heard with personal data masked.
+            call.Response = Cut(new PersonalDataPseudonymizer().Mask(text), AiCall.TextMaxLength);
+            call.Outcome = text.Length > 0 ? AiCallOutcome.Succeeded : AiCallOutcome.Rejected;
+            if (text.Length == 0)
+            {
+                call.ErrorCode = "empty";
+                call.Error = "The provider heard nothing.";
+            }
+        }
+        catch (AiProviderException ex)
+        {
+            call.Outcome = AiCallOutcome.Failed;
+            call.ErrorCode = ex.Code;
+            call.Error = Cut(ex.Message, AiCall.ErrorMaxLength);
+        }
+        catch (SecretDecryptionException)
+        {
+            call.Outcome = AiCallOutcome.Failed;
+            call.ErrorCode = "key-unreadable";
+            call.Error = "The stored API key cannot be decrypted. Enter it again in Settings → AI.";
+        }
+
+        call.DurationMs = AiProviderClient.Elapsed(watch);
+        var price = await db.AiModelPrices.AsNoTracking().SingleOrDefaultAsync(p => p.ProviderId == provider.Id && p.Model == setting.Model, cancellationToken).ConfigureAwait(false);
+        call.CostUsd = AiBudget.Cost(call.InputTokens, call.OutputTokens, price?.InputPerMillion, price?.OutputPerMillion);
+        activity?.SetTag("zelvo.ai.outcome", call.Outcome.ToString());
+        AiTelemetry.Record(call);
+        var id = await RecordAsync(call, cancellationToken).ConfigureAwait(false);
+        return call.Outcome == AiCallOutcome.Succeeded
+            ? new AiResult(true, text, null, null, id, call.InputTokens, call.OutputTokens, call.CostUsd, call.DurationMs, false, false)
+            : new AiResult(false, null, call.ErrorCode, call.Error, id, call.InputTokens, call.OutputTokens, call.CostUsd, call.DurationMs, false, false);
     }
 
     private async Task<AiResult> CallAsync(AiProvider provider, string model, AiRequest request, CancellationToken cancellationToken)

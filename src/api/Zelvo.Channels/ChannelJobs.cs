@@ -14,6 +14,7 @@ using Zelvo.Data.Tenancy;
 using Zelvo.Integrations;
 using Zelvo.Secrets;
 using Zelvo.Tickets;
+using Zelvo.Channels.Messaging;
 
 namespace Zelvo.Channels;
 
@@ -31,6 +32,13 @@ public static class ChannelsServiceCollectionExtensions
         services.TryAddScoped<EmailIntake>();
         services.TryAddScoped<MailboxReader>();
         services.TryAddScoped<OutboundEmailSender>();
+        // Task E3: WhatsApp, SMS and Teams.
+        services.TryAddSingleton<MessagingClients>();
+        services.TryAddSingleton<IMessagingClients>(sp => sp.GetRequiredService<MessagingClients>());
+        services.TryAddSingleton<ITeamsSigningKeys, BotFrameworkSigningKeys>();
+        services.TryAddSingleton<TeamsTokenValidator>();
+        services.TryAddScoped<MessagingIntake>();
+        services.TryAddScoped<MessagingSender>();
         return services;
     }
 
@@ -44,6 +52,8 @@ public static class ChannelsServiceCollectionExtensions
         services.AddHostedService(sp => sp.GetRequiredService<MailJob>());
         services.AddHostedService(sp => sp.GetRequiredService<ChatIdleJob>());
         services.AddHostedService(sp => sp.GetRequiredService<MailLogPurge>());
+        services.TryAddSingleton<MessagingJob>();
+        services.AddHostedService(sp => sp.GetRequiredService<MessagingJob>());
         return services;
     }
 }

@@ -62,6 +62,34 @@ public sealed class ChannelOptions
     /// </summary>
     public OutboundNetworkOptions Network { get; } = new();
 
+    /// <summary>
+    /// Task E3: the installation's public address. Providers (Meta, Twilio, Microsoft) send
+    /// incoming messages to <c>{PublicUrl}hooks/{tenant}/…</c>, which the reverse proxy passes to the
+    /// API; Twilio's signatures are checked against it. Defaults to <see cref="WebUrl"/>.
+    /// </summary>
+    public Uri PublicUrl { get; set; } = new("http://localhost:3000/");
+
+    /// <summary>Meta's Graph API for WhatsApp, with its version.</summary>
+    public Uri WhatsAppGraphUrl { get; set; } = new("https://graph.facebook.com/v23.0/");
+
+    /// <summary>Twilio's REST API.</summary>
+    public Uri TwilioUrl { get; set; } = new("https://api.twilio.com/");
+
+    /// <summary>Microsoft's OpenID metadata for the tokens Bot Framework signs (Teams).</summary>
+    public Uri BotFrameworkOpenIdUrl { get; set; } = new("https://login.botframework.com/v1/.well-known/openidconfiguration");
+
+    /// <summary>Issuer of Bot Framework's tokens.</summary>
+    public string BotFrameworkIssuer { get; set; } = "https://api.botframework.com";
+
+    /// <summary>Hosts Teams conversations may be answered on (the activity's service address must end with one).</summary>
+    public IReadOnlyList<string> TeamsServiceHosts { get; set; } = ["smba.trafficmanager.net", "botframework.com", "botframework.azure.us", "teams.microsoft.com"];
+
+    /// <summary>Largest voice note or file taken from a message (WhatsApp allows 16 MB for audio).</summary>
+    public long MaxMediaBytes { get; set; } = 16L * 1024 * 1024;
+
+    /// <summary>How long the channel log is kept.</summary>
+    public TimeSpan MessageRetention { get; set; } = TimeSpan.FromDays(30);
+
     /// <summary>Reads the section; unset values keep their defaults.</summary>
     public static ChannelOptions Read(IConfiguration configuration)
     {
@@ -82,6 +110,18 @@ public sealed class ChannelOptions
         options.GoogleTokenUrl = Url(section["GoogleTokenUrl"]) ?? options.GoogleTokenUrl;
         options.GmailUrl = BaseUrl(section["GmailUrl"]) ?? options.GmailUrl;
         OutboundNetworkOptions.Read(section.GetSection("Network"), options.Network);
+        options.PublicUrl = BaseUrl(section["PublicUrl"]) ?? options.WebUrl;
+        options.WhatsAppGraphUrl = BaseUrl(section["WhatsAppGraphUrl"]) ?? options.WhatsAppGraphUrl;
+        options.TwilioUrl = BaseUrl(section["TwilioUrl"]) ?? options.TwilioUrl;
+        options.BotFrameworkOpenIdUrl = Url(section["BotFrameworkOpenIdUrl"]) ?? options.BotFrameworkOpenIdUrl;
+        options.BotFrameworkIssuer = string.IsNullOrWhiteSpace(section["BotFrameworkIssuer"]) ? options.BotFrameworkIssuer : section["BotFrameworkIssuer"]!.Trim();
+        var hosts = section.GetSection("TeamsServiceHosts").GetChildren().Select(c => c.Value?.Trim().ToLowerInvariant()).Where(h => !string.IsNullOrEmpty(h)).ToList();
+        if (hosts.Count > 0)
+        {
+            options.TeamsServiceHosts = hosts!;
+        }
+
+        options.MessageRetention = Time(section["MessageRetention"]) ?? options.MessageRetention;
         return options;
     }
 
