@@ -40,7 +40,8 @@ export default async function PortalHomePage({ params, searchParams }: PageProps
     loadVoiceSettings(token, tenant),
   ]);
   const dateDisplay = { locale, ...display };
-  const signIn = `/auth/login?${new URLSearchParams({ locale, returnTo: `/${locale}` })}`;
+  // Its name differs from the header's "Sign in" link (WCAG 2.4.4: links with the same name go to the same place).
+  const signIn = `/auth/login?${new URLSearchParams({ locale, returnTo: `/${locale}/my-tickets` })}`;
   const now = new Date();
   const calendars = ([
     { calendar: "gregory", name: tWelcome("gregorian") },
