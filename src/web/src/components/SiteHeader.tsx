@@ -95,6 +95,18 @@ export async function SiteHeader() {
                       </Link>
                     </li>
                   )}
+                  <li>
+                    <Link href="/approvals" className="text-brand underline-offset-4 hover:underline">
+                      {t("approvals")}
+                    </Link>
+                  </li>
+                  {user.permissions.includes("requests.edit") && (
+                    <li>
+                      <Link href="/tasks" className="text-brand underline-offset-4 hover:underline">
+                        {tCatalog("myTasks")}
+                      </Link>
+                    </li>
+                  )}
                   {user.permissions.includes("requests.read") && (
                     <li>
                       <Link href="/requests" className="text-brand underline-offset-4 hover:underline">

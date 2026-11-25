@@ -18,5 +18,5 @@ internal static class CatalogSetup
     }
 
     public static RouteGroupBuilder MapZelvoCatalogEndpoints(this RouteGroupBuilder group) =>
-        group.MapCatalogEndpoints().MapServiceEndpoints().MapServiceTemplateEndpoints().MapCatalogBrowseEndpoints().MapServiceRequestEndpoints();
+        group.MapCatalogEndpoints().MapServiceEndpoints().MapServiceTemplateEndpoints().MapCatalogBrowseEndpoints().MapServiceRequestEndpoints().MapRequestTaskEndpoints();
 }

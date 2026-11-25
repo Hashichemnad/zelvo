@@ -295,4 +295,132 @@ public sealed class ServiceRequestDetails : ITenantOwned, IAuditedEntity
 
     /// <summary>The published version of its card at the time.</summary>
     public Guid ServiceVersionId { get; init; }
+
+    /// <summary>
+    /// The service's ownership SLA in business minutes (task C4), copied when the request reaches
+    /// the service desk; replaces the SLA policy's response target. <see langword="null"/>: the policy's.
+    /// </summary>
+    public int? OwnershipMinutes { get; set; }
+
+    /// <summary>
+    /// The service's completion SLA in business minutes (task C4): the card's own target, or the
+    /// business time to the end of its Nth working day; replaces the policy's resolution target.
+    /// </summary>
+    public int? CompletionMinutes { get; set; }
+
+    /// <summary>The service's escalation thresholds (JSON array of <see cref="ServiceEscalation"/>); none: the policy's.</summary>
+    public string Escalations { get; set; } = "[]";
+}
+
+/// <summary>An escalation threshold of a service's SLA (task C4), like an SLA policy's.</summary>
+public sealed record ServiceEscalation
+{
+    /// <summary>Ownership (Response), completion (Resolution) or both (null).</summary>
+    public Sla.SlaMetric? Metric { get; init; }
+
+    /// <summary>Share of the target, 1 to 300.</summary>
+    public int Percent { get; init; }
+
+    /// <summary>Tell the assignee.</summary>
+    public bool NotifyAssignee { get; init; }
+
+    /// <summary>Tell the group's team leads.</summary>
+    public bool NotifyGroupLeads { get; init; }
+
+    /// <summary>Tell the members of another group.</summary>
+    public Guid? NotifyGroupId { get; init; }
+}
+
+/// <summary>
+/// A fulfilment task of a service request (task C4, module 2): one step of the service's task
+/// template, for a group (and an assignee), with its own target time. Tasks of the same stage run
+/// in parallel; stages run in sequence. When every task is done the request is resolved (or its
+/// sign-off starts).
+/// </summary>
+public sealed class RequestTask : ITenantOwned, IAuditedEntity
+{
+    /// <summary>Maximum length of <see cref="Key"/>.</summary>
+    public const int KeyMaxLength = 40;
+
+    /// <summary>Maximum length of <see cref="Notes"/>.</summary>
+    public const int NotesMaxLength = 4000;
+
+    /// <summary>Unique id (UUID version 7).</summary>
+    public Guid Id { get; init; } = Guid.CreateVersion7();
+
+    /// <inheritdoc />
+    public Guid TenantId { get; set; }
+
+    /// <summary>The request.</summary>
+    public Guid TicketId { get; init; }
+
+    /// <summary>The task's key in the template (steps of the journey may refer to it).</summary>
+    public required string Key { get; init; }
+
+    /// <summary>Name in English and Arabic.</summary>
+    public required Localization.LocalizedText Name { get; init; }
+
+    /// <summary>What to do.</summary>
+    public Localization.LocalizedText Description { get; init; } = new(null, null);
+
+    /// <summary>Order in the template.</summary>
+    public int Position { get; init; }
+
+    /// <summary>Stage (0-based): tasks of a stage start together when the stage before is done.</summary>
+    public int Stage { get; init; }
+
+    /// <summary>The group doing it.</summary>
+    public Guid? GroupId { get; set; }
+
+    /// <summary>The member doing it.</summary>
+    public Guid? AssigneeId { get; set; }
+
+    /// <summary>Where it is.</summary>
+    public RequestTaskState State { get; set; } = RequestTaskState.Waiting;
+
+    /// <summary>Target time in business minutes from when it opens; none: no target.</summary>
+    public int? TargetMinutes { get; init; }
+
+    /// <summary>When it is due (worked out on the group's calendar when it opens).</summary>
+    public DateTimeOffset? DueAt { get; set; }
+
+    /// <summary>What was done.</summary>
+    public string? Notes { get; set; }
+
+    /// <summary>When it opened.</summary>
+    public DateTimeOffset? OpenedAt { get; set; }
+
+    /// <summary>When work started.</summary>
+    public DateTimeOffset? StartedAt { get; set; }
+
+    /// <summary>When it was done or cancelled.</summary>
+    public DateTimeOffset? CompletedAt { get; set; }
+
+    /// <summary>Who completed it.</summary>
+    public Guid? CompletedById { get; set; }
+
+    /// <summary>When it was created.</summary>
+    public DateTimeOffset CreatedAt { get; init; } = DateTimeOffset.UtcNow;
+
+    /// <summary>Optimistic concurrency token (PostgreSQL <c>xmin</c>).</summary>
+    public uint Version { get; init; }
+}
+
+/// <summary>States of a fulfilment task.</summary>
+public enum RequestTaskState
+{
+    /// <summary>Its stage has not started yet.</summary>
+    Waiting,
+
+    /// <summary>Ready to be worked on.</summary>
+    Open,
+
+    /// <summary>Being worked on.</summary>
+    InProgress,
+
+    /// <summary>Done.</summary>
+    Done,
+
+    /// <summary>No longer needed (the request was resolved or closed by hand).</summary>
+    Cancelled,
 }

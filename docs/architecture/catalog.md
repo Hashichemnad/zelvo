@@ -235,9 +235,8 @@ Seeder `c2-catalog` (order 150) gives each sample organisation:
 
 ## Not in C2
 
-- Fulfilment (C4): the initial group and overrides by answer, ownership and completion SLAs per service, fulfilment tasks, the step journey moved by tasks.
-- Catalog request tools of the MCP server (C4), approvals (C3), bundles and proactive services (C5), payments (E8).
-- Notifications for service requests (with C3 and C4 rules; B5's events are for incidents).
+- Fulfilment and the catalog request tools of the MCP server came with C4 (`docs/architecture/fulfilment.md`); approvals and workflow rules with C3 (`docs/architecture/workflows.md`). Bundles and proactive services (C5), payments (E8).
+- Notifications for service requests came with C3 and C4.
 - Anonymous requests by visitors (C6).
 - Service requests in search, and in the portal's search-first home (D2).
 - Field-level rules for service requests (the requester's view is fixed, as for incidents).

@@ -117,6 +117,11 @@ public static class NotificationSamples
             [Placeholders.TicketType] = PlaceholderValue.OfTerm("ticket.type.Complaint"),
             [Placeholders.ReviewState] = PlaceholderValue.OfTerm("review.Accepted"),
             [Placeholders.ReviewFeedback] = Both(Placeholders.ReviewFeedback),
+            [Placeholders.ServiceName] = Both(Placeholders.ServiceName),
+            [Placeholders.ApprovalLevel] = Both(Placeholders.ApprovalLevel),
+            [Placeholders.ApprovalReason] = Both(Placeholders.ApprovalReason),
+            [Placeholders.TaskName] = Both(Placeholders.TaskName),
+            [Placeholders.TaskDueAt] = PlaceholderValue.OfDate(now.AddDays(1)),
         };
     }
 }

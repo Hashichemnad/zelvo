@@ -146,6 +146,17 @@ public sealed class ZelvoDbContext(DbContextOptions<ZelvoDbContext> options) : D
 
     /// <summary>Happiness meter answers (GOV-2, task C6).</summary>
     public DbSet<Voice.HappinessRating> HappinessRatings => Set<Voice.HappinessRating>();
+    /// <summary>Fulfilment tasks of service requests (task C4).</summary>
+    public DbSet<RequestTask> RequestTasks => Set<RequestTask>();
+
+    /// <summary>Workflow rules of the no-code builder (task C3).</summary>
+    public DbSet<Workflows.WorkflowRule> WorkflowRules => Set<Workflows.WorkflowRule>();
+
+    /// <summary>Approval processes of tickets (task C3).</summary>
+    public DbSet<Workflows.ApprovalProcess> ApprovalProcesses => Set<Workflows.ApprovalProcess>();
+
+    /// <summary>Approvers' decisions (task C3).</summary>
+    public DbSet<Workflows.ApprovalDecision> ApprovalDecisions => Set<Workflows.ApprovalDecision>();
 
     /// <summary>Knowledge articles (module 7).</summary>
     public DbSet<KbArticle> KbArticles => Set<KbArticle>();
@@ -724,6 +735,12 @@ public sealed class ZelvoDbContext(DbContextOptions<ZelvoDbContext> options) : D
             request.HasOne<CatalogServiceVersion>().WithMany().HasForeignKey(r => r.ServiceVersionId).OnDelete(DeleteBehavior.Restrict);
             request.HasIndex(r => new { r.TenantId, r.ServiceId });
             request.HasIndex(r => r.ServiceVersionId);
+            request.Property(r => r.Escalations).HasColumnType("jsonb").HasDefaultValueSql("'[]'::jsonb");
+            request.ToTable(t =>
+            {
+                t.HasCheckConstraint("ck_service_requests_ownership", "ownership_minutes IS NULL OR ownership_minutes > 0");
+                t.HasCheckConstraint("ck_service_requests_completion", "completion_minutes IS NULL OR completion_minutes > 0");
+            });
         });
     }
 
@@ -851,6 +868,107 @@ public sealed class ZelvoDbContext(DbContextOptions<ZelvoDbContext> options) : D
             ticket.HasIndex(t => new { t.TenantId, t.GroupId });
             ticket.HasIndex(t => new { t.TenantId, t.CategoryId });
             ticket.HasIndex(t => new { t.TenantId, t.LocationId });
+        });
+
+        modelBuilder.Entity<RequestTask>(task =>
+        {
+            task.ToTable("request_tasks", table =>
+            {
+                table.HasCheckConstraint("ck_request_tasks_state", EnumCheck("state", Enum.GetNames<RequestTaskState>()));
+                table.HasCheckConstraint("ck_request_tasks_stage", "stage >= 0");
+                table.HasCheckConstraint("ck_request_tasks_target", "target_minutes IS NULL OR target_minutes > 0");
+            });
+            task.HasKey(t => t.Id);
+            task.Property(t => t.Id).ValueGeneratedNever();
+            task.HasOne<Tenant>().WithMany().HasForeignKey(t => t.TenantId).OnDelete(DeleteBehavior.Restrict);
+            task.HasOne<Ticket>().WithMany().HasForeignKey(t => t.TicketId).OnDelete(DeleteBehavior.Cascade);
+            task.HasOne<SupportGroup>().WithMany().HasForeignKey(t => t.GroupId).OnDelete(DeleteBehavior.Restrict);
+            task.HasOne<UserAccount>().WithMany().HasForeignKey(t => t.AssigneeId).OnDelete(DeleteBehavior.Restrict);
+            task.HasOne<UserAccount>().WithMany().HasForeignKey(t => t.CompletedById).OnDelete(DeleteBehavior.SetNull);
+            task.Property(t => t.Key).HasMaxLength(RequestTask.KeyMaxLength);
+            task.ConfigureLocalizedText(t => t.Name, "name", 150);
+            task.ConfigureLocalizedText(t => t.Description, "description", 1000);
+            task.Property(t => t.State).HasConversion<string>().HasMaxLength(20);
+            task.Property(t => t.Notes).HasMaxLength(RequestTask.NotesMaxLength);
+            task.Property(t => t.Version).IsRowVersion();
+            task.HasIndex(t => new { t.TicketId, t.Key }).IsUnique();
+            task.HasIndex(t => new { t.TenantId, t.GroupId, t.State });
+            task.HasIndex(t => new { t.TenantId, t.AssigneeId, t.State });
+            task.HasIndex(t => t.GroupId);
+            task.HasIndex(t => t.AssigneeId);
+            task.HasIndex(t => t.CompletedById);
+        });
+
+        modelBuilder.Entity<Workflows.WorkflowRule>(rule =>
+        {
+            rule.ToTable("workflow_rules", table =>
+            {
+                table.HasCheckConstraint("ck_workflow_rules_trigger", EnumCheck("trigger", Enum.GetNames<Workflows.WorkflowTrigger>()));
+                table.HasCheckConstraint("ck_workflow_rules_record_type", "record_type IS NULL OR " + EnumCheck("record_type", Enum.GetNames<TicketType>()));
+                table.HasCheckConstraint("ck_workflow_rules_match", EnumCheck("match", Enum.GetNames<Workflows.ConditionMatch>()));
+            });
+            rule.HasKey(r => r.Id);
+            rule.Property(r => r.Id).ValueGeneratedNever();
+            rule.HasOne<Tenant>().WithMany().HasForeignKey(r => r.TenantId).OnDelete(DeleteBehavior.Restrict);
+            rule.HasOne<UserAccount>().WithMany().HasForeignKey(r => r.CreatedById).OnDelete(DeleteBehavior.SetNull);
+            rule.ConfigureLocalizedText(r => r.Name, "name", Workflows.WorkflowRule.NameMaxLength);
+            rule.ConfigureLocalizedText(r => r.Description, "description", Workflows.WorkflowRule.DescriptionMaxLength);
+            rule.Property(r => r.Trigger).HasConversion<string>().HasMaxLength(30);
+            rule.Property(r => r.RecordType).HasConversion<string>().HasMaxLength(30);
+            rule.Property(r => r.Match).HasConversion<string>().HasMaxLength(10);
+            rule.Property(r => r.Conditions).HasColumnType("jsonb");
+            rule.Property(r => r.Actions).HasColumnType("jsonb");
+            rule.Property(r => r.Version).IsRowVersion();
+            rule.HasIndex(r => new { r.TenantId, r.Trigger, r.Position });
+            rule.HasIndex(r => r.CreatedById);
+        });
+
+        modelBuilder.Entity<Workflows.ApprovalProcess>(process =>
+        {
+            process.ToTable("approval_processes", table =>
+            {
+                table.HasCheckConstraint("ck_approval_processes_stage", EnumCheck("stage", Enum.GetNames<Workflows.ApprovalStage>()));
+                table.HasCheckConstraint("ck_approval_processes_state", EnumCheck("state", Enum.GetNames<Workflows.ApprovalProcessState>()));
+            });
+            process.HasKey(p => p.Id);
+            process.Property(p => p.Id).ValueGeneratedNever();
+            process.HasOne<Tenant>().WithMany().HasForeignKey(p => p.TenantId).OnDelete(DeleteBehavior.Restrict);
+            process.HasOne<Ticket>().WithMany().HasForeignKey(p => p.TicketId).OnDelete(DeleteBehavior.Cascade);
+            process.HasOne<UserAccount>().WithMany().HasForeignKey(p => p.StartedById).OnDelete(DeleteBehavior.SetNull);
+            process.Property(p => p.Stage).HasConversion<string>().HasMaxLength(20);
+            process.Property(p => p.State).HasConversion<string>().HasMaxLength(20);
+            process.Property(p => p.Levels).HasColumnType("jsonb");
+            process.Property(p => p.EngineInstanceId).HasMaxLength(100);
+            process.Property(p => p.EngineBookmarkId).HasMaxLength(100);
+            process.Property(p => p.Reason).HasMaxLength(Workflows.ApprovalProcess.TextMaxLength);
+            process.Property(p => p.ResolutionNotes).HasMaxLength(Workflows.ApprovalProcess.TextMaxLength);
+            process.Property(p => p.Version).IsRowVersion();
+            process.HasIndex(p => new { p.TenantId, p.TicketId });
+            process.HasIndex(p => p.TicketId);
+            process.HasIndex(p => p.StartedById);
+        });
+
+        modelBuilder.Entity<Workflows.ApprovalDecision>(decision =>
+        {
+            decision.ToTable("approval_decisions", table =>
+            {
+                table.HasCheckConstraint("ck_approval_decisions_state", EnumCheck("state", Enum.GetNames<Workflows.ApprovalDecisionState>()));
+                table.HasCheckConstraint("ck_approval_decisions_reason", "state <> 'Rejected' OR comment IS NOT NULL");
+            });
+            decision.HasKey(d => d.Id);
+            decision.Property(d => d.Id).ValueGeneratedNever();
+            decision.HasOne<Tenant>().WithMany().HasForeignKey(d => d.TenantId).OnDelete(DeleteBehavior.Restrict);
+            decision.HasOne<Workflows.ApprovalProcess>().WithMany().HasForeignKey(d => d.ProcessId).OnDelete(DeleteBehavior.Cascade);
+            decision.HasOne<Ticket>().WithMany().HasForeignKey(d => d.TicketId).OnDelete(DeleteBehavior.Cascade);
+            decision.HasOne<UserAccount>().WithMany().HasForeignKey(d => d.ApproverId).OnDelete(DeleteBehavior.Restrict);
+            decision.Property(d => d.State).HasConversion<string>().HasMaxLength(20);
+            decision.Property(d => d.Comment).HasMaxLength(Workflows.ApprovalDecision.CommentMaxLength);
+            decision.Property(d => d.DecidedVia).HasMaxLength(20);
+            decision.Property(d => d.Version).IsRowVersion();
+            decision.HasIndex(d => new { d.ProcessId, d.Level, d.ApproverId }).IsUnique();
+            decision.HasIndex(d => new { d.TenantId, d.ApproverId, d.State });
+            decision.HasIndex(d => d.TicketId);
+            decision.HasIndex(d => d.ApproverId);
         });
 
         modelBuilder.Entity<Incident>(incident =>

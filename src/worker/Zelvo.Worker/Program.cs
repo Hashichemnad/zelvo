@@ -1,3 +1,4 @@
+using Zelvo.Workflows;
 using Zelvo.Ai;
 using Zelvo.Channels;
 using Zelvo.Data;
@@ -29,6 +30,8 @@ builder.Services.AddHostedService<HeartbeatService>();
 
 // The application role: row-level security applies to every job, which sets its tenant.
 builder.Services.AddZelvoData(Required(builder.Configuration, "ConnectionStrings:Postgres"));
+// Task C3: workflow rules also run on the worker's changes (SLA, auto-close, email intake).
+builder.Services.AddZelvoWorkflowRules();
 // Stored secrets (A5): decrypted per tenant when a job needs them (AI keys, gateway credentials).
 builder.Services.AddZelvoSecrets(builder.Configuration);
 builder.Services.AddZelvoIntegrationJobs(builder.Configuration);

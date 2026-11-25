@@ -194,3 +194,7 @@ Errors have stable codes: `address-not-allowed`, `connection-failed`, `timeout`,
 - Email or in-app notice of waiting approvals (B5).
 - (Done in E5: the virtual agent uses customers' read-only tools; approving changes inside the conversation comes with module 23.)
 - Native tool calling of each provider. The JSON protocol works with all of them; native calling can be added behind `IAiToolRunner` later.
+
+## Catalog request tools (task C4)
+
+`search_services`, `get_service`, `request_service` and `get_service_request` were added with fulfilment; see `docs/architecture/fulfilment.md` (MCP catalog tools).

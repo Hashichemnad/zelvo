@@ -8,7 +8,8 @@
     "skipToContent": "Skip to main content",
     "poweredBy": "Powered by Zelvo",
     "rateLimited": "Too many requests in a short time. Please wait a minute, then try again.",
-    "testInstallation": "Test installation: data here is for building and trying integrations, not live data."
+    "testInstallation": "Test installation: data here is for building and trying integrations, not live data.",
+    "approvals": "My approvals"
   },
   "language": {
     "name": "English",
@@ -252,6 +253,10 @@
         "title": "Branding",
         "description": "Your product name, logos, colours and font, custom domains and the email sender domain."
       },
+      "workflows": {
+        "title": "Workflow rules",
+        "description": "When / if / then rules that assign, ask for approval and notify."
+      },
       "reports": {
         "title": "Reports",
         "description": "Targets the dashboards compare SLA compliance and happiness with."
@@ -288,7 +293,8 @@
         "incident_settings": "Incident settings",
         "notification_template": "Notification wording",
         "service_catalogs": "Catalog",
-        "catalog_services": "Service"
+        "catalog_services": "Service",
+        "workflow_rule": "Workflow rule"
       },
       "fields": {
         "name": "Name"
@@ -478,6 +484,8 @@
         "voice_report": "See the customer voice and happiness report",
         "voice_manage": "Change customer voice settings and the happiness meter",
         "branding_manage": "Change the branding, custom domains and email sender domain",
+        "workflows_manage": "Build workflow rules",
+        "approvals_read": "See every approval",
         "reports_read": "See the dashboards of the groups you lead",
         "reports_all": "See the dashboards of the whole organisation",
         "reports_manage": "Schedule reports for others and set report targets",
@@ -1803,6 +1811,8 @@
         "chat": "Live chat",
         "voice": "Customer voice",
         "branding": "Branding",
+        "workflows": "Workflows",
+        "approvals": "Approvals",
         "reports": "Reports",
         "setup": "Setup"
       },
@@ -1846,6 +1856,8 @@
       "voice_report": "See the customer voice and happiness report",
       "voice_manage": "Change customer voice settings and the happiness meter",
       "branding_manage": "Change the branding, custom domains and email sender domain",
+      "workflows_manage": "Build workflow rules",
+      "approvals_read": "See every approval",
       "reports_read": "See the dashboards of the groups you lead",
       "reports_all": "See the dashboards of the whole organisation",
       "reports_manage": "Schedule reports for others and set report targets",
@@ -2387,12 +2399,25 @@
       "suggestion_reviewed": "Your suggestion was reviewed",
       "voice_assigned": "A complaint, inquiry or suggestion is assigned to you",
       "voice_queued": "A new complaint, inquiry or suggestion is in your group's queue",
-      "incident_requester_frustrated": "A requester sounds frustrated"
+      "incident_requester_frustrated": "A requester sounds frustrated",
+      "approval_requested": "A request needs your approval",
+      "request_approved": "Your request was approved",
+      "request_rejected": "Your request was not approved",
+      "request_signoff_rejected": "The sign-off of your work was rejected",
+      "request_received": "Your request was received",
+      "request_awaiting_requester": "Your request is waiting for you",
+      "request_resolved": "Your request was completed",
+      "request_closed": "Your request was closed",
+      "request_assigned": "A request is assigned to you",
+      "request_queued": "A new request is in your group's queue",
+      "task_assigned": "A task is assigned to you",
+      "task_queued": "A new task is waiting in your group"
     },
     "audiences": {
       "Requester": "Your incidents",
       "Staff": "Your work",
-      "Publisher": "Knowledge reviews"
+      "Publisher": "Knowledge reviews",
+      "Approver": "Your approvals"
     },
     "preferences": {
       "heading": "Notifications",
@@ -3101,7 +3126,8 @@
     "nav": {
       "catalog": "Services",
       "myRequests": "My requests",
-      "requests": "Requests"
+      "requests": "Requests",
+      "myTasks": "My tasks"
     },
     "settings": {
       "intro": "Build the service catalog: services with their full card, the catalogs that group them and who may write each catalog. A change goes live only when a publisher other than its author approves it.",
@@ -3262,7 +3288,8 @@
         "InProgress": "In progress",
         "OnHold": "On hold",
         "Resolved": "Done",
-        "Closed": "Closed"
+        "Closed": "Closed",
+        "Approval": "Waiting for approval"
       },
       "feeAndDelivery": "Fee and delivery",
       "paid": "Paid service",
@@ -3358,7 +3385,16 @@
       },
       "comment": "What should change",
       "suspendMessage": "Message to requesters",
-      "cancel": "Cancel"
+      "cancel": "Cancel",
+      "approvals": "Approvals",
+      "approvalsHint": "Approvals of this service. Rules in Settings → Workflow rules can add more levels.",
+      "approvalsBefore": "Before assignment",
+      "approvalsBeforeHint": "The request reaches the service desk only after these levels approve it.",
+      "approvalsAfter": "After fulfilment (sign-off)",
+      "approvalsAfterHint": "The completed work is signed off before the request is resolved.",
+      "fulfilment": "Fulfilment",
+      "stepTask": "Reached when this task starts",
+      "stepTaskNone": "Use the stage"
     },
     "problems": {
       "name-required": "Give the service a name in English or Arabic.",
@@ -3555,6 +3591,90 @@
       "backToList": "Back to the requests",
       "team": "Team handling it",
       "noTeamYet": "Waiting for a team"
+    },
+    "fulfilment": {
+      "initialGroup": "Group that receives new requests",
+      "byRules": "Decided by the assignment rules",
+      "method": "How",
+      "methods": {
+        "GroupQueue": "To the group's queue",
+        "RoundRobin": "Round-robin among available members"
+      },
+      "overrides": "Another group by form answers",
+      "overridesHint": "The first override whose conditions all hold sends the request to its group instead (for example City equals Abu Dhabi).",
+      "overrideGroup": "Group of override {number}",
+      "chooseGroup": "Choose a group",
+      "whenAnswers": "When",
+      "removeOverride": "Remove override {number}",
+      "addOverride": "Add an override",
+      "sla": "Service SLA",
+      "slaHint": "These targets replace the SLA policy's for this service. Both count working time on the group's calendar and pause while waiting for the requester or an approval.",
+      "ownershipMinutes": "Ownership: minutes until an agent starts work",
+      "completionMinutes": "Completion: minutes until done",
+      "completionHint": "Leave empty to use the service's number of working days: due at the end of the last of those working days.",
+      "percent": "Escalation {number}: share of the target (%)",
+      "metric": "Of",
+      "metrics": {
+        "both": "Both targets",
+        "Response": "Ownership",
+        "Resolution": "Completion"
+      },
+      "alert": "Alert",
+      "alertAssignee": "The assignee",
+      "alertLeads": "The group's team leads",
+      "alertGroup": "Another group",
+      "noGroup": "No other group",
+      "removeEscalation": "Remove escalation {number}",
+      "addEscalation": "Add an escalation",
+      "tasks": "Tasks",
+      "tasksHint": "Tasks run in order; a task marked to run with the one before starts at the same time. When every task is done, the request is completed.",
+      "taskNumber": "Task {number}",
+      "moveTaskUp": "Move task {number} up",
+      "moveTaskDown": "Move task {number} down",
+      "removeTask": "Remove task {number}",
+      "up": "Up",
+      "down": "Down",
+      "remove": "Remove",
+      "taskKey": "Key",
+      "taskName": "Name",
+      "taskGroup": "Group",
+      "requestGroup": "The request's group",
+      "targetMinutes": "Target (working minutes)",
+      "parallel": "Runs at the same time as the task before",
+      "addTask": "Add a task"
+    },
+    "tasks": {
+      "title": "Tasks",
+      "myTitle": "My tasks",
+      "mine": "Assigned to me",
+      "myGroups": "In my groups",
+      "none": "No tasks.",
+      "unavailable": "Tasks cannot be shown right now.",
+      "noAccess": "You do not have access to tasks.",
+      "task": "Task",
+      "request": "Request",
+      "group": "Group",
+      "assignee": "Assignee",
+      "nobody": "Nobody yet",
+      "state": "State",
+      "due": "Due",
+      "overdue": "Overdue",
+      "actions": "Actions",
+      "stageLine": "Stage {number}",
+      "start": "Start",
+      "startNamed": "Start {name}",
+      "complete": "Mark as done",
+      "completeNamed": "Mark {name} as done",
+      "notes": "What was done (optional)",
+      "markDone": "Mark as done",
+      "cancel": "Cancel",
+      "states": {
+        "Waiting": "Waiting for earlier tasks",
+        "Open": "Open",
+        "InProgress": "In progress",
+        "Done": "Done",
+        "Cancelled": "Cancelled"
+      }
     }
   },
   "channels": {
@@ -4352,6 +4472,263 @@
     "download": "Download PDF",
     "making": "Making the PDF…",
     "failed": "The PDF could not be made. Try again later."
+  },
+  "workflows": {
+    "intro": "Rules are tried in order. When something happens to a ticket and the rule's conditions hold, its actions run: assign the ticket, ask for approval, or tell people. Use the move buttons to change the order.",
+    "conditionField": "Field of condition {number}",
+    "operator": "Operator",
+    "answerKey": "Form field key",
+    "value": "Value",
+    "valueAed": "Amount in AED",
+    "values": "Values (choose one or more)",
+    "removeCondition": "Remove condition {number}",
+    "remove": "Remove",
+    "noConditions": "No conditions: it always applies.",
+    "addCondition": "Add a condition",
+    "group": "Group",
+    "chooseGroup": "Choose a group",
+    "role": "Role",
+    "chooseRole": "Choose a role",
+    "person": "Person",
+    "levelNumber": "Level {number}",
+    "moveLevelUp": "Move level {number} up",
+    "moveLevelDown": "Move level {number} down",
+    "removeLevel": "Remove level {number}",
+    "levelName": "Name of the level",
+    "mode": "Who must approve",
+    "modes": {
+      "Any": "Any one approver",
+      "All": "All approvers (in parallel)"
+    },
+    "approverNumber": "Approver {number}",
+    "addApprover": "Add an approver",
+    "levelConditions": "Only when (approval by amount or answer)",
+    "addLevel": "Add a level",
+    "fields": {
+      "service": "Service",
+      "category": "Category (or below)",
+      "location": "Location (or below)",
+      "group": "Group",
+      "requesterDepartment": "Requester's department",
+      "channel": "Channel",
+      "state": "State",
+      "requesterLanguage": "Requester's language",
+      "priority": "Priority (1 is highest)",
+      "fee": "Service fee",
+      "answer": "Form answer"
+    },
+    "operators": {
+      "in": "is one of",
+      "notIn": "is none of",
+      "eq": "equals",
+      "neq": "does not equal",
+      "gt": "is more than",
+      "gte": "is at least",
+      "lt": "is less than",
+      "lte": "is at most",
+      "contains": "contains",
+      "empty": "is empty",
+      "notEmpty": "is not empty"
+    },
+    "channels": {
+      "Portal": "Portal",
+      "Email": "Email",
+      "Chat": "Chat",
+      "WhatsApp": "WhatsApp",
+      "Phone": "Phone",
+      "Api": "API",
+      "AiAgent": "AI agent"
+    },
+    "states": {
+      "New": "New",
+      "Assigned": "Assigned",
+      "InProgress": "In progress",
+      "OnHold": "On hold",
+      "Resolved": "Resolved",
+      "Closed": "Closed",
+      "Reopened": "Reopened"
+    },
+    "languages": {
+      "en": "English",
+      "ar": "Arabic"
+    },
+    "approverKinds": {
+      "RequesterManager": "The requester's manager",
+      "User": "A named person",
+      "Group": "Every member of a group",
+      "GroupLeads": "The team leads of a group",
+      "Role": "Everyone with a role",
+      "AnswerUser": "The person chosen in a form answer"
+    },
+    "recipients": "Who to tell",
+    "recipientKinds": {
+      "requester": "The requester",
+      "requesterManager": "The requester's manager",
+      "assignee": "The assignee",
+      "group": "The ticket's group",
+      "groupLeads": "The group's team leads"
+    },
+    "groupMembers": "Members of {name}",
+    "roleHolders": "Everyone with the role {name}",
+    "actionNumber": "Action {number}",
+    "actionTypes": {
+      "assign": "Assign",
+      "notify": "Notify",
+      "approval": "Ask for approval"
+    },
+    "removeAction": "Remove action {number}",
+    "method": "How",
+    "methods": {
+      "GroupQueue": "To the group's queue",
+      "RoundRobin": "Round-robin among available members"
+    },
+    "subject": "Subject",
+    "body": "Message",
+    "inEnglish": "In English",
+    "inArabic": "In Arabic",
+    "placeholders": "Placeholders you can use:",
+    "alsoEmail": "Also send by email",
+    "stage": "When",
+    "stages": {
+      "BeforeAssignment": "Before assignment",
+      "AfterFulfilment": "After fulfilment (sign-off)"
+    },
+    "levels": "Approval levels",
+    "ruleEditor": "Workflow rule",
+    "problemsTitle": "Fix these problems first:",
+    "problems": {
+      "name-required": "Name the rule in English or Arabic.",
+      "operator-invalid": "Choose an operator that suits the field.",
+      "value-invalid": "Choose or enter a value.",
+      "approval-not-allowed": "Approvals can be asked for only by rules on service requests when they are submitted.",
+      "placeholder-unknown": "The wording uses a placeholder that does not exist.",
+      "levels-required": "Add at least one approval level.",
+      "approvers-required": "Name at least one approver.",
+      "recipients-required": "Choose who to tell.",
+      "wording-required": "Write the subject and the message.",
+      "group-required": "Choose the group to assign to.",
+      "actions-required": "Add at least one action.",
+      "reference-unknown": "Something chosen no longer exists.",
+      "approver-unknown": "An approver no longer exists.",
+      "group-unknown": "Choose an active group."
+    },
+    "ruleName": "Name",
+    "ruleDescription": "Description",
+    "ruleActive": "The rule runs",
+    "when": "When",
+    "trigger": "Something happens",
+    "triggers": {
+      "TicketCreated": "A ticket is logged or a request submitted",
+      "StateChanged": "A ticket changes state",
+      "AssignmentChanged": "A ticket's group or assignee changes",
+      "ApprovalDecided": "An approval ends"
+    },
+    "recordType": "To",
+    "anyRecordType": "Incidents and service requests",
+    "recordTypes": {
+      "Incident": "Incidents",
+      "ServiceRequest": "Service requests"
+    },
+    "if": "If",
+    "match": "Conditions",
+    "matches": {
+      "All": "All must hold",
+      "Any": "Any one must hold"
+    },
+    "conditions": "Conditions",
+    "then": "Then",
+    "addAction": "Add an action",
+    "stopProcessing": "When this rule applies, do not try the rules after it",
+    "saveRule": "Save the rule",
+    "cancel": "Cancel",
+    "saveFailed": "The rule could not be saved.",
+    "addRule": "Add a rule",
+    "rulesInOrder": "Rules in the order they are tried",
+    "noRules": "There are no rules yet.",
+    "inactive": "(not running)",
+    "summary": "{trigger} · {type} · {conditions, plural, =0 {no conditions} one {# condition} other {# conditions}} · {actions}",
+    "moveRuleUp": "Move {name} up",
+    "moveRuleDown": "Move {name} down",
+    "editRuleNamed": "Edit {name}",
+    "edit": "Edit",
+    "deleteRuleNamed": "Delete {name}",
+    "delete": "Delete",
+    "tryRules": "Try the rules",
+    "ticketNumber": "Ticket number",
+    "try": "Try",
+    "noRulesForTrigger": "No running rules for this trigger.",
+    "holds": "applies — {actions}",
+    "doesNotHold": "does not apply"
+  },
+  "approvals": {
+    "title": "My approvals",
+    "detailTitle": "Approval",
+    "unavailable": "Approvals cannot be shown right now.",
+    "notFound": "This approval does not exist or is not yours.",
+    "back": "Back to my approvals",
+    "waiting": "Waiting for you ({count})",
+    "history": "Decided",
+    "none": "Nothing here.",
+    "request": "Request",
+    "service": "Service",
+    "requester": "Requested by",
+    "level": "Stage",
+    "state": "State",
+    "asked": "Asked",
+    "decisionStates": {
+      "Pending": "Waiting",
+      "Approved": "Approved",
+      "Rejected": "Rejected",
+      "NotNeeded": "No longer needed"
+    },
+    "stages": {
+      "BeforeAssignment": "Approval",
+      "AfterFulfilment": "Sign-off"
+    },
+    "processStates": {
+      "Pending": "in progress",
+      "Approved": "approved",
+      "Rejected": "rejected",
+      "Cancelled": "stopped"
+    },
+    "reason": "Reason:",
+    "levelLine": "Level {number}:",
+    "levelStates": {
+      "Waiting": "waiting",
+      "Approved": "approved",
+      "Rejected": "rejected",
+      "NotStarted": "not started yet",
+      "Cancelled": "stopped"
+    },
+    "modes": {
+      "Any": "Any one approver",
+      "All": "All approvers"
+    },
+    "fallback": "asked of the administrators because nobody else could be",
+    "requestApprovals": "Approvals",
+    "withdraw": "Withdraw the request",
+    "stopApproval": "Stop the approval",
+    "cancelReason": "Reason (optional)",
+    "cancel": "Cancel",
+    "decided": {
+      "Pending": "It is not your turn to decide yet.",
+      "Approved": "You approved this.",
+      "Rejected": "You rejected this.",
+      "NotNeeded": "Your decision is no longer needed."
+    },
+    "yourDecision": "Your decision",
+    "decision": "Decision",
+    "choices": {
+      "Approve": "Approve",
+      "Reject": "Reject"
+    },
+    "reasonRequired": "Reason (required)",
+    "comment": "Comment (optional)",
+    "giveReason": "Give the reason for rejecting.",
+    "confirm": "Confirm my decision",
+    "askedBy": "Requested by {name}",
+    "awaitingRequester": "Your request is waiting for approval. You will be told when it is decided.",
+    "awaitingStaff": "This request is waiting for an approval; it cannot be changed meanwhile."
   },
   "reports": {
     "title": "Reports",

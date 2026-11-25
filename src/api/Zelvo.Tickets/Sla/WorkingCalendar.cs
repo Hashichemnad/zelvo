@@ -164,6 +164,36 @@ public sealed class WorkingCalendar
         return ToInstant(date, (int)local.TimeOfDay.TotalMinutes, local.TimeOfDay.Seconds);
     }
 
+    /// <summary>
+    /// The close of the <paramref name="days"/>th working day after the day of <paramref name="from"/>
+    /// (task C4, product owner decision 2026-11-24: a service's number of working days as its
+    /// default completion target). Requested on Monday with Monday to Friday working, one working
+    /// day is the end of Tuesday's working hours; holidays are skipped, and a short Friday counts as
+    /// a day. Around the clock, a day ends at midnight.
+    /// </summary>
+    public DateTimeOffset EndOfWorkingDay(DateTimeOffset from, int days)
+    {
+        ArgumentOutOfRangeException.ThrowIfLessThan(days, 1);
+        var date = DateOnly.FromDateTime(TimeZoneInfo.ConvertTime(from, TimeZone).DateTime);
+        var counted = 0;
+        for (var i = 0; i < MaxDays && counted < days; i++)
+        {
+            date = date.AddDays(1);
+            if (IsWorkingDay(date))
+            {
+                counted++;
+            }
+        }
+
+        if (counted < days)
+        {
+            return DateTimeOffset.MaxValue;
+        }
+
+        var close = _week[(int)date.DayOfWeek].Max(p => p.End);
+        return ToInstant(date, close, 0);
+    }
+
     /// <summary>Working intervals (UTC) from the local day of <paramref name="from"/> on, in order, for at most <see cref="MaxDays"/> days.</summary>
     private IEnumerable<(DateTimeOffset Start, DateTimeOffset End)> Intervals(DateTimeOffset from)
     {

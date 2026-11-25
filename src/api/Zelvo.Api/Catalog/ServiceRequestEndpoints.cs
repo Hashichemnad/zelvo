@@ -19,6 +19,10 @@ using Zelvo.Data.Tickets;
 using Zelvo.Tickets;
 using Zelvo.Tickets.Forms;
 using Zelvo.Tickets.Sla;
+using Zelvo.Api.Workflows;
+using Zelvo.Data.Workflows;
+using Zelvo.Workflows.Approvals;
+using Zelvo.Workflows.Rules;
 
 namespace Zelvo.Api.Catalog;
 
@@ -39,7 +43,7 @@ internal static class ServiceRequestEndpoints
         var requests = group.MapGroup("/service-requests").WithTags("Service requests").RequireTenant();
         requests.MapPost("/", CreateAsync).WithName("CreateServiceRequest")
             .WithSummary("Request a published, active, internal service the caller may see: its form's answers (formVersionId, formAnswers) and required documents (document key → ids of files uploaded with /form-uploads, field document<Key>). People whose roles the service allows may name requesterId to request on behalf of someone, who must be allowed the service too. Prerequisite services must be completed first. Routed by the assignment rules; audited.")
-            .RequirePerson().RequireAuthorization().Produces<ServiceRequestResponse>(StatusCodes.Status201Created).ProducesValidationProblem();
+            .RequireAuthorization().Produces<ServiceRequestResponse>(StatusCodes.Status201Created).ProducesValidationProblem();
         requests.MapGet("/", ListAsync).WithName("ListServiceRequests")
             .WithSummary("Service requests, newest first: all for holders of requests.read (mine=true: the caller's own), otherwise the caller's own (also those made for them by others).")
             .RequireAuthorization().Produces<PageResult<ServiceRequestResponse>>();
@@ -74,8 +78,24 @@ internal static class ServiceRequestEndpoints
         CreateServiceRequestRequest request, HttpContext http, ZelvoDbContext db, CurrentUser user, ITenantContext tenant,
         TenantSettingsStore settings, IAuditLog audit, CancellationToken cancellationToken)
     {
-        var me = user.Account!;
-        var scope = await CatalogScope.OfAsync(db, user, cancellationToken);
+        // A person, or an AI agent through Zelvo's MCP server (task C4, as E6 decided for incidents):
+        // the agent names the requester, needs requests.edit, sees what the requester may see, and
+        // the request records the agent.
+        var agent = user.Account is null ? user.ApiClient?.Id : null;
+        if (user.Account is null && (agent is null || !user.Has(Permissions.RequestsEdit) || request.RequesterId is null))
+        {
+            return ApiProblem.Create(StatusCodes.Status403Forbidden, "forbidden", "Only people, and AI agents with requests.edit naming the requester, may request services.");
+        }
+
+        var agentRequester = agent is null ? null
+            : await db.Users.AsNoTracking().SingleOrDefaultAsync(u => u.Id == request.RequesterId && u.Status == UserStatus.Active, cancellationToken);
+        if (agent is not null && agentRequester is null)
+        {
+            return UserEndpoints.Validation("requesterId", "The requester is not an active user of this organisation.");
+        }
+
+        var me = user.Account ?? agentRequester!;
+        var scope = agent is null ? await CatalogScope.OfAsync(db, user, cancellationToken) : await CatalogScope.OfUserAsync(db, me, cancellationToken);
         var found = await PublishedServices.FindAsync(db, scope, request.ServiceId!.Value, cancellationToken);
         if (found is null)
         {
@@ -95,7 +115,7 @@ internal static class ServiceRequestEndpoints
 
         // On behalf of someone else: only roles the service allows, for someone the service is for.
         var requester = me;
-        if (request.RequesterId is { } requesterId && requesterId != me.Id)
+        if (agent is null && request.RequesterId is { } requesterId && requesterId != me.Id)
         {
             if (!CatalogAccess.MayRequestOnBehalf(card, scope))
             {
@@ -138,6 +158,12 @@ internal static class ServiceRequestEndpoints
             return formProblem;
         }
 
+        // Agents cannot upload, and must not send files the requester uploaded for something else.
+        if (agent is not null && request.Documents is { Count: > 0 })
+        {
+            return UserEndpoints.Validation("documents", "AI agents cannot send documents; the requester adds them on the portal.");
+        }
+
         var (documents, documentErrors) = await CheckDocumentsAsync(db, me.Id, card, request.Documents, policy, cancellationToken);
         if (documentErrors.Count > 0)
         {
@@ -163,23 +189,35 @@ internal static class ServiceRequestEndpoints
             Sequence = sequence,
             Title = title[..Math.Min(title.Length, Ticket.TitleMaxLength)],
             Description = string.IsNullOrWhiteSpace(request.Description) ? null : request.Description.Trim(),
-            Channel = TicketChannel.Portal,
+            Channel = agent is null ? TicketChannel.Portal : TicketChannel.AiAgent,
             RequesterId = requester.Id,
-            CreatedById = me.Id,
+            CreatedById = agent is null ? me.Id : null,
+            CreatedByApiClientId = agent,
             CategoryId = card.CategoryIds.Count > 0 ? card.CategoryIds[0] : null,
             LocationId = requester.LocationId,
             CreatedAt = now,
             UpdatedAt = now,
         };
 
-        // Task B2: placed by the assignment rules; C4 adds the service's initial group.
-        await IncidentEndpoints.RouteAsync(db, settings, ticket, now, cancellationToken);
         db.Tickets.Add(ticket);
         db.ServiceRequests.Add(new ServiceRequestDetails { TicketId = ticket.Id, ServiceId = found.Service.Id, ServiceVersionId = found.Version.Id });
         formResponse?.Attach(db, ticket);
         foreach (var file in documents)
         {
             file.TicketId = ticket.Id;
+        }
+
+        // Task C3: approvals before assignment (the service's and those of matching rules) hold the
+        // request back from agents; otherwise it is routed now.
+        var facts = await RuleFacts.LoadAsync(db, ticket, cancellationToken);
+        var levels = await ApprovalPlanner.PlanAsync(db, ticket, ApprovalStage.BeforeAssignment, card.Approvals.BeforeAssignment, facts, cancellationToken);
+        if (levels.Count > 0)
+        {
+            await http.RequestServices.GetRequiredService<ApprovalService>().StartAsync(ticket, ApprovalStage.BeforeAssignment, levels, agent is null ? me.Id : null, null, cancellationToken);
+        }
+        else
+        {
+            await ServiceRequestRouting.ReleaseAsync(db, settings, ticket, card, now, cancellationToken);
         }
 
         await http.RequestServices.GetRequiredService<SlaTracker>().UpdateAsync([ticket], now, cancellationToken);
@@ -411,6 +449,11 @@ internal static class ServiceRequestEndpoints
             return versionProblem;
         }
 
+        if (ticket.AwaitingApproval)
+        {
+            return AwaitingApproval();
+        }
+
         if (to == TicketState.OnHold)
         {
             var reasons = await settings.GetAsync(IncidentSettings.OnHoldReasons, cancellationToken);
@@ -433,9 +476,43 @@ internal static class ServiceRequestEndpoints
                 return ApiProblem.Create(StatusCodes.Status409Conflict, "assignee-required", "Assign the request before starting work on it.");
         }
 
+        // Task C4: resolving or closing by hand cancels the tasks still to do.
+        if (to is TicketState.Resolved or TicketState.Closed)
+        {
+            await RequestTasks.CancelOpenAsync(db, ticket.Id, DateTimeOffset.UtcNow, cancellationToken);
+        }
+
+        // Task C3: a sign-off after fulfilment (the service's and those of matching rules) comes
+        // before the request is resolved; the notes are kept until it is approved.
+        if (to == TicketState.Resolved)
+        {
+            var card = await CardOfAsync(db, ticket.Id, cancellationToken);
+            var facts = await RuleFacts.LoadAsync(db, ticket, cancellationToken);
+            var levels = await ApprovalPlanner.PlanAsync(db, ticket, ApprovalStage.AfterFulfilment, card.Approvals.AfterFulfilment, facts, cancellationToken);
+            if (levels.Count > 0)
+            {
+                await using var transaction = await db.Database.BeginTransactionAsync(cancellationToken);
+                await http.RequestServices.GetRequiredService<ApprovalService>()
+                    .StartAsync(ticket, ApprovalStage.AfterFulfilment, levels, user.Account?.Id, request.ResolutionNotes!.Trim(), cancellationToken);
+                return await SaveAsync(http, db, user, ticket, cancellationToken);
+            }
+        }
+
         TicketWorkflow.Apply(ticket, to, request.OnHoldReason, request.ResolutionNotes, DateTimeOffset.UtcNow);
         return await SaveAsync(http, db, user, ticket, cancellationToken);
     }
+
+    /// <summary>The service card a request was made with.</summary>
+    internal static async Task<ServiceCard> CardOfAsync(ZelvoDbContext db, Guid ticketId, CancellationToken cancellationToken)
+    {
+        var content = await db.ServiceRequests.AsNoTracking().Where(r => r.TicketId == ticketId)
+            .Join(db.CatalogServiceVersions, r => r.ServiceVersionId, v => v.Id, (r, v) => v.Content)
+            .FirstOrDefaultAsync(cancellationToken);
+        return ServiceCards.Read(content);
+    }
+
+    private static IResult AwaitingApproval() =>
+        ApiProblem.Create(StatusCodes.Status409Conflict, "awaiting-approval", "The request is waiting for an approval. Stop the approval first to change it.");
 
     internal static async Task<IResult> SetAssignmentAsync(
         Guid id, SetAssignmentRequest request, HttpContext http, ZelvoDbContext db, CurrentUser user, CancellationToken cancellationToken)
@@ -454,6 +531,11 @@ internal static class ServiceRequestEndpoints
         if (ticket.State == TicketState.Closed)
         {
             return IncidentEndpoints.Closed();
+        }
+
+        if (ticket.AwaitingApproval)
+        {
+            return AwaitingApproval();
         }
 
         if (request.GroupId is { } groupId && groupId != ticket.GroupId && !await db.SupportGroups.AnyAsync(g => g.Id == groupId && g.Active, cancellationToken))
@@ -492,8 +574,13 @@ internal static class ServiceRequestEndpoints
             return ApiProblem.Create(StatusCodes.Status409Conflict, "ticket-not-open", "Only open requests are routed.");
         }
 
+        if (ticket.AwaitingApproval)
+        {
+            return AwaitingApproval();
+        }
+
         await using var transaction = await db.Database.BeginTransactionAsync(cancellationToken);
-        await IncidentEndpoints.RouteAsync(db, settings, ticket, DateTimeOffset.UtcNow, cancellationToken);
+        await ServiceRequestRouting.RouteAsync(db, settings, ticket, await CardOfAsync(db, ticket.Id, cancellationToken), DateTimeOffset.UtcNow, cancellationToken);
         return await SaveAsync(http, db, user, ticket, cancellationToken);
     }
 
@@ -516,7 +603,13 @@ internal static class ServiceRequestEndpoints
         }
 
         var me = user.Account?.Id;
-        return user.Has(Permissions.RequestsRead) || (me is not null && (ticket.RequesterId == me || ticket.CreatedById == me)) ? ticket : null;
+        if (user.Has(Permissions.RequestsRead) || (me is not null && (ticket.RequesterId == me || ticket.CreatedById == me)))
+        {
+            return ticket;
+        }
+
+        // Task C3: approvers asked about the request see it (and its answers and documents) to decide.
+        return me is not null && await db.ApprovalDecisions.AnyAsync(d => d.TicketId == id && d.ApproverId == me, cancellationToken) ? ticket : null;
     }
 
     private static Microsoft.AspNetCore.Http.HttpResults.ProblemHttpResult? VersionProblem(HttpContext http, ZelvoDbContext db, Ticket ticket)
@@ -575,6 +668,7 @@ internal static class ServiceRequestEndpoints
     private sealed class ResponseContext
     {
         private Dictionary<Guid, ServiceRequestDetails> _details = [];
+        private ILookup<Guid, RequestTask> _tasks = Array.Empty<RequestTask>().ToLookup(t => t.TicketId);
         private Dictionary<Guid, (CatalogService Service, ServiceCard Card)> _services = [];
         private Dictionary<Guid, string?> _names = [];
         private DirectoryRefs _refs = null!;
@@ -591,9 +685,11 @@ internal static class ServiceRequestEndpoints
             var serviceIds = details.Values.Select(d => d.ServiceId).Distinct().ToList();
             var services = await db.CatalogServices.AsNoTracking().Where(s => serviceIds.Contains(s.Id)).ToDictionaryAsync(s => s.Id, cancellationToken);
             var staff = user.Has(Permissions.RequestsRead);
+            var tasks = await db.RequestTasks.AsNoTracking().Where(t => ids.Contains(t.TicketId)).ToListAsync(cancellationToken);
             return new ResponseContext
             {
                 _details = details,
+                _tasks = tasks.ToLookup(t => t.TicketId),
                 _services = details.Values.ToDictionary(d => d.TicketId, d => (services[d.ServiceId], ServiceCards.Read(versions.GetValueOrDefault(d.ServiceVersionId)))),
                 _names = await IncidentEndpoints.Names(db, tickets.SelectMany(t => new[] { t.RequesterId, t.AssigneeId ?? Guid.Empty, t.CreatedById ?? Guid.Empty }), cancellationToken),
                 _refs = await DirectoryRefs.LoadAsync(db, cancellationToken),
@@ -606,13 +702,18 @@ internal static class ServiceRequestEndpoints
         public ServiceRequestResponse From(Ticket t)
         {
             var (service, card) = _services.TryGetValue(t.Id, out var s) ? s : (null!, new ServiceCard());
-            var stage = StageOf(t.State);
+            var stage = t.AwaitingApproval && t.State == TicketState.New ? ServiceStepStage.Approval : StageOf(t.State);
             var steps = card.Steps.Select(x => new PublishedStep(LocalizedTextDto.From(x.Name), LocalizedTextDto.From(x.Description), x.Stage)).ToList();
-            // The current step is the last step whose stage the request has reached.
+            // The current step (task C4: the requester's journey) is the last step reached: a step
+            // mapped to a task is reached when the task starts; otherwise when the request reaches its stage.
+            var tasks = _tasks[t.Id].ToList();
             var current = -1;
             for (var i = 0; i < card.Steps.Count; i++)
             {
-                if ((int)card.Steps[i].Stage <= (int)stage)
+                var reached = card.Steps[i].TaskKey is { } key
+                    ? tasks.Any(x => x.Key == key && x.State is RequestTaskState.Open or RequestTaskState.InProgress or RequestTaskState.Done)
+                    : (int)card.Steps[i].Stage <= (int)stage;
+                if (reached)
                 {
                     current = i;
                 }
@@ -630,7 +731,7 @@ internal static class ServiceRequestEndpoints
                 // The team that has it, also for requesters; never the person (decision 2026-11-24).
                 _refs.Group(t.GroupId),
                 service is null ? null : new ServiceRefResponse(service.Id, service.Code, LocalizedTextDto.From(card.Name.HasAnyValue ? card.Name : service.Name)),
-                steps, current, t.OnHoldReason, t.ResolutionNotes, next,
+                steps, current, t.OnHoldReason, t.ResolutionNotes, t.AwaitingApproval ? [] : next, t.AwaitingApproval,
                 _staff ? _slas.For(t.Id, DateTimeOffset.UtcNow) : [],
                 $"\"{t.Version}\"", t.CreatedAt, t.UpdatedAt, t.ResolvedAt, t.ClosedAt);
         }
@@ -714,5 +815,5 @@ internal sealed record ServiceRequestAttachmentResponse(
 internal sealed record ServiceRequestResponse(
     Guid Id, string Number, string Title, string? Description, TicketState State, TicketChannel Channel,
     PersonResponse Requester, PersonResponse? RequestedBy, PersonResponse? Assignee, NamedRef? Group, ServiceRefResponse? Service,
-    IReadOnlyList<PublishedStep> Steps, int CurrentStep, string? OnHoldReason, string? ResolutionNotes, IReadOnlyList<TicketState> NextStates,
+    IReadOnlyList<PublishedStep> Steps, int CurrentStep, string? OnHoldReason, string? ResolutionNotes, IReadOnlyList<TicketState> NextStates, bool AwaitingApproval,
     IReadOnlyList<SlaClockResponse> Sla, string Etag, DateTimeOffset CreatedAt, DateTimeOffset UpdatedAt, DateTimeOffset? ResolvedAt, DateTimeOffset? ClosedAt);

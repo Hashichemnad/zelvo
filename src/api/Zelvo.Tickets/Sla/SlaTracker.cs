@@ -217,13 +217,17 @@ public sealed class SlaTracker(ZelvoDbContext db, IAuditLog audit)
         var emails = await db.Users.AsNoTracking().Where(u => requesterIds.Contains(u.Id))
             .ToDictionaryAsync(u => u.Id, u => u.Email, cancellationToken).ConfigureAwait(false);
         var people = new Recipients(db);
+        var services = await ServiceSla.LoadAsync(db, tickets, cancellationToken).ConfigureAwait(false);
 
         foreach (var ticket in tickets.DistinctBy(t => t.Id))
         {
             var subject = new SlaSubject(ticket.Type, ticket.Incident?.Priority ?? ticket.Voice?.Priority, setup.CategoryAncestry(ticket.CategoryId),
                 setup.CustomerGroupsOf(ticket.RequesterId, emails.GetValueOrDefault(ticket.RequesterId)));
-            var policy = SlaMatcher.FirstMatch(setup.Policies, subject);
-            var calendarId = setup.CalendarIdFor(ticket.GroupId, policy);
+            var matched = SlaMatcher.FirstMatch(setup.Policies, subject);
+            // Task C4: a service's own ownership and completion targets and escalations replace the policy's.
+            var service = services.GetValueOrDefault(ticket.Id);
+            var policy = service?.Apply(matched) ?? matched;
+            var calendarId = setup.CalendarIdFor(ticket.GroupId, matched);
             var changes = new Dictionary<string, object?>(StringComparer.Ordinal);
             foreach (var metric in Enum.GetValues<SlaMetric>())
             {
@@ -243,7 +247,8 @@ public sealed class SlaTracker(ZelvoDbContext db, IAuditLog audit)
                 }
 
                 var before = (clock.PolicyId, clock.TargetMinutes);
-                await UpdateClockAsync(clock, isNew, ticket, policy, calendarId, setup, people, now, cancellationToken).ConfigureAwait(false);
+                await UpdateClockAsync(clock, isNew, ticket, policy, service?.TargetOf(clock.Metric), matched?.Id, calendarId, setup, people, now, cancellationToken)
+                    .ConfigureAwait(false);
                 if (before != (clock.PolicyId, clock.TargetMinutes) || (isNew && clock.TargetMinutes is not null))
                 {
                     changes[metric.ToString().ToLowerInvariant()] = new Dictionary<string, object?>(StringComparer.Ordinal)
@@ -262,7 +267,7 @@ public sealed class SlaTracker(ZelvoDbContext db, IAuditLog audit)
     }
 
     private async Task UpdateClockAsync(
-        TicketSla clock, bool isNew, Ticket ticket, SlaPolicy? policy, Guid? calendarId, SlaSetup setup, Recipients people,
+        TicketSla clock, bool isNew, Ticket ticket, SlaPolicy? policy, int? serviceTarget, Guid? policyId, Guid? calendarId, SlaSetup setup, Recipients people,
         DateTimeOffset now, CancellationToken cancellationToken)
     {
         var desired = DesiredState(clock.Metric, ticket, setup.PausingReasons);
@@ -286,8 +291,8 @@ public sealed class SlaTracker(ZelvoDbContext db, IAuditLog audit)
         clock.CountedUntil = countTo > clock.CountedUntil ? countTo : clock.CountedUntil;
 
         // 2. The policy, target and calendar that apply now; the elapsed time is kept.
-        clock.PolicyId = policy?.Id;
-        clock.TargetMinutes = SlaMatcher.TargetOf(policy, clock.Metric, ticket.Incident?.Priority ?? ticket.Voice?.Priority);
+        clock.PolicyId = serviceTarget is null ? policyId : null;
+        clock.TargetMinutes = serviceTarget ?? SlaMatcher.TargetOf(policy, clock.Metric, ticket.Incident?.Priority ?? ticket.Voice?.Priority);
         clock.CalendarId = calendarId;
         var calendar = setup.Calendar(calendarId);
 
@@ -403,7 +408,8 @@ public sealed class SlaTracker(ZelvoDbContext db, IAuditLog audit)
             return SlaClockState.Stopped;
         }
 
-        return ticket.State == TicketState.OnHold && ticket.OnHoldReason is { } reason && pausingReasons.Contains(reason)
+        // Task C3 (module 2): clocks also pause while the ticket waits for an approval.
+        return ticket.AwaitingApproval || (ticket.State == TicketState.OnHold && ticket.OnHoldReason is { } reason && pausingReasons.Contains(reason))
             ? SlaClockState.Paused
             : SlaClockState.Running;
     }
@@ -432,5 +438,79 @@ public sealed class SlaTracker(ZelvoDbContext db, IAuditLog audit)
 
             return ids;
         }
+    }
+}
+
+/// <summary>
+/// A service request's own SLA (task C4): the ownership target (response clock), the completion
+/// target (resolution clock) and escalation thresholds, copied from the service when the request
+/// reached the service desk.
+/// </summary>
+internal sealed class ServiceSla
+{
+    private static readonly System.Text.Json.JsonSerializerOptions Json = new(System.Text.Json.JsonSerializerDefaults.Web)
+    {
+        Converters = { new System.Text.Json.Serialization.JsonStringEnumConverter() },
+    };
+
+    private int? _ownership;
+    private int? _completion;
+    private List<Data.Catalog.ServiceEscalation> _escalations = [];
+
+    /// <summary>The service SLAs of the request tickets among <paramref name="tickets"/> that have one.</summary>
+    public static async Task<Dictionary<Guid, ServiceSla>> LoadAsync(ZelvoDbContext db, IReadOnlyCollection<Ticket> tickets, CancellationToken cancellationToken)
+    {
+        var ids = tickets.Where(t => t.Type == TicketType.ServiceRequest).Select(t => t.Id).ToList();
+        if (ids.Count == 0)
+        {
+            return [];
+        }
+
+        var tracked = db.ChangeTracker.Entries<Data.Catalog.ServiceRequestDetails>().Where(e => ids.Contains(e.Entity.TicketId)).Select(e => e.Entity).ToList();
+        var missing = ids.Where(id => tracked.All(t => t.TicketId != id)).ToList();
+        if (missing.Count > 0)
+        {
+            tracked.AddRange(await db.ServiceRequests.AsNoTracking().Where(r => missing.Contains(r.TicketId)).ToListAsync(cancellationToken).ConfigureAwait(false));
+        }
+
+        var result = new Dictionary<Guid, ServiceSla>();
+        foreach (var details in tracked)
+        {
+            var escalations = string.IsNullOrWhiteSpace(details.Escalations)
+                ? []
+                : System.Text.Json.JsonSerializer.Deserialize<List<Data.Catalog.ServiceEscalation>>(details.Escalations, Json) ?? [];
+            if (details.OwnershipMinutes is null && details.CompletionMinutes is null && escalations.Count == 0)
+            {
+                continue;
+            }
+
+            result[details.TicketId] = new ServiceSla { _ownership = details.OwnershipMinutes, _completion = details.CompletionMinutes, _escalations = escalations };
+        }
+
+        return result;
+    }
+
+    /// <summary>The service's target of <paramref name="metric"/>, if it has one.</summary>
+    public int? TargetOf(SlaMetric metric) => metric == SlaMetric.Response ? _ownership : _completion;
+
+    /// <summary>The policy whose escalations apply: the service's thresholds when it has any (on an unsaved copy), else the policy's.</summary>
+    public SlaPolicy? Apply(SlaPolicy? policy)
+    {
+        if (_escalations.Count == 0)
+        {
+            return policy;
+        }
+
+        var effective = new SlaPolicy { Name = policy?.Name ?? new Data.Localization.LocalizedText(null, null), CalendarId = policy?.CalendarId };
+        effective.Targets.AddRange(policy?.Targets ?? []);
+        effective.Escalations.AddRange(_escalations.Select(e => new SlaEscalation
+        {
+            Metric = e.Metric,
+            Percent = e.Percent,
+            NotifyAssignee = e.NotifyAssignee,
+            NotifyGroupLeads = e.NotifyGroupLeads,
+            NotifyGroupId = e.NotifyGroupId,
+        }));
+        return effective;
     }
 }

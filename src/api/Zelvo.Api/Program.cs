@@ -1,3 +1,5 @@
+using Zelvo.Workflows;
+using Zelvo.Workflows.Engine;
 using Zelvo.Api.ServiceDesk;
 using System.Text.Json.Serialization;
 using Zelvo.Api;
@@ -31,6 +33,7 @@ using Zelvo.Api.Tenancy;
 using Zelvo.Api.Reports;
 using Zelvo.Api.Setup;
 using Zelvo.Api.Workspace;
+using Zelvo.Api.Workflows;
 using Zelvo.Data;
 using Zelvo.Data.Localization;
 using Zelvo.Data.Tenancy;
@@ -74,8 +77,13 @@ builder.Services.AddZelvoLicensing();
 builder.Services.AddZelvoHealthChecks(builder.Configuration);
 builder.Services.AddZelvoIdentity(builder.Configuration);
 
-builder.Services.AddZelvoData(builder.Configuration.GetConnectionString("Postgres")
-    ?? throw new InvalidOperationException("Configuration value 'ConnectionStrings:Postgres' is required."));
+var postgres = builder.Configuration.GetConnectionString("Postgres")
+    ?? throw new InvalidOperationException("Configuration value 'ConnectionStrings:Postgres' is required.");
+builder.Services.AddZelvoData(postgres);
+// Task C3: workflow rules run with every save (before notifications and webhooks see the
+// changes), and approval processes run on the embedded Elsa engine.
+builder.Services.AddZelvoWorkflowRules();
+builder.Services.AddZelvoWorkflowEngine(postgres);
 builder.Services.AddMemoryCache();
 builder.Services.AddScoped<TenantResolver>();
 builder.Services.AddScoped<TenantSettingsStore>();
@@ -94,6 +102,7 @@ builder.Services.AddZelvoApiAi(builder.Configuration);
 builder.Services.AddZelvoKnowledge();
 builder.Services.AddZelvoCatalog();
 builder.Services.AddZelvoCustomerVoice();
+builder.Services.AddZelvoApiWorkflows();
 builder.Services.AddZelvoMcpServer();
 builder.Services.AddZelvoApiNotifications(builder.Configuration);
 // Agent workspace (task B4): live updates over SignalR.
@@ -156,6 +165,7 @@ v1.MapZelvoKnowledgeEndpoints();
 v1.MapZelvoCatalogEndpoints();
 v1.MapZelvoCustomerVoiceEndpoints();
 v1.MapPortalEndpoints();
+v1.MapZelvoWorkflowEndpoints();
 v1.MapZelvoMcp();
 v1.MapMcpEndpoints();
 v1.MapMcpServerEndpoints();

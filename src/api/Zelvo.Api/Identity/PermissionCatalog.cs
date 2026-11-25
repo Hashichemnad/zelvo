@@ -173,6 +173,14 @@ internal static class Permissions
 
     /// <summary>Settings → Customer voice: anonymous submission, severities, root causes and the happiness meter (GOV-2).</summary>
     public const string VoiceManage = Zelvo.Tickets.VoicePermissions.Manage;
+    /// <summary>
+    /// Build workflow rules (task C3, module 10): when / if / then rules that assign, ask for
+    /// approval and notify. Holders also approve when a level names nobody who can.
+    /// </summary>
+    public const string WorkflowsManage = "workflows.manage";
+
+    /// <summary>See every approval process and decision (task C3). Approvers always see their own.</summary>
+    public const string ApprovalsRead = "approvals.read";
 }
 
 /// <summary>A field of a resource that field rules can hide or make read-only.</summary>
@@ -248,6 +256,8 @@ internal static class PermissionCatalog
         Permissions.VoiceReport,
         Permissions.VoiceManage,
         Permissions.BrandingManage,
+        Permissions.WorkflowsManage,
+        Permissions.ApprovalsRead,
         Permissions.ReportsRead,
         Permissions.ReportsAll,
         Permissions.ReportsManage,
@@ -273,6 +283,9 @@ internal static class PermissionCatalog
         // Task F1, for the product owner's approval: certificates' private keys, DKIM keys and the
         // domains the installation answers for are set here.
         Permissions.BrandingManage,
+        // Task C3, for the product owner's approval: rules send wording of their own to anyone,
+        // like notification templates, and could route requests past their approvers.
+        Permissions.WorkflowsManage,
         // Task F2, for the product owner's approval: department templates create groups, SLA
         // policies and assignment rules in bulk.
         Permissions.SetupManage,
@@ -350,7 +363,7 @@ internal static class PermissionCatalog
             new Dictionary<string, FieldAccess> { ["users.email"] = FieldAccess.Read, ["users.emiratesId"] = FieldAccess.Edit, ["users.phone"] = FieldAccess.Edit }),
         new(BuiltInRoles.ExecutiveAuditor, new LocalizedText("Executive / auditor", "تنفيذي / مدقق"),
             [Permissions.AuditRead, Permissions.UsersRead, Permissions.IncidentsRead, Permissions.DirectoryRead, Permissions.KnowledgeRead, Permissions.RequestsRead,
-                Permissions.VoiceRead, Permissions.VoiceReport, Permissions.ReportsRead, Permissions.ReportsAll],
+                Permissions.VoiceRead, Permissions.VoiceReport, Permissions.ApprovalsRead, Permissions.ReportsRead, Permissions.ReportsAll],
             new Dictionary<string, FieldAccess> { ["users.email"] = FieldAccess.Read }),
     ];
 
