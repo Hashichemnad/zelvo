@@ -20,6 +20,7 @@ public static class NotificationsServiceCollectionExtensions
         services.TryAddSingleton<IEmailSender, SmtpEmailSender>();
         services.TryAddScoped<NotificationComposer>();
         services.TryAddScoped<NotificationProcessor>();
+        services.TryAddScoped<PendingNotifications>();
         if (!services.Any(d => d.ImplementationType == typeof(NotificationInterceptor)))
         {
             services.AddZelvoSaveChangesInterceptor<NotificationInterceptor>();
@@ -29,6 +30,10 @@ public static class NotificationsServiceCollectionExtensions
             services.AddScoped<INotificationSource, CommentNotificationSource>();
             services.AddScoped<INotificationSource, VoiceNotificationSource>();
             services.AddScoped<INotificationSource, SentimentNotificationSource>();
+            services.AddScoped<INotificationSource, ApprovalNotificationSource>();
+            services.AddScoped<INotificationSource, ServiceRequestNotificationSource>();
+            services.AddScoped<INotificationSource, RequestTaskNotificationSource>();
+            services.AddScoped<INotificationSource, PendingNotificationSource>();
         }
 
         return services;

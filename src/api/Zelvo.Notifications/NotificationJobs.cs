@@ -72,8 +72,14 @@ public sealed partial class NotificationProcessor(
 
         var values = NotificationData.Deserialize(notification.Data);
         var format = await composer.FormatAsync(recipient, cancellationToken).ConfigureAwait(false);
-        var template = await composer.TemplateAsync(notification.EventType, format.Language, cancellationToken).ConfigureAwait(false);
-        var rendered = await composer.RenderAsync(template, values, recipient, format, notification.LinkPath, cancellationToken).ConfigureAwait(false);
+        var rule = notification.EventType == NotificationEvents.WorkflowRule;
+        var template = rule
+            ? NotificationComposer.RuleTemplate(values, format.Language)
+            : await composer.TemplateAsync(notification.EventType, format.Language, cancellationToken).ConfigureAwait(false);
+        var rendered = await composer.RenderAsync(template, values, recipient, format, notification.LinkPath, cancellationToken, notification.EventType)
+            .ConfigureAwait(false);
+        // A rule's own setting says whether its notification also goes by email.
+        var ruleEmail = !rule || values.GetValueOrDefault(Placeholders.RuleEmail)?.Text == "true";
         notification.Status = NotificationStatus.Delivered;
         notification.Language = format.Language;
         notification.Title = rendered.Subject;
@@ -83,7 +89,7 @@ public sealed partial class NotificationProcessor(
         {
             await QueueFromMailboxAsync(notification, mailbox!, conversationAddress, format.Language, rendered, now, cancellationToken).ConfigureAwait(false);
         }
-        else if (setting.Email && recipient.Email is { Length: > 0 } address && await WantsEmailAsync(recipient, definition, cancellationToken).ConfigureAwait(false))
+        else if (setting.Email && ruleEmail && recipient.Email is { Length: > 0 } address && await WantsEmailAsync(recipient, definition, cancellationToken).ConfigureAwait(false))
         {
             if (mailbox is not null)
             {

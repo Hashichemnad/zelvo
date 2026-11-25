@@ -135,6 +135,49 @@ public static class TicketRouter
         return members;
     }
 
+    /// <summary>
+    /// Round-robin in <paramref name="groupId"/>: the available, qualified member whose last ticket
+    /// from the group came longest ago; with <paramref name="commit"/> the group's row is locked
+    /// until the caller's transaction ends and the rotation moves on. <see langword="null"/> when
+    /// nobody qualifies (the ticket stays in the group's queue).
+    /// </summary>
+    public static async Task<Guid?> RoundRobinAsync(
+        ZelvoDbContext db, Guid groupId, Guid? skillId, string? language, DateTimeOffset now, bool commit, CancellationToken cancellationToken)
+    {
+        ArgumentNullException.ThrowIfNull(db);
+        var group = groupId;
+        if (commit)
+        {
+            // Serialises round-robin per group until the caller's transaction ends.
+            await db.Database.ExecuteSqlAsync($"SELECT 1 FROM support_groups WHERE id = {group} FOR UPDATE", cancellationToken).ConfigureAwait(false);
+        }
+
+        var candidates = await Candidates(db, group, skillId, language)
+            .Select(m => new RotationCandidate(m.UserId,
+                db.SupportGroupRotations.Where(r => r.GroupId == m.GroupId && r.UserId == m.UserId).Select(r => (DateTimeOffset?)r.LastAssignedAt).FirstOrDefault()))
+            .ToListAsync(cancellationToken).ConfigureAwait(false);
+        var assignee = PickNext(candidates);
+        if (commit && assignee is { } picked)
+        {
+            // Strictly later than every earlier pick in the group: a request that started earlier
+            // but waited for the lock must not make its pick look longer ago than the others.
+            var latest = candidates.Max(c => c.LastAssignedAt);
+            var stamp = latest is { } last && last >= now ? last.AddTicks(10) : now;
+            var rotation = db.ChangeTracker.Entries<SupportGroupRotation>().FirstOrDefault(e => e.Entity.GroupId == group && e.Entity.UserId == picked)?.Entity
+                ?? await db.SupportGroupRotations.SingleOrDefaultAsync(r => r.GroupId == group && r.UserId == picked, cancellationToken).ConfigureAwait(false);
+            if (rotation is null)
+            {
+                db.SupportGroupRotations.Add(new SupportGroupRotation { GroupId = group, UserId = picked, LastAssignedAt = stamp });
+            }
+            else
+            {
+                rotation.LastAssignedAt = stamp;
+            }
+        }
+
+        return assignee;
+    }
+
     private static async Task<RoutingDecision> DecideAsync(
         ZelvoDbContext db, RoutingRequest request, AssignmentDefault fallback, DateTimeOffset now, bool commit, CancellationToken cancellationToken)
     {
@@ -151,35 +194,7 @@ public static class TicketRouter
             return new RoutingDecision(rule, groupId, method, null);
         }
 
-        if (commit)
-        {
-            // Serialises round-robin per group until the caller's transaction ends.
-            await db.Database.ExecuteSqlAsync($"SELECT 1 FROM support_groups WHERE id = {group} FOR UPDATE", cancellationToken).ConfigureAwait(false);
-        }
-
-        var language = rule?.Language;
-        var candidates = await Candidates(db, group, rule?.SkillId, language)
-            .Select(m => new RotationCandidate(m.UserId,
-                db.SupportGroupRotations.Where(r => r.GroupId == m.GroupId && r.UserId == m.UserId).Select(r => (DateTimeOffset?)r.LastAssignedAt).FirstOrDefault()))
-            .ToListAsync(cancellationToken).ConfigureAwait(false);
-        var assignee = PickNext(candidates);
-        if (commit && assignee is { } picked)
-        {
-            // Strictly later than every earlier pick in the group: a request that started earlier
-            // but waited for the lock must not make its pick look longer ago than the others.
-            var latest = candidates.Max(c => c.LastAssignedAt);
-            var stamp = latest is { } last && last >= now ? last.AddTicks(10) : now;
-            var rotation = await db.SupportGroupRotations.SingleOrDefaultAsync(r => r.GroupId == group && r.UserId == picked, cancellationToken).ConfigureAwait(false);
-            if (rotation is null)
-            {
-                db.SupportGroupRotations.Add(new SupportGroupRotation { GroupId = group, UserId = picked, LastAssignedAt = stamp });
-            }
-            else
-            {
-                rotation.LastAssignedAt = stamp;
-            }
-        }
-
+        var assignee = await RoundRobinAsync(db, group, rule?.SkillId, rule?.Language, now, commit, cancellationToken).ConfigureAwait(false);
         return new RoutingDecision(rule, groupId, method, assignee);
     }
 }

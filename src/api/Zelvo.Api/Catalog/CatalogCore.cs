@@ -267,6 +267,18 @@ internal static class ServiceCardCheck
             Add("onBehalfRoleKeys", "role-unknown", "A role does not exist.");
         }
 
+        var fulfilment = card.Fulfilment;
+        var fulfilmentGroups = fulfilment.Tasks.Select(t => t.GroupId).Concat(fulfilment.Overrides.Select(o => o.GroupId))
+            .Concat(fulfilment.Escalations.Select(e => e.NotifyGroupId)).Append(fulfilment.GroupId).OfType<Guid>().Distinct().ToList();
+        await KnownAsync(db.SupportGroups.Where(g => g.Active).Select(g => g.Id), fulfilmentGroups, "fulfilment", "group-unknown", "A group of the fulfilment is not active.").ConfigureAwait(false);
+        for (var i = 0; i < fulfilment.Overrides.Count; i++)
+        {
+            await Workflows.WorkflowReferences.CheckConditionsAsync(db, fulfilment.Overrides[i].Conditions, $"fulfilment.overrides.{i}.conditions", problems, cancellationToken).ConfigureAwait(false);
+        }
+
+        await Workflows.WorkflowReferences.CheckLevelsAsync(db, card.Approvals.BeforeAssignment, "approvals.beforeAssignment", problems, cancellationToken).ConfigureAwait(false);
+        await Workflows.WorkflowReferences.CheckLevelsAsync(db, card.Approvals.AfterFulfilment, "approvals.afterFulfilment", problems, cancellationToken).ConfigureAwait(false);
+
         var files = card.Documents.Where(x => x.TemplateFileId is not null).Select(x => x.TemplateFileId!.Value).ToList();
         if (card.ImageFileId is { } image)
         {

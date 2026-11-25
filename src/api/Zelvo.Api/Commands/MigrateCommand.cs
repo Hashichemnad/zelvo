@@ -50,6 +50,7 @@ internal static partial class MigrateCommand
         var demo = license.IsDemo();
 
         await DatabaseMigrator.MigrateAsync(owner);
+        await Zelvo.Workflows.Engine.WorkflowEngineSetup.MigrateAsync(owner);
         LogMigrated(logger);
 
         Tenant? bootstrap = null;

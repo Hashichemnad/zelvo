@@ -74,7 +74,7 @@ internal sealed record McpTool(
 /// The tools of Zelvo's MCP server: search knowledge, find and read incidents with their status
 /// and SLA clocks, read SLA policies, and raise, change and move incidents. They call the same code
 /// as the REST API, as the agent, so its role, scopes and field rules apply and every change is
-/// audited. Raising catalog requests is added with the service catalog (task C4).
+/// audited. Task C4 adds the catalog request tools (<see cref="McpCatalogTools"/>).
 /// </summary>
 internal static class McpTools
 {
@@ -167,6 +167,7 @@ internal static class McpTools
             null, false,
             Schema(new() { ["actionId"] = Str("The action id from the pending-approval answer.", 36) }, "actionId"),
             (_, _) => throw new InvalidOperationException("Answered by the MCP server itself.")),
+        .. McpCatalogTools.All,
     ];
 
     public static McpTool? Find(string name) => All.FirstOrDefault(t => t.Name == name);
@@ -418,7 +419,7 @@ internal static class McpTools
 
     // ---- Helpers ----
 
-    private static async Task<Guid?> RequesterIdAsync(McpToolContext context, string email)
+    internal static async Task<Guid?> RequesterIdAsync(McpToolContext context, string email)
     {
         // Exact match, ignoring case (ILIKE without wildcards: they are escaped).
         var pattern = email.Trim().Replace("\\", "\\\\", StringComparison.Ordinal).Replace("%", "\\%", StringComparison.Ordinal).Replace("_", "\\_", StringComparison.Ordinal);
@@ -524,7 +525,7 @@ internal static class McpTools
 
     // ---- JSON Schema ----
 
-    private static JsonObject Schema(Dictionary<string, JsonObject> properties, params string[] required)
+    internal static JsonObject Schema(Dictionary<string, JsonObject> properties, params string[] required)
     {
         var props = new JsonObject();
         foreach (var (name, schema) in properties)
@@ -541,7 +542,7 @@ internal static class McpTools
         return schemaObject;
     }
 
-    private static JsonObject Str(string description, int maxLength) => new() { ["type"] = "string", ["description"] = description, ["maxLength"] = maxLength };
+    internal static JsonObject Str(string description, int maxLength) => new() { ["type"] = "string", ["description"] = description, ["maxLength"] = maxLength };
 
     private static JsonObject Int(string description, int min, int max) => new() { ["type"] = "integer", ["description"] = description, ["minimum"] = min, ["maximum"] = max };
 

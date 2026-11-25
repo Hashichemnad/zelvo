@@ -1,7 +1,7 @@
 import { defineConfig, devices } from "@playwright/test";
 
 /** Specs that change tenant-wide settings; each runs in its own project, one after another. */
-const tenantWide = [/settings\.spec\.ts/, /uae-pass\.spec\.ts/, /integrations\.spec\.ts/, /directory\.spec\.ts/, /sla\.spec\.ts/, /ai\.spec\.ts/, /knowledge\.spec\.ts/, /mcp\.spec\.ts/, /notifications\.spec\.ts/, /forms\.spec\.ts/, /catalog\.spec\.ts/, /channels\.spec\.ts/, /customer-voice\.spec\.ts/, /workspace\.spec\.ts/];
+const tenantWide = [/settings\.spec\.ts/, /uae-pass\.spec\.ts/, /integrations\.spec\.ts/, /directory\.spec\.ts/, /sla\.spec\.ts/, /ai\.spec\.ts/, /knowledge\.spec\.ts/, /mcp\.spec\.ts/, /notifications\.spec\.ts/, /forms\.spec\.ts/, /catalog\.spec\.ts/, /channels\.spec\.ts/, /customer-voice\.spec\.ts/, /workflows\.spec\.ts/, /workspace\.spec\.ts/];
 
 /** Demo mode needs the demo installation (`make demo`); `make e2e-demo` runs it with E2E_DEMO=1. */
 const demo = /demo\.spec\.ts/;
@@ -120,6 +120,13 @@ export default defineConfig({
           testMatch: /customer-voice\.spec\.ts/,
           dependencies: ["channels"],
         },
+        // Workflow rules and approvals (task C3) add a catalog, a service with an approval and a rule; after customer voice, on its own.
+        {
+          name: "workflows",
+          use: { ...devices["Desktop Chrome"] },
+          testMatch: /workflows\.spec\.ts/,
+          dependencies: ["customer-voice"],
+        },
         // Agent workspace (task B4) signs in as the agent with a second factor, like incidents.spec.ts;
         // run at the same time, both set up the agent's authenticator on a fresh stack and one of them
         // fails. Last, on its own, one test at a time.
@@ -128,7 +135,7 @@ export default defineConfig({
           use: { ...devices["Desktop Chrome"] },
           testMatch: /workspace\.spec\.ts/,
           fullyParallel: false,
-          dependencies: ["customer-voice"],
+          dependencies: ["workflows"],
         },
       ],
 });

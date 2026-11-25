@@ -77,6 +77,14 @@ internal sealed class DemoReset(
                 }
             }
 
+            // Task C3: the approval engine's instances of this tenant go too (Elsa's tables, isolated
+            // by row-level security on their tenant column; shared code definitions stay).
+            foreach (var elsaTable in ElsaTables)
+            {
+                var elsaSql = "DELETE FROM \"Elsa\".\"" + elsaTable + "\" WHERE zelvo_tenant_id = {0}";
+                await db.Database.ExecuteSqlRawAsync(elsaSql, [tenant.Id], cancellationToken).ConfigureAwait(false);
+            }
+
             await transaction.CommitAsync(cancellationToken).ConfigureAwait(false);
         }
 
@@ -108,6 +116,10 @@ internal sealed class DemoReset(
 
         return new DemoOrganisationReset(organisation.Slug, deleted, keycloakDeleted, seeders);
     }
+
+    /// <summary>Elsa tables that hold a tenant's workflow instances.</summary>
+    private static readonly string[] ElsaTables =
+        ["Bookmarks", "BookmarkQueueItems", "WorkflowInboxMessages", "ActivityExecutionRecords", "WorkflowExecutionLogRecords", "WorkflowInstances"];
 
     internal static string DeleteStatement(string table) =>
         System.Text.RegularExpressions.Regex.IsMatch(table, "^[a-z_][a-z0-9_]*$", System.Text.RegularExpressions.RegexOptions.CultureInvariant)

@@ -10,6 +10,7 @@ COPY src/api/Zelvo.Licensing.Development/Zelvo.Licensing.Development.csproj src/
 COPY src/api/Zelvo.Data/Zelvo.Data.csproj src/api/Zelvo.Data/
 COPY src/api/Zelvo.Search/Zelvo.Search.csproj src/api/Zelvo.Search/
 COPY src/api/Zelvo.Tickets/Zelvo.Tickets.csproj src/api/Zelvo.Tickets/
+COPY src/api/Zelvo.Workflows/Zelvo.Workflows.csproj src/api/Zelvo.Workflows/
 COPY src/api/Zelvo.Integrations/Zelvo.Integrations.csproj src/api/Zelvo.Integrations/
 COPY src/api/Zelvo.Notifications/Zelvo.Notifications.csproj src/api/Zelvo.Notifications/
 COPY src/api/Zelvo.Channels/Zelvo.Channels.csproj src/api/Zelvo.Channels/
@@ -23,6 +24,7 @@ COPY src/api/Zelvo.Licensing.Development/ src/api/Zelvo.Licensing.Development/
 COPY src/api/Zelvo.Data/ src/api/Zelvo.Data/
 COPY src/api/Zelvo.Search/ src/api/Zelvo.Search/
 COPY src/api/Zelvo.Tickets/ src/api/Zelvo.Tickets/
+COPY src/api/Zelvo.Workflows/ src/api/Zelvo.Workflows/
 COPY src/api/Zelvo.Integrations/ src/api/Zelvo.Integrations/
 COPY src/api/Zelvo.Notifications/ src/api/Zelvo.Notifications/
 COPY src/api/Zelvo.Channels/ src/api/Zelvo.Channels/
@@ -52,7 +54,8 @@ RUN npx --yes playwright-core@1.65.1 install chromium-headless-shell \
     && mv /ms-playwright/chromium_headless_shell-*/chrome-headless-shell-* /chromium \
     && test -x /chromium/chrome-headless-shell
 
-FROM mcr.microsoft.com/dotnet/runtime:10.0 AS runtime
+# The ASP.NET Core runtime: Elsa (task C3, through Zelvo.Workflows) needs the Microsoft.AspNetCore.App framework.
+FROM mcr.microsoft.com/dotnet/aspnet:10.0 AS runtime
 # The libraries the headless shell needs on Ubuntu 24.04 (Playwright's list) and fonts with
 # Arabic letters as a fallback.
 RUN apt-get update \

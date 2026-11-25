@@ -59,7 +59,7 @@ public sealed class NotificationComposer(ZelvoDbContext db, NotificationOptions 
     /// </summary>
     public async Task<RenderedNotification> RenderAsync(
         TemplateText template, IReadOnlyDictionary<string, PlaceholderValue> values, UserAccount user, RecipientFormat format, string? linkPath,
-        CancellationToken cancellationToken)
+        CancellationToken cancellationToken, string? eventType = null)
     {
         ArgumentNullException.ThrowIfNull(user);
         ArgumentNullException.ThrowIfNull(format);
@@ -69,7 +69,39 @@ public sealed class NotificationComposer(ZelvoDbContext db, NotificationOptions 
             [Placeholders.RecipientName] = PlaceholderValue.OfText(user.DisplayName ?? user.Email),
             [Placeholders.TenantName] = PlaceholderValue.OfText(letterhead.Name.HasAnyValue ? letterhead.Name : new LocalizedText(letterhead.Fallback, letterhead.Fallback)),
         };
-        return NotificationRenderer.Render(template, all, format, letterhead, Links(format.Language, linkPath));
+        var links = Links(format.Language, linkPath);
+        // Task C3: approval emails have Approve and Reject buttons; both open the approval in
+        // Zelvo with the choice made, and the approver signs in before it is recorded.
+        if (eventType == NotificationEvents.ApprovalRequested && links.Action is { } approve)
+        {
+            links = links with
+            {
+                Action = new Uri(approve, "?decision=approve"),
+                Secondary = new Uri(approve, "?decision=reject"),
+                SecondaryLabel = NotificationTexts.For(format.Language).Terms.GetValueOrDefault("approval.reject"),
+            };
+        }
+
+        return NotificationRenderer.Render(template, all, format, letterhead, links);
+    }
+
+    /// <summary>
+    /// The wording of a workflow rule's notification (task C3): the rule's subject and message in
+    /// <paramref name="language"/>, falling back to the other language; the subject is also the in-app text.
+    /// </summary>
+    public static TemplateText RuleTemplate(IReadOnlyDictionary<string, PlaceholderValue> values, string language)
+    {
+        ArgumentNullException.ThrowIfNull(values);
+        string Pick(string key)
+        {
+            var value = values.GetValueOrDefault(key);
+            var text = new LocalizedText(value?.En, value?.Ar);
+            return text.GetOrFallback(language) ?? string.Empty;
+        }
+
+        var subject = Pick(Placeholders.RuleSubject);
+        var action = NotificationTexts.For(language).Templates[NotificationEvents.RequestApproved].Action;
+        return new TemplateText(subject, Pick(Placeholders.RuleBody), subject, action);
     }
 
     /// <summary>Links of an email in <paramref name="language"/>: the page at <paramref name="linkPath"/> and Account → Notifications.</summary>
