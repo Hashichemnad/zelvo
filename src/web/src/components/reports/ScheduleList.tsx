@@ -27,7 +27,7 @@ export function ScheduleList({ schedules, csrfToken, display }: { schedules: Rep
   if (schedules.length === 0) return <p className="text-ink-muted">{t("none")}</p>;
   return (
     <div className="space-y-2">
-      <div className="overflow-x-auto">
+      <div className="overflow-x-auto" tabIndex={0}>
         <table className="w-full border-collapse text-sm" data-testid="schedule-table">
           <caption className="sr-only">{t("title")}</caption>
           <thead><tr>

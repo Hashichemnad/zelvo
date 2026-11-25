@@ -131,7 +131,7 @@ export async function SlaView({ report, display }: { report: SlaReport; display:
   const state = (v: number | null) => (v === null ? undefined : v >= target ? "ok" : "bad");
   const cell = "border-b border-line px-2 py-1 text-start";
   const table = (caption: string, rows: SlaRow[], label: (r: SlaRow) => string) => (
-    <div className="overflow-x-auto">
+    <div className="overflow-x-auto" tabIndex={0}>
       {rows.length === 0 ? <><h3 className="font-semibold">{caption}</h3><p className="text-ink-muted">{t("labels.empty")}</p></> : (
         <table className="w-full border-collapse text-sm">
           <caption className="pb-1 text-start font-semibold">{caption}</caption>
@@ -192,7 +192,7 @@ export async function AgentsView({ report, display }: { report: AgentsReport; di
       <p className="text-sm">{t("period", { from: formatDay(report.from, display), to: formatDay(report.to, display) })}</p>
       <p className="text-sm text-ink-muted">{t("labels.agentsExplained")}</p>
       {report.agents.length === 0 ? <p className="text-ink-muted">{t("labels.empty")}</p> : (
-        <div className="overflow-x-auto">
+        <div className="overflow-x-auto" tabIndex={0}>
           <table className="w-full border-collapse text-sm" data-testid="agents-table">
             <caption className="pb-1 text-start font-semibold">{t("dashboards.Agents.title")}</caption>
             <thead><tr>

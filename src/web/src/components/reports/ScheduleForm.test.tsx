@@ -2,7 +2,8 @@ import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { NextIntlClientProvider } from "next-intl";
 import ar from "../../../messages/ar.json";
 import en from "../../../messages/en.json";
-import { newSchedule, ScheduleForm } from "./ScheduleForm";
+import { ScheduleForm } from "./ScheduleForm";
+import { newSchedule } from "./schedule-defaults";
 
 const push = vi.fn();
 vi.mock("@/i18n/navigation", () => ({ useRouter: () => ({ push, refresh: vi.fn() }) }));

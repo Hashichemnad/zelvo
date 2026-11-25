@@ -112,7 +112,7 @@ export function TrendChart({ caption, buckets, series, max, target, bucketHeadin
             ))}
             {target && <span className="inline-flex items-center gap-1"><span className="inline-block h-0.5 w-4 bg-warn" />{target.text}</span>}
           </div>
-          <div className="relative overflow-x-auto">
+          <div className="relative overflow-x-auto" tabIndex={0}>
             <div className="relative flex h-40 min-w-full items-end gap-1 border-b border-line">
               {target && (
                 <span className="pointer-events-none absolute inset-x-0 border-t-2 border-dashed border-warn" style={{ bottom: `${Math.min(100, (target.value / top) * 100)}%` }} />
@@ -135,7 +135,7 @@ export function TrendChart({ caption, buckets, series, max, target, bucketHeadin
       )}
       <details className="text-sm">
         <summary className="cursor-pointer font-semibold text-brand">{caption}: {bucketHeading}</summary>
-        <div className="overflow-x-auto">
+        <div className="overflow-x-auto" tabIndex={0}>
           <table className="w-full border-collapse">
             <caption className="sr-only">{caption}</caption>
             <thead>

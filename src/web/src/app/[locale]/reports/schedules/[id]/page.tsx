@@ -1,6 +1,7 @@
 import { notFound } from "next/navigation";
 import { getTranslations, setRequestLocale } from "next-intl/server";
-import { fromSchedule, ScheduleForm } from "@/components/reports/ScheduleForm";
+import { ScheduleForm } from "@/components/reports/ScheduleForm";
+import { fromSchedule } from "@/components/reports/schedule-defaults";
 import { Link } from "@/i18n/navigation";
 import { getJsonAs } from "@/lib/api";
 import { getDisplayFormat } from "@/lib/display";
@@ -54,7 +55,7 @@ export default async function SchedulePage({ params }: PageProps<"/[locale]/repo
         <h2 id="deliveries-heading" className="text-xl font-semibold">{t("schedules.deliveries")}</h2>
         <p className="text-sm text-ink-muted">{t("schedules.deliveriesIntro")}</p>
         {!deliveries || deliveries.length === 0 ? <p className="text-ink-muted">{t("schedules.noDeliveries")}</p> : (
-          <div className="overflow-x-auto">
+          <div className="overflow-x-auto" tabIndex={0}>
             <table className="w-full border-collapse text-sm" data-testid="delivery-log">
               <caption className="sr-only">{t("schedules.deliveries")}</caption>
               <thead><tr>

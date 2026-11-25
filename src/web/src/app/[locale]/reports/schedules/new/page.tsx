@@ -1,5 +1,6 @@
 import { getTranslations, setRequestLocale } from "next-intl/server";
-import { newSchedule, ScheduleForm } from "@/components/reports/ScheduleForm";
+import { ScheduleForm } from "@/components/reports/ScheduleForm";
+import { newSchedule } from "@/components/reports/schedule-defaults";
 import { Link } from "@/i18n/navigation";
 import { loadFilterGroups, loadReportScope } from "@/lib/report-pages";
 import { readFilter, type ReportKind } from "@/lib/reports";

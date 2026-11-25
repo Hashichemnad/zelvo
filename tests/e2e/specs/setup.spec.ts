@@ -36,8 +36,11 @@ test.describe("setup wizard", () => {
     await page.getByRole("navigation", { name: "Setup steps" }).getByRole("button", { name: /^Business calendar/ }).click();
     await expect(page.getByRole("heading", { level: 2, name: "Business calendar" })).toBeVisible();
     await expect(page.getByTestId("setup-step-link")).toHaveAttribute("href", "/en/settings/business-calendars");
+    // A step left done or skipped by an earlier run is set back to do first.
+    const toDo = page.getByRole("button", { name: "Mark as to do" });
+    if (await toDo.isVisible()) await toDo.click();
     await page.getByTestId("setup-skip").click();
-    await expect(page.getByRole("navigation", { name: "Setup steps" }).getByRole("button", { name: /Business calendar: Skipped/ })).toBeVisible();
+    await expect(page.getByRole("navigation", { name: "Setup steps" }).getByRole("button", { name: /Business calendar\s*:\s*Skipped/ })).toBeVisible();
 
     const stamp = Date.now();
     await page.getByRole("navigation", { name: "Setup steps" }).getByRole("button", { name: /^Departments and service desks/ }).click();
@@ -49,7 +52,7 @@ test.describe("setup wizard", () => {
     await expect(page.getByTestId("template-result")).toContainText("2 groups");
 
     await page.goto("/en/settings/departments");
-    await expect(page.getByText(`Facilities ${stamp}`)).toBeVisible();
+    await expect(page.getByRole("cell", { name: `Facilities ${stamp}`, exact: true })).toBeVisible();
 
     await page.goto("/ar/setup");
     await expect(page.getByRole("heading", { level: 1, name: "معالج الإعداد" })).toBeVisible();

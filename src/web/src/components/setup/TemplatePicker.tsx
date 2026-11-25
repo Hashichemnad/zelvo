@@ -128,7 +128,7 @@ export function TemplatePicker({ templates, csrfToken, digits, onApplied }: {
             <h5 className="font-semibold">{t("policies")}</h5>
             <p className="text-sm text-ink-muted">{t("policiesIntro")}</p>
             {template.policies.map((p) => (
-              <div key={p.recordType} className="overflow-x-auto">
+              <div key={p.recordType} className="overflow-x-auto" tabIndex={0}>
                 <table className="w-full border-collapse text-sm">
                   <caption className="text-start font-semibold">{tTypes(p.recordType)}</caption>
                   <thead><tr>
