@@ -12,7 +12,8 @@
     "approvals": "My approvals",
     "payments": "Payments",
     "privacyRequests": "Privacy requests",
-    "privacyNotice": "Privacy notice"
+    "privacyNotice": "Privacy notice",
+    "activationRequired": "Zelvo is not activated on these servers yet, so most screens are not available. An administrator imports the license in Settings → License."
   },
   "language": {
     "name": "English",
@@ -304,6 +305,10 @@
       "privacy": {
         "title": "Privacy",
         "description": "The privacy notice, optional consent purposes, retention periods and the time to answer privacy requests."
+      },
+      "license": {
+        "title": "License",
+        "description": "Activation, the license and the servers it is issued for."
       }
     },
     "missingWarning": "{count, plural, one {# text is} other {# texts are}} missing a translation.",
@@ -5454,6 +5459,11 @@
     "finish": "Finish setup",
     "finishHint": "Steps not done stay in the list; you can come back at any time.",
     "steps": {
+      "license": {
+        "title": "License",
+        "description": "Activate Zelvo on your servers: download the activation request, send it to Zelvo and import the license file you receive.",
+        "link": "Open the license page"
+      },
       "organisation": {
         "title": "Organisation",
         "description": "Give your organisation its name in English and Arabic. It appears on the portal, in emails and in reports.",
@@ -5523,7 +5533,8 @@
       "neverChanges": "Applying creates new items only; nothing that already exists is changed.",
       "apply": "Create the department",
       "applied": "Done: {groups} groups, {categories} categories with their routing, {policies} SLA policies, {services} draft services and {responses} canned responses were created."
-    }
+    },
+    "licenseByOperator": "The installation's administrator activates the license for the whole installation."
   },
   "connectors": {
     "title": "Connectors",
@@ -6199,5 +6210,86 @@
         "erased": "The person's data was erased."
       }
     }
+  },
+  "license": {
+    "intro": "Zelvo runs on your own servers under a license we issue for them. To activate it, download the activation request, send it to Zelvo, and import the license file you receive. Everything works offline.",
+    "statusActivated": "Zelvo is activated on these servers.",
+    "statusDevelopment": "This is a development build: every module is allowed, and it cannot be used in production.",
+    "statusNotActivated": "Zelvo is not activated on these servers.",
+    "licensedTo": "Licensed to {name}.",
+    "licenseId": "License ID",
+    "kind": "License type",
+    "kinds": {
+      "None": "None",
+      "Development": "Development",
+      "Demo": "Demo",
+      "Production": "Production",
+      "Test": "Test installation"
+    },
+    "customerId": "Customer ID",
+    "licensedVersion": "Licensed versions",
+    "issuedAt": "Issued",
+    "installedVersion": "Installed version",
+    "activateTitle": "Activate Zelvo",
+    "replaceTitle": "Replace the license or add an upgrade license",
+    "stepRequest": "Download the activation request. It describes these servers and holds no passwords or personal data.",
+    "downloadRequest": "Download activation request",
+    "stepSend": "Send the file to Zelvo, by email or on a USB drive. Zelvo returns a license file made for these servers only.",
+    "stepImport": "Import the license file you received:",
+    "upgradeHint": "For a paid feature release, send a new activation request to Zelvo and import the upgrade license you receive in the same way. If you move to new servers, do the same to get a replacement license.",
+    "requestDownloaded": "Activation request {file} downloaded.",
+    "imported": "License file imported.",
+    "failed": "That did not work. Please try again.",
+    "problems": {
+      "not-activated": "No license is installed yet.",
+      "fingerprint-mismatch": "The license was issued for other servers. Send a new activation request to Zelvo.",
+      "kind-mismatch": "This license is for another kind of installation (for example a demo or test installation).",
+      "watermark-mismatch": "This license was issued to another customer than this installation.",
+      "signature-invalid": "The file was changed after Zelvo issued it, or it was not issued by Zelvo.",
+      "unknown-key": "The file is signed with a key this installation does not trust.",
+      "format-invalid": "This is not a Zelvo license file.",
+      "upgrade-mismatch": "This upgrade license is for another license. Import the matching license first.",
+      "store-unavailable": "The license could not be read because the database is not reachable.",
+      "development-in-production": "A development build cannot run in production.",
+      "other": "The license file was not accepted."
+    },
+    "modulesTitle": "Licensed modules",
+    "modules": {
+      "m01-incidents": "Incident management",
+      "m02-service-catalog": "Service requests and catalog",
+      "m03-customer-voice": "Complaints, inquiries and suggestions",
+      "m04-portal": "Self-service portal",
+      "m05-agent-workspace": "Agent workspace",
+      "m06-omnichannel": "Email, chat and other channels",
+      "m07-knowledge": "Knowledge base",
+      "m08-sla": "SLA management",
+      "m09-ai": "AI capabilities",
+      "m10-notifications-reporting": "Notifications, reporting and administration",
+      "m11-branding": "White-label branding",
+      "m12-licensing": "Licensing",
+      "m13-updates": "Offline update packages",
+      "m14-integrations": "Integrations and developer tools",
+      "m15-payments": "Online payments"
+    },
+    "licensed": "licensed",
+    "notLicensed": "not licensed",
+    "fingerprintTitle": "These servers",
+    "fingerprintIntro": "A license works only on the servers it was issued for. These are the parts it checks.",
+    "part": "Part",
+    "value": "Value",
+    "matches": "Matches the license",
+    "parts": {
+      "installationId": "Installation ID",
+      "databaseId": "Database ID",
+      "machineId": "Server",
+      "clusterId": "Cluster",
+      "domain": "Domain"
+    },
+    "yes": "Yes",
+    "no": "No",
+    "filesTitle": "License files",
+    "fileLicense": "License",
+    "fileUpgrade": "Upgrade license",
+    "auditNote": "Every activation request and every import is recorded in the audit log."
   }
 }

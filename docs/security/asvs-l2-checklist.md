@@ -237,7 +237,7 @@ Main gaps found so far: web app without Content-Security-Policy and HSTS (V3.4);
 | Requirement | Level | Section | Status | Evidence and notes |
 | --- | --- | --- | --- | --- |
 | V11.1.1 | 2 | V11.1 Cryptographic Inventory and Documentation | Partly met | A5: key management for stored secrets documented in `docs/architecture/secrets-encryption.md` (data keys, master key file or Vault/OpenBao Transit, rotation with `rewrap-keys`); a full key management policy follows with F6. |
-| V11.1.2 | 2 | V11.1 Cryptographic Inventory and Documentation | Partly met | A5: inventory started in `secrets-encryption.md` and `security-baseline.md` (data keys, master key, TLS certificates, audit hash chain, token signing keys in Keycloak). |
+| V11.1.2 | 2 | V11.1 Cryptographic Inventory and Documentation | Partly met | A5: inventory started in `secrets-encryption.md` and `security-baseline.md` (data keys, master key, TLS certificates, audit hash chain, token signing keys in Keycloak). F3: license and update-package signatures (RSA-4096 PSS SHA-256 vendor keys; private key only on the signing computer, encrypted PKCS#8; public keys in `vendor-keys.json`) documented in `docs/architecture/licensing.md`. |
 | V11.2.1 | 2 | V11.2 Secure Cryptography Implementation | Met | .NET (OpenSSL), Keycloak and OpenBao/Vault implementations; no custom primitives. |
 | V11.2.2 | 2 | V11.2 Secure Cryptography Implementation | Met | Versioned formats (`zv1.` values, `kek_id` on data keys, audit chain version) allow algorithm changes. |
 | V11.2.3 | 2 | V11.2 Secure Cryptography Implementation | Met | AES-256-GCM (authenticated) for stored secrets and wrapped data keys; ECDSA P-256 certificates. A5. |
@@ -249,7 +249,7 @@ Main gaps found so far: web app without Content-Security-Policy and HSTS (V3.4);
 | V11.4.3 | 2 | V11.4 Hashing and Hash-based Functions | Met | SHA-256 for the audit hash chain and key ids. A1, A5. |
 | V11.4.4 | 2 | V11.4 Hashing and Hash-based Functions | Not assessed |  |
 | V11.5.1 | 2 | V11.5 Random Values | Met | `RandomNumberGenerator` for data keys and nonces; random session ids and CSRF tokens. A2, A5. C6: anonymous tracking codes come from `RandomNumberGenerator` and only their SHA-256 is stored. E8: payment references come from `RandomNumberGenerator` (24 characters of 32). |
-| V11.6.1 | 2 | V11.6 Public Key Cryptography | Not assessed |  |
+| V11.6.1 | 2 | V11.6 Public Key Cryptography | Partly met | F3: licenses, upgrade licenses and update package manifests are signed with RSA-4096 and PSS padding over SHA-256 (.NET `RSA`), keys under 3072 bits refused, signature over the file type and the exact payload bytes; private keys encrypted with AES-256 and PBKDF2-SHA256 (600,000 rounds). Tests: `LicensingTests`, `SigningToolTests`. Other public-key use (DKIM RSA-2048, TLS) reviewed in F7. |
 
 ## V12 Secure Communication
 

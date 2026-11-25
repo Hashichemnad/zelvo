@@ -23,7 +23,8 @@ internal static class IdentityServiceCollectionExtensions
             .AddScheme<AuthenticationSchemeOptions, ZelvoBearerHandler>(ZelvoBearerHandler.SchemeName, null)
             .AddScheme<AuthenticationSchemeOptions, Integrations.ApiKeyAuthenticationHandler>(Integrations.ApiKeyAuthenticationHandler.SchemeName, null);
 
-        services.AddScoped<CurrentUser>();
+        services.AddScoped<Installation.LicenseGate>();
+        services.AddScoped(sp => new CurrentUser(sp.GetRequiredService<Installation.LicenseGate>()));
         services.AddScoped<IAuthorizationHandler, PermissionHandler>();
         services.AddSingleton<IAuthorizationPolicyProvider, PermissionPolicyProvider>();
         services.AddSingleton<IAuthorizationMiddlewareResultHandler, ZelvoAuthorizationResultHandler>();

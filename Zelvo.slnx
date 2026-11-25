@@ -8,13 +8,16 @@
     <Project Path="src/api/Zelvo.Data/Zelvo.Data.csproj" />
     <Project Path="src/api/Zelvo.Integrations/Zelvo.Integrations.csproj" />
     <Project Path="src/api/Zelvo.Licensing.Abstractions/Zelvo.Licensing.Abstractions.csproj" />
-    <Project Path="src/api/Zelvo.Licensing.Development/Zelvo.Licensing.Development.csproj" />
+    <Project Path="src/api/Zelvo.Licensing/Zelvo.Licensing.csproj" />
     <Project Path="src/api/Zelvo.Notifications/Zelvo.Notifications.csproj" />
     <Project Path="src/api/Zelvo.Observability/Zelvo.Observability.csproj" />
     <Project Path="src/api/Zelvo.Search/Zelvo.Search.csproj" />
     <Project Path="src/api/Zelvo.Secrets/Zelvo.Secrets.csproj" />
     <Project Path="src/api/Zelvo.Tickets/Zelvo.Tickets.csproj" />
     <Project Path="src/api/Zelvo.Workflows/Zelvo.Workflows.csproj" />
+  </Folder>
+  <Folder Name="/src/tools/">
+    <Project Path="src/tools/Zelvo.SigningTool/Zelvo.SigningTool.csproj" />
   </Folder>
   <Folder Name="/src/worker/">
     <Project Path="src/worker/Zelvo.Worker/Zelvo.Worker.csproj" />

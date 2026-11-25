@@ -51,14 +51,15 @@ public sealed record SetupProgress(IReadOnlyDictionary<string, SetupStepStatus> 
 /// The setup wizard (module 10, task F2): the steps that make a new tenant live in under a working
 /// day, each with a check of what is already set up, and department templates that create a whole
 /// department's service desk at once. The wizard guides; each step's settings are changed on their
-/// own Settings pages through their own APIs. License activation joins with task F3. Needs
+/// own Settings pages through their own APIs. The first step (task F3) activates the installation's
+/// license (Settings → License). Needs
 /// <c>setup.manage</c> (tenant administrators; not for integrations, for approval).
 /// </summary>
 internal static partial class SetupEndpoints
 {
     /// <summary>The wizard's steps in order.</summary>
     public static IReadOnlyList<string> Steps { get; } =
-        ["organisation", "language", "calendar", "branding", "signIn", "departments", "users", "channels", "ai"];
+        ["license", "organisation", "language", "calendar", "branding", "signIn", "departments", "users", "channels", "ai"];
 
     public static SettingDefinition<SetupProgress> Progress { get; } =
         new("setup.progress", SetupProgress.Empty, Permissions.SetupManage, p => p.Steps is not null && p.Applied is not null);
@@ -87,11 +88,11 @@ internal static partial class SetupEndpoints
         return group;
     }
 
-    internal static async Task<IResult> GetAsync(ZelvoDbContext db, TenantSettingsStore store, ITenantContext tenant, CancellationToken cancellationToken) =>
-        TypedResults.Ok(await ResponseAsync(db, store, tenant, cancellationToken));
+    internal static async Task<IResult> GetAsync(ZelvoDbContext db, TenantSettingsStore store, ITenantContext tenant, Zelvo.Licensing.ILicenseService license, CancellationToken cancellationToken) =>
+        TypedResults.Ok(await ResponseAsync(db, store, tenant, license, cancellationToken));
 
     internal static async Task<IResult> StepAsync(
-        string key, SetupStepRequest request, ZelvoDbContext db, TenantSettingsStore store, ITenantContext tenant, IAuditLog audit, CancellationToken cancellationToken)
+        string key, SetupStepRequest request, ZelvoDbContext db, TenantSettingsStore store, ITenantContext tenant, IAuditLog audit, Zelvo.Licensing.ILicenseService license, CancellationToken cancellationToken)
     {
         if (!Steps.Contains(key))
         {
@@ -108,27 +109,27 @@ internal static partial class SetupEndpoints
         await store.SetAsync(Progress, progress with { Steps = steps }, cancellationToken);
         audit.Add(AuditCategory.Admin, "setup.step.updated", "setup", key, new Dictionary<string, object?> { ["status"] = status.ToString() });
         await db.SaveChangesAsync(cancellationToken);
-        return TypedResults.Ok(await ResponseAsync(db, store, tenant, cancellationToken));
+        return TypedResults.Ok(await ResponseAsync(db, store, tenant, license, cancellationToken));
     }
 
     internal static async Task<IResult> FinishAsync(
-        ZelvoDbContext db, TenantSettingsStore store, ITenantContext tenant, IAuditLog audit, TimeProvider time, CancellationToken cancellationToken)
+        ZelvoDbContext db, TenantSettingsStore store, ITenantContext tenant, IAuditLog audit, TimeProvider time, Zelvo.Licensing.ILicenseService license, CancellationToken cancellationToken)
     {
         var progress = await store.GetAsync(Progress, cancellationToken);
         await store.SetAsync(Progress, progress with { CompletedAt = time.GetUtcNow() }, cancellationToken);
         audit.Add(AuditCategory.Admin, "setup.finished", "setup");
         await db.SaveChangesAsync(cancellationToken);
-        return TypedResults.Ok(await ResponseAsync(db, store, tenant, cancellationToken));
+        return TypedResults.Ok(await ResponseAsync(db, store, tenant, license, cancellationToken));
     }
 
     internal static async Task<IResult> ReopenAsync(
-        ZelvoDbContext db, TenantSettingsStore store, ITenantContext tenant, IAuditLog audit, CancellationToken cancellationToken)
+        ZelvoDbContext db, TenantSettingsStore store, ITenantContext tenant, IAuditLog audit, Zelvo.Licensing.ILicenseService license, CancellationToken cancellationToken)
     {
         var progress = await store.GetAsync(Progress, cancellationToken);
         await store.SetAsync(Progress, progress with { CompletedAt = null }, cancellationToken);
         audit.Add(AuditCategory.Admin, "setup.reopened", "setup");
         await db.SaveChangesAsync(cancellationToken);
-        return TypedResults.Ok(await ResponseAsync(db, store, tenant, cancellationToken));
+        return TypedResults.Ok(await ResponseAsync(db, store, tenant, license, cancellationToken));
     }
 
     internal static IResult TemplatesAsync() => TypedResults.Ok(DepartmentTemplates.All.Select(DepartmentTemplateResponse.From).ToList());
@@ -288,10 +289,13 @@ internal static partial class SetupEndpoints
             template.Key, department.Id, [.. groups.Values.Select(g => g.Id)], root.Id, routed.Count, template.Policies.Count, catalogId, services, responses));
     }
 
-    private static async Task<SetupResponse> ResponseAsync(ZelvoDbContext db, TenantSettingsStore store, ITenantContext tenant, CancellationToken cancellationToken)
+    private static async Task<SetupResponse> ResponseAsync(
+        ZelvoDbContext db, TenantSettingsStore store, ITenantContext tenant, Zelvo.Licensing.ILicenseService license, CancellationToken cancellationToken)
     {
         var progress = await store.GetAsync(Progress, cancellationToken);
         var checks = await ChecksAsync(db, tenant, cancellationToken);
+        // Task F3: activated when a license for these servers applies (the development license counts).
+        checks["license"] = license.Current.IsValid;
         var steps = Steps.Select(key => new SetupStepResponse(key, progress.Steps.TryGetValue(key, out var s) ? s : SetupStepStatus.Pending, checks.GetValueOrDefault(key))).ToList();
         return new SetupResponse(steps, progress.CompletedAt, steps.Count(s => s.Status != SetupStepStatus.Pending), steps.Count,
             [.. progress.Applied.Select(a => new AppliedTemplateSummary(a.Template, a.DepartmentId, a.AppliedAt))]);

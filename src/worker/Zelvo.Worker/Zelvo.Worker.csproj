@@ -20,10 +20,7 @@
     <ProjectReference Include="..\..\api\Zelvo.Secrets\Zelvo.Secrets.csproj" />
     <ProjectReference Include="..\..\api\Zelvo.Observability\Zelvo.Observability.csproj" />
   </ItemGroup>
-  <ItemGroup Condition="'$(ZelvoLicensingProject)' == ''">
-    <ProjectReference Include="..\..\api\Zelvo.Licensing.Development\Zelvo.Licensing.Development.csproj" />
-  </ItemGroup>
-  <ItemGroup Condition="'$(ZelvoLicensingProject)' != ''">
-    <ProjectReference Include="$(ZelvoLicensingProject)" />
+  <ItemGroup>
+    <ProjectReference Include="..\..\api\Zelvo.Licensing\Zelvo.Licensing.csproj" />
   </ItemGroup>
 </Project>

@@ -33,12 +33,8 @@
     <ProjectReference Include="..\Zelvo.Secrets\Zelvo.Secrets.csproj" />
     <ProjectReference Include="..\Zelvo.Observability\Zelvo.Observability.csproj" />
   </ItemGroup>
-  <!-- Development builds use the stub; release builds pass -p:ZelvoLicensingProject=<private project>. -->
-  <ItemGroup Condition="'$(ZelvoLicensingProject)' == ''">
-    <ProjectReference Include="..\Zelvo.Licensing.Development\Zelvo.Licensing.Development.csproj" />
-  </ItemGroup>
-  <ItemGroup Condition="'$(ZelvoLicensingProject)' != ''">
-    <ProjectReference Include="$(ZelvoLicensingProject)" />
+  <ItemGroup>
+    <ProjectReference Include="..\Zelvo.Licensing\Zelvo.Licensing.csproj" />
   </ItemGroup>
   <ItemGroup>
     <InternalsVisibleTo Include="Zelvo.Api.Tests" />

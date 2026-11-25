@@ -54,3 +54,8 @@ src/keycloak/target/
 
 # OpenSearch plugins supplied locally for offline image builds
 deploy/opensearch/plugins/*.zip
+
+# Signing keys (task F3): the vendor private key never belongs in the repository.
+*.private.pem
+# Update packages (task F4) are release artefacts, not sources.
+*.zpkg

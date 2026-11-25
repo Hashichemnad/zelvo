@@ -7,7 +7,11 @@ namespace Zelvo.Api.Identity;
 /// Who is calling, with effective permissions: a signed-in person (<see cref="Account"/>) or an
 /// integration (<see cref="ApiClient"/>: an API key or OAuth client). Empty for anonymous requests.
 /// </summary>
-internal sealed class CurrentUser
+/// <remarks>
+/// Task F3: permissions of modules the license does not include, and <c>installation.manage</c>
+/// outside the installation's operator tenant, never apply (<see cref="Installation.LicenseGate"/>).
+/// </remarks>
+internal sealed class CurrentUser(Installation.LicenseGate? gate = null)
 {
     private static readonly IReadOnlySet<string> NoPermissions = new HashSet<string>(StringComparer.Ordinal);
 
@@ -54,7 +58,7 @@ internal sealed class CurrentUser
         HasMfa = true;
         _scopes = client.Scopes.Where(s => !PermissionCatalog.NotForIntegrations.Contains(s)).ToHashSet(StringComparer.Ordinal);
         Permissions = role.Permissions.Select(p => p.Permission)
-            .Where(p => PermissionCatalog.IsPermission(p) && _scopes.Contains(p)).ToHashSet(StringComparer.Ordinal);
+            .Where(p => PermissionCatalog.IsPermission(p) && _scopes.Contains(p) && Allowed(p)).ToHashSet(StringComparer.Ordinal);
         PendingMfaPermissions = NoPermissions;
     }
 
@@ -65,10 +69,12 @@ internal sealed class CurrentUser
         HasMfa = hasMfa;
         ActiveRoles = [.. roles.Where(r => !r.RequiresMfa || hasMfa)];
         Permissions = ActiveRoles.SelectMany(r => r.Permissions).Select(p => p.Permission)
-            .Where(PermissionCatalog.IsPermission).ToHashSet(StringComparer.Ordinal);
+            .Where(p => PermissionCatalog.IsPermission(p) && Allowed(p)).ToHashSet(StringComparer.Ordinal);
         PendingMfaPermissions = roles.Except(ActiveRoles).SelectMany(r => r.Permissions).Select(p => p.Permission)
-            .Where(p => PermissionCatalog.IsPermission(p) && !Permissions.Contains(p)).ToHashSet(StringComparer.Ordinal);
+            .Where(p => PermissionCatalog.IsPermission(p) && !Permissions.Contains(p) && Allowed(p)).ToHashSet(StringComparer.Ordinal);
     }
+
+    private bool Allowed(string permission) => gate?.Allows(permission) ?? true;
 
     /// <summary>
     /// Access to a field: for each active role, its explicit rule, or else what its resource
