@@ -1,5 +1,5 @@
 import { NextResponse, type NextRequest } from "next/server";
-import { apiFetch, forgetBranding, forgetLocalizationSettings } from "@/lib/api";
+import { apiFetch, forgetBranding, forgetLocalizationSettings, forgetPrivacyNotice } from "@/lib/api";
 import { authConfigFor } from "@/lib/auth/config";
 import { isSameOriginRequest, secretsMatch } from "@/lib/auth/security";
 import { getSession } from "@/lib/auth/session";
@@ -82,6 +82,11 @@ async function forward(request: NextRequest, { params }: { params: Promise<{ pat
   if (request.method === "POST" && /^v1\/settings\/branding\/(publish|discard)$/.test(path.join("/")) && response.ok) {
     // Task F1: every page shows the published branding at once.
     forgetBranding(config.tenant);
+  }
+
+  if (request.method === "POST" && path.join("/") === "v1/privacy/notices/draft/publish" && response.ok) {
+    // Task F5: the footer link and visitors' forms follow the new notice at once.
+    forgetPrivacyNotice(config.tenant);
   }
 
   const result = new NextResponse(response.status === 204 ? null : response.body, { status: response.status });

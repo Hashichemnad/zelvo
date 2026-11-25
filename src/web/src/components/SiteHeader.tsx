@@ -121,6 +121,14 @@ export async function SiteHeader() {
                       </Link>
                     </li>
                   )}
+                  {/* Task F5: data subject requests for privacy officers. */}
+                  {user.permissions.includes("privacy.requests") && (
+                    <li>
+                      <Link href="/privacy-requests" className="text-brand underline-offset-4 hover:underline" data-testid="nav-privacy-requests">
+                        {t("privacyRequests")}
+                      </Link>
+                    </li>
+                  )}
                   {user.permissions.includes("incidents.read") && (
                     <>
                       <li>

@@ -4,9 +4,10 @@ import { hasLocale, NextIntlClientProvider } from "next-intl";
 import { getTranslations, setRequestLocale } from "next-intl/server";
 import { PortalChatLauncher } from "@/components/channels/PortalChatLauncher";
 import { PoweredByFooter } from "@/components/PoweredByFooter";
+import { PrivacyBanner } from "@/components/privacy/PrivacyBanner";
 import { SiteHeader } from "@/components/SiteHeader";
 import { getDirection, routing } from "@/i18n/routing";
-import { getBranding } from "@/lib/api";
+import { getBranding, getPublishedPrivacyNotice } from "@/lib/api";
 import { getRequestAuthConfig } from "@/lib/auth/config";
 import { brandingCss, brandingImagePath } from "@/lib/branding";
 import "../globals.css";
@@ -42,6 +43,8 @@ export default async function LocaleLayout({ children, params }: LayoutProps<"/[
   const t = await getTranslations({ locale, namespace: "common" });
   const { tenant } = await getRequestAuthConfig();
   const branding = await getBranding(tenant);
+  // Task F5: the published privacy notice (cached), for the footer link and the acceptance banner.
+  const notice = await getPublishedPrivacyNotice(tenant);
 
   return (
     <html lang={locale} dir={getDirection(locale)}>
@@ -56,11 +59,12 @@ export default async function LocaleLayout({ children, params }: LayoutProps<"/[
         </a>
         <NextIntlClientProvider>
           <SiteHeader />
+          <PrivacyBanner notice={notice} />
           <main id="main" className="mx-auto w-full max-w-5xl flex-1 px-4 py-10 has-[[data-layout=wide]]:max-w-none has-[[data-layout=wide]]:py-4">
             {children}
           </main>
           <PortalChatLauncher />
-          <PoweredByFooter />
+          <PoweredByFooter privacyNotice={notice !== null} />
         </NextIntlClientProvider>
       </body>
     </html>

@@ -81,15 +81,16 @@ describe("customer voice (task C6)", () => {
   });
 
   it("sends anonymously and shows the number and tracking code once", async () => {
-    const fetchMock = vi.spyOn(globalThis, "fetch").mockResolvedValue(json({ number: "CMP-000007", trackingCode: "K7P2QX9M4HTA", type: "Complaint" }, 201));
+    const fetchMock = vi.spyOn(globalThis, "fetch").mockImplementation(async () => json({ number: "CMP-000007", trackingCode: "K7P2QX9M4HTA", type: "Complaint" }, 201));
     wrap(<VoiceForm type="Complaint" csrfToken={null} categories={[]} locations={[]} />);
     expect(screen.getByText(/sent anonymously/)).toBeInTheDocument();
     fireEvent.change(screen.getByLabelText("What is your complaint about?"), { target: { value: "Rude reply at the counter" } });
     fireEvent.click(screen.getByRole("button", { name: "Send anonymously" }));
     await waitFor(() => expect(screen.getByTestId("anonymous-code")).toHaveTextContent("K7P2-QX9M-4HTA"));
     expect(screen.getByTestId("anonymous-number")).toHaveTextContent("CMP-000007");
-    expect(fetchMock.mock.calls[0]![0]).toBe("/bff/api/v1/public/customer-voice");
-    expect(JSON.parse(fetchMock.mock.calls[0]![1]!.body as string)).toEqual({ type: "Complaint", title: "Rude reply at the counter" });
+    // Task F5: the form first asks whether a privacy notice is published (none here: no "version").
+    const sent = fetchMock.mock.calls.find(([url]) => url === "/bff/api/v1/public/customer-voice")!;
+    expect(JSON.parse(sent[1]!.body as string)).toEqual({ type: "Complaint", title: "Rude reply at the counter" });
   });
 
   it("asks for a reason before rejecting a complaint's resolution", async () => {

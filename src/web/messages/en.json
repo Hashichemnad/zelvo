@@ -10,7 +10,9 @@
     "rateLimited": "Too many requests in a short time. Please wait a minute, then try again.",
     "testInstallation": "Test installation: data here is for building and trying integrations, not live data.",
     "approvals": "My approvals",
-    "payments": "Payments"
+    "payments": "Payments",
+    "privacyRequests": "Privacy requests",
+    "privacyNotice": "Privacy notice"
   },
   "language": {
     "name": "English",
@@ -95,6 +97,11 @@
       "teamsNotLinked": "Open the organisation's app in Teams once, so it can reach you.",
       "saved": "Saved.",
       "error": "This could not be saved. Try again."
+    },
+    "privacy": {
+      "heading": "Privacy",
+      "intro": "The privacy notice, what you agree to, a copy of your data and your privacy requests.",
+      "link": "Open your privacy settings"
     }
   },
   "signInProblem": {
@@ -293,6 +300,10 @@
       "payments": {
         "title": "Payments",
         "description": "Online payments, payment gateways and their sandbox tests."
+      },
+      "privacy": {
+        "title": "Privacy",
+        "description": "The privacy notice, optional consent purposes, retention periods and the time to answer privacy requests."
       }
     },
     "missingWarning": "{count, plural, one {# text is} other {# texts are}} missing a translation.",
@@ -523,7 +534,10 @@
         "proactive_trigger": "Start proactive services for people (dates and events from other systems)",
         "payments_manage": "Set up online payments and payment gateways",
         "payments_read": "See payments, receipts, reconciliation and the Excel export",
-        "payments_refund": "Refund payments"
+        "payments_refund": "Refund payments",
+        "privacy_manage": "Set the privacy notice, consent purposes and retention periods",
+        "privacy_requests": "Handle privacy requests: copies of people's data and erasure",
+        "privacy_consents_read": "Read people's consent to the optional purposes"
       },
       "events": {
         "user_created": "A user was created",
@@ -1857,7 +1871,8 @@
         "setup": "Setup",
         "connectors": "Connectors and monitoring",
         "proactive": "Proactive services",
-        "payments": "Payments"
+        "payments": "Payments",
+        "privacy": "Privacy"
       },
       "tenant_manage": "Change the organisation's name",
       "translations_read": "See missing translations",
@@ -1909,7 +1924,10 @@
       "proactive_trigger": "Start proactive services for people (dates and events from other systems)",
       "payments_manage": "Set up online payments and payment gateways",
       "payments_read": "See payments, receipts, reconciliation and the Excel export",
-      "payments_refund": "Refund payments"
+      "payments_refund": "Refund payments",
+      "privacy_manage": "Set the privacy notice, consent purposes and retention periods",
+      "privacy_requests": "Handle privacy requests: copies of people's data and erasure",
+      "privacy_consents_read": "Read people's consent to the optional purposes"
     },
     "assignment": {
       "intro": "The rules are checked in order and the first that matches decides where a new ticket goes. They run when a ticket is created and when an agent chooses \"Route again\"; they never move a ticket on their own later.",
@@ -2464,7 +2482,11 @@
       "payment_requested": "Your request waits for its fee",
       "payment_received": "Your payment receipt",
       "payment_refunded": "Your payment was refunded",
-      "payment_expired": "Your request was closed because its fee was not paid"
+      "payment_expired": "Your request was closed because its fee was not paid",
+      "privacy_request_received": "Your privacy request was received",
+      "privacy_request_completed": "Your privacy request was completed",
+      "privacy_request_rejected": "Your privacy request could not be carried out",
+      "privacy_request_new": "A new privacy request is waiting"
     },
     "audiences": {
       "Requester": "Your incidents",
@@ -5924,6 +5946,258 @@
       "removeRule": "Remove addition {number}",
       "remove": "Remove",
       "addRule": "Add an amount"
+    }
+  },
+  "privacy": {
+    "consent": {
+      "checkbox": "I have read the <link>privacy notice</link>."
+    },
+    "banner": {
+      "label": "Privacy notice",
+      "first": "Please read and accept our privacy notice.",
+      "updated": "Our privacy notice has changed. Please read and accept the new version.",
+      "review": "Read the privacy notice"
+    },
+    "notice": {
+      "title": "Privacy notice",
+      "none": "The organisation has not published a privacy notice yet.",
+      "version": "Version {version}, published {date}",
+      "otherLanguage": "This notice is not available in your language yet; it is shown in the other language."
+    },
+    "ticketTypes": {
+      "Incident": "Incidents",
+      "ServiceRequest": "Service requests",
+      "Complaint": "Complaints",
+      "Inquiry": "Inquiries",
+      "Suggestion": "Suggestions"
+    },
+    "requestTypes": {
+      "Access": "A copy of my data",
+      "Correction": "Correct my data",
+      "Erasure": "Erase my data",
+      "Restriction": "Restrict the processing of my data",
+      "Objection": "Stop or object to the processing of my data"
+    },
+    "requestStates": {
+      "Received": "Received",
+      "InProgress": "In progress",
+      "Completed": "Completed",
+      "Rejected": "Not carried out",
+      "Withdrawn": "Withdrawn"
+    },
+    "settings": {
+      "intro": "What Zelvo tells people about their personal data, what they agree to, and how long their data is kept (UAE Personal Data Protection Law).",
+      "status": {
+        "saving": "Saving…",
+        "saved": "Saved.",
+        "failed": "That did not work. Please try again.",
+        "invalid": "Please check the values."
+      },
+      "notice": {
+        "heading": "Privacy notice",
+        "intro": "People who are signed in accept the published notice at their next visit, and again after each new version. Visitors see it before they chat or send a message. Published versions never change.",
+        "published": "Version {version} is published (since {date}).",
+        "nonePublished": "No notice is published yet.",
+        "draft": "A draft of version {version} is waiting.",
+        "title_en": "Title (English)",
+        "title_ar": "Title (Arabic)",
+        "body_en": "Notice (English, Markdown)",
+        "body_ar": "Notice (Arabic, Markdown)",
+        "markdownHint": "Markdown: headings, lists, links and bold text. HTML is not shown. Both languages are needed to publish.",
+        "saveDraft": "Save draft",
+        "preview": "Preview",
+        "edit": "Edit",
+        "publish": "Publish",
+        "discard": "Discard draft",
+        "bothLanguages": "Give the title and the notice in both English and Arabic before publishing.",
+        "versions": "Versions",
+        "version": "Version",
+        "state": "State",
+        "publishedAt": "Published",
+        "states": {
+          "Draft": "Draft",
+          "Published": "Published",
+          "Superseded": "Replaced"
+        }
+      },
+      "purposes": {
+        "heading": "Optional purposes",
+        "intro": "Things people may agree to or not, such as satisfaction surveys. Each person chooses under Account → Privacy; their choices are kept as a history. Inactive purposes are no longer asked but keep their history.",
+        "none": "No optional purposes yet.",
+        "inactive": "(not asked)",
+        "edit": "Change {name}",
+        "key": "Key",
+        "keyHint": "For integrations, for example surveys: lowercase letters, digits and hyphens. It cannot change later.",
+        "name_en": "Name (English)",
+        "name_ar": "Name (Arabic)",
+        "description_en": "What agreeing means (English)",
+        "description_ar": "What agreeing means (Arabic)",
+        "active": "Ask people about it",
+        "save": "Save",
+        "cancel": "Cancel",
+        "add": "Add a purpose",
+        "problems": {
+          "key": "Use 2 to 50 lowercase letters, digits and hyphens for the key, not used by another purpose.",
+          "name": "Give the name in English and Arabic.",
+          "description": "Say what agreeing means in English and Arabic.",
+          "other": "Please check the values."
+        }
+      },
+      "retention": {
+        "heading": "Retention periods",
+        "intro": "When a period ends, Zelvo removes the personal data: closed tickets keep their number, dates and SLA results for reports, but lose their title, description, answers, files and messages; unused requester accounts are erased. Nothing is removed while a field is empty.",
+        "tickets": "Days to keep closed tickets",
+        "keep": "Keep",
+        "hint": "From 30 days to 50 years, counted from closing. Leave empty to keep them.",
+        "accounts": "Days before an unused requester account is erased",
+        "accountsHint": "Counted from the last sign-in. Only accounts without a staff role, open tickets or open privacy requests.",
+        "due": "Days to answer a privacy request",
+        "dueHint": "From 1 to 90 days; 30 by default.",
+        "preview": "Preview",
+        "save": "Save",
+        "previewHeading": "Today these periods would remove:",
+        "previewTickets": "{type}: {count, plural, =0 {no tickets} one {# ticket} other {# tickets}}",
+        "previewAccounts": "Requester accounts: {count, plural, =0 {none} one {# account} other {# accounts}}"
+      }
+    },
+    "account": {
+      "title": "Privacy",
+      "intro": "What we keep about you, what you agree to, and your rights under the UAE Personal Data Protection Law.",
+      "back": "Back to your account",
+      "unavailable": "Your privacy details cannot be shown right now. Please try again later.",
+      "tooMany": "You already have five open requests. Please wait for them to be answered.",
+      "failed": "That did not work. Please try again.",
+      "accepted": "Thank you. You accepted the privacy notice.",
+      "saved": "Your choice was saved.",
+      "sent": "Your request was sent. We will let you know when it is answered.",
+      "noticeHeading": "Privacy notice",
+      "noNotice": "The organisation has not published a privacy notice yet.",
+      "version": "(version {version})",
+      "acceptedOn": "You accepted it on {date}.",
+      "acceptedAlready": "You accepted it.",
+      "pleaseAccept": "Please read the notice and accept it.",
+      "accept": "I have read and accept the privacy notice",
+      "purposesHeading": "What you agree to",
+      "purposesIntro": "You can change these at any time.",
+      "copyHeading": "A copy of your data",
+      "copyIntro": "Download everything we hold about you as a ZIP file with a machine-readable JSON file and the files you sent us.",
+      "download": "Download my data",
+      "requestsHeading": "Your privacy requests",
+      "requestsIntro": "Ask us to correct or erase your data, or to restrict or stop processing it. We answer within the period the organisation sets.",
+      "type": "What you ask for",
+      "details": "Details (optional)",
+      "erasureNote": "When your data is erased you can no longer sign in, and we cannot email you the answer. Records we must keep by law, such as payments and the audit log, are kept.",
+      "send": "Send the request",
+      "noRequests": "You have not made any privacy requests.",
+      "due": "Answer due by {date}",
+      "withdraw": "Withdraw {number}",
+      "historyHeading": "Your consent history",
+      "history": {
+        "NoticeAccepted": "Accepted the privacy notice, version {version}",
+        "Granted": "Agreed to {purpose}",
+        "Withdrawn": "Withdrew agreement to {purpose}"
+      }
+    },
+    "officer": {
+      "title": "Privacy requests",
+      "intro": "Data subject requests: people asking for a copy of their data, its correction or erasure, or to restrict or stop processing it. Every step is recorded in the audit log.",
+      "noAccess": "You do not have access to privacy requests.",
+      "unavailable": "Privacy requests cannot be shown right now. Please try again later.",
+      "filterLabel": "Show",
+      "filters": {
+        "open": "Open",
+        "overdue": "Overdue",
+        "all": "All"
+      },
+      "none": "No requests.",
+      "columns": {
+        "number": "Number",
+        "type": "Request",
+        "person": "Person",
+        "state": "State",
+        "due": "Due"
+      },
+      "erasedPerson": "Erased person",
+      "overdue": "overdue",
+      "detailTitle": "Privacy request",
+      "notFound": "This request was not found.",
+      "back": "All privacy requests",
+      "fields": {
+        "state": "State",
+        "channel": "Received through",
+        "received": "Received",
+        "due": "Due",
+        "person": "Person",
+        "handler": "Handled by",
+        "identity": "Identity check",
+        "details": "What the person asks",
+        "resolution": "Answer",
+        "exported": "Copy downloaded",
+        "erased": "Erased"
+      },
+      "channels": {
+        "Portal": "The portal",
+        "Staff": "Logged by staff"
+      },
+      "holdings": {
+        "heading": "What Zelvo holds about the person",
+        "tickets": "Tickets",
+        "openTickets": "Open tickets",
+        "messages": "Their messages",
+        "files": "Files",
+        "chats": "Chats",
+        "notifications": "Notifications",
+        "payments": "Payments",
+        "consents": "Consent records"
+      },
+      "problems": {
+        "open-tickets": "The person has tickets that are not resolved or closed yet. Resolve or close them first.",
+        "erase-self": "Another privacy officer must erase your own data.",
+        "last-administrator": "This person is the last tenant administrator. Give the role to someone else first.",
+        "subject-erased": "This person's data was already erased.",
+        "request-closed": "This request is already closed.",
+        "erase-to-complete": "An erasure request is completed by erasing the person, or refused with a reason.",
+        "validation-failed": "Please check the values.",
+        "failed": "That did not work. Please try again."
+      },
+      "log": {
+        "heading": "Log a request",
+        "person": "Person (name or email)",
+        "search": "Search",
+        "results": "People found",
+        "chosen": "Request for {name}",
+        "type": "Request",
+        "details": "What the person asks",
+        "identity": "How their identity was checked",
+        "identityHint": "For example: Emirates ID seen at the counter, or a signed letter.",
+        "choosePerson": "Choose the person the request is about.",
+        "identityNeeded": "Say how the person's identity was checked.",
+        "submit": "Log the request"
+      },
+      "actions": {
+        "heading": "Handle the request",
+        "closed": "This request is closed.",
+        "start": "Start work",
+        "started": "You are handling this request.",
+        "download": "Download a copy of the person's data",
+        "resolution": "Answer to the person",
+        "resolutionHint": "What was done, or why the request is not carried out. The person is told.",
+        "complete": "Complete",
+        "completed": "The request was completed and the person was told.",
+        "reject": "Refuse with this reason",
+        "rejected": "The request was refused and the person was told.",
+        "eraseHeading": "Erase the person",
+        "eraseWarning": "This cannot be undone. Their account is emptied and disabled, their sign-in is removed, their tickets lose their titles, descriptions, answers and files, and their own messages, chats and notifications are removed. The audit log and the consent history are kept.",
+        "refusal": {
+          "AlreadyErased": "This person's data was already erased.",
+          "Self": "Another privacy officer must erase your own data.",
+          "LastAdministrator": "This person is the last tenant administrator. Give the role to someone else first.",
+          "OpenTickets": "The person has tickets that are not resolved or closed yet. Resolve or close them first."
+        },
+        "confirm": "Type {number} to confirm",
+        "erase": "Erase the person's data",
+        "erased": "The person's data was erased."
+      }
     }
   }
 }

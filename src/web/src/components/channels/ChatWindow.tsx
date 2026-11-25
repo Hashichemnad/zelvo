@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useId, useRef, useState, type FormEvent } from "react";
 import { useTranslations } from "next-intl";
 import { usePolling } from "@/lib/use-polling";
+import { PrivacyNoticeCheckbox, usePrivacyNoticePublished } from "@/components/privacy/PrivacyNoticeCheckbox";
 import { mergeMessages, textIn, type ChatMessage, type PublicChatWidget, type VisitorChat } from "@/lib/channels";
 
 type Stage = "start" | "offline" | "left" | "chat";
@@ -73,6 +74,10 @@ export function ChatWindow({
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   const list = useRef<HTMLOListElement>(null);
+  // Task F5: visitors accept the privacy notice (when one is published) before they chat or leave a message.
+  const noticePublished = usePrivacyNoticePublished(!signedIn);
+  const [noticeAccepted, setNoticeAccepted] = useState(false);
+  const noticeField = !signedIn && noticePublished ? { privacyNoticeAccepted: noticeAccepted } : {};
 
   const headers = useCallback(
     (stored: Stored | null): Record<string, string> => {
@@ -144,7 +149,7 @@ export function ChatWindow({
       const response = await fetch(`/bff/api/v1/chat/widgets/${widget.id}/sessions`, {
         method: "POST",
         headers: headers(null),
-        body: JSON.stringify({ name: signedIn ? null : name.trim(), email: signedIn ? null : email.trim(), language: locale, message: text.trim() || null, origin }),
+        body: JSON.stringify({ name: signedIn ? null : name.trim(), email: signedIn ? null : email.trim(), language: locale, message: text.trim() || null, origin, ...noticeField }),
       });
       const body = (await response.json().catch(() => ({}))) as { sessionId?: string; token?: string | null; code?: string };
       if (!response.ok || !body.sessionId) {
@@ -176,7 +181,7 @@ export function ChatWindow({
       const response = await fetch(`/bff/api/v1/chat/widgets/${widget.id}/offline-messages`, {
         method: "POST",
         headers: headers(null),
-        body: JSON.stringify({ name: signedIn ? null : name.trim(), email: signedIn ? null : email.trim(), language: locale, message: text.trim(), origin }),
+        body: JSON.stringify({ name: signedIn ? null : name.trim(), email: signedIn ? null : email.trim(), language: locale, message: text.trim(), origin, ...noticeField }),
       });
       const body = (await response.json().catch(() => ({}))) as { number?: string; code?: string };
       if (!response.ok || !body.number) {
@@ -297,10 +302,11 @@ export function ChatWindow({
             <label htmlFor={`${id}-first`} className="font-semibold">{stage === "start" ? t("firstMessage") : t("offlineMessage")}</label>
             <textarea id={`${id}-first`} dir="auto" rows={3} maxLength={4000} required={stage === "offline"} value={text} onChange={(e) => setText(e.target.value)} className="block w-full rounded-md border border-line bg-surface px-3 py-2" />
           </div>
+          {!signedIn && noticePublished && <PrivacyNoticeCheckbox locale={locale} checked={noticeAccepted} onChange={setNoticeAccepted} />}
           {error && <p role="alert" className="text-bad">{error}</p>}
           <button
             type="submit"
-            disabled={busy || (detailsNeeded && (!name.trim() || !email.trim())) || (stage === "offline" && text.trim().length < 3)}
+            disabled={busy || (detailsNeeded && (!name.trim() || !email.trim())) || (stage === "offline" && text.trim().length < 3) || (!signedIn && noticePublished === true && !noticeAccepted)}
             className="rounded-md bg-brand px-4 py-2 font-semibold text-surface disabled:opacity-60"
           >
             {stage === "start" ? t("start") : t("send")}

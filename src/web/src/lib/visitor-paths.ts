@@ -29,6 +29,10 @@ export function isVisitorPath(method: string, path: string[]): boolean {
     }
     return id === "track" && (sub === undefined || sub === "comments" || sub === "confirmation" || sub === "happiness");
   }
+  // Task F5: the published privacy notice, which visitors read before they chat or send a message.
+  if (area === "privacy" && kind === "notice" && id === undefined) {
+    return method === "GET";
+  }
   // Task D2: the portal's search-first home (visitors find public services and external articles).
   if (area === "portal" && kind === "search" && id === undefined) {
     return method === "GET";
