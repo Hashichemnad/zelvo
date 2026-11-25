@@ -79,6 +79,7 @@ A rule (`/api/v1/workflow-rules`, `workflows.manage`) has:
   - `assign`: to a group's queue, by round-robin among its available members (B2's rotation), or to a named member;
   - `notify`: recipients and bilingual wording (below);
   - `approval`: service requests on submission only. The stage (before assignment or after fulfilment) and its levels.
+  - `connector` (task E7): call an operation of a REST connector; queued with the change and sent by the worker with retries, its answer written as an internal note (`connectors.md`).
 - optionally **stop**: when it applies, later rules of the same trigger are not tried.
 
 Problems are listed together (400 with `problems`, as forms and cards do): known fields with fitting operators and values, references that exist (services, categories, locations, groups, departments, users, roles), placeholders the wording may use, and approvals only where they are allowed. "Try the rules" (`POST /workflow-rules/test`) shows which rules of a trigger hold for an existing ticket now, and what they would do, without changing anything.
@@ -198,7 +199,7 @@ Requesting a laptop as the sample requester starts a real approval.
 
 ## Not in C3
 
-- Teams and WhatsApp approvals (task E3), reminders and expiry of waiting approvals, delegation while an approver is away.
+- (Done in E3: approvals in Teams, which decide there, and WhatsApp and SMS messages with the approval links; see `messaging.md`.) Reminders and expiry of waiting approvals, delegation while an approver is away.
 - Plain-language rules built by AI and a visual view (module 20, Phase 2).
-- Rule actions that call other systems (the REST connector builder, task E7).
+- (Done in E7: the action *Call a connector*, which queues a REST connector's operation with the change for the worker; see `connectors.md`.)
 - Fulfilment tasks, the service's own group and SLAs, and the journey (task C4).

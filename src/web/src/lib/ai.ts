@@ -10,7 +10,7 @@ export type AiBudgetState = "NoLimit" | "Ok" | "Warning" | "Reached";
 export const aiProviderKinds: readonly AiProviderKind[] = ["Anthropic", "OpenAI", "AzureOpenAI", "Gemini", "OpenAICompatible"];
 
 /** Feature keys in Settings order (Zelvo.Ai.AiFeatures). */
-export const aiFeatureKeys = ["triage", "summary", "reply", "translation", "duplicates", "sentiment", "virtualAgent", "articleDrafts"] as const;
+export const aiFeatureKeys = ["triage", "summary", "reply", "translation", "duplicates", "sentiment", "virtualAgent", "articleDrafts", "transcription"] as const;
 export type AiFeatureKey = (typeof aiFeatureKeys)[number];
 
 /** Whether a provider kind needs an endpoint, and whether it can work without a key. */

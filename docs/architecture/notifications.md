@@ -122,9 +122,9 @@ Seeder `b5-notifications` queues "received" for each sample incident's requester
 
 Requester notifications of tickets that came in by email go out **from the ticket's mailbox** in the same email thread (`outbound_emails`, sent by the worker's mail job) instead of the installation's mail server, with the same wording in the requester's language; staff replies (`incident.replied`) go out with the reply's own `Message-ID` even when that event's email is switched off. See `channels.md`.
 
-## Channels later
+## WhatsApp, SMS and Teams (task E3)
 
-`IEmailSender` is the email channel; SMS, WhatsApp and Teams arrive with module 6 (E3) as further channels of the same pipeline, with their own templates (the template table is per event today; a channel column is added then). The bell follows live updates over SignalR since B4 (`workspace.md`): it hears when the person's notifications change and polls only as a fallback.
+`IEmailSender` is the email channel. Since E3, the same pipeline also queues **WhatsApp, SMS and Teams** messages when it renders a notification (`MessagingNotifications`, `channel_messages`, sent by the worker's messaging job): back through the WhatsApp, SMS or Teams conversation a requester's ticket came in by, and otherwise to the channels each person chose under Account → Notifications (WhatsApp and SMS to their profile's phone, opt-in; Teams once they used the tenant's Teams app). The text is the rendered subject, in-app text and link in the recipient's language, so the event's wording (one template per event) serves every channel; WhatsApp's Meta-approved templates carry it as their variable. Administrators switch WhatsApp, SMS and Teams per event (`messaging`, on by default, next to email). Approvals reach approvers in Teams as a card with Approve and Reject that decides there; WhatsApp and SMS carry the two links. See `messaging.md`. The bell follows live updates over SignalR since B4 (`workspace.md`): it hears when the person's notifications change and polls only as a fallback.
 
 ## Not in B5
 

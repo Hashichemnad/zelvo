@@ -83,6 +83,18 @@
       "hint": "While this is off, round-robin gives your groups' new tickets to other members. Tickets already assigned to you stay with you.",
       "groups": "Your groups",
       "lead": "team lead"
+    },
+    "notificationChannels": {
+      "heading": "Also send my notifications to",
+      "whatsApp": "WhatsApp",
+      "sms": "Text message (SMS)",
+      "teams": "Microsoft Teams",
+      "toPhone": "To {phone}, the mobile number of your profile.",
+      "needsPhone": "Add your mobile number to your profile first.",
+      "teamsLinked": "To your chat with the organisation's Teams app.",
+      "teamsNotLinked": "Open the organisation's app in Teams once, so it can reach you.",
+      "saved": "Saved.",
+      "error": "This could not be saved. Try again."
     }
   },
   "signInProblem": {
@@ -246,6 +258,10 @@
         "title": "Live chat",
         "description": "Chat widgets for the portal and your websites, and the group that answers."
       },
+      "messaging": {
+        "title": "Messaging",
+        "description": "WhatsApp, SMS gateways and the Microsoft Teams app: tickets and updates by message."
+      },
       "customerVoice": {
         "title": "Customer voice",
         "description": "Anonymous messages, complaint severities and root causes, and the happiness meter."
@@ -265,6 +281,14 @@
       "setup": {
         "title": "Setup wizard",
         "description": "The steps to go live, and department templates."
+      },
+      "connectors": {
+        "title": "Connectors",
+        "description": "Identity directories, CRMs and REST APIs: people in, cases out, calls from workflow rules."
+      },
+      "monitoring": {
+        "title": "Monitoring",
+        "description": "Monitoring tools whose alerts become incidents."
       },
       "payments": {
         "title": "Payments",
@@ -495,6 +519,7 @@
         "reports_all": "See the dashboards of the whole organisation",
         "reports_manage": "Schedule reports for others and set report targets",
         "setup_manage": "Use the setup wizard and department templates",
+        "connectors_manage": "Set up identity, CRM and REST connectors and monitoring sources",
         "proactive_trigger": "Start proactive services for people (dates and events from other systems)",
         "payments_manage": "Set up online payments and payment gateways",
         "payments_read": "See payments, receipts, reconciliation and the Excel export",
@@ -753,7 +778,8 @@
         "virtualAgent": "Virtual agent",
         "articleDrafts": "Article drafts",
         "test": "Connection test",
-        "unknown": "Other"
+        "unknown": "Other",
+        "transcription": "Voice-note transcription"
       },
       "errors": {
         "provider-auth-failed": "The provider refused the API key. Check the key and the account.",
@@ -856,7 +882,8 @@
           "duplicates": "Finds tickets that report the same issue.",
           "sentiment": "Detects frustrated customers so they can be escalated.",
           "virtualAgent": "Answers questions in the portal and chat from the knowledge base and hands over to a person.",
-          "articleDrafts": "Drafts knowledge articles from resolved tickets for review."
+          "articleDrafts": "Drafts knowledge articles from resolved tickets for review.",
+          "transcription": "Turns WhatsApp voice notes into text. The recording is sent to the provider without masking, because audio cannot be masked; the text is masked like any other for later AI use. Not available with Anthropic."
         },
         "provider": "Provider",
         "noProvider": "None",
@@ -1397,8 +1424,11 @@
       "Chat": "Chat",
       "WhatsApp": "WhatsApp",
       "Phone": "Phone",
+      "Sms": "SMS",
+      "Teams": "Microsoft Teams",
       "Api": "Integration (API)",
       "AiAgent": "AI agent (MCP)",
+      "Monitoring": "Monitoring alert",
       "Proactive": "Proactive (started by Zelvo)"
     },
     "fields": {
@@ -1825,6 +1855,7 @@
         "approvals": "Approvals",
         "reports": "Reports",
         "setup": "Setup",
+        "connectors": "Connectors and monitoring",
         "proactive": "Proactive services",
         "payments": "Payments"
       },
@@ -1874,6 +1905,7 @@
       "reports_all": "See the dashboards of the whole organisation",
       "reports_manage": "Schedule reports for others and set report targets",
       "setup_manage": "Use the setup wizard and department templates",
+      "connectors_manage": "Set up identity, CRM and REST connectors and monitoring sources",
       "proactive_trigger": "Start proactive services for people (dates and events from other systems)",
       "payments_manage": "Set up online payments and payment gateways",
       "payments_read": "See payments, receipts, reconciliation and the Excel export",
@@ -2923,14 +2955,31 @@
       "mentioned": "Mentioned: {names}",
       "sources": {
         "Email": "By email",
-        "Chat": "From a chat"
+        "Chat": "From a chat",
+        "WhatsApp": "By WhatsApp",
+        "Sms": "By SMS",
+        "Teams": "From Microsoft Teams"
       },
       "delivery": {
         "Pending": "Email waiting to be sent",
         "Sent": "Email sent",
         "Failed": "Email not sent"
       },
-      "files": "{count, plural, one {# file} other {# files}}"
+      "files": "{count, plural, one {# file} other {# files}}",
+      "messageDelivery": {
+        "Pending": "Message waiting to be sent",
+        "Sent": "Message sent",
+        "Delivered": "Message delivered",
+        "Read": "Message read",
+        "Failed": "Message not sent"
+      },
+      "voiceNote": {
+        "title": "Voice note",
+        "transcript": "Transcript",
+        "Pending": "The voice note is being transcribed.",
+        "Failed": "The voice note could not be transcribed. Listen to the recording in the attachments.",
+        "Off": "Listen to the recording in the attachments. Transcription is off."
+      }
     },
     "composer": {
       "noteHeading": "Internal note",
@@ -4157,6 +4206,200 @@
       "virtualAgent": "Virtual agent answers first",
       "virtualAgentOn": "Virtual agent",
       "virtualAgentHelp": "Answers from published knowledge articles and passes the chat to the group when asked or when it cannot help, also when nobody is online. Needs the AI feature \"Virtual agent\"."
+    },
+    "messaging": {
+      "title": "Messaging",
+      "unavailable": "The messaging channels cannot be loaded right now.",
+      "intro": "People raise tickets and follow them by WhatsApp, text message or Microsoft Teams. Register each channel's webhook address with its provider; Zelvo checks the provider's signature on every message. Credentials are stored encrypted and never shown again.",
+      "empty": "No messaging channels yet.",
+      "lastInbound": "Last message in",
+      "never": "Never",
+      "off": "Turned off",
+      "open": "Open",
+      "close": "Close",
+      "add": {
+        "WhatsApp": "Add WhatsApp",
+        "Sms": "Add an SMS gateway",
+        "Teams": "Add Microsoft Teams"
+      },
+      "kinds": {
+        "WhatsApp": "WhatsApp",
+        "Sms": "SMS",
+        "Teams": "Microsoft Teams"
+      },
+      "providers": {
+        "WhatsAppCloud": "WhatsApp Cloud API (Meta)",
+        "Twilio": "Twilio",
+        "GenericHttp": "Other gateway (HTTP)",
+        "TeamsBot": "Teams app"
+      },
+      "fields": {
+        "name": "Name",
+        "kind": "Channel",
+        "provider": "Provider",
+        "phoneNumberId": "Phone number id",
+        "whatsAppNumber": "WhatsApp number",
+        "businessAccountId": "Business account id (optional)",
+        "accessToken": "Access token",
+        "accessTokenKeep": "New access token (leave empty to keep the current one)",
+        "appSecret": "App secret",
+        "appSecretKeep": "New app secret (leave empty to keep the current one)",
+        "templates": "Message templates",
+        "defaultTemplate": "Template for updates",
+        "englishCode": "Template language for English",
+        "arabicCode": "Template language for Arabic",
+        "accountSid": "Account SID",
+        "smsSender": "Sender",
+        "authToken": "Auth token",
+        "authTokenKeep": "New auth token (leave empty to keep the current one)",
+        "secret": "Gateway secret",
+        "secretKeep": "New gateway secret (leave empty to keep the current one)",
+        "appId": "Microsoft app (client) id",
+        "directoryId": "Entra directory (tenant) id",
+        "clientSecret": "Client secret",
+        "clientSecretKeep": "New client secret (leave empty to keep the current one)",
+        "newSenders": "People without an account",
+        "category": "Category of new tickets",
+        "group": "Group of new tickets",
+        "active": "Take in and send messages"
+      },
+      "hints": {
+        "phoneNumberId": "From WhatsApp Manager → API setup (digits only).",
+        "e164": "In international form, for example +97142345678.",
+        "appSecret": "From the Meta app's basic settings; it signs the messages Meta sends to Zelvo.",
+        "templates": "More than 24 hours after a person last wrote, WhatsApp only delivers templates Meta approved. Create a utility template with one variable, {{1}}, which receives the update's text, in English and Arabic, and enter its name here. Without one, such updates are not sent and are listed in the log.",
+        "smsSender": "A number such as +97142345678, a Twilio messaging service (MG…) or a sender name registered with TDRA (up to 11 letters).",
+        "appId": "Register the app in your Entra directory as a single-tenant bot, then download the Teams app below and upload it in the Teams admin centre."
+      },
+      "senders": {
+        "Anyone": "Anyone may write in (a requester account is made)",
+        "KnownUsers": "Only people whose number or Teams account belongs to a user"
+      },
+      "none": "None",
+      "byRules": "By the assignment rules",
+      "gateway": {
+        "title": "Gateway request",
+        "url": "Address",
+        "method": "Method",
+        "body": "Body",
+        "bodies": {
+          "Json": "JSON",
+          "Form": "Form fields"
+        },
+        "template": "Request template",
+        "templateHint": "Write the request the gateway expects. {{to}} is the number, {{text}} the message and {{from}} the sender; Zelvo escapes the values.",
+        "auth": "Authentication",
+        "auths": {
+          "None": "None",
+          "Basic": "User name and password",
+          "Bearer": "Bearer token",
+          "Header": "Key in a header"
+        },
+        "username": "User name",
+        "authHeader": "Header name",
+        "messageIdPath": "Message id in the answer (optional, for example messages.0.id)",
+        "withoutPlus": "Write numbers without the leading +",
+        "inboundHint": "For incoming messages, the gateway posts to the webhook address below. Name the fields that hold the sender, the text and the message id.",
+        "inboundFrom": "Sender field",
+        "inboundText": "Text field",
+        "inboundId": "Message id field"
+      },
+      "webhook": {
+        "title": "Webhook address",
+        "WhatsAppCloud": "In the Meta app, under WhatsApp → Configuration, enter this address and the verify token, and subscribe to messages.",
+        "Twilio": "In Twilio, set this address for incoming messages and status callbacks of the sender.",
+        "GenericHttp": "Give this address to the gateway for incoming messages; it contains the channel's token.",
+        "TeamsBot": "Enter this address as the bot's messaging endpoint in Azure Bot Service.",
+        "verifyToken": "Verify token"
+      },
+      "teamsApp": "Download the Teams app",
+      "teamsAppHint": "Upload it in the Teams admin centre (Manage apps → Upload) and make it available to your organisation.",
+      "testTo": "Test number (optional)",
+      "test": "Test",
+      "testOk": "The provider accepted the account: {detail}.",
+      "testQueued": "A test message is on its way.",
+      "log": {
+        "show": "Show the log",
+        "title": "Channel log (last 30 days)",
+        "when": "When",
+        "direction": "Message",
+        "who": "Number",
+        "status": "What happened",
+        "ticket": "Ticket",
+        "empty": "No messages yet.",
+        "resend": "Send again",
+        "directions": {
+          "In": "In",
+          "Out": "Out"
+        },
+        "kinds": {
+          "Text": "text",
+          "Voice": "voice note",
+          "Media": "file",
+          "Template": "template",
+          "Card": "card",
+          "Action": "button",
+          "Event": "event"
+        },
+        "statuses": {
+          "Received": "Taken in",
+          "Ignored": "Left alone",
+          "Rejected": "Rejected",
+          "Pending": "Waiting",
+          "Sent": "Sent",
+          "Delivered": "Delivered",
+          "Read": "Read",
+          "Failed": "Not sent"
+        },
+        "reasons": {
+          "no-template": "No template for messages after 24 hours",
+          "outside-window": "More than 24 hours since the person wrote",
+          "sender-not-allowed": "Sender not accepted",
+          "sender-disabled": "Account disabled",
+          "channel-off": "Channel turned off",
+          "empty": "No text",
+          "event": "No message",
+          "file-skipped": "File not accepted",
+          "not-reachable": "No Teams conversation with this person yet",
+          "refused": "Refused by the provider"
+        }
+      },
+      "edit": "Change settings",
+      "save": "Save",
+      "cancel": "Cancel",
+      "saved": "Saved.",
+      "problems": {
+        "name": "Give the channel a name.",
+        "accountId": "Check the account, number or app id.",
+        "sender": "Check the sender.",
+        "directoryId": "Check the directory id.",
+        "credential": "Enter the credential (again).",
+        "appSecret": "Enter the app secret.",
+        "gateway": "Set up the gateway's request.",
+        "gateway_url": "Check the gateway's address: HTTPS, and not an internal address.",
+        "gateway_bodyTemplate": "The template needs {{to}} and {{text}} and only known placeholders.",
+        "gateway_username": "Enter the user name.",
+        "gateway_authHeader": "Enter the header name.",
+        "gateway_inboundFrom": "Name the fields of incoming messages.",
+        "whatsApp_templates": "Template names use lower-case letters, digits and underscores.",
+        "whatsApp_languages": "Language codes look like en, en_US or ar.",
+        "categoryId": "Choose a category.",
+        "groupId": "Choose a group.",
+        "provider": "Choose a provider.",
+        "other": "Check the highlighted settings."
+      },
+      "errors": {
+        "sign-in-failed": "The provider refused the credential.",
+        "access-denied": "The credential may not use this account.",
+        "not-found": "The provider does not know this account or number.",
+        "unreachable": "The provider could not be reached.",
+        "address-not-allowed": "Zelvo may not connect to this address.",
+        "key-unreadable": "The stored credential cannot be decrypted. Enter it again.",
+        "not-set-up": "The channel is not fully set up.",
+        "rate-limited": "The provider is limiting requests.",
+        "testNumber": "Enter the test number in international form, for example +971501234567.",
+        "other": "Something went wrong. Try again."
+      }
     }
   },
   "voice": {
@@ -4709,8 +4952,11 @@
       "Chat": "Chat",
       "WhatsApp": "WhatsApp",
       "Phone": "Phone",
+      "Sms": "SMS",
+      "Teams": "Microsoft Teams",
       "Api": "API",
       "AiAgent": "AI agent",
+      "Monitoring": "Monitoring alert",
       "Proactive": "Proactive (started by Zelvo)"
     },
     "states": {
@@ -4748,7 +4994,8 @@
     "actionTypes": {
       "assign": "Assign",
       "notify": "Notify",
-      "approval": "Ask for approval"
+      "approval": "Ask for approval",
+      "connector": "Call a connector"
     },
     "removeAction": "Remove action {number}",
     "method": "How",
@@ -4832,7 +5079,12 @@
     "try": "Try",
     "noRulesForTrigger": "No running rules for this trigger.",
     "holds": "applies — {actions}",
-    "doesNotHold": "does not apply"
+    "doesNotHold": "does not apply",
+    "connector": "Connector",
+    "chooseConnector": "Choose a connector",
+    "operation": "Operation",
+    "chooseOperation": "Choose an operation",
+    "connectorHint": "The call goes out after the change is saved, with retries; the values it reads from the answer are added to the ticket as an internal note."
   },
   "approvals": {
     "title": "My approvals",
@@ -5249,6 +5501,205 @@
       "neverChanges": "Applying creates new items only; nothing that already exists is changed.",
       "apply": "Create the department",
       "applied": "Done: {groups} groups, {categories} categories with their routing, {policies} SLA policies, {services} draft services and {responses} canned responses were created."
+    }
+  },
+  "connectors": {
+    "title": "Connectors",
+    "unavailable": "The connectors cannot be loaded right now.",
+    "intro": "Connect your directory, your CRM and other systems. Directories and CRMs sync on a schedule, one way into Zelvo; tickets of CRM contacts become cases there. REST connectors are called by workflow rules. Credentials are stored encrypted and never shown again.",
+    "empty": "No connectors yet.",
+    "lastSync": "Last sync",
+    "nextSync": "Next sync",
+    "never": "Never",
+    "off": "Turned off",
+    "open": "Open",
+    "close": "Close",
+    "calledByRules": "Called by workflow rules",
+    "add": "Add a connector",
+    "addKind": "Add {kind}",
+    "kinds": {
+      "EntraId": "Microsoft Entra ID",
+      "Ldap": "Active Directory / LDAP",
+      "Dynamics365": "Microsoft Dynamics 365",
+      "Salesforce": "Salesforce",
+      "HubSpot": "HubSpot",
+      "Zoho": "Zoho CRM",
+      "Rest": "REST API (no-code)"
+    },
+    "fields": {
+      "name": "Name",
+      "kind": "Connects to",
+      "directoryId": "Directory (tenant) id",
+      "clientId": "App (client) id",
+      "clientSecret": "Client secret",
+      "accessToken": "Private app access token",
+      "refreshToken": "Refresh token",
+      "usersGroupId": "Only members of this group (object id, optional)",
+      "groupMappings": "Groups",
+      "directoryGroup": "Directory group (id or distinguished name)",
+      "zelvoGroup": "Zelvo group",
+      "signInEntra": "Offer “Sign in with Microsoft”",
+      "signInLdap": "Let people sign in with their directory password",
+      "host": "Server",
+      "port": "Port",
+      "security": "Connection security",
+      "bindDn": "Service account (distinguished name)",
+      "bindPassword": "Service account password",
+      "baseDn": "Where people are (base DN)",
+      "userFilter": "Which entries are people (filter)",
+      "activeDirectory": "This is Active Directory",
+      "crmUrl": {
+        "Dynamics365": "Environment address",
+        "Salesforce": "My Domain address",
+        "Zoho": "Accounts server of your data centre",
+        "EntraId": "Address",
+        "Ldap": "Address",
+        "HubSpot": "Address",
+        "Rest": "Address"
+      },
+      "apiUrl": "API domain of your data centre",
+      "customerGroups": "Make customer groups of the contacts' companies",
+      "syncMinutes": "Minutes between syncs",
+      "active": "Sync and call this connector"
+    },
+    "keepHint": "(leave empty to keep the current one)",
+    "hints": {
+      "entraApp": "An app registration in your directory with the application permissions User.Read.All and GroupMember.Read.All.",
+      "groupMappings": "Members of these directory groups join the Zelvo group; synced people who leave are removed.",
+      "crm": "Contacts come in as requesters and their companies as customer groups. Their tickets become cases in the CRM, updated with a note at every change."
+    },
+    "security": {
+      "Ldaps": "LDAPS (TLS)",
+      "StartTls": "StartTLS",
+      "None": "None (inside a trusted network only)"
+    },
+    "chooseGroup": "Choose a group",
+    "remove": "Remove",
+    "addMapping": "Add a group",
+    "rest": {
+      "baseUrl": "Base address",
+      "auth": "Authentication",
+      "auths": {
+        "None": "None",
+        "ApiKey": "Key in a header",
+        "Basic": "User name and password",
+        "Bearer": "Bearer token",
+        "OAuth2": "OAuth 2.0 client credentials"
+      },
+      "authHeader": "Header name",
+      "username": "User name",
+      "tokenUrl": "Token address",
+      "scope": "Scope (optional)",
+      "credential": "Key, password, token or client secret",
+      "placeholders": "Placeholders:",
+      "testTicket": "Test with ticket (number, optional; sample values otherwise)",
+      "operation": "Operation {number}",
+      "key": "Key",
+      "nameEn": "Name in English",
+      "nameAr": "Name in Arabic",
+      "method": "Method",
+      "path": "Path",
+      "body": "Body (JSON)",
+      "results": "Values to read from the answer",
+      "resultPath": "Path in the answer",
+      "addResult": "Add a value",
+      "externalRefPath": "The other system's id of the record (path, optional)",
+      "test": "Test this operation",
+      "ok": "Answer {status} in {ms} ms.",
+      "failed": "The call failed ({status}).",
+      "sent": "Sent",
+      "answer": "Answer",
+      "addOperation": "Add an operation"
+    },
+    "stats": {
+      "title": "What the last sync did",
+      "summary": "{read} read, {created} created, {updated} changed, {disabled} disabled"
+    },
+    "redirectUri": "Redirect address to register with the app for sign-in:",
+    "test": "Test",
+    "testOk": "Connected: {detail}.",
+    "syncNow": "Sync now",
+    "syncQueued": "The sync starts within a minute.",
+    "calls": {
+      "show": "Show calls",
+      "title": "Calls for tickets (last 30 days)",
+      "when": "When",
+      "operation": "Operation",
+      "ticket": "Ticket",
+      "status": "What happened",
+      "empty": "No calls yet.",
+      "resend": "Send again",
+      "statuses": {
+        "Pending": "Waiting",
+        "Succeeded": "Done",
+        "Failed": "Failed"
+      }
+    },
+    "edit": "Change settings",
+    "save": "Save",
+    "cancel": "Cancel",
+    "saved": "Saved.",
+    "errors": {
+      "sign-in-failed": "The system refused the credential.",
+      "access-denied": "The credential may not do this.",
+      "not-found": "The system does not know this account or address.",
+      "unreachable": "The system could not be reached.",
+      "address-not-allowed": "Zelvo may not connect to this address.",
+      "timeout": "The system did not answer in time.",
+      "not-set-up": "The connector is not fully set up.",
+      "key-unreadable": "The stored credential cannot be decrypted. Enter it again.",
+      "rate-limited": "The system is limiting requests.",
+      "refused": "The system refused the request.",
+      "signInSetup": "The sign-in service did not accept the change. Nothing was changed.",
+      "other": "Something went wrong. Try again."
+    },
+    "monitoring": {
+      "title": "Monitoring",
+      "unavailable": "The monitoring sources cannot be loaded right now.",
+      "intro": "Monitoring tools such as Zabbix, Prometheus and Datadog send their alerts here. A new alert raises an incident, the same alert again adds to it, and a cleared alert adds a note and, when you choose, resolves it.",
+      "empty": "No monitoring sources yet.",
+      "formats": {
+        "Alertmanager": "Prometheus Alertmanager",
+        "Generic": "JSON with field mapping"
+      },
+      "lastAlert": "last alert {when}",
+      "noAlerts": "No alerts yet.",
+      "webhook": "Webhook address (send the token as Authorization: Bearer, or add ?token=):",
+      "tokenOnce": "The token, shown only now. Store it in the monitoring tool.",
+      "active": "Take alerts",
+      "resolveOnClear": "Resolve the incident when its alert clears",
+      "renew": "Make a new token",
+      "showAlerts": "Show alerts",
+      "alerts": {
+        "title": "Alerts",
+        "ticket": "Incident",
+        "state": "Alert",
+        "count": "Times",
+        "last": "Last",
+        "states": {
+          "Firing": "Firing",
+          "Resolved": "Cleared"
+        }
+      },
+      "add": "Add a monitoring source",
+      "name": "Name",
+      "tool": "Tool",
+      "presets": {
+        "alertmanager": "Prometheus Alertmanager",
+        "zabbix": "Zabbix",
+        "datadog": "Datadog"
+      },
+      "presetHints": {
+        "alertmanager": "Add a webhook receiver in Alertmanager with this address and the token as bearer credentials; severity labels critical, warning and info set the priority.",
+        "zabbix": "Create a webhook media type that posts eventId, status (PROBLEM or RESOLVED), severity, subject and message as JSON.",
+        "datadog": "Create a webhook with the payload alertId ($ALERT_ID), transition ($ALERT_TRANSITION), title ($EVENT_TITLE), message ($EVENT_MSG) and priority ($ALERT_PRIORITY)."
+      },
+      "group": "Group of the incidents",
+      "category": "Category of the incidents",
+      "byRules": "By the assignment rules",
+      "none": "None",
+      "invalid": "Check the name and settings.",
+      "error": "Something went wrong. Try again."
     }
   },
   "payments": {

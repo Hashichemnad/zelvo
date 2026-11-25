@@ -259,6 +259,13 @@ internal static class WorkflowRuleEndpoints
                 case NotifyAction notify:
                     RuleDocuments.CheckNotify(notify, at, problems);
                     break;
+                case ConnectorAction connector:
+                    if (connector.ConnectorId is null || string.IsNullOrWhiteSpace(connector.Operation))
+                    {
+                        problems.Add(new($"{at}.connectorId", "connector-required", "Choose the connector and its operation."));
+                    }
+
+                    break;
                 case ApprovalAction approval:
                     if (request.RecordType != TicketType.ServiceRequest || trigger != WorkflowTrigger.TicketCreated)
                     {
@@ -322,6 +329,7 @@ internal static class WorkflowRuleEndpoints
     {
         AssignAction => "assign",
         NotifyAction => "notify",
+        ConnectorAction => "connector",
         _ => "approval",
     };
 

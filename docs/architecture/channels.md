@@ -143,7 +143,7 @@ Seeder `e2-channels`: a support mailbox per sample organisation (IMAP, **turned 
 
 - Internal notes, @mentions, canned responses and the agent workspace (B4); SignalR for the notification bell (B4).
 - (Done in E5: the AI virtual agent in the chat and its handover, and one-click translation of chat messages; see `ai-features.md`.)
-- WhatsApp, Teams and SMS (E3).
+- (Done in E3: WhatsApp, Teams and SMS; see `messaging.md`.)
 - Push from Microsoft Graph (subscriptions) or Gmail (Pub/Sub): they need an address the internet can reach; polling works offline.
 - Attachments in chats and in staff replies (files are attached to the incident as before).
 - Business hours on the widget beyond the agents' availability; a tenant's own sender domain checks (F1).

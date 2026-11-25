@@ -78,9 +78,15 @@ x-branding-env: &branding-env
 # reached; installations list only their own internal mail networks.
 x-channels-env: &channels-env
   Channels__WebUrl: http://localhost:${WEB_PORT:-3000}/
+  # Task E3: the public address providers send incoming messages to (through the proxy's /hooks/).
+  Channels__PublicUrl: https://${ZELVO_PUBLIC_HOST:-localhost}/
   Channels__Network__AllowedPrivateNetworks__0: 172.16.0.0/12
   Channels__Network__AllowedPrivateNetworks__1: 192.168.0.0/16
   Channels__Network__AllowedPrivateNetworks__2: 10.0.0.0/8
+  # Task E7: directories, CRMs and REST APIs a development installation may reach on internal networks.
+  Connectors__Network__AllowedPrivateNetworks__0: 172.16.0.0/12
+  Connectors__Network__AllowedPrivateNetworks__1: 192.168.0.0/16
+  Connectors__Network__AllowedPrivateNetworks__2: 10.0.0.0/8
 
 x-secrets-env: &secrets-env
   Secrets__Provider: File

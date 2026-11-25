@@ -30,6 +30,9 @@ export interface SettingsSection {
     | "cannedResponses"
     | "mailboxes"
     | "liveChat"
+    | "messaging"
+    | "connectors"
+    | "monitoring"
     | "search"
     | "integrations"
     | "ai"
@@ -82,8 +85,13 @@ export const settingsSections: readonly SettingsSection[] = [
   { key: "cannedResponses", href: "/settings/canned-responses", permission: "incidents.edit" },
   { key: "mailboxes", href: "/settings/mailboxes", permission: "channels.manage" },
   { key: "liveChat", href: "/settings/chat", permission: "channels.manage" },
+  // Task E3: WhatsApp, SMS gateways and the Teams app.
+  { key: "messaging", href: "/settings/messaging", permission: "channels.manage" },
   { key: "search", href: "/settings/search", permission: "search.manage" },
   { key: "integrations", href: "/settings/integrations", permission: "integrations.manage" },
+  // Task E7: identity, CRM and REST connectors, and monitoring alerts.
+  { key: "connectors", href: "/settings/connectors", permission: "connectors.manage" },
+  { key: "monitoring", href: "/settings/monitoring", permission: "connectors.manage" },
   { key: "ai", href: "/settings/ai", permission: "ai.manage" },
   { key: "importExport", href: "/settings/import-export", permission: "users.manage" },
   // Task F2: targets of the dashboards.

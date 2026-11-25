@@ -69,20 +69,28 @@ public sealed class NotificationComposer(ZelvoDbContext db, NotificationOptions 
             [Placeholders.RecipientName] = PlaceholderValue.OfText(user.DisplayName ?? user.Email),
             [Placeholders.TenantName] = PlaceholderValue.OfText(letterhead.Name.HasAnyValue ? letterhead.Name : new LocalizedText(letterhead.Fallback, letterhead.Fallback)),
         };
-        var links = Links(format.Language, linkPath);
-        // Task C3: approval emails have Approve and Reject buttons; both open the approval in
-        // Zelvo with the choice made, and the approver signs in before it is recorded.
+        return NotificationRenderer.Render(template, all, format, letterhead, LinksFor(eventType, format.Language, linkPath));
+    }
+
+    /// <summary>
+    /// The links of a notification in <paramref name="language"/>. Task C3: approval emails have
+    /// Approve and Reject buttons; both open the approval in Zelvo with the choice made, and the
+    /// approver signs in before it is recorded (WhatsApp and SMS carry the same two links, E3).
+    /// </summary>
+    public NotificationLinks LinksFor(string? eventType, string language, string? linkPath)
+    {
+        var links = Links(language, linkPath);
         if (eventType == NotificationEvents.ApprovalRequested && links.Action is { } approve)
         {
             links = links with
             {
                 Action = new Uri(approve, "?decision=approve"),
                 Secondary = new Uri(approve, "?decision=reject"),
-                SecondaryLabel = NotificationTexts.For(format.Language).Terms.GetValueOrDefault("approval.reject"),
+                SecondaryLabel = NotificationTexts.For(language).Terms.GetValueOrDefault("approval.reject"),
             };
         }
 
-        return NotificationRenderer.Render(template, all, format, letterhead, links);
+        return links;
     }
 
     /// <summary>

@@ -198,6 +198,12 @@ internal static class CommentEndpoints
             ? (await db.OutboundEmails.AsNoTracking().Where(e => e.CommentId != null && ids.Contains(e.CommentId.Value))
                 .Select(e => new { e.CommentId, e.Status }).ToListAsync(cancellationToken)).ToDictionary(e => e.CommentId!.Value, e => e.Status)
             : [];
+        // Task E3: voice notes with their transcripts, and how a staff reply went out by WhatsApp, SMS or Teams.
+        var voices = await db.VoiceNotes.AsNoTracking().Where(v => ids.Contains(v.CommentId)).ToDictionaryAsync(v => v.CommentId, cancellationToken);
+        var messages = staff
+            ? (await db.ChannelMessages.AsNoTracking().Where(m => m.Direction == Data.Channels.MessageDirection.Out && m.CommentId != null && ids.Contains(m.CommentId.Value))
+                .Select(m => new { m.CommentId, m.Status }).ToListAsync(cancellationToken)).GroupBy(m => m.CommentId!.Value).ToDictionary(g => g.Key, g => g.Last().Status.ToString())
+            : [];
         return [.. rows.Select(c => new CommentResponse(
             c.Id, c.TicketId, c.Visibility, c.Body, c.Language,
             new PersonResponse(c.AuthorId, names.GetValueOrDefault(c.AuthorId)), c.ByStaff,
@@ -206,7 +212,9 @@ internal static class CommentEndpoints
             [.. files[c.Id].Select(f => new CommentAttachmentResponse(f.Id, f.FileName))],
             staff && c.EmailMessageId is not null && c.ByStaff && c.Source == CommentSource.Web
                 ? deliveries.TryGetValue(c.Id, out var status) ? status.ToString() : "Pending"
-                : null))];
+                : null,
+            voices.TryGetValue(c.Id, out var voice) ? new VoiceNoteResponse(voice.AttachmentId, voice.Status, voice.Transcript, voice.Language) : null,
+            messages.GetValueOrDefault(c.Id)))];
     }
 }
 
@@ -224,10 +232,20 @@ internal static class CommentEndpoints
 /// <param name="Source">Task E2: Web (in Zelvo), Email or Chat (a live chat's transcript).</param>
 /// <param name="Attachments">Task E2: files that came with an email.</param>
 /// <param name="EmailDelivery">Task E2, staff only: for a staff reply sent from the ticket's mailbox, Pending, Sent or Failed.</param>
+/// <param name="VoiceNote">Task E3: the voice note this comment is, with its transcript.</param>
+/// <param name="MessageDelivery">Task E3, staff only: how the reply went out by WhatsApp, SMS or Teams (Pending, Sent, Delivered, Read, Failed).</param>
 internal sealed record CommentResponse(
     Guid Id, Guid TicketId, CommentVisibility Visibility, string Body, string Language, PersonResponse Author, bool ByStaff,
     IReadOnlyList<PersonResponse> Mentions, Guid? CannedResponseId, DateTimeOffset CreatedAt,
-    CommentSource Source, IReadOnlyList<CommentAttachmentResponse> Attachments, string? EmailDelivery);
+    CommentSource Source, IReadOnlyList<CommentAttachmentResponse> Attachments, string? EmailDelivery,
+    VoiceNoteResponse? VoiceNote = null, string? MessageDelivery = null);
+
+/// <summary>Task E3: a voice note sent by WhatsApp: the recording and what the AI heard.</summary>
+/// <param name="AttachmentId">The recording (an attachment of the ticket).</param>
+/// <param name="Status">Pending, Done, Failed, or Off (transcription was off).</param>
+/// <param name="Transcript">What the AI heard.</param>
+/// <param name="Language">The language it heard.</param>
+internal sealed record VoiceNoteResponse(Guid AttachmentId, Data.Channels.TranscriptStatus Status, string? Transcript, string? Language);
 
 /// <summary>A file that came with a comment (the attachments of an email).</summary>
 internal sealed record CommentAttachmentResponse(Guid Id, string FileName);

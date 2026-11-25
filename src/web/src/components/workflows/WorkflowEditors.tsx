@@ -35,6 +35,8 @@ export interface WorkflowChoices {
   groups: GroupSummary[];
   departments: Department[];
   roles: Role[];
+  /** Task E7: REST connectors and their operations (optional). */
+  connectors?: import("@/lib/workflows").RestConnectorOperations[];
 }
 
 const languageValues = ["en", "ar"] as const;

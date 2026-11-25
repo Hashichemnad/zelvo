@@ -60,7 +60,22 @@
     "ticket.state.Reopened": "أُعيد فتحه",
     "request.tasks-done": "اكتملت جميع المهام: {tasks}.",
     "request.bundle-done": "اكتملت جميع أجزاء الباقة: {parts}.",
-    "payment.expired-note": "أُغلق الطلب لعدم سداد الرسوم في الموعد المحدد."
+    "payment.expired-note": "أُغلق الطلب لعدم سداد الرسوم في الموعد المحدد.",
+    "approval.approve": "اعتماد",
+    "approval.reason": "السبب (مطلوب عند الرفض)",
+    "approval.open": "فتح الاعتماد",
+    "teams.welcome": "مرحبًا بكم. يرجى إرسال رسالة هنا لتسجيل طلب جديد، ولإضافة معلومات إلى أحد طلباتكم يرجى بدء الرسالة برقمه، مثل {number}.",
+    "teams.approved": "تم تسجيل اعتمادكم للطلب {number}.",
+    "teams.rejected": "تم تسجيل رفضكم للطلب {number} مع السبب المذكور.",
+    "teams.reason-required": "يرجى إدخال السبب قبل الرفض.",
+    "teams.already-decided": "تم البت في هذا الاعتماد سابقًا أو لم يعد مطلوبًا.",
+    "teams.not-allowed": "لا يعود إليكم البت في هذا الاعتماد.",
+    "teams.not-linked": "حسابكم في Teams غير مرتبط بحساب لدى {tenant}. يرجى التواصل مع مسؤول النظام.",
+    "messaging.test": "هذه رسالة اختبار من مكتب الخدمة.",
+    "teams.app.short": "تسجيل الطلبات ومتابعتها والبت في الاعتمادات.",
+    "teams.app.full": "تسجيل الطلبات بإرسال رسالة، واستلام التحديثات عن طلباتكم، والبت في الاعتمادات المطلوبة منكم، وذلك كله في Microsoft Teams.",
+    "monitoring.resolved": "زال التنبيه",
+    "monitoring.fired-again": "تكرر التنبيه ({count} مرات)"
   },
   "templates": {
     "incident.received": {

@@ -19,6 +19,7 @@ namespace Zelvo.Tickets;
 /// <param name="AssigneeId">Assignee (a member of <paramref name="GroupId"/>).</param>
 /// <param name="MailboxId">The mailbox it came in through.</param>
 /// <param name="FollowUpOfId">The closed incident it follows up.</param>
+/// <param name="MessagingContactId">The WhatsApp, SMS or Teams conversation it came in through (task E3).</param>
 public sealed record IncidentIntakeRequest(
     string Title,
     string? Description,
@@ -29,7 +30,8 @@ public sealed record IncidentIntakeRequest(
     Guid? GroupId = null,
     Guid? AssigneeId = null,
     Guid? MailboxId = null,
-    Guid? FollowUpOfId = null);
+    Guid? FollowUpOfId = null,
+    Guid? MessagingContactId = null);
 
 /// <summary>
 /// Creates incidents for channels (task E2) exactly as the API does for people: the tenant's number
@@ -68,6 +70,7 @@ public sealed class IncidentIntake(ZelvoDbContext db, ISearchIndexer indexer, Sl
             GroupId = request.GroupId,
             MailboxId = request.MailboxId,
             FollowUpOfId = request.FollowUpOfId,
+            MessagingContactId = request.MessagingContactId,
             CreatedAt = now,
             UpdatedAt = now,
         };
@@ -160,6 +163,36 @@ public static class ContactAccounts
             .Where(u => u.Email != null && EF.Functions.ILike(u.Email, pattern, "\\"))
             .OrderBy(u => u.CreatedAt)
             .FirstOrDefaultAsync(cancellationToken);
+    }
+
+    /// <summary>The active or disabled account with the phone number <paramref name="phone"/> (E.164), oldest first (task E3).</summary>
+    public static Task<UserAccount?> FindByPhoneAsync(ZelvoDbContext db, string phone, CancellationToken cancellationToken)
+    {
+        ArgumentNullException.ThrowIfNull(db);
+        return db.Users.Include(u => u.Roles).ThenInclude(r => r.Role!).ThenInclude(r => r.Permissions)
+            .Where(u => u.Phone == phone)
+            .OrderBy(u => u.Status == UserStatus.Active ? 0 : 1).ThenBy(u => u.CreatedAt)
+            .FirstOrDefaultAsync(cancellationToken);
+    }
+
+    /// <summary>Stages a requester account for someone who wrote by WhatsApp or SMS (task E3), known by <paramref name="phone"/> only.</summary>
+    public static async Task<UserAccount> CreateForPhoneAsync(ZelvoDbContext db, string phone, string? name, string? language, CancellationToken cancellationToken)
+    {
+        ArgumentNullException.ThrowIfNull(db);
+        var requester = await db.Roles.SingleAsync(r => r.Key == BuiltInRoles.Requester, cancellationToken).ConfigureAwait(false);
+        var account = new UserAccount
+        {
+            Subject = $"{SubjectPrefix}{Guid.NewGuid():N}",
+            Phone = phone,
+            DisplayName = string.IsNullOrWhiteSpace(name) ? null : IncidentIntake.Clean(name, UserAccount.DisplayNameMaxLength),
+            PreferredLanguage = language is LocalizedText.English or LocalizedText.Arabic ? language : null,
+            // They wrote to us there: updates go back the same way.
+            NotifyWhatsApp = true,
+            NotifySms = true,
+        };
+        account.Roles.Add(new UserRole { UserId = account.Id, RoleId = requester.Id });
+        db.Users.Add(account);
+        return account;
     }
 
     /// <summary>Stages a requester account for <paramref name="email"/> (saved by the caller).</summary>

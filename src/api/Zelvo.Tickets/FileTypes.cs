@@ -26,6 +26,11 @@ public static class FileTypes
     private static readonly byte[] ZipEmpty = [0x50, 0x4B, 0x05, 0x06];
     private static readonly byte[] Ico = [0x00, 0x00, 0x01, 0x00];
     private static readonly byte[] OleCompound = [0xD0, 0xCF, 0x11, 0xE0, 0xA1, 0xB1, 0x1A, 0xE1];
+    private static readonly byte[] Ogg = "OggS"u8.ToArray();
+    private static readonly byte[] Amr = "#!AMR"u8.ToArray();
+    private static readonly byte[] Id3 = "ID3"u8.ToArray();
+    private static readonly byte[] Ftyp = "ftyp"u8.ToArray();
+    private static readonly byte[] Wave = "WAVE"u8.ToArray();
 
     /// <summary>Every known type, by extension.</summary>
     public static IReadOnlyList<FileType> All { get; } =
@@ -48,7 +53,16 @@ public static class FileTypes
         new("ods", "application/vnd.oasis.opendocument.spreadsheet", IsZip),
         new("zip", "application/zip", IsZip),
         new("msg", "application/vnd.ms-outlook", c => StartsWith(c, OleCompound)),
+        // Voice notes (task E3): WhatsApp sends Ogg/Opus; other apps AMR, MP3, M4A or WAV.
+        new("ogg", "audio/ogg", c => StartsWith(c, Ogg)),
+        new("amr", "audio/amr", c => StartsWith(c, Amr)),
+        new("mp3", "audio/mpeg", c => StartsWith(c, Id3) || (c.Length >= 2 && c.Span[0] == 0xFF && (c.Span[1] & 0xE0) == 0xE0)),
+        new("m4a", "audio/mp4", c => c.Length >= 12 && c.Span[4..8].SequenceEqual(Ftyp)),
+        new("wav", "audio/wav", c => StartsWith(c, Riff) && c.Length >= 12 && c.Span[8..12].SequenceEqual(Wave)),
     ];
+
+    /// <summary>The audio types voice notes may have (task E3).</summary>
+    public static IReadOnlyList<string> AudioExtensions { get; } = ["ogg", "amr", "mp3", "m4a", "wav"];
 
     /// <summary>The type with <paramref name="extension"/> (without the dot), or null.</summary>
     public static FileType? Find(string? extension) =>

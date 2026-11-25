@@ -13,7 +13,7 @@ export interface Bilingual {
 }
 
 export type TicketState = "New" | "Assigned" | "InProgress" | "OnHold" | "Resolved" | "Closed" | "Reopened";
-export type TicketChannel = "Portal" | "Email" | "Chat" | "WhatsApp" | "Phone" | "Api" | "AiAgent" | "Proactive";
+export type TicketChannel = "Portal" | "Email" | "Chat" | "WhatsApp" | "Phone" | "Sms" | "Teams" | "Monitoring" | "Api" | "AiAgent" | "Proactive";
 
 export const ticketStates: TicketState[] = ["New", "Assigned", "InProgress", "OnHold", "Resolved", "Closed", "Reopened"];
 export const staffChannels: TicketChannel[] = ["Phone", "Email", "Chat", "WhatsApp", "Portal", "Api"];

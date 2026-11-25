@@ -118,6 +118,14 @@ internal static class Permissions
     public const string ChannelsManage = "channels.manage";
 
     /// <summary>
+    /// Settings → Connectors and Settings → Monitoring (module 14, task E7): identity directories,
+    /// CRMs and REST connectors with their credentials, and monitoring sources with their tokens.
+    /// Never available to integrations (connector credentials, and a connector could send ticket
+    /// data to a system of its own).
+    /// </summary>
+    public const string ConnectorsManage = "connectors.manage";
+
+    /// <summary>
     /// Settings → Branding (module 11, task F1): product name, logos, favicon, sign-in image,
     /// colours and font with the contrast checks, publishing, custom domains with their
     /// certificates, and the email sender domain. Not for integrations (for approval): a
@@ -259,6 +267,7 @@ internal static class PermissionCatalog
         Permissions.ResponsesManage,
         Permissions.WorkspaceViewsShare,
         Permissions.ChannelsManage,
+        Permissions.ConnectorsManage,
         Permissions.ChatHandle,
         Permissions.CatalogManage,
         Permissions.CatalogPublish,
@@ -299,6 +308,8 @@ internal static class PermissionCatalog
         // Task E2, for the product owner's approval: mailbox settings hold credentials, and an
         // integration could point a mailbox at a server of its own.
         Permissions.ChannelsManage,
+        // Task E7, for the product owner's approval: connector credentials, and connectors send ticket data out.
+        Permissions.ConnectorsManage,
         // Task F1, for the product owner's approval: certificates' private keys, DKIM keys and the
         // domains the installation answers for are set here.
         Permissions.BrandingManage,

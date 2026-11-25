@@ -86,7 +86,22 @@ export interface ApprovalAction {
   levels: ApprovalLevelDefinition[];
 }
 
-export type WorkflowAction = AssignAction | NotifyAction | ApprovalAction;
+/** Task E7: call an operation of a REST connector (the no-code connector builder). */
+export interface ConnectorAction {
+  type: "connector";
+  connectorId: string | null;
+  operation: string | null;
+}
+
+export type WorkflowAction = AssignAction | NotifyAction | ApprovalAction | ConnectorAction;
+
+/** A REST connector and its operations, for the rule builder (task E7). */
+export interface RestConnectorOperations {
+  id: string;
+  name: string;
+  active: boolean;
+  operations: { key: string; name: Bilingual }[];
+}
 
 export interface WorkflowRule {
   id: string;
@@ -244,6 +259,8 @@ export function emptyAction(type: WorkflowAction["type"]): WorkflowAction {
       return { type, groupId: null, method: "GroupQueue", assigneeId: null };
     case "notify":
       return { type, recipients: ["requester"], subject: { en: null, ar: null }, body: { en: null, ar: null }, email: true };
+    case "connector":
+      return { type, connectorId: null, operation: null };
     default:
       return { type: "approval", stage: "BeforeAssignment", levels: [emptyLevel()] };
   }

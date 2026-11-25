@@ -28,6 +28,8 @@ internal static class DemoServiceCollectionExtensions
         services.AddDemoSeeder<DemoReportingSeeder>();
         services.AddDemoSeeder<DemoBundlesSeeder>();
         services.AddDemoSeeder<DemoPaymentsSeeder>();
+        services.AddDemoSeeder<DemoMessagingSeeder>();
+        services.AddDemoSeeder<DemoConnectorsSeeder>();
         return services;
     }
 

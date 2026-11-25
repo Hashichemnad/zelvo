@@ -41,6 +41,7 @@ public static class AiServiceCollectionExtensions
 
         services.TryAddScoped<Features.TicketTriage>();
         services.TryAddScoped<Features.SentimentReader>();
+        services.TryAddScoped<Features.VoiceTranscriber>();
         services.TryAddScoped<Features.DuplicateFinder>();
         services.TryAddScoped<Features.KnowledgeGrounding>();
         services.TryAddScoped<Features.AgentAssist>();

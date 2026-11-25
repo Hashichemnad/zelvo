@@ -8,6 +8,7 @@ using Zelvo.Notifications;
 using Zelvo.Observability;
 using Zelvo.Search;
 using Zelvo.Secrets;
+using Zelvo.Connectors;
 using Zelvo.Tickets;
 using Zelvo.Worker;
 
@@ -42,6 +43,7 @@ builder.Services.AddZelvoTicketJobs(builder.Configuration);
 builder.Services.AddZelvoNotificationJobs(builder.Configuration);
 // Email and chat (E2): reads mailboxes into tickets, sends replies from them, ends idle chats.
 builder.Services.AddZelvoChannelJobs(builder.Configuration);
+builder.Services.AddZelvoConnectorJobs(builder.Configuration);
 
 builder.Build().Run();
 

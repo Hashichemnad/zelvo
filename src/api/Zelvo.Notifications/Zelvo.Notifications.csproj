@@ -11,6 +11,7 @@
     <ProjectReference Include="..\Zelvo.Data\Zelvo.Data.csproj" />
     <ProjectReference Include="..\Zelvo.Tickets\Zelvo.Tickets.csproj" />
     <ProjectReference Include="..\Zelvo.Secrets\Zelvo.Secrets.csproj" />
+    <ProjectReference Include="..\Zelvo.Channels\Zelvo.Channels.csproj" />
   </ItemGroup>
   <ItemGroup>
     <EmbeddedResource Include="Texts\*.json" LogicalName="Zelvo.Notifications.Texts.%(Filename).json" />

@@ -58,10 +58,30 @@ export function ConversationList({
               {staff && comment.emailDelivery && (
                 <span className={`text-xs ${comment.emailDelivery === "Failed" ? "font-semibold text-bad" : "text-ink-muted"}`}>{t(`delivery.${comment.emailDelivery}`)}</span>
               )}
+              {staff && comment.messageDelivery && (
+                <span className={`text-xs ${comment.messageDelivery === "Failed" ? "font-semibold text-bad" : "text-ink-muted"}`} data-testid="message-delivery">
+                  {t(`messageDelivery.${comment.messageDelivery}`)}
+                </span>
+              )}
             </p>
-            <p lang={comment.language} dir="auto" className="whitespace-pre-wrap">
-              {comment.body}
-            </p>
+            {comment.body.length > 0 && (
+              <p lang={comment.language} dir="auto" className="whitespace-pre-wrap">
+                {comment.body}
+              </p>
+            )}
+            {comment.voiceNote && (
+              <div className="space-y-1 rounded-md bg-surface-muted p-2 text-sm" data-testid="voice-note">
+                <p className="font-semibold">{t("voiceNote.title")}</p>
+                {comment.voiceNote.status === "Done" && comment.voiceNote.transcript ? (
+                  <blockquote lang={comment.voiceNote.language ?? undefined} dir="auto" className="whitespace-pre-wrap border-s-4 border-line ps-2">
+                    <span className="sr-only">{t("voiceNote.transcript")}: </span>
+                    {comment.voiceNote.transcript}
+                  </blockquote>
+                ) : (
+                  <p className="text-ink-muted">{t(`voiceNote.${comment.voiceNote.status}`)}</p>
+                )}
+              </div>
+            )}
             {translate && comment.language !== locale && (
               <TranslateButton path={`/incidents/${translate.incidentId}/ai/translation`} body={{ commentId: comment.id }}
                 language={locale === "ar" ? "ar" : "en"} csrfToken={translate.csrfToken} />

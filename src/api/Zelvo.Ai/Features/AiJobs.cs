@@ -236,6 +236,7 @@ public sealed partial class AiJobRunner(IServiceScopeFactory scopes, AiOptions o
         {
             AiJobKind.Triage => AiFeatures.Triage,
             AiJobKind.Duplicates => AiFeatures.Duplicates,
+            AiJobKind.Transcription => AiFeatures.Transcription,
             _ => AiFeatures.Sentiment,
         };
         var availability = (await gateway.AvailabilityAsync(cancellationToken).ConfigureAwait(false)).Single(a => a.Feature == feature);
@@ -257,6 +258,11 @@ public sealed partial class AiJobRunner(IServiceScopeFactory scopes, AiOptions o
                 await duplicates.FindAsync(job.TicketId, cancellationToken).ConfigureAwait(false);
                 call = duplicates.LastCall;
                 break;
+            case AiJobKind.Transcription:
+                var transcriber = services.GetRequiredService<VoiceTranscriber>();
+                await transcriber.TranscribeAsync(job.CommentId, cancellationToken).ConfigureAwait(false);
+                call = transcriber.LastCall;
+                break;
             default:
                 var sentiment = services.GetRequiredService<SentimentReader>();
                 await sentiment.ReadAsync(job.TicketId, job.CommentId, cancellationToken).ConfigureAwait(false);
@@ -265,7 +271,7 @@ public sealed partial class AiJobRunner(IServiceScopeFactory scopes, AiOptions o
         }
 
         // The provider failed (not "AI off", the limit or an answer that did not fit): try again later.
-        if (call is { Succeeded: false, ErrorCode: not ("ai-off" or "limit-reached" or "invalid-json") })
+        if (call is { Succeeded: false, ErrorCode: not ("ai-off" or "limit-reached" or "invalid-json" or "not-supported" or "empty") })
         {
             throw new AiJobRetryException($"{call.ErrorCode}: {call.Error}");
         }

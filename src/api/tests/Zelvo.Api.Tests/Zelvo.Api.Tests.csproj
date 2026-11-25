@@ -29,6 +29,7 @@
     <ProjectReference Include="..\..\Zelvo.Ai\Zelvo.Ai.csproj" />
     <ProjectReference Include="..\..\Zelvo.Secrets\Zelvo.Secrets.csproj" />
     <ProjectReference Include="..\..\Zelvo.Channels\Zelvo.Channels.csproj" />
+    <ProjectReference Include="..\..\Zelvo.Connectors\Zelvo.Connectors.csproj" />
     <ProjectReference Include="..\..\Zelvo.Licensing.Development\Zelvo.Licensing.Development.csproj" />
   </ItemGroup>
 </Project>
