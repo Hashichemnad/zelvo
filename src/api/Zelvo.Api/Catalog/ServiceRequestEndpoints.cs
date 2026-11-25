@@ -134,96 +134,50 @@ internal static class ServiceRequestEndpoints
             }
         }
 
-        var completed = await CatalogBrowseEndpoints.CompletedAsync(db, requester.Id, card.PrerequisiteServiceIds, cancellationToken);
-        var missing = card.PrerequisiteServiceIds.Where(p => !completed.Contains(p)).ToList();
-        if (missing.Count > 0)
+        // Task C5: a proactive offer the requester accepts.
+        ProactiveRun? offer = null;
+        if (request.OfferId is { } offerId)
         {
-            var codes = await db.CatalogServices.AsNoTracking().Where(s => missing.Contains(s.Id)).Select(s => s.Code).ToListAsync(cancellationToken);
-            return TypedResults.Problem(statusCode: StatusCodes.Status409Conflict, title: "Complete the prerequisite services first.",
-                type: ApiProblem.TypeFor("prerequisite-missing"),
-                extensions: new Dictionary<string, object?>(StringComparer.Ordinal) { ["code"] = "prerequisite-missing", ["services"] = codes });
+            offer = await db.ProactiveRuns.SingleOrDefaultAsync(r => r.Id == offerId, cancellationToken);
+            if (offer is null || offer.State != ProactiveRunState.Offered || offer.PersonId != requester.Id || offer.ServiceId != found.Service.Id
+                || offer.ExpiresAt is { } expires && expires <= DateTimeOffset.UtcNow)
+            {
+                return ApiProblem.Create(StatusCodes.Status409Conflict, "offer-unavailable", "The offer is no longer open.");
+            }
         }
 
-        var policy = await settings.GetAsync(IncidentSettings.Attachments, cancellationToken);
-        var form = card.FormId is { } formId ? await FormResolver.PublishedAsync(db, formId, cancellationToken) : null;
-        if (card.FormId is not null && form is null)
+        var creator = http.RequestServices.GetRequiredService<ServiceRequestCreator>();
+        var (prepared, problem) = await creator.PrepareAsync(new NewServiceRequest
         {
-            return ApiProblem.Create(StatusCodes.Status409Conflict, "service-unavailable", "The service's form is not available. Try again later.");
-        }
-
-        var (formResponse, formProblem) = await FormSubmission.PrepareAsync(
-            db, user, audit, form, requester.Id, request.FormVersionId, request.FormAnswers, policy, cancellationToken);
-        if (formProblem is not null)
+            Service = found,
+            Requester = requester,
+            CreatedById = agent is null ? me.Id : null,
+            ApiClientId = agent,
+            Channel = agent is null ? TicketChannel.Portal : TicketChannel.AiAgent,
+            Title = request.Title,
+            Description = request.Description,
+            FormVersionId = request.FormVersionId,
+            Answers = request.FormAnswers,
+            Documents = request.Documents,
+            UploaderId = user.Account?.Id,
+            Parts = request.Items,
+            ProactiveRunId = offer?.Id,
+        }, cancellationToken);
+        if (problem is not null)
         {
-            return formProblem;
+            return problem;
         }
-
-        // Agents cannot upload, and must not send files the requester uploaded for something else.
-        if (agent is not null && request.Documents is { Count: > 0 })
-        {
-            return UserEndpoints.Validation("documents", "AI agents cannot send documents; the requester adds them on the portal.");
-        }
-
-        var (documents, documentErrors) = await CheckDocumentsAsync(db, me.Id, card, request.Documents, policy, cancellationToken);
-        if (documentErrors.Count > 0)
-        {
-            return TypedResults.ValidationProblem(
-                documentErrors.GroupBy(e => e.Field).ToDictionary(g => g.Key, g => g.Select(e => e.Message).ToArray(), StringComparer.Ordinal),
-                type: ApiProblem.TypeFor("validation-failed"),
-                extensions: new Dictionary<string, object?>(StringComparer.Ordinal) { ["code"] = "validation-failed", ["documentErrors"] = documentErrors });
-        }
-
-        var language = LocalizationSettings.IsLanguage(requester.PreferredLanguage)
-            ? requester.PreferredLanguage!
-            : await settings.GetAsync(LocalizationSettings.DefaultLanguage, cancellationToken);
-        var title = string.IsNullOrWhiteSpace(request.Title) ? card.Name.GetOrFallback(language) ?? found.Service.Code : request.Title.Trim();
-        var prefixes = await settings.GetAsync(IncidentSettings.NumberPrefixes, cancellationToken);
-        var now = DateTimeOffset.UtcNow;
 
         await using var transaction = await db.Database.BeginTransactionAsync(cancellationToken);
-        var sequence = await TicketNumbers.NextAsync(db, tenant.TenantId!.Value, TicketType.ServiceRequest, cancellationToken);
-        var ticket = new Ticket
+        var ticket = await creator.SaveAsync(prepared!, cancellationToken);
+        if (offer is not null)
         {
-            Type = TicketType.ServiceRequest,
-            Number = TicketNumbers.Format(TicketNumbers.PrefixOf(prefixes, TicketType.ServiceRequest), sequence),
-            Sequence = sequence,
-            Title = title[..Math.Min(title.Length, Ticket.TitleMaxLength)],
-            Description = string.IsNullOrWhiteSpace(request.Description) ? null : request.Description.Trim(),
-            Channel = agent is null ? TicketChannel.Portal : TicketChannel.AiAgent,
-            RequesterId = requester.Id,
-            CreatedById = agent is null ? me.Id : null,
-            CreatedByApiClientId = agent,
-            CategoryId = card.CategoryIds.Count > 0 ? card.CategoryIds[0] : null,
-            LocationId = requester.LocationId,
-            CreatedAt = now,
-            UpdatedAt = now,
-        };
-
-        db.Tickets.Add(ticket);
-        db.ServiceRequests.Add(new ServiceRequestDetails { TicketId = ticket.Id, ServiceId = found.Service.Id, ServiceVersionId = found.Version.Id });
-        formResponse?.Attach(db, ticket);
-        foreach (var file in documents)
-        {
-            file.TicketId = ticket.Id;
+            offer.State = ProactiveRunState.Accepted;
+            offer.TicketId = ticket.Id;
+            offer.EndedAt = DateTimeOffset.UtcNow;
+            await db.SaveChangesAsync(cancellationToken);
         }
 
-        // Task C3: approvals before assignment (the service's and those of matching rules) hold the
-        // request back from agents; otherwise it is routed now.
-        var facts = await RuleFacts.LoadAsync(db, ticket, cancellationToken);
-        var levels = await ApprovalPlanner.PlanAsync(db, ticket, ApprovalStage.BeforeAssignment, card.Approvals.BeforeAssignment, facts, cancellationToken);
-        if (levels.Count > 0)
-        {
-            await http.RequestServices.GetRequiredService<ApprovalService>().StartAsync(ticket, ApprovalStage.BeforeAssignment, levels, agent is null ? me.Id : null, null, cancellationToken);
-        }
-        else
-        {
-            await ServiceRequestRouting.ReleaseAsync(db, settings, ticket, card, now, cancellationToken);
-        }
-
-        await http.RequestServices.GetRequiredService<SlaTracker>().UpdateAsync([ticket], now, cancellationToken);
-        // Task D2: found from the portal's search.
-        await RequestSearch.IndexAsync(db, http.RequestServices.GetRequiredService<Zelvo.Search.ISearchIndexer>(), [ticket], cancellationToken);
-        await db.SaveChangesAsync(cancellationToken);
         await transaction.CommitAsync(cancellationToken);
 
         var saved = await db.Tickets.AsNoTracking().SingleAsync(t => t.Id == ticket.Id, cancellationToken);
@@ -314,6 +268,12 @@ internal static class ServiceRequestEndpoints
         else if (query.Open == true)
         {
             tickets = tickets.Where(t => t.State != TicketState.Resolved && t.State != TicketState.Closed);
+        }
+
+        // Task C5: parts of bundles are tracked on their bundle's page.
+        if (query.Parts == false)
+        {
+            tickets = tickets.Where(t => t.ParentId == null);
         }
 
         if (query.ServiceId is { } serviceId)
@@ -454,6 +414,11 @@ internal static class ServiceRequestEndpoints
             return AwaitingApproval();
         }
 
+        if (await ManagedProblemAsync(db, ticket, cancellationToken) is { } managed)
+        {
+            return managed;
+        }
+
         if (to == TicketState.OnHold)
         {
             var reasons = await settings.GetAsync(IncidentSettings.OnHoldReasons, cancellationToken);
@@ -511,6 +476,19 @@ internal static class ServiceRequestEndpoints
         return ServiceCards.Read(content);
     }
 
+    /// <summary>Held parts (task C5) and bundles, which follow their parts, are not changed by hand.</summary>
+    private static async Task<IResult?> ManagedProblemAsync(ZelvoDbContext db, Ticket ticket, CancellationToken cancellationToken)
+    {
+        if (ticket.Held)
+        {
+            return ApiProblem.Create(StatusCodes.Status409Conflict, "request-held", "The request is waiting for the parts of its bundle before it, or for its fee.");
+        }
+
+        return await db.ServiceRequests.AnyAsync(r => r.TicketId == ticket.Id && r.IsBundle, cancellationToken)
+            ? ApiProblem.Create(StatusCodes.Status409Conflict, "bundle-managed", "A bundle follows its parts; change the parts instead.")
+            : null;
+    }
+
     private static IResult AwaitingApproval() =>
         ApiProblem.Create(StatusCodes.Status409Conflict, "awaiting-approval", "The request is waiting for an approval. Stop the approval first to change it.");
 
@@ -536,6 +514,11 @@ internal static class ServiceRequestEndpoints
         if (ticket.AwaitingApproval)
         {
             return AwaitingApproval();
+        }
+
+        if (await ManagedProblemAsync(db, ticket, cancellationToken) is { } managed)
+        {
+            return managed;
         }
 
         if (request.GroupId is { } groupId && groupId != ticket.GroupId && !await db.SupportGroups.AnyAsync(g => g.Id == groupId && g.Active, cancellationToken))
@@ -577,6 +560,11 @@ internal static class ServiceRequestEndpoints
         if (ticket.AwaitingApproval)
         {
             return AwaitingApproval();
+        }
+
+        if (await ManagedProblemAsync(db, ticket, cancellationToken) is { } managed)
+        {
+            return managed;
         }
 
         await using var transaction = await db.Database.BeginTransactionAsync(cancellationToken);
@@ -651,6 +639,12 @@ internal static class ServiceRequestEndpoints
             return FormsCommon.VersionMismatch();
         }
 
+        // Task C5: a part's change may start the next parts of its bundle, or complete the bundle.
+        if (ticket.ParentId is not null)
+        {
+            await http.RequestServices.GetRequiredService<BundleProgress>().AfterPartChangedAsync(ticket.Id, cancellationToken);
+        }
+
         var saved = await db.Tickets.AsNoTracking().SingleAsync(t => t.Id == ticket.Id, cancellationToken);
         return TypedResults.Ok(await ResponseAsync(http, db, user, saved, cancellationToken));
     }
@@ -686,6 +680,19 @@ internal static class ServiceRequestEndpoints
             var services = await db.CatalogServices.AsNoTracking().Where(s => serviceIds.Contains(s.Id)).ToDictionaryAsync(s => s.Id, cancellationToken);
             var staff = user.Has(Permissions.RequestsRead);
             var tasks = await db.RequestTasks.AsNoTracking().Where(t => ids.Contains(t.TicketId)).ToListAsync(cancellationToken);
+            // Task C5: the parts of bundles, and the bundle of parts.
+            var bundleIds = details.Values.Where(d => d.IsBundle).Select(d => d.TicketId).ToList();
+            var partDetails = bundleIds.Count == 0 ? [] : await db.ServiceRequests.AsNoTracking().Where(r => r.BundleId != null && bundleIds.Contains(r.BundleId.Value)).ToListAsync(cancellationToken);
+            var partIds = partDetails.Select(p => p.TicketId).ToList();
+            var partTickets = partIds.Count == 0 ? [] : await db.Tickets.AsNoTracking().Where(t => partIds.Contains(t.Id)).ToDictionaryAsync(t => t.Id, cancellationToken);
+            var partServiceIds = partDetails.Select(p => p.ServiceId).Distinct().ToList();
+            var partServices = partServiceIds.Count == 0 ? [] : await db.CatalogServices.AsNoTracking().Where(x => partServiceIds.Contains(x.Id)).ToDictionaryAsync(x => x.Id, cancellationToken);
+            var partVersionIds = partDetails.Select(p => p.ServiceVersionId).Distinct().ToList();
+            var partCards = partVersionIds.Count == 0 ? [] : (await db.CatalogServiceVersions.AsNoTracking().Where(v => partVersionIds.Contains(v.Id)).ToListAsync(cancellationToken))
+                .ToDictionary(v => v.Id, v => ServiceCards.Read(v.Content));
+            var parentIds = details.Values.Where(d => d.BundleId is not null).Select(d => d.BundleId!.Value).Distinct().ToList();
+            var parents = parentIds.Count == 0 ? [] : await db.Tickets.AsNoTracking().Where(t => parentIds.Contains(t.Id)).ToDictionaryAsync(t => t.Id, t => t.Number, cancellationToken);
+            var partTasks = partIds.Count == 0 ? [] : await db.RequestTasks.AsNoTracking().Where(t => partIds.Contains(t.TicketId)).ToListAsync(cancellationToken);
             return new ResponseContext
             {
                 _details = details,
@@ -696,17 +703,46 @@ internal static class ServiceRequestEndpoints
                 _slas = await TicketSlaView.LoadAsync(db, staff ? ids : [], cancellationToken),
                 _user = user,
                 _staff = staff,
+                _parts = partDetails.ToLookup(p => p.BundleId!.Value),
+                _partTickets = partTickets,
+                _partServices = partServices,
+                _partCards = partCards,
+                _partTasks = partTasks.ToLookup(t => t.TicketId),
+                _parents = parents,
             };
         }
 
-        public ServiceRequestResponse From(Ticket t)
+        private ILookup<Guid, ServiceRequestDetails> _parts = Array.Empty<ServiceRequestDetails>().ToLookup(p => p.TicketId);
+        private Dictionary<Guid, Ticket> _partTickets = [];
+        private Dictionary<Guid, CatalogService> _partServices = [];
+        private Dictionary<Guid, ServiceCard> _partCards = [];
+        private ILookup<Guid, RequestTask> _partTasks = Array.Empty<RequestTask>().ToLookup(t => t.TicketId);
+        private Dictionary<Guid, string> _parents = [];
+
+        private List<BundlePartResponse>? PartsOf(Guid bundleId)
         {
-            var (service, card) = _services.TryGetValue(t.Id, out var s) ? s : (null!, new ServiceCard());
+            if (!_details.TryGetValue(bundleId, out var d) || !d.IsBundle)
+            {
+                return null;
+            }
+
+            return [.. _parts[bundleId].Where(p => _partTickets.ContainsKey(p.TicketId)).OrderBy(p => p.BundleStage).ThenBy(p => _partTickets[p.TicketId].Sequence).Select(p =>
+            {
+                var t = _partTickets[p.TicketId];
+                var card = _partCards.GetValueOrDefault(p.ServiceVersionId) ?? new ServiceCard();
+                var service = _partServices.GetValueOrDefault(p.ServiceId);
+                var (steps, current) = Journey(t, card, [.. _partTasks[t.Id]]);
+                return new BundlePartResponse(
+                    t.Id, t.Number, t.Title, t.State,
+                    service is null ? null : new ServiceRefResponse(service.Id, service.Code, LocalizedTextDto.From(card.Name.HasAnyValue ? card.Name : service.Name)),
+                    p.BundleStage ?? 0, p.BundleOptional, t.Held, t.AwaitingApproval, _refs.Group(t.GroupId), steps.Count, current);
+            })];
+        }
+
+        private static (List<PublishedStep> Steps, int Current) Journey(Ticket t, ServiceCard card, List<RequestTask> tasks)
+        {
             var stage = t.AwaitingApproval && t.State == TicketState.New ? ServiceStepStage.Approval : StageOf(t.State);
             var steps = card.Steps.Select(x => new PublishedStep(LocalizedTextDto.From(x.Name), LocalizedTextDto.From(x.Description), x.Stage)).ToList();
-            // The current step (task C4: the requester's journey) is the last step reached: a step
-            // mapped to a task is reached when the task starts; otherwise when the request reaches its stage.
-            var tasks = _tasks[t.Id].ToList();
             var current = -1;
             for (var i = 0; i < card.Steps.Count; i++)
             {
@@ -718,6 +754,17 @@ internal static class ServiceRequestEndpoints
                     current = i;
                 }
             }
+
+            return (steps, current);
+        }
+
+        public ServiceRequestResponse From(Ticket t)
+        {
+            var (service, card) = _services.TryGetValue(t.Id, out var s) ? s : (null!, new ServiceCard());
+            // The current step (task C4: the requester's journey) is the last step reached: a step
+            // mapped to a task is reached when the task starts; otherwise when the request reaches its stage.
+            var (steps, current) = Journey(t, card, [.. _tasks[t.Id]]);
+            var details = _details.GetValueOrDefault(t.Id);
 
             var mine = t.RequesterId == _user.Account?.Id || t.CreatedById == _user.Account?.Id;
             IReadOnlyList<TicketState> next = _staff && _user.Has(Permissions.RequestsEdit)
@@ -731,9 +778,12 @@ internal static class ServiceRequestEndpoints
                 // The team that has it, also for requesters; never the person (decision 2026-11-24).
                 _refs.Group(t.GroupId),
                 service is null ? null : new ServiceRefResponse(service.Id, service.Code, LocalizedTextDto.From(card.Name.HasAnyValue ? card.Name : service.Name)),
-                steps, current, t.OnHoldReason, t.ResolutionNotes, t.AwaitingApproval ? [] : next, t.AwaitingApproval,
+                steps, current, t.OnHoldReason, t.ResolutionNotes, t.AwaitingApproval || t.Held || details?.IsBundle == true ? [] : next, t.AwaitingApproval,
                 _staff ? _slas.For(t.Id, DateTimeOffset.UtcNow) : [],
-                $"\"{t.Version}\"", t.CreatedAt, t.UpdatedAt, t.ResolvedAt, t.ClosedAt);
+                $"\"{t.Version}\"", t.CreatedAt, t.UpdatedAt, t.ResolvedAt, t.ClosedAt,
+                details?.IsBundle == true, t.Held, details?.Hold ?? ServiceRequestHold.None,
+                details?.BundleId is { } bundle ? new BundleRefResponse(bundle, _parents.GetValueOrDefault(bundle) ?? string.Empty) : null,
+                PartsOf(t.Id));
         }
 
         private static ServiceStepStage StageOf(TicketState state) => state switch
@@ -774,6 +824,17 @@ internal sealed class CreateServiceRequestRequest
 
     /// <summary>Required documents: document key → uploaded file ids.</summary>
     public Dictionary<string, List<Guid>>? Documents { get; init; }
+
+    /// <summary>
+    /// For a bundle (task C5): the optional services chosen, and each service's form version and
+    /// documents. Mandatory services are always included. <see cref="FormAnswers"/> then holds the
+    /// answers of every form of the bundle together.
+    /// </summary>
+    [MaxLength(ServiceCards.MaxBundleItems)]
+    public List<BundlePartInput>? Items { get; init; }
+
+    /// <summary>A proactive offer this request accepts (task C5).</summary>
+    public Guid? OfferId { get; init; }
 }
 
 /// <summary>Filters of the request list.</summary>
@@ -787,6 +848,9 @@ internal sealed class ServiceRequestListQuery
 
     /// <summary>Only in this state.</summary>
     public TicketState? State { get; init; }
+
+    /// <summary>false: leave out the parts of bundles (task C5; they are listed on their bundle).</summary>
+    public bool? Parts { get; init; }
 
     /// <summary>Only of this service.</summary>
     public Guid? ServiceId { get; init; }
@@ -816,4 +880,13 @@ internal sealed record ServiceRequestResponse(
     Guid Id, string Number, string Title, string? Description, TicketState State, TicketChannel Channel,
     PersonResponse Requester, PersonResponse? RequestedBy, PersonResponse? Assignee, NamedRef? Group, ServiceRefResponse? Service,
     IReadOnlyList<PublishedStep> Steps, int CurrentStep, string? OnHoldReason, string? ResolutionNotes, IReadOnlyList<TicketState> NextStates, bool AwaitingApproval,
-    IReadOnlyList<SlaClockResponse> Sla, string Etag, DateTimeOffset CreatedAt, DateTimeOffset UpdatedAt, DateTimeOffset? ResolvedAt, DateTimeOffset? ClosedAt);
+    IReadOnlyList<SlaClockResponse> Sla, string Etag, DateTimeOffset CreatedAt, DateTimeOffset UpdatedAt, DateTimeOffset? ResolvedAt, DateTimeOffset? ClosedAt,
+    bool IsBundle = false, bool Held = false, ServiceRequestHold Hold = ServiceRequestHold.None, BundleRefResponse? Bundle = null, IReadOnlyList<BundlePartResponse>? Parts = null);
+
+/// <summary>The bundle a request is a part of (task C5).</summary>
+internal sealed record BundleRefResponse(Guid Id, string Number);
+
+/// <summary>A part of a bundle as its tracking screen shows it: its service, state, team and progress through its steps.</summary>
+internal sealed record BundlePartResponse(
+    Guid Id, string Number, string Title, TicketState State, ServiceRefResponse? Service, int Stage, bool Optional, bool Held, bool AwaitingApproval,
+    NamedRef? Group, int StepCount, int CurrentStep);

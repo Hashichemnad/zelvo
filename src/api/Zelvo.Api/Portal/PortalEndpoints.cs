@@ -85,7 +85,9 @@ internal static class PortalEndpoints
         [AsParameters] PageQuery page, [AsParameters] MyTicketsQuery query, ZelvoDbContext db, CurrentUser user, CancellationToken cancellationToken)
     {
         var me = user.Account!.Id;
-        var tickets = db.Tickets.AsNoTracking().Include(t => t.Voice).Where(t => t.RequesterId == me);
+        // Task C5: parts of a bundle are followed on the bundle's page.
+        var tickets = db.Tickets.AsNoTracking().Include(t => t.Voice)
+            .Where(t => t.RequesterId == me && !(t.Type == TicketType.ServiceRequest && t.ParentId != null));
         if (query.Open == true)
         {
             tickets = tickets.Where(t => t.State != TicketState.Resolved && t.State != TicketState.Closed);

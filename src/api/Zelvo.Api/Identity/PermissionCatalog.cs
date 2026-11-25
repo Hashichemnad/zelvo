@@ -147,6 +147,12 @@ internal static class Permissions
     /// <summary>Assign service requests to groups and agents.</summary>
     public const string RequestsAssign = "requests.assign";
 
+    /// <summary>
+    /// Send dates and events that start proactive services for people (task C5), usually given to
+    /// an integration such as the HR system.
+    /// </summary>
+    public const string ProactiveTrigger = "proactive.trigger";
+
     /// <summary>See every complaint, inquiry and suggestion (task C6). Requesters always see their own.</summary>
     public const string VoiceRead = Zelvo.Tickets.VoicePermissions.Read;
 
@@ -238,6 +244,7 @@ internal static class PermissionCatalog
         Permissions.RequestsRead,
         Permissions.RequestsEdit,
         Permissions.RequestsAssign,
+        Permissions.ProactiveTrigger,
         Permissions.VoiceRead,
         Permissions.VoiceEdit,
         Permissions.VoiceAssign,

@@ -14,9 +14,16 @@ internal static class CatalogSetup
         services.AddScoped<ISearchDocumentSource, CatalogSearchSource>();
         services.AddSingleton<IMissingTranslationSource, CatalogMissingTranslations>();
         services.AddScoped<IBulkType, ServicesBulkType>();
+        // Task C5: one way to make requests, for the portal, bundles and proactive services.
+        services.AddScoped<ServiceRequestCreator>();
+        services.AddScoped<BundleProgress>();
+        services.AddScoped<ProactiveEngine>();
+        services.AddSingleton<CatalogJobs>();
+        services.AddHostedService(sp => sp.GetRequiredService<CatalogJobs>());
         return services;
     }
 
     public static RouteGroupBuilder MapZelvoCatalogEndpoints(this RouteGroupBuilder group) =>
-        group.MapCatalogEndpoints().MapServiceEndpoints().MapServiceTemplateEndpoints().MapCatalogBrowseEndpoints().MapServiceRequestEndpoints().MapRequestTaskEndpoints();
+        group.MapCatalogEndpoints().MapServiceEndpoints().MapServiceTemplateEndpoints().MapCatalogBrowseEndpoints().MapServiceRequestEndpoints().MapRequestTaskEndpoints()
+            .MapProactiveEndpoints();
 }

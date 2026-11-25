@@ -166,12 +166,14 @@ Admins build and change the whole service catalog themselves, with a drag-and-dr
 - The requester fills one combined form; Zelvo creates a child request for each service, each with its own team, approvals and SLA.
 - Admins choose which services in a bundle are mandatory or optional, and whether children run in sequence or in parallel.
 - The bundle closes when every child request is complete; the requester tracks all parts on one screen.
+- Bundles in Phase 1 task C5 (2026-11-25): the combined form asks a question several services share once; parts of a stage start together, later stages wait (not routed, clocks paused) until the parts before them are complete; the bundle resolves when every part is complete and closes when every part is closed. A bundle has no team, SLA, approvals, documents or fee of its own.
 
 **Proactive services**
 
 - Services Zelvo starts without the user asking, triggered by a date (for example, 30 days before a permit or contract expires), a schedule, or an event from another system through the API (for example, a new joiner created in the HR system).
 - For each proactive service, the admin chooses to notify the person and ask them to confirm, or to start the request automatically.
 - Notifications go by email, SMS, WhatsApp or the portal in the person's language.
+- Proactive services in Phase 1 task C5 (2026-11-25): dates come from a date answer on the person's completed request of another service (for example 30 days before a trade licence's expiry date) or from another system through the API; "notify and confirm" sends an offer that opens the service's form filled in with what Zelvo knows, which the person submits or declines; offers expire after a number of days the admin sets; an automatic start becomes an offer when the form or required documents need the person. SMS and WhatsApp come with task E3.
 
 **Service FAQ**
 

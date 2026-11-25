@@ -122,6 +122,7 @@ public static class NotificationSamples
             [Placeholders.ApprovalReason] = Both(Placeholders.ApprovalReason),
             [Placeholders.TaskName] = Both(Placeholders.TaskName),
             [Placeholders.TaskDueAt] = PlaceholderValue.OfDate(now.AddDays(1)),
+            [Placeholders.OfferExpiresAt] = PlaceholderValue.OfDate(now.AddDays(14)),
         };
     }
 }

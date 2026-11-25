@@ -77,7 +77,7 @@ internal static class ApprovalEndpoints
 
     internal static async Task<IResult> DecideAsync(
         Guid id, DecideApprovalRequest request, ZelvoDbContext db, CurrentUser user, ApprovalService approvals, IAuditLog audit, Zelvo.Tickets.Sla.SlaTracker sla,
-        CancellationToken cancellationToken)
+        Catalog.BundleProgress bundles, CancellationToken cancellationToken)
     {
         var decision = await db.ApprovalDecisions.AsNoTracking().SingleOrDefaultAsync(d => d.Id == id, cancellationToken);
         if (decision is null || decision.ApproverId != user.Account?.Id)
@@ -109,6 +109,8 @@ internal static class ApprovalEndpoints
         await db.SaveChangesAsync(cancellationToken);
         await transaction.CommitAsync(cancellationToken);
         var saved = await db.ApprovalDecisions.AsNoTracking().SingleAsync(d => d.Id == id, cancellationToken);
+        // Task C5: a part of a bundle closed by a rejection, or resolved by a sign-off, moves its bundle on.
+        await bundles.AfterPartChangedAsync(saved.TicketId, cancellationToken);
         return TypedResults.Ok(await DetailAsync(db, user, audit, saved, cancellationToken));
     }
 
@@ -125,7 +127,7 @@ internal static class ApprovalEndpoints
 
     internal static async Task<IResult> CancelAsync(
         Guid id, CancelApprovalRequest request, ZelvoDbContext db, CurrentUser user, ApprovalService approvals, Zelvo.Tickets.Sla.SlaTracker sla,
-        CancellationToken cancellationToken)
+        Catalog.BundleProgress bundles, CancellationToken cancellationToken)
     {
         var visible = await ServiceRequestEndpoints.FindVisibleAsync(db, user, id, cancellationToken);
         if (visible is null)
@@ -162,6 +164,7 @@ internal static class ApprovalEndpoints
         await SaveTicketsAsync(db, sla, cancellationToken);
         await db.SaveChangesAsync(cancellationToken);
         await transaction.CommitAsync(cancellationToken);
+        await bundles.AfterPartChangedAsync(ticket.Id, cancellationToken);
         return TypedResults.Ok(new ServiceRequestApprovalState(ticket.Id, ticket.State, ticket.AwaitingApproval));
     }
 

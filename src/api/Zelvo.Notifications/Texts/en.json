@@ -58,7 +58,8 @@
     "ticket.state.Resolved": "Resolved",
     "ticket.state.Closed": "Closed",
     "ticket.state.Reopened": "Reopened",
-    "request.tasks-done": "All tasks are done: {tasks}."
+    "request.tasks-done": "All tasks are done: {tasks}.",
+    "request.bundle-done": "All parts of the bundle are complete: {parts}."
   },
   "templates": {
     "incident.received": {
@@ -258,6 +259,12 @@
       "inApp": "The task “{{task.name}}” of {{ticket.number}} is waiting in {{ticket.group}}.",
       "body": "Dear {{recipient.name}},\n\nThe task “{{task.name}}” of the service request {{ticket.number}}, “{{ticket.title}}” ({{service.name}}), is waiting for {{ticket.group}}. It is due on {{task.dueAt}}.\n\nKind regards,\n{{tenant.name}}",
       "action": "Open the tasks"
+    },
+    "proactive.offered": {
+      "subject": "A service for you: {{service.name}}",
+      "inApp": "We can start “{{service.name}}” for you. Check the details and confirm by {{offer.expiresAt}}.",
+      "body": "Dear {{recipient.name}},\n\nThe service “{{service.name}}” is now due for you. We have filled in what we already know; please check the details, add anything missing and confirm your request by {{offer.expiresAt}}. If you do not need it, you can decline the offer.\n\nKind regards,\n{{tenant.name}}",
+      "action": "Check and confirm"
     }
   },
   "samples": {

@@ -137,6 +137,20 @@ export function ServiceView({ service, locale, digits, signInHref }: { service: 
         </section>
       )}
 
+      {service.kind === "Bundle" && (service.bundleItems?.length ?? 0) > 0 && (
+        <section aria-labelledby="service-bundle" className="space-y-2" data-testid="service-bundle">
+          <h2 id="service-bundle" className="text-xl font-semibold">{t("bundleItems")}</h2>
+          <p className="text-sm text-ink-muted">{t("bundleHint")}</p>
+          <ol className="space-y-1">
+            {service.bundleItems!.map((item) => (
+              <li key={item.service.id}>
+                <Link href={`/catalog/${item.service.id}`} className="font-semibold text-brand underline"><Localized text={item.service.name} locale={locale} /></Link>
+                <span className="ms-2 text-sm text-ink-muted">({item.required ? t("mandatory") : t("optional")} · {t("bundleStage", { number: item.stage + 1 })})</span>
+              </li>
+            ))}
+          </ol>
+        </section>
+      )}
       {service.prerequisites.length > 0 && (
         <section aria-labelledby="service-prerequisites" className="space-y-2">
           <h2 id="service-prerequisites" className="text-xl font-semibold">{t("prerequisites")}</h2>

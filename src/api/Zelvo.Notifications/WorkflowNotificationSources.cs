@@ -213,7 +213,8 @@ public sealed class ServiceRequestNotificationSource : INotificationSource
         foreach (var entry in entries)
         {
             var ticket = entry.Entity;
-            if (entry.State == EntityState.Added)
+            // Task C5: the bundle's own "received" covers its parts.
+            if (entry.State == EntityState.Added && ticket.ParentId is null)
             {
                 requests.Add((NotificationEvents.RequestReceived, ticket, [ticket.RequesterId], RequestLookups.RequesterPath(ticket.Id)));
             }

@@ -468,6 +468,7 @@
         "requests_read": "Read service requests",
         "requests_edit": "Change the state of service requests",
         "requests_assign": "Assign service requests",
+        "proactive_trigger": "Start proactive services for people (dates and events from other systems)",
         "channels_manage": "Set up mailboxes and live chat widgets",
         "chat_handle": "Answer live chats of their groups",
         "voice_read": "See every complaint, inquiry and suggestion",
@@ -1372,7 +1373,8 @@
       "WhatsApp": "WhatsApp",
       "Phone": "Phone",
       "Api": "Integration (API)",
-      "AiAgent": "AI agent (MCP)"
+      "AiAgent": "AI agent (MCP)",
+      "Proactive": "Proactive (started by Zelvo)"
     },
     "fields": {
       "number": "Number",
@@ -1795,7 +1797,8 @@
         "voice": "Customer voice",
         "branding": "Branding",
         "workflows": "Workflows",
-        "approvals": "Approvals"
+        "approvals": "Approvals",
+        "proactive": "Proactive services"
       },
       "tenant_manage": "Change the organisation's name",
       "translations_read": "See missing translations",
@@ -1829,6 +1832,7 @@
       "requests_read": "See every service request",
       "requests_edit": "Work on service requests",
       "requests_assign": "Assign service requests",
+      "proactive_trigger": "Start proactive services for people (dates and events from other systems)",
       "channels_manage": "Set up mailboxes and live chat widgets",
       "chat_handle": "Answer live chats of their groups",
       "voice_read": "See every complaint, inquiry and suggestion",
@@ -2388,7 +2392,8 @@
       "request_assigned": "A request is assigned to you",
       "request_queued": "A new request is in your group's queue",
       "task_assigned": "A task is assigned to you",
-      "task_queued": "A new task is waiting in your group"
+      "task_queued": "A new task is waiting in your group",
+      "proactive_offered": "A service is offered to you"
     },
     "audiences": {
       "Requester": "Your incidents",
@@ -3371,7 +3376,9 @@
       "approvalsAfterHint": "The completed work is signed off before the request is resolved.",
       "fulfilment": "Fulfilment",
       "stepTask": "Reached when this task starts",
-      "stepTaskNone": "Use the stage"
+      "stepTaskNone": "Use the stage",
+      "bundle": "Bundle",
+      "proactive": "Proactive service"
     },
     "problems": {
       "name-required": "Give the service a name in English or Arabic.",
@@ -3410,7 +3417,32 @@
       "user-unknown": "A user does not exist.",
       "role-unknown": "A role does not exist.",
       "file-unknown": "Upload the template to this service again.",
-      "image-unknown": "Upload the image to this service again."
+      "image-unknown": "Upload the image to this service again.",
+      "bundle-items-on-service": "Only bundles list services; make it a bundle or remove the services.",
+      "external-bundle": "A bundle is requested in Zelvo; make it internal.",
+      "bundle-empty": "Add the services of the bundle.",
+      "service-required": "Choose the service.",
+      "service-duplicate": "Each service is in the bundle once.",
+      "first-item-parallel": "The first service starts the bundle; later ones can run alongside it.",
+      "bundle-has-fulfilment": "Each service of the bundle is fulfilled by its own team; remove the bundle's group, targets and tasks.",
+      "bundle-has-approvals": "Each service of the bundle has its own approvals; remove the bundle's.",
+      "bundle-has-documents": "The services of the bundle ask for their own documents; remove the bundle's.",
+      "bundle-has-fee": "Fees belong to the services of the bundle; make the bundle free.",
+      "bundle-step-task": "A bundle has no tasks of its own; its steps follow its stage.",
+      "bundle-in-bundle": "A bundle holds single services, not other bundles.",
+      "bundle-external": "External services cannot be in a bundle.",
+      "external-proactive": "External services cannot be proactive.",
+      "triggers-required": "Say what starts the service: a date, a schedule or an event.",
+      "offer-days-invalid": "Offers stay open 1 to 90 days.",
+      "trigger-key-invalid": "Trigger keys are camelCase letters and digits, starting with a lower-case letter.",
+      "trigger-key-taken": "Each trigger has its own key.",
+      "offset-invalid": "Use −3650 to 3650 days.",
+      "source-incomplete": "Choose both the service and its date field, or neither.",
+      "date-field-unknown": "The service's published form has no date field with this key.",
+      "start-required": "Choose the first date of the schedule.",
+      "every-invalid": "Repeat every 1 to 365 days, weeks, months or years.",
+      "people-required": "Name the groups, roles or departments the schedule is for.",
+      "people-too-long": "Name at most 90 groups, roles, departments and people."
     },
     "browse": {
       "title": "Services",
@@ -3459,7 +3491,10 @@
       "related": "You may also need",
       "notFound": "This service does not exist or is not offered to you.",
       "back": "Back to the services",
-      "requestedOnBehalf": "Request {number} was made."
+      "requestedOnBehalf": "Request {number} was made.",
+      "bundleItems": "What the bundle includes",
+      "bundleHint": "One request with one form. Each service is handled by its own team; follow them all on one page.",
+      "bundleStage": "stage {number}"
     },
     "request": {
       "heading": "Request",
@@ -3510,7 +3545,23 @@
         "file-type": "This type of file is not accepted for this document.",
         "file-too-large": "The file is too large for this document."
       },
-      "submit": "Send the request"
+      "submit": "Send the request",
+      "bundle": {
+        "parts": "Services in the bundle",
+        "partsHint": "Mandatory services are included. Choose the optional ones you need.",
+        "include": "Include {name}",
+        "mandatory": "Mandatory",
+        "optional": "Optional",
+        "stage": "Stage {number}",
+        "together": "starts together with the service before",
+        "unavailable": "{name} cannot be requested now, so the bundle cannot be requested.",
+        "sharedHint": "Questions several services ask are asked once.",
+        "fee": "Fee: {amount} AED",
+        "errors": {
+          "bundle-part-unavailable": "A service of the bundle cannot be requested now.",
+          "offer-unavailable": "The offer is no longer open."
+        }
+      }
     },
     "requests": {
       "number": "Number",
@@ -3568,7 +3619,16 @@
       "backToList": "Back to the requests",
       "team": "Team handling it",
       "noTeamYet": "Waiting for a team",
-      "backToList": "Back to the requests"
+      "bundle": {
+        "parts": "Parts of the bundle",
+        "partOf": "Part of the bundle {number}",
+        "waiting": "Waiting for the parts before it",
+        "approval": "Waiting for approval",
+        "progress": "Step {current} of {total}",
+        "noSteps": "No steps",
+        "optionalPart": "optional",
+        "team": "Team"
+      }
     },
     "fulfilment": {
       "initialGroup": "Group that receives new requests",
@@ -3653,6 +3713,100 @@
         "Done": "Done",
         "Cancelled": "Cancelled"
       }
+    },
+    "bundle": {
+      "kind": "Kind of service",
+      "kinds": {
+        "Service": "One service",
+        "Bundle": "A bundle of services"
+      },
+      "kindHint": "A bundle groups several services into one request with one combined form. Each service becomes a part with its own team, approvals and SLA.",
+      "items": "Services in the bundle",
+      "itemsHint": "Mandatory services are always requested; the requester chooses the optional ones. A service starts after the ones before it are complete, or together with the one before.",
+      "stage": "Starts in stage {number}",
+      "service": "Service {number}",
+      "chooseService": "Choose a service",
+      "required": "Mandatory",
+      "parallel": "Starts together with the service before",
+      "up": "Up",
+      "down": "Down",
+      "moveUp": "Move service {number} up",
+      "moveDown": "Move service {number} down",
+      "remove": "Remove",
+      "removeItem": "Remove service {number}",
+      "add": "Add a service"
+    },
+    "proactive": {
+      "enabled": "Offer or start this service without the person asking",
+      "hint": "Zelvo can offer the service, or start it, when a date comes near, on a schedule, or when another system sends an event through the API.",
+      "mode": "When it is due",
+      "modes": {
+        "Offer": "Tell the person and ask them to confirm (the form opens filled in)",
+        "AutoStart": "Start the request automatically (an offer instead when the form or documents need the person)"
+      },
+      "offerDays": "Days an offer stays open",
+      "triggers": "What starts it",
+      "triggerKind": "Trigger {number}",
+      "kinds": {
+        "Event": "An event from another system",
+        "Date": "A date",
+        "Schedule": "A schedule"
+      },
+      "kindHints": {
+        "Event": "Another system sends this trigger key through the API (POST /api/v1/proactive/events) with the person and a reference.",
+        "Date": "A date answer on the person’s completed request of another service, or a date sent through the API; the offset moves it.",
+        "Schedule": "Repeats from the first date for the groups, roles and departments chosen."
+      },
+      "key": "Key",
+      "keyHint": "camelCase, for example newJoiner; other systems name it in their events.",
+      "sourceService": "Service with the date",
+      "apiOnly": "Dates come through the API only",
+      "sourceField": "Date field of its form",
+      "offsetDays": "Days from the date",
+      "offsetHint": "Negative: before the date, for example −30.",
+      "startOn": "First date",
+      "every": "Every",
+      "unit": "Unit",
+      "units": {
+        "Day": "Days",
+        "Week": "Weeks",
+        "Month": "Months",
+        "Year": "Years"
+      },
+      "peopleGroups": "Members of these groups",
+      "peopleRoles": "Holders of these roles",
+      "peopleDepartments": "People of these departments",
+      "remove": "Remove",
+      "removeTrigger": "Remove trigger {number}",
+      "addTrigger": "Add a trigger",
+      "runs": "Latest runs",
+      "loading": "Loading…",
+      "noRuns": "The service has not been due for anyone yet.",
+      "person": "Person",
+      "trigger": "Trigger",
+      "dueOn": "Due on",
+      "state": "What happened",
+      "request": "Request",
+      "states": {
+        "Scheduled": "Scheduled",
+        "Offered": "Offered",
+        "Started": "Started automatically",
+        "Accepted": "Requested from the offer",
+        "Declined": "Declined",
+        "Expired": "Expired",
+        "Failed": "Not offered"
+      }
+    },
+    "offers": {
+      "title": "Services for you",
+      "intro": "Zelvo prepared these services for you. Check the details and confirm, or decline.",
+      "open": "Check and confirm",
+      "decline": "Decline",
+      "declined": "You declined the offer.",
+      "expires": "Open until {date}",
+      "failed": "That did not work. Try again.",
+      "bundle": "Bundle of services",
+      "filling": "This request was prepared for you. Check the answers, add anything missing and send it."
     }
   },
   "channels": {
@@ -4515,7 +4669,8 @@
       "WhatsApp": "WhatsApp",
       "Phone": "Phone",
       "Api": "API",
-      "AiAgent": "AI agent"
+      "AiAgent": "AI agent",
+      "Proactive": "Proactive (started by Zelvo)"
     },
     "states": {
       "New": "New",

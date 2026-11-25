@@ -1,7 +1,7 @@
 import { notFound } from "next/navigation";
 import { getTranslations, setRequestLocale } from "next-intl/server";
 import { FormAnswersView } from "@/components/forms/FormAnswersView";
-import { RequestAttachments, RequestFacts, RequestProgress, RequestWorkPanel } from "@/components/catalog/ServiceRequests";
+import { BundleLink, BundleParts, RequestAttachments, RequestFacts, RequestProgress, RequestWorkPanel } from "@/components/catalog/ServiceRequests";
 import { SlaClocks } from "@/components/sla/SlaClocks";
 import { ExportPdfButton } from "@/components/ExportPdfButton";
 import { CancelApprovalButton, RequestApprovals } from "@/components/workflows/Approvals";
@@ -59,7 +59,9 @@ export default async function RequestPage({ params }: PageProps<"/[locale]/reque
       {/* Task F1: a branded PDF in the page's language. */}
       <ExportPdfButton path={`/service-requests/${request.id}`} csrfToken={session.data.csrfToken} />
       {request.awaitingApproval && <p role="status" className="rounded-md border border-line bg-surface-muted p-3 font-semibold">{tApprovals("awaitingStaff")}</p>}
+      <BundleLink request={request} basePath="/requests" />
       <RequestProgress request={request} />
+      <BundleParts request={request} basePath="/requests" />
       <RequestFacts request={request} display={display} settings={settings} basePath="/requests" />
       {request.sla.length > 0 && <SlaClocks clocks={request.sla} display={display} />}
       {form && <FormAnswersView view={form} attachmentBase={`/bff/api/v1/service-requests/${request.id}/attachments`} />}

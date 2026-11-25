@@ -135,6 +135,9 @@ public static class NotificationEvents
     /// <summary>A fulfilment task opened in a group's queue without an assignee.</summary>
     public const string TaskQueued = "task.queued";
 
+    /// <summary>A proactive service is offered to someone, to confirm with the form filled in (task C5).</summary>
+    public const string ProactiveOffered = "proactive.offered";
+
     /// <summary>
     /// A notify action of a workflow rule (task C3). Its wording is the rule's own, carried in the
     /// notification's values; it is not listed in Settings → Notifications or Account → Notifications.
@@ -192,6 +195,7 @@ public static class NotificationEvents
             [Placeholders.TicketNumber, Placeholders.TicketTitle, Placeholders.TaskName, Placeholders.TaskDueAt, Placeholders.ServiceName]),
         new(TaskQueued, NotificationAudience.Staff, true,
             [Placeholders.TicketNumber, Placeholders.TicketTitle, Placeholders.TaskName, Placeholders.TaskDueAt, Placeholders.TicketGroup, Placeholders.ServiceName]),
+        new(ProactiveOffered, NotificationAudience.Requester, true, [Placeholders.ServiceName, Placeholders.OfferExpiresAt]),
     ];
 
     /// <summary>Events that are not set up in Settings (their wording comes from elsewhere).</summary>
@@ -282,6 +286,9 @@ public static class Placeholders
 
     /// <summary>When a fulfilment task is due.</summary>
     public const string TaskDueAt = "task.dueAt";
+
+    /// <summary>When a proactive offer expires (task C5).</summary>
+    public const string OfferExpiresAt = "offer.expiresAt";
 
     /// <summary>The approval level's name.</summary>
     public const string ApprovalLevel = "approval.level";

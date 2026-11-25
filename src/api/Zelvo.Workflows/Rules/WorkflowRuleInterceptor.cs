@@ -178,8 +178,16 @@ public sealed class WorkflowRuleInterceptor(ITenantContext tenantContext, Pendin
     /// <summary>Applies an assign action; nothing while the ticket waits for approval or is resolved or closed.</summary>
     private static async Task<bool> AssignAsync(ZelvoDbContext db, Ticket ticket, AssignAction action, DateTimeOffset now, CancellationToken cancellationToken)
     {
-        if (ticket.AwaitingApproval || !TicketWorkflow.IsOpen(ticket.State) || action.GroupId is not { } groupId
+        if (ticket.AwaitingApproval || ticket.Held || !TicketWorkflow.IsOpen(ticket.State) || action.GroupId is not { } groupId
             || !await db.SupportGroups.AnyAsync(g => g.Id == groupId && g.Active, cancellationToken).ConfigureAwait(false))
+        {
+            return false;
+        }
+
+        // Task C5: bundles are containers; their parts are routed.
+        if (ticket.Type == TicketType.ServiceRequest
+            && (db.ChangeTracker.Entries<Data.Catalog.ServiceRequestDetails>().Any(e => e.Entity.TicketId == ticket.Id && e.Entity.IsBundle)
+                || await db.ServiceRequests.AnyAsync(r => r.TicketId == ticket.Id && r.IsBundle, cancellationToken).ConfigureAwait(false)))
         {
             return false;
         }

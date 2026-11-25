@@ -85,6 +85,9 @@ test.describe("workflow rules and approvals", () => {
     await before.getByRole("button", { name: "Add a level" }).click();
     const level = before.getByTestId("approval-level").first();
     await expect(editor.getByTestId("fulfilment-editor")).toBeVisible();
+    // Task C5: a service can become a bundle, and be proactive.
+    await expect(editor.getByTestId("bundle-editor")).toBeVisible();
+    await expect(editor.getByTestId("proactive-editor")).toBeVisible();
     await level.getByRole("group", { name: "Name of the level" }).getByLabel("In English").fill("Approver check");
     await level.getByRole("group", { name: "Name of the level" }).getByLabel("In Arabic").fill("تدقيق المعتمِد");
     await level.getByLabel("Approver 1").selectOption("User");

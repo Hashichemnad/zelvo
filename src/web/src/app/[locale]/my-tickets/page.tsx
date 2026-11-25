@@ -1,6 +1,8 @@
 import { getTranslations, setRequestLocale } from "next-intl/server";
 import { Pagination } from "@/components/incidents/IncidentTable";
 import { TicketProgressList } from "@/components/portal/TicketProgress";
+import { ServiceOffers } from "@/components/catalog/ServiceOffers";
+import type { ServiceOffer } from "@/lib/catalog";
 import { Link } from "@/i18n/navigation";
 import { getJsonAs } from "@/lib/api";
 import { getDisplayFormat } from "@/lib/display";
@@ -28,9 +30,11 @@ export default async function MyTicketsPage({ params, searchParams }: PageProps<
   const requested = Number(search.page);
   const page = Number.isInteger(requested) && requested > 0 && requested < 10_000 ? requested : 1;
   const filter: Record<string, string> = { open, ...(type ? { type } : {}) };
-  const [tickets, format] = await Promise.all([
+  const [tickets, format, offers] = await Promise.all([
     getJsonAs<PortalTicketPage>(`/api/v1/me/tickets?${new URLSearchParams({ ...filter, page: String(page), pageSize: "20" })}`, session.data.accessToken, tenant),
     getDisplayFormat(),
+    // Task C5: services Zelvo offers the person.
+    getJsonAs<ServiceOffer[]>("/api/v1/me/offers", session.data.accessToken, tenant),
   ]);
   const input = "rounded-md border border-line bg-surface px-3 py-2";
   return (
@@ -40,6 +44,7 @@ export default async function MyTicketsPage({ params, searchParams }: PageProps<
         <Link href="/" className="rounded-md bg-brand px-4 py-2 font-semibold text-surface">{t("new")}</Link>
       </div>
       <p className="max-w-2xl">{t("intro")}</p>
+      <ServiceOffers offers={offers ?? []} display={{ locale, ...format }} csrfToken={session.data.csrfToken} />
       <form method="get" className="flex flex-wrap items-end gap-3" aria-label={t("filters")}>
         <div className="space-y-1">
           <label htmlFor="tickets-open" className="block text-sm">{t("show")}</label>

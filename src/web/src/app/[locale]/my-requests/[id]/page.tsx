@@ -1,7 +1,7 @@
 import { notFound } from "next/navigation";
 import { getTranslations, setRequestLocale } from "next-intl/server";
 import { FormAnswersView } from "@/components/forms/FormAnswersView";
-import { ReopenRequestButton, RequestAttachments, RequestFacts, RequestProgress } from "@/components/catalog/ServiceRequests";
+import { BundleLink, BundleParts, ReopenRequestButton, RequestAttachments, RequestFacts, RequestProgress } from "@/components/catalog/ServiceRequests";
 import { TicketRatingBlock } from "@/components/voice/TicketRatingBlock";
 import { ExportPdfButton } from "@/components/ExportPdfButton";
 import { CancelApprovalButton, RequestApprovals } from "@/components/workflows/Approvals";
@@ -43,7 +43,9 @@ export default async function MyRequestPage({ params }: PageProps<"/[locale]/my-
       {/* Task F1: a branded PDF in the page's language. */}
       <ExportPdfButton path={`/service-requests/${request.id}`} csrfToken={session.data.csrfToken} />
       {request.awaitingApproval && <p role="status" className="rounded-md border border-line bg-surface-muted p-3 font-semibold">{tApprovals("awaitingRequester")}</p>}
+      <BundleLink request={request} basePath="/my-requests" />
       <RequestProgress request={request} />
+      <BundleParts request={request} basePath="/my-requests" />
       <RequestFacts request={request} display={display} settings={settings} basePath="/my-requests" />
       {form && <FormAnswersView view={form} attachmentBase={`/bff/api/v1/service-requests/${request.id}/attachments`} />}
       <RequestAttachments requestId={request.id} attachments={attachments} documentNames={documentNames} />

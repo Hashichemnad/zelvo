@@ -43,7 +43,7 @@ export const numberOperators = ["eq", "neq", "gt", "gte", "lt", "lte"] as const;
 export const answerOperators = [...numberOperators, "contains", "empty", "notEmpty"] as const;
 export type ConditionOperator = (typeof answerOperators)[number] | (typeof listOperators)[number];
 
-export const channelValues = ["Portal", "Email", "Chat", "WhatsApp", "Phone", "Api", "AiAgent"] as const;
+export const channelValues = ["Portal", "Email", "Chat", "WhatsApp", "Phone", "Api", "AiAgent", "Proactive"] as const;
 export const stateValues: TicketState[] = ["New", "Assigned", "InProgress", "OnHold", "Resolved", "Closed", "Reopened"];
 
 export interface WorkflowCondition {

@@ -149,6 +149,9 @@ public sealed class ZelvoDbContext(DbContextOptions<ZelvoDbContext> options) : D
     /// <summary>Fulfilment tasks of service requests (task C4).</summary>
     public DbSet<RequestTask> RequestTasks => Set<RequestTask>();
 
+    /// <summary>Times a proactive service is due for a person (task C5).</summary>
+    public DbSet<ProactiveRun> ProactiveRuns => Set<ProactiveRun>();
+
     /// <summary>Workflow rules of the no-code builder (task C3).</summary>
     public DbSet<Workflows.WorkflowRule> WorkflowRules => Set<Workflows.WorkflowRule>();
 
@@ -727,8 +730,17 @@ public sealed class ZelvoDbContext(DbContextOptions<ZelvoDbContext> options) : D
             request.HasIndex(r => new { r.TenantId, r.ServiceId });
             request.HasIndex(r => r.ServiceVersionId);
             request.Property(r => r.Escalations).HasColumnType("jsonb").HasDefaultValueSql("'[]'::jsonb");
+            // Task C5: parts of bundles, and requests a proactive service started.
+            request.Property(r => r.Hold).HasConversion<string>().HasMaxLength(20).HasDefaultValue(ServiceRequestHold.None).HasSentinel(ServiceRequestHold.None);
+            request.HasOne<Ticket>().WithMany().HasForeignKey(r => r.BundleId).OnDelete(DeleteBehavior.NoAction);
+            request.HasIndex(r => r.BundleId);
+            request.HasOne<ProactiveRun>().WithMany().HasForeignKey(r => r.ProactiveRunId).OnDelete(DeleteBehavior.SetNull);
+            request.HasIndex(r => r.ProactiveRunId);
             request.ToTable(t =>
             {
+                t.HasCheckConstraint("ck_service_requests_hold", EnumCheck("hold", Enum.GetNames<ServiceRequestHold>()));
+                t.HasCheckConstraint("ck_service_requests_bundle_stage", "(bundle_id IS NULL) = (bundle_stage IS NULL) AND (bundle_stage IS NULL OR bundle_stage >= 0)");
+                t.HasCheckConstraint("ck_service_requests_bundle_part", "NOT (is_bundle AND bundle_id IS NOT NULL)");
                 t.HasCheckConstraint("ck_service_requests_ownership", "ownership_minutes IS NULL OR ownership_minutes > 0");
                 t.HasCheckConstraint("ck_service_requests_completion", "completion_minutes IS NULL OR completion_minutes > 0");
             });
@@ -888,6 +900,37 @@ public sealed class ZelvoDbContext(DbContextOptions<ZelvoDbContext> options) : D
             task.HasIndex(t => t.GroupId);
             task.HasIndex(t => t.AssigneeId);
             task.HasIndex(t => t.CompletedById);
+        });
+
+        modelBuilder.Entity<ProactiveRun>(run =>
+        {
+            run.ToTable("proactive_runs", table =>
+            {
+                table.HasCheckConstraint("ck_proactive_runs_kind", EnumCheck("kind", Enum.GetNames<ProactiveTriggerKind>()));
+                table.HasCheckConstraint("ck_proactive_runs_state", EnumCheck("state", Enum.GetNames<ProactiveRunState>()));
+            });
+            run.HasKey(r => r.Id);
+            run.Property(r => r.Id).ValueGeneratedNever();
+            run.HasOne<Tenant>().WithMany().HasForeignKey(r => r.TenantId).OnDelete(DeleteBehavior.Restrict);
+            run.HasOne<CatalogService>().WithMany().HasForeignKey(r => r.ServiceId).OnDelete(DeleteBehavior.Cascade);
+            run.HasOne<UserAccount>().WithMany().HasForeignKey(r => r.PersonId).OnDelete(DeleteBehavior.Cascade);
+            // NO ACTION, so a tenant's tickets can be deleted together (demo reset).
+            run.HasOne<Ticket>().WithMany().HasForeignKey(r => r.SourceTicketId).OnDelete(DeleteBehavior.NoAction);
+            run.HasOne<Ticket>().WithMany().HasForeignKey(r => r.TicketId).OnDelete(DeleteBehavior.NoAction);
+            run.Property(r => r.TriggerKey).HasMaxLength(ProactiveRun.KeyMaxLength);
+            run.Property(r => r.Occurrence).HasMaxLength(ProactiveRun.OccurrenceMaxLength);
+            run.Property(r => r.Kind).HasConversion<string>().HasMaxLength(20);
+            run.Property(r => r.State).HasConversion<string>().HasMaxLength(20);
+            run.Property(r => r.Answers).HasColumnType("jsonb").HasDefaultValueSql("'{}'::jsonb");
+            run.Property(r => r.Reason).HasMaxLength(ProactiveRun.ReasonMaxLength);
+            run.Property(r => r.Version).IsRowVersion();
+            run.HasIndex(r => new { r.TenantId, r.ServiceId, r.TriggerKey, r.PersonId, r.Occurrence }).IsUnique();
+            run.HasIndex(r => new { r.TenantId, r.State, r.DueOn });
+            run.HasIndex(r => new { r.TenantId, r.PersonId, r.State });
+            run.HasIndex(r => r.ServiceId);
+            run.HasIndex(r => r.PersonId);
+            run.HasIndex(r => r.SourceTicketId);
+            run.HasIndex(r => r.TicketId);
         });
 
         modelBuilder.Entity<Workflows.WorkflowRule>(rule =>

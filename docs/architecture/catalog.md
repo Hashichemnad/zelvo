@@ -235,7 +235,7 @@ Seeder `c2-catalog` (order 150) gives each sample organisation:
 
 ## Not in C2
 
-- Fulfilment and the catalog request tools of the MCP server came with C4 (`docs/architecture/fulfilment.md`); approvals and workflow rules with C3 (`docs/architecture/workflows.md`). Bundles and proactive services (C5), payments (E8).
+- Fulfilment and the catalog request tools of the MCP server came with C4 (`docs/architecture/fulfilment.md`); approvals and workflow rules with C3 (`docs/architecture/workflows.md`). Bundles and proactive services came with C5 (`docs/architecture/bundles-proactive.md`); payments (E8).
 - Notifications for service requests came with C3 and C4.
 - Anonymous requests by visitors (C6).
 - Service requests in search, and in the portal's search-first home (D2).

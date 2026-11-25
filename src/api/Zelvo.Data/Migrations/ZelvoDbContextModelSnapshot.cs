@@ -1527,6 +1527,131 @@ namespace Zelvo.Data.Migrations
                         });
                 });
 
+            modelBuilder.Entity("Zelvo.Data.Catalog.ProactiveRun", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<string>("Answers")
+                        .IsRequired()
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("jsonb")
+                        .HasColumnName("answers")
+                        .HasDefaultValueSql("'{}'::jsonb");
+
+                    b.Property<Guid?>("ApiClientId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("api_client_id");
+
+                    b.Property<DateTimeOffset>("CreatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("created_at");
+
+                    b.Property<DateOnly>("DueOn")
+                        .HasColumnType("date")
+                        .HasColumnName("due_on");
+
+                    b.Property<DateTimeOffset?>("EndedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("ended_at");
+
+                    b.Property<DateTimeOffset?>("ExpiresAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("expires_at");
+
+                    b.Property<string>("Kind")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("character varying(20)")
+                        .HasColumnName("kind");
+
+                    b.Property<string>("Occurrence")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)")
+                        .HasColumnName("occurrence");
+
+                    b.Property<DateTimeOffset?>("OfferedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("offered_at");
+
+                    b.Property<Guid>("PersonId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("person_id");
+
+                    b.Property<string>("Reason")
+                        .HasMaxLength(300)
+                        .HasColumnType("character varying(300)")
+                        .HasColumnName("reason");
+
+                    b.Property<Guid>("ServiceId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("service_id");
+
+                    b.Property<Guid?>("SourceTicketId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("source_ticket_id");
+
+                    b.Property<string>("State")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("character varying(20)")
+                        .HasColumnName("state");
+
+                    b.Property<Guid>("TenantId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("tenant_id");
+
+                    b.Property<Guid?>("TicketId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("ticket_id");
+
+                    b.Property<string>("TriggerKey")
+                        .IsRequired()
+                        .HasMaxLength(40)
+                        .HasColumnType("character varying(40)")
+                        .HasColumnName("trigger_key");
+
+                    b.Property<uint>("Version")
+                        .IsConcurrencyToken()
+                        .ValueGeneratedOnAddOrUpdate()
+                        .HasColumnType("xid")
+                        .HasColumnName("xmin");
+
+                    b.HasKey("Id")
+                        .HasName("pk_proactive_runs");
+
+                    b.HasIndex("PersonId")
+                        .HasDatabaseName("ix_proactive_runs_person_id");
+
+                    b.HasIndex("ServiceId")
+                        .HasDatabaseName("ix_proactive_runs_service_id");
+
+                    b.HasIndex("SourceTicketId")
+                        .HasDatabaseName("ix_proactive_runs_source_ticket_id");
+
+                    b.HasIndex("TicketId")
+                        .HasDatabaseName("ix_proactive_runs_ticket_id");
+
+                    b.HasIndex("TenantId", "PersonId", "State")
+                        .HasDatabaseName("ix_proactive_runs_tenant_id_person_id_state");
+
+                    b.HasIndex("TenantId", "State", "DueOn")
+                        .HasDatabaseName("ix_proactive_runs_tenant_id_state_due_on");
+
+                    b.HasIndex("TenantId", "ServiceId", "TriggerKey", "PersonId", "Occurrence")
+                        .IsUnique()
+                        .HasDatabaseName("ix_proactive_runs_tenant_id_service_id_trigger_key_person_id_o");
+
+                    b.ToTable("proactive_runs", null, t =>
+                        {
+                            t.HasCheckConstraint("ck_proactive_runs_kind", "kind IN ('Date', 'Schedule', 'Event')");
+
+                            t.HasCheckConstraint("ck_proactive_runs_state", "state IN ('Scheduled', 'Offered', 'Started', 'Accepted', 'Declined', 'Expired', 'Failed')");
+                        });
+                });
+
             modelBuilder.Entity("Zelvo.Data.Catalog.RequestTask", b =>
                 {
                     b.Property<Guid>("Id")
@@ -1764,6 +1889,18 @@ namespace Zelvo.Data.Migrations
                         .HasColumnType("uuid")
                         .HasColumnName("ticket_id");
 
+                    b.Property<Guid?>("BundleId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("bundle_id");
+
+                    b.Property<bool>("BundleOptional")
+                        .HasColumnType("boolean")
+                        .HasColumnName("bundle_optional");
+
+                    b.Property<int?>("BundleStage")
+                        .HasColumnType("integer")
+                        .HasColumnName("bundle_stage");
+
                     b.Property<int?>("CompletionMinutes")
                         .HasColumnType("integer")
                         .HasColumnName("completion_minutes");
@@ -1775,9 +1912,25 @@ namespace Zelvo.Data.Migrations
                         .HasColumnName("escalations")
                         .HasDefaultValueSql("'[]'::jsonb");
 
+                    b.Property<string>("Hold")
+                        .IsRequired()
+                        .ValueGeneratedOnAdd()
+                        .HasMaxLength(20)
+                        .HasColumnType("character varying(20)")
+                        .HasDefaultValue("None")
+                        .HasColumnName("hold");
+
+                    b.Property<bool>("IsBundle")
+                        .HasColumnType("boolean")
+                        .HasColumnName("is_bundle");
+
                     b.Property<int?>("OwnershipMinutes")
                         .HasColumnType("integer")
                         .HasColumnName("ownership_minutes");
+
+                    b.Property<Guid?>("ProactiveRunId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("proactive_run_id");
 
                     b.Property<Guid>("ServiceId")
                         .HasColumnType("uuid")
@@ -1794,6 +1947,12 @@ namespace Zelvo.Data.Migrations
                     b.HasKey("TicketId")
                         .HasName("pk_service_requests");
 
+                    b.HasIndex("BundleId")
+                        .HasDatabaseName("ix_service_requests_bundle_id");
+
+                    b.HasIndex("ProactiveRunId")
+                        .HasDatabaseName("ix_service_requests_proactive_run_id");
+
                     b.HasIndex("ServiceId")
                         .HasDatabaseName("ix_service_requests_service_id");
 
@@ -1805,7 +1964,13 @@ namespace Zelvo.Data.Migrations
 
                     b.ToTable("service_requests", null, t =>
                         {
+                            t.HasCheckConstraint("ck_service_requests_bundle_part", "NOT (is_bundle AND bundle_id IS NOT NULL)");
+
+                            t.HasCheckConstraint("ck_service_requests_bundle_stage", "(bundle_id IS NULL) = (bundle_stage IS NULL) AND (bundle_stage IS NULL OR bundle_stage >= 0)");
+
                             t.HasCheckConstraint("ck_service_requests_completion", "completion_minutes IS NULL OR completion_minutes > 0");
+
+                            t.HasCheckConstraint("ck_service_requests_hold", "hold IN ('None', 'Bundle', 'Payment')");
 
                             t.HasCheckConstraint("ck_service_requests_ownership", "ownership_minutes IS NULL OR ownership_minutes > 0");
                         });
@@ -6274,6 +6439,10 @@ namespace Zelvo.Data.Migrations
                         .HasColumnType("uuid")
                         .HasColumnName("group_id");
 
+                    b.Property<bool>("Held")
+                        .HasColumnType("boolean")
+                        .HasColumnName("held");
+
                     b.Property<Guid?>("LocationId")
                         .HasColumnType("uuid")
                         .HasColumnName("location_id");
@@ -6428,7 +6597,7 @@ namespace Zelvo.Data.Migrations
 
                     b.ToTable("tickets", null, t =>
                         {
-                            t.HasCheckConstraint("ck_tickets_channel", "channel IN ('Portal', 'Email', 'Chat', 'WhatsApp', 'Phone', 'Api', 'AiAgent')");
+                            t.HasCheckConstraint("ck_tickets_channel", "channel IN ('Portal', 'Email', 'Chat', 'WhatsApp', 'Phone', 'Api', 'AiAgent', 'Proactive')");
 
                             t.HasCheckConstraint("ck_tickets_not_own_parent", "parent_id IS NULL OR parent_id <> id");
 
@@ -6931,7 +7100,7 @@ namespace Zelvo.Data.Migrations
 
                     b.ToTable("happiness_ratings", null, t =>
                         {
-                            t.HasCheckConstraint("ck_happiness_ratings_channel", "channel IN ('Portal', 'Email', 'Chat', 'WhatsApp', 'Phone', 'Api', 'AiAgent')");
+                            t.HasCheckConstraint("ck_happiness_ratings_channel", "channel IN ('Portal', 'Email', 'Chat', 'WhatsApp', 'Phone', 'Api', 'AiAgent', 'Proactive')");
 
                             t.HasCheckConstraint("ck_happiness_ratings_device_hash", "device_hash IS NULL OR device_hash ~ '^[0-9a-f]{64}$'");
 
@@ -7773,6 +7942,42 @@ namespace Zelvo.Data.Migrations
                         .HasConstraintName("fk_catalog_service_versions_tenants_tenant_id");
                 });
 
+            modelBuilder.Entity("Zelvo.Data.Catalog.ProactiveRun", b =>
+                {
+                    b.HasOne("Zelvo.Data.Identity.UserAccount", null)
+                        .WithMany()
+                        .HasForeignKey("PersonId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired()
+                        .HasConstraintName("fk_proactive_runs_users_person_id");
+
+                    b.HasOne("Zelvo.Data.Catalog.CatalogService", null)
+                        .WithMany()
+                        .HasForeignKey("ServiceId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired()
+                        .HasConstraintName("fk_proactive_runs_catalog_services_service_id");
+
+                    b.HasOne("Zelvo.Data.Tickets.Ticket", null)
+                        .WithMany()
+                        .HasForeignKey("SourceTicketId")
+                        .OnDelete(DeleteBehavior.NoAction)
+                        .HasConstraintName("fk_proactive_runs_tickets_source_ticket_id");
+
+                    b.HasOne("Zelvo.Data.Tenancy.Tenant", null)
+                        .WithMany()
+                        .HasForeignKey("TenantId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired()
+                        .HasConstraintName("fk_proactive_runs_tenants_tenant_id");
+
+                    b.HasOne("Zelvo.Data.Tickets.Ticket", null)
+                        .WithMany()
+                        .HasForeignKey("TicketId")
+                        .OnDelete(DeleteBehavior.NoAction)
+                        .HasConstraintName("fk_proactive_runs_tickets_ticket_id");
+                });
+
             modelBuilder.Entity("Zelvo.Data.Catalog.RequestTask", b =>
                 {
                     b.HasOne("Zelvo.Data.Identity.UserAccount", null)
@@ -7826,6 +8031,18 @@ namespace Zelvo.Data.Migrations
 
             modelBuilder.Entity("Zelvo.Data.Catalog.ServiceRequestDetails", b =>
                 {
+                    b.HasOne("Zelvo.Data.Tickets.Ticket", null)
+                        .WithMany()
+                        .HasForeignKey("BundleId")
+                        .OnDelete(DeleteBehavior.NoAction)
+                        .HasConstraintName("fk_service_requests_tickets_bundle_id");
+
+                    b.HasOne("Zelvo.Data.Catalog.ProactiveRun", null)
+                        .WithMany()
+                        .HasForeignKey("ProactiveRunId")
+                        .OnDelete(DeleteBehavior.SetNull)
+                        .HasConstraintName("fk_service_requests_proactive_runs_proactive_run_id");
+
                     b.HasOne("Zelvo.Data.Catalog.CatalogService", null)
                         .WithMany()
                         .HasForeignKey("ServiceId")
