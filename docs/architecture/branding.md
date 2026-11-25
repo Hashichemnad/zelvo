@@ -104,5 +104,5 @@ Every change is audited: draft, images, publish and discard, domains (added, che
 
 - Helm charts with Caddy (or an ingress with cert-manager) for medium and large installations: F6.
 - WhatsApp and SMS template branding: with E3.
-- Report PDFs: F2 reuses the renderer.
+- Report PDFs: added by F2 with the same renderer (`docs/architecture/reporting.md`).
 - Not tried against a real ACME server or a real customer DNS zone yet; DNS checks were tested with a fake resolver.

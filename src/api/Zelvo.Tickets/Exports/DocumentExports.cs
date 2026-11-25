@@ -313,7 +313,7 @@ public static class TicketDocument
     }
 
     // The branding's font from the bundled files, when the installation has them.
-    private static string FontFaces(string family, string? directory)
+    internal static string FontFaces(string family, string? directory)
     {
         if (directory is null || !Directory.Exists(directory))
         {
@@ -465,6 +465,11 @@ public sealed partial class DocumentExportJob(IServiceScopeFactory scopes, IPdfR
     /// <summary>The document of an export and its file name.</summary>
     internal async Task<(string Html, string FileName)> HtmlAsync(ZelvoDbContext db, DocumentExport export, CancellationToken cancellationToken)
     {
+        if (export.Kind == ExportKind.Report)
+        {
+            return await ReportHtmlAsync(db, export, cancellationToken).ConfigureAwait(false);
+        }
+
         var ticket = await db.Tickets.AsNoTracking().Include(t => t.Incident).Include(t => t.Requester).Include(t => t.Assignee)
             .Include(t => t.Category).Include(t => t.Group).SingleAsync(t => t.Id == export.EntityId, cancellationToken).ConfigureAwait(false);
         var person = await db.Users.AsNoTracking().SingleAsync(u => u.Id == export.RequestedById, cancellationToken).ConfigureAwait(false);
@@ -515,6 +520,17 @@ public sealed partial class DocumentExportJob(IServiceScopeFactory scopes, IPdfR
         var html = TicketDocument.Html(branding, tenant, logo, format, ticket.Type, ticket.Number, ticket.Title, facts, ticket.Description,
             ticket.ResolutionNotes, messages, time.GetUtcNow(), options.FontsDirectory);
         return (html, $"{ticket.Number}-{language}.pdf");
+    }
+
+    // Task F2: a dashboard, built with the access the person has now (a lost permission shows less).
+    private async Task<(string Html, string FileName)> ReportHtmlAsync(ZelvoDbContext db, DocumentExport export, CancellationToken cancellationToken)
+    {
+        var request = Reports.ReportRequest.FromJson(export.Parameters) ?? throw new PdfRenderException("The report export has no valid dashboard and filter.");
+        var permissions = await Reports.ReportAccess.PermissionsOfAsync(db, export.RequestedById, cancellationToken).ConfigureAwait(false);
+        var scope = await Reports.ReportAccess.ScopeAsync(db, export.RequestedById, permissions, cancellationToken).ConfigureAwait(false)
+            ?? throw new PdfRenderException("The person who asked may no longer see reports.");
+        return await new Reports.ReportRenderer(db, time).HtmlAsync(request, scope, export.RequestedById, export.Language, options.FontsDirectory, cancellationToken)
+            .ConfigureAwait(false);
     }
 
     private static TimeZoneInfo Zone(string id)

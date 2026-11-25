@@ -1,7 +1,7 @@
 import { defineConfig, devices } from "@playwright/test";
 
 /** Specs that change tenant-wide settings; each runs in its own project, one after another. */
-const tenantWide = [/settings\.spec\.ts/, /uae-pass\.spec\.ts/, /integrations\.spec\.ts/, /directory\.spec\.ts/, /sla\.spec\.ts/, /ai\.spec\.ts/, /knowledge\.spec\.ts/, /mcp\.spec\.ts/, /notifications\.spec\.ts/, /forms\.spec\.ts/, /catalog\.spec\.ts/, /channels\.spec\.ts/, /customer-voice\.spec\.ts/, /workflows\.spec\.ts/, /workspace\.spec\.ts/];
+const tenantWide = [/settings\.spec\.ts/, /uae-pass\.spec\.ts/, /integrations\.spec\.ts/, /directory\.spec\.ts/, /sla\.spec\.ts/, /ai\.spec\.ts/, /knowledge\.spec\.ts/, /mcp\.spec\.ts/, /notifications\.spec\.ts/, /forms\.spec\.ts/, /catalog\.spec\.ts/, /channels\.spec\.ts/, /customer-voice\.spec\.ts/, /workflows\.spec\.ts/, /workspace\.spec\.ts/, /setup\.spec\.ts/];
 
 /** Demo mode needs the demo installation (`make demo`); `make e2e-demo` runs it with E2E_DEMO=1. */
 const demo = /demo\.spec\.ts/;
@@ -136,6 +136,14 @@ export default defineConfig({
           testMatch: /workspace\.spec\.ts/,
           fullyParallel: false,
           dependencies: ["workflows"],
+        },
+        // Task F2: the setup wizard creates departments from templates (with their groups, routing
+        // and SLA policies) and marks the tenant's setup steps; last, on its own.
+        {
+          name: "setup",
+          use: { ...devices["Desktop Chrome"] },
+          testMatch: /setup\.spec\.ts/,
+          dependencies: ["workspace"],
         },
       ],
 });

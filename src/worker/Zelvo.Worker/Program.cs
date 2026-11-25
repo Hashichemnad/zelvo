@@ -18,7 +18,8 @@ using Zelvo.Worker;
 // other integrations and AI features arrive with their modules. AI (E4): clears the text of AI log
 // entries past their retention. Notifications (B5): renders notifications in each recipient's
 // language, sends their emails with retries and removes old ones. Email and chat (E2): reads
-// mailboxes, sends replies from the ticket's mailbox, ends chats their visitors left.
+// mailboxes, sends replies from the ticket's mailbox, ends chats their visitors left. Reports
+// (F2): emails scheduled reports as branded PDFs and makes report PDF exports.
 var builder = Host.CreateApplicationBuilder(args);
 
 // Traces, metrics and logs over OTLP when OTEL_EXPORTER_OTLP_ENDPOINT is set (A5).

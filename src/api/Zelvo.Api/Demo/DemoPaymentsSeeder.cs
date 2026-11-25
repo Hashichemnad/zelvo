@@ -19,7 +19,7 @@ internal sealed class DemoPaymentsSeeder : IDemoSeeder
 
     public string Key => "e8-payments";
 
-    public int Order => 230;
+    public int Order => 240;
 
     public async Task SeedAsync(DemoSeedContext context, CancellationToken cancellationToken)
     {

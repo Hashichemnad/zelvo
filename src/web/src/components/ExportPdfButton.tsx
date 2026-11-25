@@ -11,9 +11,10 @@ interface Export {
 
 /**
  * "Download PDF" (module 11, task F1): asks for a branded PDF of an incident or a service request
- * in the page's language, waits for the worker to make it, then downloads it.
+ * in the page's language, waits for the worker to make it, then downloads it. Reports (task F2)
+ * pass their filter as `query`; the language then goes in the query too.
  */
-export function ExportPdfButton({ path, csrfToken }: { path: string; csrfToken: string }) {
+export function ExportPdfButton({ path, csrfToken, query }: { path: string; csrfToken: string; query?: string }) {
   const t = useTranslations("exports");
   const locale = useLocale();
   const [state, setState] = useState<"idle" | "busy" | "failed">("idle");
@@ -21,7 +22,9 @@ export function ExportPdfButton({ path, csrfToken }: { path: string; csrfToken: 
   async function run() {
     setState("busy");
     try {
-      let current = await postJson<Export>(`/v1${path}/exports`, { language: locale === "ar" ? "ar" : "en" }, csrfToken);
+      const language = locale === "ar" ? "ar" : "en";
+      const url = query === undefined ? `/v1${path}/exports` : `/v1${path}/exports?${new URLSearchParams([...new URLSearchParams(query), ["language", language]])}`;
+      let current = await postJson<Export>(url, { language }, csrfToken);
       for (let i = 0; i < 40 && current.status === "Pending"; i++) {
         await new Promise((resolve) => setTimeout(resolve, 1500));
         current = await getJson<Export>(`/v1/exports/${current.id}`);

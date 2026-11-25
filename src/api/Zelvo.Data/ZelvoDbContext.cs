@@ -258,6 +258,15 @@ public sealed class ZelvoDbContext(DbContextOptions<ZelvoDbContext> options) : D
     /// <summary>Branded PDF exports.</summary>
     public DbSet<DocumentExport> DocumentExports => Set<DocumentExport>();
 
+    /// <summary>Scheduled reports (module 10, task F2).</summary>
+    public DbSet<Reports.ReportSchedule> ReportSchedules => Set<Reports.ReportSchedule>();
+
+    /// <summary>Recipients of scheduled reports.</summary>
+    public DbSet<Reports.ReportScheduleRecipient> ReportScheduleRecipients => Set<Reports.ReportScheduleRecipient>();
+
+    /// <summary>Emails of scheduled reports (delivery log).</summary>
+    public DbSet<Reports.ReportDelivery> ReportDeliveries => Set<Reports.ReportDelivery>();
+
     /// <summary>AI agents of the built-in MCP server (module 9, task E6).</summary>
     public DbSet<McpAgent> McpAgents => Set<McpAgent>();
 
@@ -1796,6 +1805,7 @@ public sealed class ZelvoDbContext(DbContextOptions<ZelvoDbContext> options) : D
 
         ConfigureAiFeatures(modelBuilder);
         ConfigureBranding(modelBuilder);
+        ConfigureReports(modelBuilder);
     }
 
     // Task F1: white-label branding, custom domains, sender domains and PDF exports.
@@ -1866,6 +1876,8 @@ public sealed class ZelvoDbContext(DbContextOptions<ZelvoDbContext> options) : D
                 table.HasCheckConstraint("ck_document_exports_kind", EnumCheck("kind", Enum.GetNames<ExportKind>()));
                 table.HasCheckConstraint("ck_document_exports_status", EnumCheck("status", Enum.GetNames<ExportStatus>()));
                 table.HasCheckConstraint("ck_document_exports_language", "language IN ('en', 'ar')");
+                // Task F2: report exports have their dashboard and filter instead of a ticket.
+                table.HasCheckConstraint("ck_document_exports_subject", "(kind = 'Report') = (entity_id IS NULL AND parameters IS NOT NULL)");
             });
             export.HasKey(e => e.Id);
             export.Property(e => e.Id).ValueGeneratedNever();
@@ -1877,6 +1889,7 @@ public sealed class ZelvoDbContext(DbContextOptions<ZelvoDbContext> options) : D
             export.Property(e => e.Language).HasMaxLength(5);
             export.Property(e => e.FileName).HasMaxLength(DocumentExport.FileNameMaxLength);
             export.Property(e => e.Error).HasMaxLength(DocumentExport.ErrorMaxLength);
+            export.Property(e => e.Parameters).HasColumnType("jsonb");
             export.HasIndex(e => new { e.TenantId, e.Status, e.CreatedAt });
             export.HasIndex(e => e.EntityId);
             export.HasIndex(e => e.RequestedById);
@@ -1885,6 +1898,63 @@ public sealed class ZelvoDbContext(DbContextOptions<ZelvoDbContext> options) : D
     }
 
     // Task E5: the AI features' own records.
+    // Task F2: scheduled reports, their recipients and the delivery log.
+    private static void ConfigureReports(ModelBuilder modelBuilder)
+    {
+        modelBuilder.Entity<Reports.ReportSchedule>(schedule =>
+        {
+            schedule.ToTable("report_schedules", table =>
+            {
+                table.HasCheckConstraint("ck_report_schedules_report", "report IN ('Overview', 'Volumes', 'Backlog', 'Sla', 'Agents', 'Happiness')");
+                table.HasCheckConstraint("ck_report_schedules_frequency", EnumCheck("frequency", Enum.GetNames<Reports.ReportFrequency>()));
+                table.HasCheckConstraint("ck_report_schedules_day_of_week", "(frequency = 'Weekly') = (day_of_week IS NOT NULL) AND (day_of_week IS NULL OR day_of_week BETWEEN 1 AND 7)");
+                table.HasCheckConstraint("ck_report_schedules_day_of_month", "(frequency = 'Monthly') = (day_of_month IS NOT NULL) AND (day_of_month IS NULL OR day_of_month BETWEEN 1 AND 28)");
+                table.HasCheckConstraint("ck_report_schedules_time_of_day", "time_of_day BETWEEN 0 AND 1439");
+            });
+            schedule.HasKey(s => s.Id);
+            schedule.Property(s => s.Id).ValueGeneratedNever();
+            schedule.HasOne<Tenant>().WithMany().HasForeignKey(s => s.TenantId).OnDelete(DeleteBehavior.Restrict);
+            schedule.HasOne<UserAccount>().WithMany().HasForeignKey(s => s.OwnerId).OnDelete(DeleteBehavior.Restrict);
+            schedule.Property(s => s.Name).HasMaxLength(Reports.ReportSchedule.NameMaxLength);
+            schedule.Property(s => s.Report).HasMaxLength(20);
+            schedule.Property(s => s.Filters).HasColumnType("jsonb");
+            schedule.Property(s => s.Frequency).HasConversion<string>().HasMaxLength(20);
+            schedule.Property(s => s.Version).IsRowVersion();
+            schedule.HasMany(s => s.Recipients).WithOne().HasForeignKey(r => r.ScheduleId).OnDelete(DeleteBehavior.Cascade);
+            schedule.HasIndex(s => s.TenantId);
+            schedule.HasIndex(s => s.OwnerId);
+            schedule.HasIndex(s => s.NextRunAt).HasFilter("active AND next_run_at IS NOT NULL").HasDatabaseName("ix_report_schedules_due");
+        });
+
+        modelBuilder.Entity<Reports.ReportScheduleRecipient>(recipient =>
+        {
+            recipient.ToTable("report_schedule_recipients");
+            recipient.HasKey(r => new { r.ScheduleId, r.UserId });
+            recipient.HasOne<Tenant>().WithMany().HasForeignKey(r => r.TenantId).OnDelete(DeleteBehavior.Restrict);
+            recipient.HasOne<UserAccount>().WithMany().HasForeignKey(r => r.UserId).OnDelete(DeleteBehavior.Cascade);
+            recipient.HasIndex(r => r.TenantId);
+            recipient.HasIndex(r => r.UserId);
+        });
+
+        modelBuilder.Entity<Reports.ReportDelivery>(delivery =>
+        {
+            delivery.ToTable("report_deliveries", table =>
+                table.HasCheckConstraint("ck_report_deliveries_status", EnumCheck("status", Enum.GetNames<Reports.ReportDeliveryStatus>())));
+            delivery.HasKey(d => d.Id);
+            delivery.Property(d => d.Id).ValueGeneratedNever();
+            delivery.HasOne<Tenant>().WithMany().HasForeignKey(d => d.TenantId).OnDelete(DeleteBehavior.Restrict);
+            delivery.HasOne<Reports.ReportSchedule>().WithMany().HasForeignKey(d => d.ScheduleId).OnDelete(DeleteBehavior.Cascade);
+            delivery.HasOne<UserAccount>().WithMany().HasForeignKey(d => d.RecipientId).OnDelete(DeleteBehavior.Cascade);
+            delivery.Property(d => d.Status).HasConversion<string>().HasMaxLength(20);
+            delivery.Property(d => d.Error).HasMaxLength(Reports.ReportDelivery.ErrorMaxLength);
+            // One email per recipient and run, so a run queued twice sends once.
+            delivery.HasIndex(d => new { d.ScheduleId, d.RecipientId, d.RunAt }).IsUnique();
+            delivery.HasIndex(d => new { d.TenantId, d.CreatedAt });
+            delivery.HasIndex(d => d.RecipientId);
+            delivery.HasIndex(d => d.NextAttemptAt).HasFilter("status = 'Pending'").HasDatabaseName("ix_report_deliveries_due");
+        });
+    }
+
     private static void ConfigureAiFeatures(ModelBuilder modelBuilder)
     {
         modelBuilder.Entity<AiJob>(job =>

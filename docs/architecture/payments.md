@@ -112,7 +112,7 @@ Every payment event is in the audit log (`payments.*`).
 ## Development and demo
 
 - `payment-mock` in Compose (`http://payment-mock:8098`, payer page on `http://localhost:8098`): creates payments, a page with Pay and Decline, notifies Zelvo through the web app, answers its status API, refunds and gives a settlement CSV. No real money or card data. Compose allows plain HTTP and private networks for payments in development only.
-- Seeder `e8-payments` (order 230): a "Demo pay (sandbox)" gateway for the mock in test mode and payments on, so the sample paid services ask for their fee.
+- Seeder `e8-payments` (order 240): a "Demo pay (sandbox)" gateway for the mock in test mode and payments on, so the sample paid services ask for their fee.
 
 ## Tests
 

@@ -158,8 +158,8 @@ public sealed class DemoModeTests(DatabaseFixture database) : IAsyncDisposable
         await using var db = TestData.AppContext(database, tenant);
         Assert.True(await db.TicketSlas.AnyAsync(Ct));
         // Task B5: migrate has no notification interceptor; the seeder queues one "received" per sample incident
-        // (service requests of C2 get their notifications with C3 and C4).
-        Assert.Equal(await db.Tickets.CountAsync(t => t.Type == Data.Tickets.TicketType.Incident, Ct),
+        // (service requests of C2 get their notifications with C3 and C4; F2's history has no creator and no notifications).
+        Assert.Equal(await db.Tickets.CountAsync(t => t.Type == Data.Tickets.TicketType.Incident && t.CreatedById != null, Ct),
             await db.Notifications.CountAsync(n => n.EventType == Zelvo.Notifications.NotificationEvents.IncidentReceived, Ct));
 
         // Task C1: published forms with a field set, bound to the default and to Laptops, and profile fields
@@ -202,6 +202,13 @@ public sealed class DemoModeTests(DatabaseFixture database) : IAsyncDisposable
         var branding = Data.Branding.BrandingValue.Read((await db.TenantBrandings.SingleAsync(Ct)).Published);
         Assert.Equal("Municipality e-Services", branding.ProductName.En);
         Assert.All(branding.Checks(), c => Assert.True(c.Passed, c.Key));
+
+        // Task F2: months of history for the dashboards, the wizard finished and a weekly report.
+        Assert.Contains("f2-reporting", ran);
+        Assert.True(await db.Tickets.CountAsync(t => t.CreatedById == null && t.CreatedAt < DateTimeOffset.UtcNow.AddDays(-150), Ct) > 10);
+        Assert.True(await db.HappinessRatings.CountAsync(Ct) > 50);
+        Assert.Single(await db.ReportSchedules.Include(s => s.Recipients).Where(s => s.Recipients.Count == 1).ToListAsync(Ct));
+        Assert.Contains(await db.TenantSettings.Select(s => s.Key).ToListAsync(Ct), k => k == "setup.progress");
     }
 
     [Fact]

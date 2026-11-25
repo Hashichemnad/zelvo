@@ -258,6 +258,14 @@
         "title": "Workflow rules",
         "description": "When / if / then rules that assign, ask for approval and notify."
       },
+      "reports": {
+        "title": "Reports",
+        "description": "Targets the dashboards compare SLA compliance and happiness with."
+      },
+      "setup": {
+        "title": "Setup wizard",
+        "description": "The steps to go live, and department templates."
+      },
       "payments": {
         "title": "Payments",
         "description": "Online payments, payment gateways and their sandbox tests."
@@ -473,7 +481,6 @@
         "requests_read": "Read service requests",
         "requests_edit": "Change the state of service requests",
         "requests_assign": "Assign service requests",
-        "proactive_trigger": "Start proactive services for people (dates and events from other systems)",
         "channels_manage": "Set up mailboxes and live chat widgets",
         "chat_handle": "Answer live chats of their groups",
         "voice_read": "See every complaint, inquiry and suggestion",
@@ -484,6 +491,11 @@
         "branding_manage": "Change the branding, custom domains and email sender domain",
         "workflows_manage": "Build workflow rules",
         "approvals_read": "See every approval",
+        "reports_read": "See the dashboards of the groups you lead",
+        "reports_all": "See the dashboards of the whole organisation",
+        "reports_manage": "Schedule reports for others and set report targets",
+        "setup_manage": "Use the setup wizard and department templates",
+        "proactive_trigger": "Start proactive services for people (dates and events from other systems)",
         "payments_manage": "Set up online payments and payment gateways",
         "payments_read": "See payments, receipts, reconciliation and the Excel export",
         "payments_refund": "Refund payments"
@@ -1280,6 +1292,11 @@
         "domain-not-found": "That domain no longer exists.",
         "sender-domain-not-set": "No sender domain is set."
       }
+    },
+    "setupBanner": {
+      "title": "Finish setting up",
+      "text": "{done} of {total} setup steps are finished.",
+      "action": "Open the setup wizard"
     }
   },
   "demo": {
@@ -1806,6 +1823,8 @@
         "branding": "Branding",
         "workflows": "Workflows",
         "approvals": "Approvals",
+        "reports": "Reports",
+        "setup": "Setup",
         "proactive": "Proactive services",
         "payments": "Payments"
       },
@@ -1841,7 +1860,6 @@
       "requests_read": "See every service request",
       "requests_edit": "Work on service requests",
       "requests_assign": "Assign service requests",
-      "proactive_trigger": "Start proactive services for people (dates and events from other systems)",
       "channels_manage": "Set up mailboxes and live chat widgets",
       "chat_handle": "Answer live chats of their groups",
       "voice_read": "See every complaint, inquiry and suggestion",
@@ -1852,6 +1870,11 @@
       "branding_manage": "Change the branding, custom domains and email sender domain",
       "workflows_manage": "Build workflow rules",
       "approvals_read": "See every approval",
+      "reports_read": "See the dashboards of the groups you lead",
+      "reports_all": "See the dashboards of the whole organisation",
+      "reports_manage": "Schedule reports for others and set report targets",
+      "setup_manage": "Use the setup wizard and department templates",
+      "proactive_trigger": "Start proactive services for people (dates and events from other systems)",
       "payments_manage": "Set up online payments and payment gateways",
       "payments_read": "See payments, receipts, reconciliation and the Excel export",
       "payments_refund": "Refund payments"
@@ -4880,6 +4903,353 @@
     "askedBy": "Requested by {name}",
     "awaitingRequester": "Your request is waiting for approval. You will be told when it is decided.",
     "awaitingStaff": "This request is waiting for an approval; it cannot be changed meanwhile."
+  },
+  "reports": {
+    "title": "Reports",
+    "noAccess": "You cannot see reports. Reports are for staff who can read incidents, service requests or customer voice.",
+    "unavailable": "The report cannot be shown right now. Please try again later.",
+    "unavailableFilter": "The report cannot be shown for this filter. Choose a period of at most two years that ends after it starts, or try again later.",
+    "back": "All reports",
+    "menuLabel": "Dashboards",
+    "period": "{from} to {to}",
+    "nav": {
+      "reports": "Reports",
+      "myPerformance": "My performance"
+    },
+    "myPerformance": {
+      "title": "My performance",
+      "intro": "Your own figures: tickets assigned to you, how quickly you responded and resolved them, the service level targets you met and how happy requesters were."
+    },
+    "scope": {
+      "All": "You see the whole organisation.",
+      "Groups": "You see the groups you lead: {groups}.",
+      "Own": "You see your own figures."
+    },
+    "dashboards": {
+      "Overview": {
+        "title": "Overview",
+        "description": "Key figures of the period and how they compare with your targets."
+      },
+      "Volumes": {
+        "title": "Volumes",
+        "description": "Tickets created, resolved and closed over time, by record type, channel, priority, group and category."
+      },
+      "Backlog": {
+        "title": "Backlog",
+        "description": "Open tickets now by state, age, priority and group, and how the backlog changed."
+      },
+      "Sla": {
+        "title": "SLA compliance",
+        "description": "Response and resolution targets met, by priority, record type, group and SLA policy."
+      },
+      "Agents": {
+        "title": "Agent performance",
+        "description": "For each agent: tickets handled, response and resolution times, SLA targets met, reopened tickets and happiness."
+      },
+      "Happiness": {
+        "title": "Customer happiness",
+        "description": "Happiness meter ratings by record type, channel, group and service, over time."
+      }
+    },
+    "filters": {
+      "label": "Filter the report",
+      "from": "From",
+      "to": "To",
+      "interval": "Show by",
+      "intervalAuto": "Chosen from the period",
+      "hint": "Leave the period empty for the last 30 days; choose nothing to include all record types and groups you can see.",
+      "types": "Record types",
+      "groups": "Groups",
+      "show": "Show",
+      "reset": "Clear the filter"
+    },
+    "intervals": {
+      "Day": "Day",
+      "Week": "Week",
+      "Month": "Month"
+    },
+    "types": {
+      "Incident": "Incidents",
+      "ServiceRequest": "Service requests",
+      "Complaint": "Complaints",
+      "Inquiry": "Inquiries",
+      "Suggestion": "Suggestions",
+      "Portal": "Portal ratings"
+    },
+    "channels": {
+      "Portal": "Portal",
+      "Email": "Email",
+      "Chat": "Chat",
+      "WhatsApp": "WhatsApp",
+      "Phone": "Phone",
+      "Api": "API",
+      "AiAgent": "AI agent"
+    },
+    "states": {
+      "New": "New",
+      "Assigned": "Assigned",
+      "InProgress": "In progress",
+      "OnHold": "On hold",
+      "Resolved": "Resolved",
+      "Closed": "Closed",
+      "Reopened": "Reopened"
+    },
+    "ages": {
+      "lt1d": "Under a day",
+      "1to3d": "1–3 days",
+      "3to7d": "3–7 days",
+      "7to30d": "7–30 days",
+      "gt30d": "Over 30 days"
+    },
+    "actions": {
+      "label": "Export and share",
+      "csv": "Download CSV",
+      "xlsx": "Download Excel",
+      "schedule": "Schedule this report"
+    },
+    "figures": {
+      "created": "Created",
+      "resolved": "Resolved",
+      "closed": "Closed",
+      "open": "Open now",
+      "unassigned": "Not assigned",
+      "responseSla": "Response targets met",
+      "resolutionSla": "Resolution targets met",
+      "happiness": "Happiness",
+      "ratings": "{count} ratings",
+      "ratingsHeading": "Ratings",
+      "medianResponse": "Median first response",
+      "medianResolution": "Median time to resolve",
+      "minutes": "{value} min",
+      "hours": "{value} h",
+      "target": "Target {value}",
+      "meetsTarget": "meets the target",
+      "missesTarget": "below the target"
+    },
+    "labels": {
+      "noData": "No data",
+      "none": "Not set",
+      "removed": "(removed)",
+      "priority": "P{value}",
+      "name": "Name",
+      "count": "Tickets",
+      "percent": "Share",
+      "empty": "Nothing to show for this period.",
+      "bucket": "Period starting",
+      "metBreached": "Met / breached",
+      "clocks": "{met} met, {breached} breached, {running} still running",
+      "slaExplained": "Counts the response and resolution clocks of tickets created in the period. A target is met when its clock stopped in time; clocks still running are not in the percentage.",
+      "happinessExplained": "Happiness is the average rating as a share of the scale: the worst answer is 0 % and the best is 100 %.",
+      "agentsExplained": "Figures use each ticket’s current assignee: tickets created in the period, resolved in the period, and open now.",
+      "agent": "Agent",
+      "assigned": "Assigned",
+      "openNow": "Open now",
+      "slaMet": "SLA met",
+      "reopened": "Reopened",
+      "score": "{score} of {points}"
+    },
+    "headings": {
+      "trend": "Over time",
+      "backlogTrend": "Open tickets over time",
+      "slaTrend": "Targets met over time",
+      "happinessTrend": "Happiness over time",
+      "byType": "By record type",
+      "byChannel": "By channel",
+      "byPriority": "By priority",
+      "byGroup": "By group",
+      "byCategory": "By category",
+      "byState": "By state",
+      "byAge": "By age",
+      "byPolicy": "By SLA policy",
+      "byService": "By service",
+      "scores": "Scores"
+    },
+    "schedules": {
+      "title": "Scheduled reports",
+      "intro": "A scheduled report is emailed as a PDF every day, week or month. Each recipient gets the report built with what they may see, in their own language.",
+      "new": "New scheduled report",
+      "edit": "Scheduled report",
+      "back": "All scheduled reports",
+      "formIntro": "Choose the report, when it goes out and who receives it. Recipients must be people who may see reports.",
+      "noAccess": "Scheduling reports is for team leads, executives and administrators.",
+      "notFound": "This scheduled report does not exist, or you cannot see it.",
+      "ownedBy": "Set up by {name}",
+      "receiveOnly": "You receive this report. Its owner or an administrator can change it.",
+      "none": "No scheduled reports yet.",
+      "name": "Name",
+      "report": "Report",
+      "frequency": "How often",
+      "frequencies": {
+        "Daily": "Every day",
+        "Weekly": "Every week",
+        "Monthly": "Every month"
+      },
+      "periods": {
+        "Daily": "Each report covers the day before.",
+        "Weekly": "Each report covers the seven days before.",
+        "Monthly": "Each report covers the month before."
+      },
+      "dayOfWeek": "Day of the week",
+      "days": {
+        "1": "Monday",
+        "2": "Tuesday",
+        "3": "Wednesday",
+        "4": "Thursday",
+        "5": "Friday",
+        "6": "Saturday",
+        "7": "Sunday"
+      },
+      "dayOfMonth": "Day of the month",
+      "dayOfMonthHint": "From 1 to 28, so that every month has it.",
+      "time": "Time",
+      "timeHint": "In your organisation’s time zone.",
+      "recipients": "Recipients",
+      "recipientsHint": "Add people who may see reports. Each gets only what they may see.",
+      "recipientsSelf": "The report is sent to you.",
+      "removeRecipient": "Remove {name}",
+      "findPeople": "Find people",
+      "search": "Search",
+      "nobodyFound": "Nobody found who may see reports.",
+      "addRecipient": "Add {name}",
+      "active": "Send this report",
+      "nameRequired": "Name the scheduled report.",
+      "recipientsRequired": "Add at least one recipient.",
+      "save": "Save",
+      "create": "Schedule the report",
+      "when": "When",
+      "nextRun": "Next email",
+      "actions": "Actions",
+      "paused": "Paused",
+      "everyWeek": "Every {day}",
+      "everyMonth": "Day {day} of every month",
+      "everyDay": "Every day",
+      "notPlanned": "Not planned",
+      "sendNow": "Send now",
+      "confirmDelete": "Delete “{name}”",
+      "cancel": "Cancel",
+      "delete": "Delete",
+      "deliveries": "Delivery log",
+      "deliveriesIntro": "Emails of the last 30 days. People who can no longer see reports are skipped.",
+      "noDeliveries": "Nothing sent yet.",
+      "recipient": "Recipient",
+      "period": "Period",
+      "status": "Status",
+      "sentAt": "Sent",
+      "error": "Problem",
+      "statuses": {
+        "Pending": "Waiting",
+        "Sent": "Sent",
+        "Failed": "Failed",
+        "Skipped": "Skipped"
+      }
+    },
+    "settings": {
+      "intro": "The dashboards compare SLA compliance and happiness with these targets.",
+      "sla": "SLA target (%)",
+      "slaHint": "Share of response and resolution targets that should be met, for example 95.",
+      "happiness": "Happiness target (%)",
+      "happinessHint": "4 out of 5 is 75 % of the scale.",
+      "invalid": "Each target is between 1 and 100.",
+      "save": "Save the targets"
+    }
+  },
+  "setup": {
+    "title": "Setup wizard",
+    "back": "Settings",
+    "intro": "These steps make your organisation ready to go live, in under a working day. Do them in any order; each step links to its own settings.",
+    "noAccess": "The setup wizard is for tenant administrators.",
+    "unavailable": "The setup wizard cannot be shown right now. Please try again later.",
+    "progress": "{done} of {total} steps finished",
+    "finished": "Setup is finished. You can still change every setting.",
+    "stepsLabel": "Setup steps",
+    "stepOf": "Step {step} of {total}",
+    "status": {
+      "Pending": "To do",
+      "Done": "Done",
+      "Skipped": "Skipped"
+    },
+    "configured": "This already looks set up.",
+    "notConfigured": "This is not set up yet.",
+    "organisationName": "Organisation name",
+    "saveName": "Save the name",
+    "noRename": "Changing the organisation’s name needs the tenant.manage permission.",
+    "markDone": "Mark as done",
+    "skip": "Skip for now",
+    "markPending": "Mark as to do",
+    "reopen": "Show the wizard again",
+    "finish": "Finish setup",
+    "finishHint": "Steps not done stay in the list; you can come back at any time.",
+    "steps": {
+      "organisation": {
+        "title": "Organisation",
+        "description": "Give your organisation its name in English and Arabic. It appears on the portal, in emails and in reports.",
+        "link": "Settings"
+      },
+      "language": {
+        "title": "Language and region",
+        "description": "Choose the default language, calendar (Gregorian or Hijri) and digits. Each person can change them in their profile.",
+        "link": "Open language and region"
+      },
+      "calendar": {
+        "title": "Business calendar",
+        "description": "Set your working week and public holidays, so service level clocks count working time only. UAE templates are ready to use.",
+        "link": "Open business calendars"
+      },
+      "branding": {
+        "title": "Branding",
+        "description": "Add your logos, colours and product name, then publish them. Contrast is checked for you.",
+        "link": "Open branding"
+      },
+      "signIn": {
+        "title": "Sign-in",
+        "description": "Decide who may sign in with an email code, and turn on UAE PASS if you use it.",
+        "link": "Open sign-in settings"
+      },
+      "departments": {
+        "title": "Departments and service desks",
+        "description": "Create a department’s service desk from a template: groups, categories, routing, SLA policies, draft services and canned responses. You can change everything afterwards.",
+        "link": "Open departments"
+      },
+      "users": {
+        "title": "People",
+        "description": "Add your staff and give them roles, or import them from a spreadsheet. Then add agents and team leads to their groups.",
+        "link": "Open users"
+      },
+      "channels": {
+        "title": "Email and chat",
+        "description": "Connect the mailboxes that receive requests, and add the chat widget to your portal or website.",
+        "link": "Open mailboxes"
+      },
+      "ai": {
+        "title": "AI (optional)",
+        "description": "Connect your own AI provider to turn on triage, summaries, suggested replies and the virtual agent. AI stays off until you do.",
+        "link": "Open AI settings"
+      }
+    },
+    "templates": {
+      "english": "English",
+      "arabic": "Arabic",
+      "choose": "Choose a template",
+      "preview": "What “{name}” creates",
+      "previewIntro": "Check the names; you can change the department and group names in both languages before applying.",
+      "departmentName": "Department name",
+      "groups": "Support groups",
+      "groupName": "Group “{name}”",
+      "categories": "Categories and where their tickets go",
+      "policies": "Service level targets",
+      "policiesIntro": "In working hours of your business calendar, for the department’s categories.",
+      "priority": "Priority",
+      "response": "Response",
+      "resolution": "Resolution",
+      "priorityValue": "P{value}",
+      "hours": "{value} h",
+      "includeServices": "Create draft catalog services",
+      "servicesHint": "Services start as drafts; a publisher reviews and publishes them.",
+      "includeResponses": "Create canned responses",
+      "neverChanges": "Applying creates new items only; nothing that already exists is changed.",
+      "apply": "Create the department",
+      "applied": "Done: {groups} groups, {categories} categories with their routing, {policies} SLA policies, {services} draft services and {responses} canned responses were created."
+    }
   },
   "payments": {
     "request": {

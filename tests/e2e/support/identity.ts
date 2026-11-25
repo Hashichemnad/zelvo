@@ -1,5 +1,5 @@
 import { createHmac } from "node:crypto";
-import { mkdirSync, readFileSync, writeFileSync } from "node:fs";
+import { closeSync, mkdirSync, openSync, readFileSync, statSync, unlinkSync, writeFileSync } from "node:fs";
 import path from "node:path";
 import { expect, type Page } from "@playwright/test";
 
@@ -107,16 +107,37 @@ export function totp(secret: string, at = Date.now()): string {
  * test run within the same 30-second window. The last used code is kept next to the secret.
  */
 async function freshCode(user: string, secret: string): Promise<string> {
-  const usedFile = path.join(stateDir, `${user}.used`);
-  const used = readIfPresent(usedFile)?.trim() ?? "";
-  let code = totp(secret);
-  while (code === used) {
-    await new Promise((resolve) => setTimeout(resolve, 1_000));
-    code = totp(secret);
-  }
+  // Parallel workers sign the same person in: a lock file makes "read the last code, pick a new
+  // one, write it" one step, so two workers never submit the same code.
   mkdirSync(stateDir, { recursive: true });
-  writeFileSync(usedFile, code);
-  return code;
+  const lockFile = path.join(stateDir, `${user}.lock`);
+  for (;;) {
+    try {
+      closeSync(openSync(lockFile, "wx"));
+      break;
+    } catch {
+      // A lock left by a worker that stopped is removed after a minute.
+      try {
+        if (Date.now() - statSync(lockFile).mtimeMs > 60_000) unlinkSync(lockFile);
+      } catch {
+        // Released meanwhile.
+      }
+      await new Promise((resolve) => setTimeout(resolve, 200));
+    }
+  }
+  try {
+    const usedFile = path.join(stateDir, `${user}.used`);
+    const used = readIfPresent(usedFile)?.trim() ?? "";
+    let code = totp(secret);
+    while (code === used) {
+      await new Promise((resolve) => setTimeout(resolve, 1_000));
+      code = totp(secret);
+    }
+    writeFileSync(usedFile, code);
+    return code;
+  } finally {
+    unlinkSync(lockFile);
+  }
 }
 
 /**
