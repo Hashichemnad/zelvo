@@ -33,9 +33,16 @@ test.describe("self-service portal", () => {
     await expect(page).toHaveURL(/\/en\/my-incidents\/[0-9a-f-]{36}$/);
     expect(Date.now() - started).toBeLessThan(60_000);
 
+    // The new incident reaches the search index within a few seconds (the outbox is relayed about
+    // every second), and the box searches when its text changes, so search again until it is found.
     await page.goto("/en");
-    await page.getByRole("searchbox").fill(title);
-    await expect(page.getByTestId("portal-results").getByRole("link", { name: title })).toBeVisible({ timeout: 30_000 });
+    const search = page.getByRole("searchbox");
+    const found = page.getByTestId("portal-results").getByRole("link", { name: title });
+    await expect(async () => {
+      await search.fill("");
+      await search.fill(title);
+      await expect(found).toBeVisible({ timeout: 5_000 });
+    }).toPass({ timeout: 60_000 });
 
     await page.goto("/en/my-tickets");
     const card = page.getByTestId("portal-ticket").filter({ hasText: title });
