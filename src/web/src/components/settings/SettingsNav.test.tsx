@@ -27,6 +27,8 @@ describe("Settings sections", () => {
     expect(sectionsFor(["catalog.manage"]).map((s) => s.key)).toEqual(["catalog"]);
     expect(sectionsFor(["catalog.publish"]).map((s) => s.key)).toEqual(["catalog"]);
     expect(sectionsFor(["voice.manage"]).map((s) => s.key)).toEqual(["customerVoice"]);
+    // Task F2: the setup wizard first, report targets near the end.
+    expect(sectionsFor(["setup.manage", "reports.manage", "translations.read"]).map((s) => s.key)).toEqual(["setup", "reports", "translations"]);
     expect(sectionsFor(["search.manage", "translations.read", "settings.manage"]).map((s) => s.key)).toEqual(["language", "incidents", "attachments", "knowledge", "search", "translations"]);
   });
 });
