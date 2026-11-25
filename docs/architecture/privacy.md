@@ -61,6 +61,8 @@ Plain SQL on the tenant's connection (row-level security applies) in one transac
 
 **A person is erased**: every ticket they raised anonymised, their own messages elsewhere, chats, email copies to and from them, notifications, preferences, rating and feedback comments, pending proactive offers and form uploads removed; roles, groups, skills, customer groups and report subscriptions removed; the account kept as an empty, disabled record (`subject = erased:<id>`, no name, email, phone, Emirates ID, employee number, manager, department or location); their Keycloak user deleted (last, so a Keycloak failure rolls back the erasure). An erased account cannot be changed (`user-erased`).
 
+**Messaging and connectors (E3, E7).** A ticket's WhatsApp, SMS and Teams messages lose their text, address and payload, and its voice notes (with transcripts) are removed. Erasing a person also removes their messaging contacts (phone numbers, Teams ids) and switches their WhatsApp, SMS and Teams notifications off. Their identity or CRM connector link is kept as a marker: directory and CRM syncs skip an erased account, so they never fill it in again or make a new account for the same person; an administrator decides that.
+
 Refused: erasing yourself (`erase-self`), the last active tenant administrator (`last-administrator`), or a person with tickets that are not resolved or closed (`open-tickets`).
 
 ## Retention jobs

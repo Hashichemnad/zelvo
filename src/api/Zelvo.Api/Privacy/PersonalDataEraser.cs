@@ -126,6 +126,14 @@ internal sealed class PersonalDataEraser(
             $"UPDATE notification_deliveries SET address = '', subject = '', html_body = '', text_body = '' WHERE recipient_id = {id}", cancellationToken);
         var notifications = await db.Database.ExecuteSqlInterpolatedAsync($"DELETE FROM notifications WHERE recipient_id = {id}", cancellationToken);
         await db.Database.ExecuteSqlInterpolatedAsync($"DELETE FROM notification_preferences WHERE user_id = {id}", cancellationToken);
+        // Task E3: WhatsApp, SMS and Teams. Their messages lose their text and address; the
+        // person's contacts (phone numbers, Teams ids) are removed, so the channels forget them.
+        var messages = await db.Database.ExecuteSqlInterpolatedAsync(
+            $"""
+            UPDATE channel_messages SET text = NULL, address = NULL, payload = NULL
+            WHERE contact_id IN (SELECT id FROM messaging_contacts WHERE user_id = {id}) AND (text IS NOT NULL OR address IS NOT NULL OR payload IS NOT NULL)
+            """, cancellationToken);
+        await db.Database.ExecuteSqlInterpolatedAsync($"DELETE FROM messaging_contacts WHERE user_id = {id}", cancellationToken);
         await db.Database.ExecuteSqlInterpolatedAsync($"UPDATE happiness_ratings SET comment = NULL WHERE user_id = {id}", cancellationToken);
         await db.Database.ExecuteSqlInterpolatedAsync($"UPDATE kb_feedback SET comment = NULL WHERE user_id = {id}", cancellationToken);
         await db.Database.ExecuteSqlInterpolatedAsync(
@@ -151,11 +159,11 @@ internal sealed class PersonalDataEraser(
             $"""
             UPDATE users SET subject = {erasedSubject}, email = NULL, display_name = NULL, emirates_id = NULL, phone = NULL, employee_id = NULL,
                 manager_id = NULL, department_id = NULL, location_id = NULL, preferred_language = NULL, languages = {noLanguages},
-                available_for_assignment = false, status = 'Disabled', erased_at = {now}, updated_at = {now}
+                available_for_assignment = false, notify_whats_app = false, notify_sms = false, notify_teams = false, status = 'Disabled', erased_at = {now}, updated_at = {now}
             WHERE id = {id}
             """, cancellationToken);
 
-        var total = counts with { Comments = counts.Comments + comments, Attachments = counts.Attachments + uploads, ChatMessages = counts.ChatMessages + chat, Emails = counts.Emails + emails, Notifications = notifications };
+        var total = counts with { Comments = counts.Comments + comments, Attachments = counts.Attachments + uploads, ChatMessages = counts.ChatMessages + chat + messages, Emails = counts.Emails + emails, Notifications = notifications };
         var metadata = total.ToMetadata();
         metadata["reason"] = reason;
         metadata["requestId"] = requestId;
@@ -232,6 +240,11 @@ internal sealed class PersonalDataEraser(
         emails += await db.Database.ExecuteSqlInterpolatedAsync(
             $"UPDATE outbound_emails SET to_address = '', subject = '', html_body = '', text_body = '' WHERE ticket_id = ANY({array})", cancellationToken);
         await db.Database.ExecuteSqlInterpolatedAsync($"DELETE FROM notifications WHERE ticket_id = ANY({array})", cancellationToken);
+        // Task E3: WhatsApp, SMS and Teams messages of the tickets, and transcripts of voice notes.
+        chat += await db.Database.ExecuteSqlInterpolatedAsync(
+            $"UPDATE channel_messages SET text = NULL, address = NULL, payload = NULL WHERE ticket_id = ANY({array}) AND (text IS NOT NULL OR address IS NOT NULL OR payload IS NOT NULL)",
+            cancellationToken);
+        await db.Database.ExecuteSqlInterpolatedAsync($"DELETE FROM voice_notes WHERE ticket_id = ANY({array})", cancellationToken);
         await db.Database.ExecuteSqlInterpolatedAsync($"DELETE FROM ai_ticket_insights WHERE ticket_id = ANY({array})", cancellationToken);
         await db.Database.ExecuteSqlInterpolatedAsync($"DELETE FROM ai_jobs WHERE ticket_id = ANY({array})", cancellationToken);
         await db.Database.ExecuteSqlInterpolatedAsync(

@@ -112,6 +112,15 @@ public sealed class DirectorySync(ZelvoDbContext db, IAuditLog audit, TimeProvid
             UserAccount? user = null;
             if (links.TryGetValue(person.ExternalId, out var link) && users.TryGetValue(link.ZelvoId, out var linked))
             {
+                // Task F5: an erased person's link stays so that the directory never fills their
+                // account again or makes a new one for them; an administrator decides that.
+                if (linked.ErasedAt is not null)
+                {
+                    link.SeenAt = now;
+                    stats.Skipped++;
+                    continue;
+                }
+
                 user = linked;
             }
             else if (person.Email is { Length: > 0 } email && email.Contains('@', StringComparison.Ordinal))
@@ -304,6 +313,12 @@ public sealed class CrmSync(ZelvoDbContext db, IAuditLog audit, TimeProvider tim
             if (people.TryGetValue(contact.ExternalId, out var link))
             {
                 user = await db.Users.FindAsync([link.ZelvoId], cancellationToken).ConfigureAwait(false);
+                // Task F5: an erased person is never filled in again from the CRM.
+                if (user?.ErasedAt is not null)
+                {
+                    stats.Skipped++;
+                    continue;
+                }
             }
             else
             {
