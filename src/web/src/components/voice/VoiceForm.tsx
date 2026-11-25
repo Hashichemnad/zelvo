@@ -4,6 +4,7 @@ import { useEffect, useId, useState } from "react";
 import { useLocale, useTranslations } from "next-intl";
 import { Link, useRouter } from "@/i18n/navigation";
 import { ApiError, getJson, postJson } from "@/lib/client-api";
+import { PrivacyNoticeCheckbox, usePrivacyNoticePublished } from "@/components/privacy/PrivacyNoticeCheckbox";
 import { FormRenderer } from "@/components/forms/FormRenderer";
 import { fieldInput, primaryAction } from "@/components/forms/ui";
 import { checkAnswers } from "@/lib/forms/check";
@@ -82,6 +83,9 @@ export function VoiceForm({ type, csrfToken, categories, locations }: VoiceFormP
   const [formErrors, setFormErrors] = useState<AnswerError[]>([]);
   const [reload, setReload] = useState(0);
   const [sent, setSent] = useState<AnonymousSubmission | null>(null);
+  // Task F5: anonymous senders accept the privacy notice when the organisation published one.
+  const noticePublished = usePrivacyNoticePublished(anonymous);
+  const [noticeAccepted, setNoticeAccepted] = useState(false);
 
   useEffect(() => {
     if (anonymous) return;
@@ -118,7 +122,7 @@ export function VoiceForm({ type, csrfToken, categories, locations }: VoiceFormP
 
   async function submit(event: React.FormEvent) {
     event.preventDefault();
-    if (title.trim().length < 3) {
+    if (title.trim().length < 3 || (anonymous && noticePublished && !noticeAccepted)) {
       setStatus("invalid");
       return;
     }
@@ -136,6 +140,7 @@ export function VoiceForm({ type, csrfToken, categories, locations }: VoiceFormP
     const body: Record<string, unknown> = { type, title: title.trim(), description: description.trim() || undefined };
     try {
       if (anonymous) {
+        if (noticePublished) body.privacyNoticeAccepted = true;
         setSent(await postJson<AnonymousSubmission>("/v1/public/customer-voice", body, ""));
         return;
       }
@@ -192,6 +197,7 @@ export function VoiceForm({ type, csrfToken, categories, locations }: VoiceFormP
             locations={locations} csrfToken={csrfToken!} idPrefix={`${id}-answers`} />
         </section>
       )}
+      {anonymous && noticePublished && <PrivacyNoticeCheckbox locale={locale} checked={noticeAccepted} onChange={(c) => { setNoticeAccepted(c); setStatus("idle"); }} />}
       <button type="submit" className={primaryAction} disabled={status === "saving"}>{t(anonymous ? "sendAnonymously" : "send")}</button>
       <p role="status" aria-live="polite" className={status === "idle" || status === "saving" ? "" : "text-bad"}>
         {status === "idle" ? "" : status === "saving" ? tVoice("saving") : t(`status.${status}`)}

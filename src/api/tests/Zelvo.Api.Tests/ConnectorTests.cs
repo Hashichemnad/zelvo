@@ -329,4 +329,41 @@ public sealed class ConnectorTests : IAsyncDisposable
         var alerts = (await admin.SendOkAsync(HttpMethod.Get, $"/api/v1/monitoring/sources/{source}/alerts"))["items"]!.AsArray();
         Assert.Equal(["Firing", "Resolved"], alerts.Select(a => (string?)a!["state"]));
     }
+    [Fact]
+    public async Task A_directory_sync_never_fills_in_or_recreates_a_person_whose_data_was_erased()
+    {
+        var tenant = await _database.CreateTenantAsync("e7erase");
+        using var admin = await _factory.ForTenant(tenant).SignedInAsync(_database, tenant, BuiltInRoles.TenantAdmin);
+        var connector = (await admin.SendOkAsync(HttpMethod.Post, "/api/v1/connectors", new
+        {
+            name = "Entity directory",
+            kind = "EntraId",
+            entra = new { directoryId = Guid.NewGuid().ToString(), clientId = Guid.NewGuid().ToString() },
+            credential = MessagingApi.Secret("entra"),
+        }, HttpStatusCode.Created)).Id();
+        _systems.Directory.Add(new DirectoryPerson("p-1", "mariam@entity.example.ae", "Mariam Al Ali", null, null, "050 765 4321", "2001", true, []));
+        await _factory.RunConnectorsAsync(tenant);
+        Guid personId;
+        await using (var db = TestData.AppContext(_database, tenant))
+        {
+            personId = (await db.Users.SingleAsync(u => u.Email == "mariam@entity.example.ae", Ct)).Id;
+        }
+
+        // Task F5: the person is erased on request; the next sync leaves the account empty and makes no new one.
+        var request = await admin.SendOkAsync(HttpMethod.Post, "/api/v1/privacy/requests",
+            new { subjectId = personId, type = "Erasure", identityCheck = "Emirates ID seen at the counter" }, HttpStatusCode.Created);
+        await admin.SendOkAsync(HttpMethod.Post, $"/api/v1/privacy/requests/{request.Id()}/erase", new { confirmNumber = (string)request["number"]! });
+        await admin.SendOkAsync(HttpMethod.Post, $"/api/v1/connectors/{connector}/sync");
+        Assert.True(await _factory.RunConnectorsAsync(tenant) > 0);
+        await using (var db = TestData.AppContext(_database, tenant))
+        {
+            var erased = await db.Users.SingleAsync(u => u.Id == personId, Ct);
+            Assert.NotNull(erased.ErasedAt);
+            Assert.Null(erased.Email);
+            Assert.Null(erased.DisplayName);
+            Assert.Null(erased.Phone);
+            Assert.Equal(UserStatus.Disabled, erased.Status);
+            Assert.False(await db.Users.AnyAsync(u => u.Email == "mariam@entity.example.ae", Ct));
+        }
+    }
 }

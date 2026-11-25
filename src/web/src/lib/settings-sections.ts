@@ -39,6 +39,7 @@ export interface SettingsSection {
     | "importExport"
     | "workflows"
     | "payments"
+    | "privacy"
     | "translations"
     | "reports"
     | "setup";
@@ -79,6 +80,8 @@ export const settingsSections: readonly SettingsSection[] = [
   { key: "workflows", href: "/settings/workflows", permission: "workflows.manage" },
   // Task E8: online payments and gateways.
   { key: "payments", href: "/settings/payments", permission: "payments.manage" },
+  // Task F5: the privacy notice, consent purposes and retention periods (UAE PDPL).
+  { key: "privacy", href: "/settings/privacy", permission: "privacy.manage" },
   { key: "knowledge", href: "/settings/knowledge", permission: "settings.manage" },
   { key: "notifications", href: "/settings/notifications", permission: "notifications.manage" },
   // Task B4: everyone who works on incidents keeps their own; leads and administrators share them.

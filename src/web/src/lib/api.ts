@@ -317,3 +317,30 @@ export async function getWidgetOrigins(tenant: string, widgetId: string): Promis
     return [];
   }
 }
+
+/** Cache tag of a tenant's published privacy notice (task F5). */
+export function privacyNoticeTag(tenant: string): string {
+  return `zelvo-privacy-notice-${tenant}`;
+}
+
+/**
+ * Task F5: the tenant's published privacy notice, open to visitors and cached for a minute like
+ * the branding; null when there is none or the API cannot be reached.
+ */
+export async function getPublishedPrivacyNotice(tenant: string): Promise<import("./privacy").PrivacyNotice | null> {
+  try {
+    const response = await fetch(new URL("/api/v1/privacy/notice", apiBaseUrl), {
+      next: { revalidate: 60, tags: [privacyNoticeTag(tenant)] },
+      signal: AbortSignal.timeout(timeoutMs),
+      headers: { Accept: "application/json", "X-Zelvo-Tenant": tenant },
+    });
+    return response.ok ? ((await response.json()) as import("./privacy").PrivacyNotice) : null;
+  } catch {
+    return null;
+  }
+}
+
+/** Expires the cached notice after an administrator publishes a new version through this web app. */
+export function forgetPrivacyNotice(tenant: string): void {
+  revalidateTag(privacyNoticeTag(tenant), { expire: 0 });
+}

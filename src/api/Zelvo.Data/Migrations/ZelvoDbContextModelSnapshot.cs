@@ -4719,6 +4719,10 @@ namespace Zelvo.Data.Migrations
                         .HasColumnType("character varying(50)")
                         .HasColumnName("employee_id");
 
+                    b.Property<DateTimeOffset?>("ErasedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("erased_at");
+
                     b.PrimitiveCollection<List<string>>("Languages")
                         .IsRequired()
                         .ValueGeneratedOnAdd()
@@ -6720,6 +6724,394 @@ namespace Zelvo.Data.Migrations
                         });
                 });
 
+            modelBuilder.Entity("Zelvo.Data.Privacy.ConsentPurpose", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<bool>("Active")
+                        .HasColumnType("boolean")
+                        .HasColumnName("active");
+
+                    b.Property<DateTimeOffset>("CreatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("created_at");
+
+                    b.Property<string>("Key")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("character varying(50)")
+                        .HasColumnName("key");
+
+                    b.Property<int>("Position")
+                        .HasColumnType("integer")
+                        .HasColumnName("position");
+
+                    b.Property<Guid>("TenantId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("tenant_id");
+
+                    b.Property<DateTimeOffset>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("updated_at");
+
+                    b.Property<uint>("Version")
+                        .IsConcurrencyToken()
+                        .ValueGeneratedOnAddOrUpdate()
+                        .HasColumnType("xid")
+                        .HasColumnName("xmin");
+
+                    b.ComplexProperty(typeof(Dictionary<string, object>), "Description", "Zelvo.Data.Privacy.ConsentPurpose.Description#LocalizedText", b1 =>
+                        {
+                            b1.IsRequired();
+
+                            b1.Property<string>("Ar")
+                                .HasMaxLength(2000)
+                                .HasColumnType("character varying(2000)")
+                                .HasColumnName("description_ar");
+
+                            b1.Property<string>("En")
+                                .HasMaxLength(2000)
+                                .HasColumnType("character varying(2000)")
+                                .HasColumnName("description_en");
+                        });
+
+                    b.ComplexProperty(typeof(Dictionary<string, object>), "Name", "Zelvo.Data.Privacy.ConsentPurpose.Name#LocalizedText", b1 =>
+                        {
+                            b1.IsRequired();
+
+                            b1.Property<string>("Ar")
+                                .HasMaxLength(150)
+                                .HasColumnType("character varying(150)")
+                                .HasColumnName("name_ar");
+
+                            b1.Property<string>("En")
+                                .HasMaxLength(150)
+                                .HasColumnType("character varying(150)")
+                                .HasColumnName("name_en");
+                        });
+
+                    b.HasKey("Id")
+                        .HasName("pk_consent_purposes");
+
+                    b.HasIndex("TenantId", "Key")
+                        .IsUnique()
+                        .HasDatabaseName("ix_consent_purposes_tenant_id_key");
+
+                    b.ToTable("consent_purposes", (string)null);
+                });
+
+            modelBuilder.Entity("Zelvo.Data.Privacy.ConsentRecord", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<string>("Action")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("character varying(20)")
+                        .HasColumnName("action");
+
+                    b.Property<string>("Channel")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("character varying(20)")
+                        .HasColumnName("channel");
+
+                    b.Property<DateTimeOffset>("CreatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("created_at");
+
+                    b.Property<Guid?>("NoticeId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("notice_id");
+
+                    b.Property<int?>("NoticeVersion")
+                        .HasColumnType("integer")
+                        .HasColumnName("notice_version");
+
+                    b.Property<Guid?>("PurposeId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("purpose_id");
+
+                    b.Property<Guid?>("RecordedById")
+                        .HasColumnType("uuid")
+                        .HasColumnName("recorded_by_id");
+
+                    b.Property<Guid>("TenantId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("tenant_id");
+
+                    b.Property<Guid?>("UserId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("user_id");
+
+                    b.Property<string>("VisitorReference")
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)")
+                        .HasColumnName("visitor_reference");
+
+                    b.HasKey("Id")
+                        .HasName("pk_consent_records");
+
+                    b.HasIndex("NoticeId")
+                        .HasDatabaseName("ix_consent_records_notice_id");
+
+                    b.HasIndex("PurposeId")
+                        .HasDatabaseName("ix_consent_records_purpose_id");
+
+                    b.HasIndex("RecordedById")
+                        .HasDatabaseName("ix_consent_records_recorded_by_id");
+
+                    b.HasIndex("UserId")
+                        .HasDatabaseName("ix_consent_records_user_id");
+
+                    b.HasIndex("TenantId", "UserId", "CreatedAt")
+                        .HasDatabaseName("ix_consent_records_tenant_id_user_id_created_at");
+
+                    b.ToTable("consent_records", null, t =>
+                        {
+                            t.HasCheckConstraint("ck_consent_records_action", "action IN ('NoticeAccepted', 'Granted', 'Withdrawn')");
+
+                            t.HasCheckConstraint("ck_consent_records_channel", "channel IN ('Web', 'Chat', 'Anonymous', 'Staff', 'Api')");
+
+                            t.HasCheckConstraint("ck_consent_records_what", "(action = 'NoticeAccepted' AND notice_id IS NOT NULL) OR (action <> 'NoticeAccepted' AND purpose_id IS NOT NULL)");
+
+                            t.HasCheckConstraint("ck_consent_records_who", "user_id IS NOT NULL OR visitor_reference IS NOT NULL");
+                        });
+                });
+
+            modelBuilder.Entity("Zelvo.Data.Privacy.DataSubjectRequest", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<string>("Channel")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("character varying(20)")
+                        .HasColumnName("channel");
+
+                    b.Property<DateTimeOffset?>("ClosedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("closed_at");
+
+                    b.Property<string>("Details")
+                        .HasMaxLength(4000)
+                        .HasColumnType("character varying(4000)")
+                        .HasColumnName("details");
+
+                    b.Property<DateTimeOffset>("DueAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("due_at");
+
+                    b.Property<DateTimeOffset?>("ErasedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("erased_at");
+
+                    b.Property<DateTimeOffset?>("ExportedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("exported_at");
+
+                    b.Property<Guid?>("HandlerId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("handler_id");
+
+                    b.Property<string>("IdentityCheck")
+                        .HasMaxLength(4000)
+                        .HasColumnType("character varying(4000)")
+                        .HasColumnName("identity_check");
+
+                    b.Property<string>("Number")
+                        .IsRequired()
+                        .HasMaxLength(30)
+                        .HasColumnType("character varying(30)")
+                        .HasColumnName("number");
+
+                    b.Property<DateTimeOffset>("ReceivedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("received_at");
+
+                    b.Property<string>("Resolution")
+                        .HasMaxLength(4000)
+                        .HasColumnType("character varying(4000)")
+                        .HasColumnName("resolution");
+
+                    b.Property<long>("Sequence")
+                        .HasColumnType("bigint")
+                        .HasColumnName("sequence");
+
+                    b.Property<string>("State")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("character varying(20)")
+                        .HasColumnName("state");
+
+                    b.Property<Guid>("SubjectId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("subject_id");
+
+                    b.Property<Guid?>("SubmittedById")
+                        .HasColumnType("uuid")
+                        .HasColumnName("submitted_by_id");
+
+                    b.Property<Guid>("TenantId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("tenant_id");
+
+                    b.Property<string>("Type")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("character varying(20)")
+                        .HasColumnName("type");
+
+                    b.Property<DateTimeOffset>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("updated_at");
+
+                    b.Property<uint>("Version")
+                        .IsConcurrencyToken()
+                        .ValueGeneratedOnAddOrUpdate()
+                        .HasColumnType("xid")
+                        .HasColumnName("xmin");
+
+                    b.HasKey("Id")
+                        .HasName("pk_data_subject_requests");
+
+                    b.HasIndex("HandlerId")
+                        .HasDatabaseName("ix_data_subject_requests_handler_id");
+
+                    b.HasIndex("SubjectId")
+                        .HasDatabaseName("ix_data_subject_requests_subject_id");
+
+                    b.HasIndex("SubmittedById")
+                        .HasDatabaseName("ix_data_subject_requests_submitted_by_id");
+
+                    b.HasIndex("TenantId", "Sequence")
+                        .IsUnique()
+                        .HasDatabaseName("ix_data_subject_requests_tenant_id_sequence");
+
+                    b.HasIndex("TenantId", "State", "DueAt")
+                        .HasDatabaseName("ix_data_subject_requests_tenant_id_state_due_at");
+
+                    b.ToTable("data_subject_requests", null, t =>
+                        {
+                            t.HasCheckConstraint("ck_data_subject_requests_channel", "channel IN ('Portal', 'Staff')");
+
+                            t.HasCheckConstraint("ck_data_subject_requests_state", "state IN ('Received', 'InProgress', 'Completed', 'Rejected', 'Withdrawn')");
+
+                            t.HasCheckConstraint("ck_data_subject_requests_type", "type IN ('Access', 'Correction', 'Erasure', 'Restriction', 'Objection')");
+                        });
+                });
+
+            modelBuilder.Entity("Zelvo.Data.Privacy.PrivacyNotice", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<DateTimeOffset>("CreatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("created_at");
+
+                    b.Property<Guid?>("CreatedById")
+                        .HasColumnType("uuid")
+                        .HasColumnName("created_by_id");
+
+                    b.Property<DateTimeOffset?>("PublishedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("published_at");
+
+                    b.Property<Guid?>("PublishedById")
+                        .HasColumnType("uuid")
+                        .HasColumnName("published_by_id");
+
+                    b.Property<uint>("RowVersion")
+                        .IsConcurrencyToken()
+                        .ValueGeneratedOnAddOrUpdate()
+                        .HasColumnType("xid")
+                        .HasColumnName("xmin");
+
+                    b.Property<string>("State")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("character varying(20)")
+                        .HasColumnName("state");
+
+                    b.Property<Guid>("TenantId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("tenant_id");
+
+                    b.Property<DateTimeOffset>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("updated_at");
+
+                    b.Property<int>("Version")
+                        .HasColumnType("integer")
+                        .HasColumnName("version");
+
+                    b.ComplexProperty(typeof(Dictionary<string, object>), "Body", "Zelvo.Data.Privacy.PrivacyNotice.Body#LocalizedText", b1 =>
+                        {
+                            b1.IsRequired();
+
+                            b1.Property<string>("Ar")
+                                .HasMaxLength(50000)
+                                .HasColumnType("character varying(50000)")
+                                .HasColumnName("body_ar");
+
+                            b1.Property<string>("En")
+                                .HasMaxLength(50000)
+                                .HasColumnType("character varying(50000)")
+                                .HasColumnName("body_en");
+                        });
+
+                    b.ComplexProperty(typeof(Dictionary<string, object>), "Title", "Zelvo.Data.Privacy.PrivacyNotice.Title#LocalizedText", b1 =>
+                        {
+                            b1.IsRequired();
+
+                            b1.Property<string>("Ar")
+                                .HasMaxLength(200)
+                                .HasColumnType("character varying(200)")
+                                .HasColumnName("title_ar");
+
+                            b1.Property<string>("En")
+                                .HasMaxLength(200)
+                                .HasColumnType("character varying(200)")
+                                .HasColumnName("title_en");
+                        });
+
+                    b.HasKey("Id")
+                        .HasName("pk_privacy_notices");
+
+                    b.HasIndex("CreatedById")
+                        .HasDatabaseName("ix_privacy_notices_created_by_id");
+
+                    b.HasIndex("PublishedById")
+                        .HasDatabaseName("ix_privacy_notices_published_by_id");
+
+                    b.HasIndex("TenantId", "Version")
+                        .IsUnique()
+                        .HasDatabaseName("ix_privacy_notices_tenant_id_version");
+
+                    b.HasIndex(new[] { "TenantId" }, "ix_privacy_notices_draft")
+                        .IsUnique()
+                        .HasDatabaseName("ix_privacy_notices_tenant_id")
+                        .HasFilter("state = 'Draft'");
+
+                    b.HasIndex(new[] { "TenantId" }, "ix_privacy_notices_published")
+                        .IsUnique()
+                        .HasDatabaseName("ix_privacy_notices_tenant_id1")
+                        .HasFilter("state = 'Published'");
+
+                    b.ToTable("privacy_notices", null, t =>
+                        {
+                            t.HasCheckConstraint("ck_privacy_notices_state", "state IN ('Draft', 'Published', 'Superseded')");
+                        });
+                });
+
             modelBuilder.Entity("Zelvo.Data.Reports.ReportDelivery", b =>
                 {
                     b.Property<Guid>("Id")
@@ -7900,6 +8292,10 @@ namespace Zelvo.Data.Migrations
                         .HasColumnType("uuid")
                         .HasColumnName("id");
 
+                    b.Property<DateTimeOffset?>("AnonymisedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("anonymised_at");
+
                     b.Property<Guid?>("AssigneeId")
                         .HasColumnType("uuid")
                         .HasColumnName("assignee_id");
@@ -8327,6 +8723,10 @@ namespace Zelvo.Data.Migrations
                         .HasMaxLength(500)
                         .HasColumnType("character varying(500)")
                         .HasColumnName("email_message_id");
+
+                    b.Property<DateTimeOffset?>("ErasedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("erased_at");
 
                     b.Property<string>("Language")
                         .IsRequired()
@@ -10789,6 +11189,101 @@ namespace Zelvo.Data.Migrations
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired()
                         .HasConstraintName("fk_payment_refunds_tenants_tenant_id");
+                });
+
+            modelBuilder.Entity("Zelvo.Data.Privacy.ConsentPurpose", b =>
+                {
+                    b.HasOne("Zelvo.Data.Tenancy.Tenant", null)
+                        .WithMany()
+                        .HasForeignKey("TenantId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired()
+                        .HasConstraintName("fk_consent_purposes_tenants_tenant_id");
+                });
+
+            modelBuilder.Entity("Zelvo.Data.Privacy.ConsentRecord", b =>
+                {
+                    b.HasOne("Zelvo.Data.Privacy.PrivacyNotice", null)
+                        .WithMany()
+                        .HasForeignKey("NoticeId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .HasConstraintName("fk_consent_records_privacy_notices_notice_id");
+
+                    b.HasOne("Zelvo.Data.Privacy.ConsentPurpose", null)
+                        .WithMany()
+                        .HasForeignKey("PurposeId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .HasConstraintName("fk_consent_records_consent_purposes_purpose_id");
+
+                    b.HasOne("Zelvo.Data.Identity.UserAccount", null)
+                        .WithMany()
+                        .HasForeignKey("RecordedById")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .HasConstraintName("fk_consent_records_users_recorded_by_id");
+
+                    b.HasOne("Zelvo.Data.Tenancy.Tenant", null)
+                        .WithMany()
+                        .HasForeignKey("TenantId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired()
+                        .HasConstraintName("fk_consent_records_tenants_tenant_id");
+
+                    b.HasOne("Zelvo.Data.Identity.UserAccount", null)
+                        .WithMany()
+                        .HasForeignKey("UserId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .HasConstraintName("fk_consent_records_users_user_id");
+                });
+
+            modelBuilder.Entity("Zelvo.Data.Privacy.DataSubjectRequest", b =>
+                {
+                    b.HasOne("Zelvo.Data.Identity.UserAccount", null)
+                        .WithMany()
+                        .HasForeignKey("HandlerId")
+                        .OnDelete(DeleteBehavior.SetNull)
+                        .HasConstraintName("fk_data_subject_requests_users_handler_id");
+
+                    b.HasOne("Zelvo.Data.Identity.UserAccount", null)
+                        .WithMany()
+                        .HasForeignKey("SubjectId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired()
+                        .HasConstraintName("fk_data_subject_requests_users_subject_id");
+
+                    b.HasOne("Zelvo.Data.Identity.UserAccount", null)
+                        .WithMany()
+                        .HasForeignKey("SubmittedById")
+                        .OnDelete(DeleteBehavior.SetNull)
+                        .HasConstraintName("fk_data_subject_requests_users_submitted_by_id");
+
+                    b.HasOne("Zelvo.Data.Tenancy.Tenant", null)
+                        .WithMany()
+                        .HasForeignKey("TenantId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired()
+                        .HasConstraintName("fk_data_subject_requests_tenants_tenant_id");
+                });
+
+            modelBuilder.Entity("Zelvo.Data.Privacy.PrivacyNotice", b =>
+                {
+                    b.HasOne("Zelvo.Data.Identity.UserAccount", null)
+                        .WithMany()
+                        .HasForeignKey("CreatedById")
+                        .OnDelete(DeleteBehavior.SetNull)
+                        .HasConstraintName("fk_privacy_notices_users_created_by_id");
+
+                    b.HasOne("Zelvo.Data.Identity.UserAccount", null)
+                        .WithMany()
+                        .HasForeignKey("PublishedById")
+                        .OnDelete(DeleteBehavior.SetNull)
+                        .HasConstraintName("fk_privacy_notices_users_published_by_id");
+
+                    b.HasOne("Zelvo.Data.Tenancy.Tenant", null)
+                        .WithMany()
+                        .HasForeignKey("TenantId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired()
+                        .HasConstraintName("fk_privacy_notices_tenants_tenant_id");
                 });
 
             modelBuilder.Entity("Zelvo.Data.Reports.ReportDelivery", b =>

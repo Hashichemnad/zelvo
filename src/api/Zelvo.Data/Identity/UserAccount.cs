@@ -113,6 +113,13 @@ public sealed class UserAccount : ITenantOwned, IAuditedEntity
     /// <summary>Task E3: notifications also go to Microsoft Teams once the person has used the tenant's Teams app.</summary>
     public bool NotifyTeams { get; set; } = true;
 
+    /// <summary>
+    /// Task F5: when the person's personal data was erased (a data subject request or the
+    /// retention period of inactive accounts). The record stays, without name, email, phone,
+    /// Emirates ID or roles, so what refers to it keeps working and shows "Erased person".
+    /// </summary>
+    public DateTimeOffset? ErasedAt { get; set; }
+
     /// <summary>Optimistic concurrency token (PostgreSQL <c>xmin</c>).</summary>
     public uint Version { get; init; }
 }

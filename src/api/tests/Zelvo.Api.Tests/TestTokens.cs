@@ -80,6 +80,19 @@ internal sealed class FakeKeycloakAdmin : IKeycloakAdmin
 {
     public List<(string Realm, RealmBranding Branding)> BrandingCalls { get; } = [];
 
+    /// <summary>Users removed by erasure (task F5).</summary>
+    public List<(string Realm, string Subject)> DeletedUsers { get; } = [];
+
+    public Task DeleteUserAsync(string realm, string subject, CancellationToken cancellationToken)
+    {
+        lock (DeletedUsers)
+        {
+            DeletedUsers.Add((realm, subject));
+        }
+
+        return Task.CompletedTask;
+    }
+
     public Task ApplyBrandingAsync(string realm, RealmBranding branding, CancellationToken cancellationToken)
     {
         BrandingCalls.Add((realm, branding));

@@ -314,6 +314,12 @@ internal static partial class UserEndpoints
             return NotFound();
         }
 
+        // Task F5: an erased person's account stays empty and disabled.
+        if (account.ErasedAt is not null)
+        {
+            return (ProblemHttpResult)ApiProblem.Create(StatusCodes.Status409Conflict, "user-erased", "This person's data was erased; the account cannot be changed.");
+        }
+
         if (request.Status == UserStatus.Disabled && account.Id == user.Account?.Id)
         {
             return (ProblemHttpResult)ApiProblem.Create(StatusCodes.Status409Conflict, "cannot-disable-self", "You cannot disable your own account.");
@@ -400,6 +406,12 @@ internal static partial class UserEndpoints
         if (account is null)
         {
             return NotFound();
+        }
+
+        // Task F5: an erased person's account stays empty and disabled.
+        if (account.ErasedAt is not null)
+        {
+            return (ProblemHttpResult)ApiProblem.Create(StatusCodes.Status409Conflict, "user-erased", "This person's data was erased; the account cannot be changed.");
         }
 
         var losesAdmin = IsTenantAdmin(account) && !keys.Contains(BuiltInRoles.TenantAdmin);
@@ -492,7 +504,7 @@ internal sealed record UserResponse(
     Guid Id, string? DisplayName, string? Email, string? EmiratesId, UserStatus Status, IReadOnlyList<string> Roles,
     DateTimeOffset? LastSeenAt, DateTimeOffset CreatedAt,
     IReadOnlyList<ServiceDesk.NamedRef> Skills, IReadOnlyList<string> Languages, bool AvailableForAssignment, IReadOnlyList<UserGroupResponse> Groups,
-    ServiceDesk.NamedRef? Department, PersonRef? Manager, ServiceDesk.NodeRef? Location, string? EmployeeId, string? Phone)
+    ServiceDesk.NamedRef? Department, PersonRef? Manager, ServiceDesk.NodeRef? Location, string? EmployeeId, string? Phone, DateTimeOffset? ErasedAt = null)
 {
     public static UserResponse From(UserAccount account, ILookup<Guid, UserGroupResponse>? groups = null, ProfileRefs? profiles = null) => new(
         account.Id, account.DisplayName, account.Email, account.EmiratesId, account.Status,
@@ -502,7 +514,7 @@ internal sealed record UserResponse(
         account.Languages, account.AvailableForAssignment,
         [.. (groups?[account.Id] ?? []).OrderBy(g => g.Name.En, StringComparer.OrdinalIgnoreCase)],
         profiles?.Department(account.DepartmentId), profiles?.Manager(account.ManagerId), profiles?.Location(account.LocationId),
-        account.EmployeeId, account.Phone);
+        account.EmployeeId, account.Phone, account.ErasedAt);
 }
 
 /// <summary>A group a user belongs to.</summary>

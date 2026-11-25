@@ -608,8 +608,8 @@ These requirements make the platform ready for UAE government tenders; they are 
 | GOV-2 | Happiness meter on ticket closure and in the portal | Rating scale and wording configurable to the entity's customer-happiness charter. Decided 2026-11-24: three faces by default (five points as an option), asked when any of the requester's tickets is resolved, plus a general rating in the portal |
 | GOV-3 | Happiness and customer-voice reporting | Complaints, inquiries, suggestions and happiness trends per service and channel |
 | GOV-4 | Data hosted in the UAE | Each customer hosts Zelvo on its own servers or its own UAE cloud account |
-| GOV-5 | Compliance with the UAE Personal Data Protection Law and sector rules | Consent, retention periods, data subject requests, export and deletion |
-| GOV-6 | Alignment with the UAE Information Assurance standard | Control mapping delivered as evidence for security reviews |
+| GOV-5 | Compliance with the UAE Personal Data Protection Law and sector rules | Consent, retention periods, data subject requests, export and deletion. Decided 2026-11-25: versioned privacy notice plus optional consent purposes; retention periods anonymise records and are off by default; erasure anonymises tickets and keeps the audit log as the legal record (shown as "Erased person") |
+| GOV-6 | Alignment with the UAE Information Assurance standard | Control mapping delivered as evidence for security reviews (`docs/security/uae-ia-mapping.md`, task F5) |
 | GOV-7 | UAE business calendar | Friday half-day / Saturday–Sunday weekend patterns and public holidays per tenant |
 | GOV-8 | Arabic official correspondence | Arabic email and notification templates with formal tone, entity letterhead. Terms approved 2026-11-24: المتعامل, طلب, شكوى / استفسار / اقتراح, اعتماد (`docs/guidelines/arabic-formal-correspondence.md`) |
 | GOV-9 | Accessibility | WCAG 2.2 AA in both languages |

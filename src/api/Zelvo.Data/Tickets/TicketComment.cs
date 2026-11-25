@@ -74,6 +74,12 @@ public sealed class TicketComment : ITenantOwned, IAuditedEntity
 
     /// <summary>When it was written.</summary>
     public DateTimeOffset CreatedAt { get; init; } = DateTimeOffset.UtcNow;
+
+    /// <summary>
+    /// Task F5: when its text was removed for privacy (its author or the ticket's requester was
+    /// erased, or the ticket's retention period ended). The only change a comment allows.
+    /// </summary>
+    public DateTimeOffset? ErasedAt { get; init; }
 }
 
 /// <summary>How a comment was written (task E2).</summary>

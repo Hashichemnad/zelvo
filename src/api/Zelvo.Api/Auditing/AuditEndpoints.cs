@@ -84,8 +84,9 @@ internal static class AuditEndpoints
             ["returned"] = events.Count,
         }, cancellationToken: cancellationToken);
 
+        var erased = await Privacy.ErasedPeople.AmongAsync(db, events.Select(e => e.ActorId), cancellationToken);
         return TypedResults.Ok(new PageResult<AuditEventResponse>(
-            events.Select(AuditEventResponse.From).ToList(), paging.Number, paging.Size, total));
+            events.Select(e => AuditEventResponse.From(e, erased)).ToList(), paging.Number, paging.Size, total));
     }
 
     internal static async Task<Ok<AuditVerificationResponse>> VerifyAsync(
@@ -134,7 +135,8 @@ public sealed class AuditEventFilter
 }
 
 /// <summary>Who acted.</summary>
-internal sealed record AuditActorResponse(AuditActorType Type, string? Id, string? Name);
+/// <param name="Erased">Task F5: the person was erased; their name is not shown (the entry itself is unchanged).</param>
+internal sealed record AuditActorResponse(AuditActorType Type, string? Id, string? Name, bool Erased = false);
 
 /// <summary>One audit log entry.</summary>
 internal sealed record AuditEventResponse(
@@ -150,12 +152,14 @@ internal sealed record AuditEventResponse(
     string Hash,
     string? PreviousHash)
 {
-    public static AuditEventResponse From(AuditEvent e) => new(
+    public static AuditEventResponse From(AuditEvent e, IReadOnlySet<string>? erased = null) => new(
         e.Sequence,
         e.OccurredAt,
         e.Category,
         e.Action,
-        new AuditActorResponse(e.ActorType, e.ActorId, e.ActorName),
+        erased is not null && Privacy.ErasedPeople.IsErased(e, erased)
+            ? new AuditActorResponse(e.ActorType, e.ActorId, null, Erased: true)
+            : new AuditActorResponse(e.ActorType, e.ActorId, e.ActorName),
         e.EntityType,
         e.EntityId,
         Parse(e.Changes),

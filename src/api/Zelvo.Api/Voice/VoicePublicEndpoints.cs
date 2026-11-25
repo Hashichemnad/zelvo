@@ -102,6 +102,13 @@ internal static class VoicePublicEndpoints
             return problem;
         }
 
+        // Task F5: anonymous senders see the privacy notice (when one is published) first.
+        var (noticeProblem, notice) = await Privacy.PrivacyConsents.VisitorCheckAsync(db, request.PrivacyNoticeAccepted, cancellationToken);
+        if (noticeProblem is not null)
+        {
+            return noticeProblem;
+        }
+
         await using var transaction = await db.Database.BeginTransactionAsync(cancellationToken);
         var anonymousId = await AnonymousAccounts.GetOrCreateAsync(db, cancellationToken);
         await db.SaveChangesAsync(cancellationToken);
@@ -109,6 +116,7 @@ internal static class VoicePublicEndpoints
         var ticket = await VoiceCore.CreateAsync(http, db, settings, tenant, indexer,
             new VoiceDraft(type, request.Title!, request.Description, anonymousId, null, TicketChannel.Portal, null, null,
                 request.ServiceId, null, Anonymous: true, TrackingCodeHash: VoiceCore.HashCode(code)), cancellationToken);
+        Privacy.PrivacyConsents.RecordVisitor(db, notice, $"ticket:{ticket.Id}", Data.Privacy.ConsentChannel.Anonymous);
         await db.SaveChangesAsync(cancellationToken);
         await transaction.CommitAsync(cancellationToken);
         return TypedResults.Created("/api/v1/public/customer-voice/track", new AnonymousSubmissionResponse(ticket.Number, code, type));
@@ -390,6 +398,9 @@ internal sealed class AnonymousSubmissionRequest
 
     /// <summary>A public service it is about.</summary>
     public Guid? ServiceId { get; init; }
+
+    /// <summary>The sender read the privacy notice (needed when the organisation published one; task F5).</summary>
+    public bool? PrivacyNoticeAccepted { get; init; }
 }
 
 /// <summary>Number and code.</summary>

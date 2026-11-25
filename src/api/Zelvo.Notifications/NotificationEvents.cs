@@ -150,6 +150,18 @@ public static class NotificationEvents
     /// <summary>A request was closed because its fee was not paid in time (task E8).</summary>
     public const string PaymentExpired = "payment.expired";
 
+    /// <summary>A data subject request was received (task F5); to the person it is about.</summary>
+    public const string PrivacyRequestReceived = "privacy.request.received";
+
+    /// <summary>A data subject request was completed (task F5).</summary>
+    public const string PrivacyRequestCompleted = "privacy.request.completed";
+
+    /// <summary>A data subject request was refused, with the reason (task F5).</summary>
+    public const string PrivacyRequestRejected = "privacy.request.rejected";
+
+    /// <summary>A new data subject request waits; to holders of <c>privacy.requests</c> (task F5).</summary>
+    public const string PrivacyRequestNew = "privacy.request.new";
+
     /// <summary>
     /// A notify action of a workflow rule (task C3). Its wording is the rule's own, carried in the
     /// notification's values; it is not listed in Settings → Notifications or Account → Notifications.
@@ -215,6 +227,11 @@ public static class NotificationEvents
         new(PaymentRefunded, NotificationAudience.Requester, false,
             [Placeholders.TicketNumber, Placeholders.TicketTitle, Placeholders.ServiceName, Placeholders.PaymentReceipt, Placeholders.RefundAmount, Placeholders.RefundReason]),
         new(PaymentExpired, NotificationAudience.Requester, true, [Placeholders.TicketNumber, Placeholders.TicketTitle, Placeholders.ServiceName, Placeholders.PaymentAmount]),
+        // Task F5: what happens to a person's data subject request; the email cannot be turned off.
+        new(PrivacyRequestReceived, NotificationAudience.Requester, false, [Placeholders.PrivacyRequestNumber, Placeholders.PrivacyRequestType, Placeholders.PrivacyRequestDueAt]),
+        new(PrivacyRequestCompleted, NotificationAudience.Requester, false, [Placeholders.PrivacyRequestNumber, Placeholders.PrivacyRequestType, Placeholders.PrivacyRequestResolution]),
+        new(PrivacyRequestRejected, NotificationAudience.Requester, false, [Placeholders.PrivacyRequestNumber, Placeholders.PrivacyRequestType, Placeholders.PrivacyRequestResolution]),
+        new(PrivacyRequestNew, NotificationAudience.Staff, false, [Placeholders.PrivacyRequestNumber, Placeholders.PrivacyRequestType, Placeholders.PrivacyRequestDueAt]),
     ];
 
     /// <summary>Events that are not set up in Settings (their wording comes from elsewhere).</summary>
@@ -305,6 +322,18 @@ public static class Placeholders
 
     /// <summary>When a fulfilment task is due.</summary>
     public const string TaskDueAt = "task.dueAt";
+
+    /// <summary>A data subject request's number, for example DSR-000123 (task F5).</summary>
+    public const string PrivacyRequestNumber = "privacyRequest.number";
+
+    /// <summary>The right a data subject request uses, in words (task F5).</summary>
+    public const string PrivacyRequestType = "privacyRequest.type";
+
+    /// <summary>When a data subject request is due (task F5).</summary>
+    public const string PrivacyRequestDueAt = "privacyRequest.dueAt";
+
+    /// <summary>What was done, or why a data subject request was refused (task F5).</summary>
+    public const string PrivacyRequestResolution = "privacyRequest.resolution";
 
     /// <summary>A fee in AED (task E8).</summary>
     public const string PaymentAmount = "payment.amount";

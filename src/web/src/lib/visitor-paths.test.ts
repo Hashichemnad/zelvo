@@ -13,6 +13,14 @@ describe("visitor paths of the API proxy", () => {
     expect(isVisitorPath("GET", ["v1", "settings", "knowledge"])).toBe(true);
   });
 
+  it("lets visitors read the published privacy notice, and nothing else of privacy (task F5)", () => {
+    expect(isVisitorPath("GET", ["v1", "privacy", "notice"])).toBe(true);
+    expect(isVisitorPath("POST", ["v1", "privacy", "notice"])).toBe(false);
+    expect(isVisitorPath("GET", ["v1", "privacy", "notices"])).toBe(false);
+    expect(isVisitorPath("GET", ["v1", "privacy", "requests"])).toBe(false);
+    expect(isVisitorPath("GET", ["v1", "privacy", "notice", id])).toBe(false);
+  });
+
   it("lets visitors browse the catalog, read a service card and download its files (task C2)", () => {
     expect(isVisitorPath("GET", ["v1", "catalog", "published"])).toBe(true);
     expect(isVisitorPath("GET", ["v1", "catalog", "published", id])).toBe(true);

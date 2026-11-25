@@ -75,7 +75,12 @@
     "teams.app.short": "تسجيل الطلبات ومتابعتها والبت في الاعتمادات.",
     "teams.app.full": "تسجيل الطلبات بإرسال رسالة، واستلام التحديثات عن طلباتكم، والبت في الاعتمادات المطلوبة منكم، وذلك كله في Microsoft Teams.",
     "monitoring.resolved": "زال التنبيه",
-    "monitoring.fired-again": "تكرر التنبيه ({count} مرات)"
+    "monitoring.fired-again": "تكرر التنبيه ({count} مرات)",
+    "privacy.type.Access": "الحصول على نسخة من بياناتكم الشخصية",
+    "privacy.type.Correction": "تصحيح بياناتكم الشخصية",
+    "privacy.type.Erasure": "محو بياناتكم الشخصية",
+    "privacy.type.Restriction": "تقييد معالجة بياناتكم الشخصية",
+    "privacy.type.Objection": "الاعتراض على معالجة بياناتكم الشخصية"
   },
   "templates": {
     "incident.received": {
@@ -305,6 +310,30 @@
       "inApp": "أُغلق طلبكم «{{ticket.title}}» لعدم سداد رسومه في الموعد المحدد.",
       "body": "حضرة {{recipient.name}} المحترم،\n\nأُغلق طلبكم {{ticket.number}} لخدمة «{{service.name}}» لعدم سداد رسومه البالغة {{payment.amount}} درهم في الموعد المحدد. ويسعدنا تقديم طلب جديد متى شئتم.\n\nمع التحية،\n{{tenant.name}}",
       "action": "عرض الطلب"
+    },
+    "privacy.request.received": {
+      "subject": "{{privacyRequest.number}}: تم استلام طلبكم المتعلق بالخصوصية",
+      "inApp": "تم استلام طلبكم بشأن {{privacyRequest.type}} ({{privacyRequest.number}}).",
+      "body": "حضرة {{recipient.name}} المحترم،\n\nتم استلام طلبكم رقم {{privacyRequest.number}} بشأن {{privacyRequest.type}}، وسيتم الرد عليه في موعد أقصاه {{privacyRequest.dueAt}}.\n\nيمكنكم متابعة الطلب من صفحة الحساب ← الخصوصية في بوابة الخدمات.\n\nمع التحية،\n{{tenant.name}}",
+      "action": "عرض طلبات الخصوصية"
+    },
+    "privacy.request.completed": {
+      "subject": "{{privacyRequest.number}}: تم تنفيذ طلبكم المتعلق بالخصوصية",
+      "inApp": "تم تنفيذ طلبكم بشأن {{privacyRequest.type}} ({{privacyRequest.number}}).",
+      "body": "حضرة {{recipient.name}} المحترم،\n\nنفيدكم بأنه تم تنفيذ طلبكم رقم {{privacyRequest.number}} بشأن {{privacyRequest.type}}.\n\n{{privacyRequest.resolution}}\n\nمع التحية،\n{{tenant.name}}",
+      "action": "عرض طلبات الخصوصية"
+    },
+    "privacy.request.rejected": {
+      "subject": "{{privacyRequest.number}}: تعذّر تنفيذ طلبكم المتعلق بالخصوصية",
+      "inApp": "تعذّر تنفيذ طلبكم بشأن {{privacyRequest.type}} ({{privacyRequest.number}}).",
+      "body": "حضرة {{recipient.name}} المحترم،\n\nنأسف لإفادتكم بتعذّر تنفيذ طلبكم رقم {{privacyRequest.number}} بشأن {{privacyRequest.type}}، وذلك للسبب التالي:\n\n{{privacyRequest.resolution}}\n\nللاستفسار، يُرجى التواصل معنا.\n\nمع التحية،\n{{tenant.name}}",
+      "action": "عرض طلبات الخصوصية"
+    },
+    "privacy.request.new": {
+      "subject": "{{privacyRequest.number}}: طلب جديد متعلق بالخصوصية",
+      "inApp": "ورد طلب جديد بشأن {{privacyRequest.type}} ({{privacyRequest.number}})، ويُستحق الرد عليه في موعد أقصاه {{privacyRequest.dueAt}}.",
+      "body": "حضرة {{recipient.name}} المحترم،\n\nورد طلب جديد من صاحب البيانات برقم {{privacyRequest.number}} بشأن {{privacyRequest.type}}، ويُستحق الرد عليه في موعد أقصاه {{privacyRequest.dueAt}}.\n\nمع التحية،\n{{tenant.name}}",
+      "action": "فتح الطلب"
     }
   },
   "samples": {
@@ -322,6 +351,7 @@
     "service.name": "حاسوب محمول جديد",
     "approval.level": "اعتماد المدير",
     "approval.reason": "تم استنفاد ميزانية هذا الربع.",
-    "task.name": "تجهيز الحاسوب"
+    "task.name": "تجهيز الحاسوب",
+    "privacyRequest.resolution": "أُتيحت لكم نسخة من بياناتكم يمكنكم تنزيلها من صفحة الحساب ← الخصوصية."
   }
 }

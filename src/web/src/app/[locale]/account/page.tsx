@@ -1,5 +1,6 @@
 import { redirect } from "next/navigation";
 import { getTranslations, setRequestLocale } from "next-intl/server";
+import { Link } from "@/i18n/navigation";
 import { getDirection, otherLocale, type Locale } from "@/i18n/routing";
 import { PreferencesForm } from "@/components/PreferencesForm";
 import { AvailabilitySwitch } from "@/components/directory/AvailabilitySwitch";
@@ -96,6 +97,13 @@ export default async function AccountPage({ params }: PageProps<"/[locale]/accou
               : { language: "en", calendar: "Gregorian", digits: "Western" }
           }
         />
+      </section>
+
+      {/* Task F5: the privacy notice, consent, a copy of one's data and privacy requests. */}
+      <section aria-labelledby="privacy-heading" className="space-y-2">
+        <h2 id="privacy-heading" className="text-xl font-bold">{t("privacy.heading")}</h2>
+        <p className="max-w-2xl text-ink-muted">{t("privacy.intro")}</p>
+        <Link href="/account/privacy" className="font-semibold text-brand underline" data-testid="account-privacy-link">{t("privacy.link")}</Link>
       </section>
 
       {notificationPreferences && (

@@ -99,8 +99,11 @@ describe("ChatWindow", () => {
     await waitFor(() => expect(screen.getByText("You are chatting with Omar.")).toBeInTheDocument());
     expect(screen.getByText("Omar joined the chat.")).toBeInTheDocument();
 
-    const body = JSON.parse(fetchMock.mock.calls[0]![1]!.body as string);
+    // Task F5: the window first asks whether a privacy notice is published (none here).
+    const started = fetchMock.mock.calls.find(([url, init]) => url.endsWith("/sessions") && init?.method === "POST")!;
+    const body = JSON.parse(started[1]!.body as string);
     expect(body).toMatchObject({ name: "Sara", email: "sara@visitors.example.org", origin: "https://www.entity.example.gov", language: "en" });
+    expect(body).not.toHaveProperty("privacyNoticeAccepted");
     const reload = fetchMock.mock.calls.find(([url]) => url === "/bff/api/v1/chat/sessions/s1")!;
     expect((reload[1]!.headers as Record<string, string>)["X-Chat-Token"]).toBe(token);
     expect(JSON.parse(sessionStorage.getItem(`zelvo-chat:${widget.id}`)!)).toEqual({ sessionId: "s1", token });

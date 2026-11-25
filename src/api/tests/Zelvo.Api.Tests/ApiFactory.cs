@@ -25,6 +25,8 @@ public class ApiFactory : WebApplicationFactory<Program>
         ["Catalog:Jobs:Enabled"] = "false",
         // Task E8: tests run the payment jobs themselves.
         ["Payments:Jobs:Enabled"] = "false",
+        // Task F5: tests run the privacy jobs themselves.
+        ["Privacy:Jobs:Enabled"] = "false",
     };
 
     private readonly List<Action<IServiceCollection>> _services = [];

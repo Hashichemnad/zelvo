@@ -6,7 +6,7 @@ Zelvo targets OWASP ASVS **Level 2** for every tenant (non-functional requiremen
 - Status: **Met** (with evidence), **Partly met**, **Open** (with the task expected to close it), **Not applicable**, **Not assessed** (not reviewed yet).
 - Evidence points to code, tests, architecture notes and build plan tasks (A1-F7 in `docs/phase1-build-plan.md`).
 
-**Summary (2026-11-25):** Met: 101 · Partly met: 21 · Open: 3 · Not applicable: 18 · Not assessed: 110.
+**Summary (2026-11-25):** Met: 102 · Partly met: 23 · Open: 3 · Not applicable: 18 · Not assessed: 107.
 
 Main gaps found so far: web app without Content-Security-Policy and HSTS (V3.4); TLS still to add for PostgreSQL, Valkey and internal HTTP (V12.3, F6); service passwords as environment variables rather than a secrets manager (V13.3.1, F6); password policy, breached-password checks and session management settings in Keycloak not yet reviewed (V6.2, V7). File handling (V5) was added with attachments in B1.
 
@@ -287,12 +287,12 @@ Main gaps found so far: web app without Content-Security-Policy and HSTS (V3.4);
 
 | Requirement | Level | Section | Status | Evidence and notes |
 | --- | --- | --- | --- | --- |
-| V14.1.1 | 2 | V14.1 Data Protection Documentation | Not assessed |  |
-| V14.1.2 | 2 | V14.1 Data Protection Documentation | Not assessed |  |
+| V14.1.1 | 2 | V14.1 Data Protection Documentation | Met | F5: personal data is classified in code (`[SensitiveData]` masked, `[AuditLengthOnly]`, sensitive fields under field rules, `personal_answers` kept apart) and listed per table in `docs/architecture/privacy.md` (what erasure and retention remove). |
+| V14.1.2 | 2 | V14.1 Data Protection Documentation | Partly met | F5: retention, erasure, export and audit handling of personal data documented (`docs/architecture/privacy.md`, `docs/security/uae-pdpl-mapping.md`); a full per-level protection document follows with F7. |
 | V14.2.1 | 1 | V14.2 General Data Protection | Not assessed |  |
 | V14.2.2 | 2 | V14.2 General Data Protection | Not assessed |  |
 | V14.2.3 | 2 | V14.2 General Data Protection | Met | A5: telemetry stays on the installation (no calls home); traces carry no query strings, client addresses or user ids. |
-| V14.2.4 | 2 | V14.2 General Data Protection | Not assessed |  |
+| V14.2.4 | 2 | V14.2 General Data Protection | Partly met | F5: retention periods enforced by the privacy jobs, erasure and anonymisation (`PersonalDataEraser`), masking in the audit log and AI; reviewed against the full documentation in F7. |
 | V14.3.1 | 1 | V14.3 Client-side Data Protection | Not assessed |  |
 | V14.3.2 | 2 | V14.3 Client-side Data Protection | Not assessed |  |
 | V14.3.3 | 2 | V14.3 Client-side Data Protection | Met | The browser stores only the session cookie and the language cookie, and in demo installations the chosen sample organisation. A2, A3, D. |
