@@ -116,7 +116,6 @@ test.describe("customer voice", () => {
     const executiveContext = await browser.newContext();
     const executive = await executiveContext.newPage();
     await signInWithPassword(executive, devUser("executive"));
-    await completeSecondFactor(executive, devUser("executive"));
     for (const locale of ["en", "ar"]) {
       await executive.goto(`/${locale}/customer-voice/report`);
       await expect(executive.getByTestId("report-happiness")).toBeVisible();
