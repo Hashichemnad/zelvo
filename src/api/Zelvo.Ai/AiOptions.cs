@@ -30,6 +30,12 @@ public sealed class AiOptions
     /// <summary>How often the worker clears text past <see cref="LogRetention"/>.</summary>
     public TimeSpan PurgeInterval { get; set; } = TimeSpan.FromHours(1);
 
+    /// <summary>How often the worker looks for AI jobs of the features (task E5).</summary>
+    public TimeSpan JobInterval { get; set; } = TimeSpan.FromSeconds(5);
+
+    /// <summary>How long finished AI jobs are kept.</summary>
+    public TimeSpan JobRetention { get; set; } = TimeSpan.FromDays(7);
+
     /// <summary>Largest provider answer read, in bytes.</summary>
     public int MaxResponseBytes { get; set; } = 1024 * 1024;
 
@@ -43,6 +49,8 @@ public sealed class AiOptions
         options.Timeout = Time(section["Timeout"]) is { } timeout && timeout > TimeSpan.Zero && timeout <= TimeSpan.FromMinutes(5) ? timeout : options.Timeout;
         options.LogRetention = Time(section["LogRetention"]) is { } retention && retention >= TimeSpan.FromDays(1) ? retention : options.LogRetention;
         options.PurgeInterval = Time(section["PurgeInterval"]) is { } interval && interval > TimeSpan.Zero ? interval : options.PurgeInterval;
+        options.JobInterval = Time(section["JobInterval"]) is { } jobs && jobs > TimeSpan.Zero ? jobs : options.JobInterval;
+        options.JobRetention = Time(section["JobRetention"]) is { } kept && kept >= TimeSpan.FromHours(1) ? kept : options.JobRetention;
         return options;
     }
 

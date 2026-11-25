@@ -34,6 +34,9 @@ internal sealed class FakeAiProvider : IAsyncDisposable
     /// <summary>What the model answers.</summary>
     public string Answer { get; set; } = "OK";
 
+    /// <summary>Answers chosen from the request body (for example by the feature's "Task: …" line); null falls through.</summary>
+    public Func<string, string?>? Respond { get; set; }
+
     /// <summary>Answers given one per call before <see cref="Answer"/> (a scripted conversation).</summary>
     public ConcurrentQueue<string> Script { get; } = new();
 
@@ -76,7 +79,7 @@ internal sealed class FakeAiProvider : IAsyncDisposable
             return;
         }
 
-        var text = Script.TryDequeue(out var next) ? next : Answer;
+        var text = Respond?.Invoke(body) ?? (Script.TryDequeue(out var next) ? next : Answer);
         JsonNode answer = path switch
         {
             _ when path.EndsWith("/v1/messages", StringComparison.Ordinal) => new JsonObject

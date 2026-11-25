@@ -119,7 +119,7 @@ Every field of module 2's service card, each in English and Arabic where it hold
 - **Public**: also visitors who are not signed in;
 - **Restricted**: only the support groups, roles, departments, locations (and the locations below them) and named users listed.
 
-A hidden service is left out of the catalog, search and the API for everyone outside the allowed set: it answers 404, so ids cannot be probed. MCP catalog tools (C4) and the virtual agent (E5) go through the same check (`CatalogAccess.MaySee`, `PublishedServices`).
+A hidden service is left out of the catalog, search and the API for everyone outside the allowed set: it answers 404, so ids cannot be probed. MCP catalog tools (C4) and the virtual agent (it answers from knowledge articles in E5; catalog services and FAQs come with module 23) go through the same check (`CatalogAccess.MaySee`, `PublishedServices`).
 
 - Each service's access is its own. A sub-service whose main service a person cannot see is shown to them at the top level.
 - **Search (A4):** services are the `service` document type, holding their published card only (name, summary, description, FAQ, code and keywords). Readers follow the access rules: `public`, `users`, or `group:`, `role:`, `department:` (new), `location:` (new) and `user:` readers.

@@ -22,6 +22,7 @@ using Zelvo.Api.Mcp;
 using Zelvo.Api.OpenApi;
 using Zelvo.Api.Platform;
 using Zelvo.Api.Search;
+using Zelvo.Api.Branding;
 using Zelvo.Api.Security;
 using Zelvo.Api.Security.RateLimiting;
 using Zelvo.Api.Settings;
@@ -96,6 +97,7 @@ builder.Services.AddZelvoApiNotifications(builder.Configuration);
 // Agent workspace (task B4): live updates over SignalR.
 builder.Services.AddZelvoLiveUpdates();
 builder.Services.AddZelvoApiChannels(builder.Configuration);
+builder.Services.AddZelvoBranding(builder.Configuration);
 
 var app = builder.Build();
 
@@ -146,6 +148,7 @@ v1.MapFormUploadEndpoints();
 v1.MapSlaEndpoints();
 v1.MapIntegrationEndpoints();
 v1.MapAiEndpoints();
+v1.MapAiFeatureEndpoints();
 v1.MapZelvoKnowledgeEndpoints();
 v1.MapZelvoCatalogEndpoints();
 v1.MapZelvoCustomerVoiceEndpoints();
@@ -157,6 +160,7 @@ v1.MapNotificationEndpoints();
 v1.MapWorkspaceEndpoints();
 app.MapZelvoLiveUpdates();
 v1.MapZelvoChannels();
+app.MapBrandingEndpoints(v1);
 
 await app.RunAsync();
 return 0;

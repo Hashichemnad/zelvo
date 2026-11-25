@@ -32,6 +32,19 @@ public static class AiServiceCollectionExtensions
         });
         services.TryAddScoped<AiToolRunner>();
         services.TryAddScoped<IAiToolRunner>(sp => sp.GetRequiredService<AiToolRunner>());
+
+        // The AI features (task E5): jobs queued with ticket changes, and the services that call the gateway.
+        if (!services.Any(d => d.ImplementationType == typeof(Features.AiJobInterceptor)))
+        {
+            services.AddZelvoSaveChangesInterceptor<Features.AiJobInterceptor>();
+        }
+
+        services.TryAddScoped<Features.TicketTriage>();
+        services.TryAddScoped<Features.SentimentReader>();
+        services.TryAddScoped<Features.DuplicateFinder>();
+        services.TryAddScoped<Features.KnowledgeGrounding>();
+        services.TryAddScoped<Features.AgentAssist>();
+        services.TryAddScoped<Features.VirtualAgent>();
         return services;
     }
 
@@ -41,6 +54,8 @@ public static class AiServiceCollectionExtensions
         services.AddZelvoAi(configuration);
         services.TryAddSingleton<AiCallTextPurge>();
         services.AddHostedService(sp => sp.GetRequiredService<AiCallTextPurge>());
+        services.TryAddSingleton<Features.AiJobRunner>();
+        services.AddHostedService(sp => sp.GetRequiredService<Features.AiJobRunner>());
         return services;
     }
 }

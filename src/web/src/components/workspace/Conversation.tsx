@@ -8,15 +8,29 @@ import { formatDateTime, type DateDisplayOptions } from "@/lib/format";
 import { inLanguage, type Locale, type Person } from "@/lib/incidents";
 import type { CannedResponse, Comment, CommentVisibility, RenderedResponse } from "@/lib/workspace";
 import { inputClass, secondaryButtonClass } from "@/components/incidents/ReportIncidentForm";
+import { TranslateButton } from "@/components/ai/TranslateButton";
+import { aiErrorKey, type AiReply, type AiTranslation } from "@/lib/ai-features";
 
 /**
  * The conversation of an incident (module 5): public replies, which the requester sees, and
  * internal notes for staff, oldest first. Each message keeps the language it was written in and is
  * marked with it, so the agent and the requester can each work in their own language (LANG-7).
  * Task E2: messages that came by email or from a live chat say so, with the files of an email, and
- * staff see whether the email of a reply to an email ticket went out.
+ * staff see whether the email of a reply to an email ticket went out. Task E5: with the AI feature
+ * translation on, messages in the other language get a one-click translation.
  */
-export function ConversationList({ comments, display, staff }: { comments: Comment[]; display: DateDisplayOptions; staff: boolean }) {
+export function ConversationList({
+  comments,
+  display,
+  staff,
+  translate,
+}: {
+  comments: Comment[];
+  display: DateDisplayOptions;
+  staff: boolean;
+  /** One-click translation (LANG-7): the incident and the session's CSRF token. */
+  translate?: { incidentId: string; csrfToken: string } | null;
+}) {
   const t = useTranslations("workspace.conversation");
   const tLanguages = useTranslations("display.languages");
   const locale = useLocale();
@@ -48,6 +62,10 @@ export function ConversationList({ comments, display, staff }: { comments: Comme
             <p lang={comment.language} dir="auto" className="whitespace-pre-wrap">
               {comment.body}
             </p>
+            {translate && comment.language !== locale && (
+              <TranslateButton path={`/incidents/${translate.incidentId}/ai/translation`} body={{ commentId: comment.id }}
+                language={locale === "ar" ? "ar" : "en"} csrfToken={translate.csrfToken} />
+            )}
             {comment.attachments && comment.attachments.length > 0 && (
               <p className="text-xs text-ink-muted">
                 {t("files", { count: comment.attachments.length })}: <span dir="auto">{comment.attachments.map((a) => a.fileName).join(locale === "ar" ? "، " : ", ")}</span>
@@ -77,14 +95,18 @@ export interface ComposerProps {
   /** Staff who can be @mentioned. */
   people: Person[];
   disabled?: boolean;
+  /** AI features available now (task E5): suggested replies and translation of the draft. */
+  ai?: { reply: boolean; translation: boolean };
 }
 
 /**
  * Writes a public reply or an internal note. Staff pick a canned response in either language (it
  * is filled in for the ticket by the API), @mention colleagues and choose the language they write
- * in. One-click translation comes with the AI features (task E5).
+ * in. Task E5: the AI suggests a reply in the chosen language from the conversation and the
+ * knowledge base, and translates the draft into the chosen language, so the requester reads it in
+ * theirs (LANG-7); the agent reviews and sends it.
  */
-export function Composer({ incidentId, csrfToken, staff, requesterLanguage, responses, people, disabled }: ComposerProps) {
+export function Composer({ incidentId, csrfToken, staff, requesterLanguage, responses, people, disabled, ai }: ComposerProps) {
   const t = useTranslations("workspace.composer");
   const tLanguages = useTranslations("display.languages");
   const tCommon = useTranslations("common");
@@ -98,6 +120,40 @@ export function Composer({ incidentId, csrfToken, staff, requesterLanguage, resp
   const [cannedResponseId, setCannedResponseId] = useState<string | null>(null);
   const [mentions, setMentions] = useState<Person[]>([]);
   const [status, setStatus] = useState<{ kind: "idle" | "sending" | "sent" } | { kind: "failed"; message: string }>({ kind: "idle" });
+  const [aiBusy, setAiBusy] = useState(false);
+  const [sources, setSources] = useState<AiReply["articles"]>([]);
+  const tAi = useTranslations("ai.assist");
+
+  async function suggest() {
+    setAiBusy(true);
+    try {
+      const reply = await postJson<AiReply>(`/v1/incidents/${incidentId}/ai/reply`, { language }, csrfToken);
+      setVisibility("Public");
+      setBody((current) => (current.trim() ? `${current.trimEnd()}\n\n${reply.text}` : reply.text));
+      setSources(reply.articles);
+      setStatus({ kind: "idle" });
+      textRef.current?.focus();
+    } catch (error) {
+      setStatus({ kind: "failed", message: tAi(aiErrorKey(error instanceof ApiError ? error.code : null)) });
+    } finally {
+      setAiBusy(false);
+    }
+  }
+
+  async function translateDraft() {
+    if (!body.trim()) return;
+    setAiBusy(true);
+    try {
+      const translated = await postJson<AiTranslation>("/v1/ai/translate", { text: body, language, incidentId }, csrfToken);
+      setBody(translated.text);
+      setStatus({ kind: "idle" });
+      textRef.current?.focus();
+    } catch (error) {
+      setStatus({ kind: "failed", message: tAi(aiErrorKey(error instanceof ApiError ? error.code : null)) });
+    } finally {
+      setAiBusy(false);
+    }
+  }
 
   useEffect(() => {
     const start = (event: Event) => {
@@ -154,6 +210,7 @@ export function Composer({ incidentId, csrfToken, staff, requesterLanguage, resp
       }, csrfToken);
       setBody("");
       setMentions([]);
+      setSources([]);
       setCannedResponseId(null);
       setStatus({ kind: "sent" });
       router.refresh();
@@ -239,16 +296,29 @@ export function Composer({ incidentId, csrfToken, staff, requesterLanguage, resp
         <button type="submit" disabled={disabled || status.kind === "sending"} className="rounded-md bg-brand px-4 py-2 font-semibold text-surface disabled:opacity-60">
           {internal ? t("addNote") : t("sendReply")}
         </button>
-        {staff && (
-          <button type="button" disabled className={`${secondaryButtonClass} opacity-60`} title={t("translateLater")}>
-            {t("translate")}
+        {staff && ai?.reply && (
+          <button type="button" onClick={() => void suggest()} disabled={aiBusy || disabled} className={secondaryButtonClass} data-testid="suggest-reply">
+            {aiBusy ? tAi("working") : t("suggestReply")}
+          </button>
+        )}
+        {staff && ai?.translation && (
+          <button type="button" onClick={() => void translateDraft()} disabled={aiBusy || disabled || !body.trim()} className={secondaryButtonClass}>
+            {t("translateTo", { language: tLanguages(language) })}
           </button>
         )}
         <p aria-live="polite" className={status.kind === "failed" ? "text-bad" : "text-ink-muted"}>
           {status.kind === "sending" ? t("sending") : status.kind === "sent" ? t("sent") : status.kind === "failed" ? status.message : ""}
         </p>
       </div>
-      {staff && <p className="text-xs text-ink-muted">{t("translateLater")}</p>}
+      {sources.length > 0 && (
+        <p className="text-xs text-ink-muted">
+          {t("basedOn")}{" "}
+          {sources.map((a, i) => (
+            <span key={a.id}>{i > 0 && (locale === "ar" ? "، " : ", ")}<span dir="ltr">{a.number}</span> <span dir="auto">{a.title}</span></span>
+          ))}
+        </p>
+      )}
+      {staff && (ai?.reply || ai?.translation) && <p className="text-xs text-ink-muted">{t("aiReview")}</p>}
     </form>
   );
 }

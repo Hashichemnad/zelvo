@@ -427,6 +427,12 @@ public sealed class ChatWidget : ITenantOwned, IAuditedEntity
     /// <summary>Inactive widgets accept no chats.</summary>
     public bool Active { get; set; } = true;
 
+    /// <summary>
+    /// The virtual agent answers first, from the knowledge base, and hands over to a person when
+    /// asked or when it cannot help (module 9, task E5). Needs the AI feature <c>virtualAgent</c>.
+    /// </summary>
+    public bool VirtualAgent { get; set; }
+
     /// <summary>When it was created.</summary>
     public DateTimeOffset CreatedAt { get; init; } = DateTimeOffset.UtcNow;
 
@@ -442,6 +448,9 @@ public enum ChatState
 {
     /// <summary>Waiting in the group's queue.</summary>
     Waiting,
+
+    /// <summary>With the virtual agent (task E5), before or instead of a person.</summary>
+    Assistant,
 
     /// <summary>An agent accepted it.</summary>
     Active,
@@ -550,6 +559,9 @@ public enum ChatSender
 
     /// <summary>Zelvo: what happened in the chat (accepted, transferred, ended, ticket made).</summary>
     System,
+
+    /// <summary>The virtual agent (task E5): answers from the knowledge base.</summary>
+    Assistant,
 }
 
 /// <summary>A message of a live chat. Audited with the text's length only.</summary>
@@ -583,8 +595,11 @@ public sealed class ChatMessage : ITenantOwned, IAuditedEntity
     [AuditLengthOnly]
     public required string Body { get; init; }
 
-    /// <summary>System messages: <c>accepted</c>, <c>transferred</c>, <c>ended</c>, <c>ticket</c>.</summary>
+    /// <summary>System messages: <c>accepted</c>, <c>transferred</c>, <c>ended</c>, <c>ticket</c>, <c>handover</c>.</summary>
     public string? Event { get; init; }
+
+    /// <summary>Virtual agent answers: the knowledge articles it answered from.</summary>
+    public Guid[]? Citations { get; init; }
 
     /// <summary>When it was written.</summary>
     public DateTimeOffset CreatedAt { get; init; } = DateTimeOffset.UtcNow;

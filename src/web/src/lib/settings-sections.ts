@@ -6,6 +6,7 @@ export interface SettingsSection {
   /** Key under `settings.sections` in the translation files. */
   key:
     | "language"
+    | "branding"
     | "signIn"
     | "users"
     | "roles"
@@ -44,6 +45,8 @@ export interface SettingsSection {
 
 export const settingsSections: readonly SettingsSection[] = [
   { key: "language", href: "/settings/language", permission: "settings.manage" },
+  // Task F1: white-label branding, custom domains and the email sender domain.
+  { key: "branding", href: "/settings/branding", permission: "branding.manage" },
   { key: "signIn", href: "/settings/sign-in", permission: "identity.manage" },
   { key: "users", href: "/settings/users", permission: "users.read" },
   { key: "roles", href: "/settings/roles", permission: "roles.manage" },

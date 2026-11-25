@@ -88,7 +88,7 @@ public sealed partial class FormUploadCleanupJob(IServiceScopeFactory scopes, IL
         var db = scope.ServiceProvider.GetRequiredService<ZelvoDbContext>();
         var store = scope.ServiceProvider.GetRequiredService<IAttachmentStore>();
         var stale = await db.TicketAttachments
-            .Where(a => a.TicketId == null && a.ArticleId == null && a.ServiceId == null && a.UploadedAt < before)
+            .Where(a => a.TicketId == null && a.ArticleId == null && a.ServiceId == null && a.BrandingSlot == null && a.UploadedAt < before)
             .OrderBy(a => a.UploadedAt).Take(BatchSize)
             .ToListAsync(cancellationToken).ConfigureAwait(false);
         foreach (var attachment in stale)

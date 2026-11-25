@@ -15,14 +15,14 @@ import type { PendingSignIn } from "@/lib/auth/sign-in";
  * Signed-in users then see their profile language, or else the tenant default (LANG-2).
  */
 export async function GET(request: NextRequest) {
-  const requestConfig = authConfigFor(request);
+  const requestConfig = (await authConfigFor(request));
   const params = request.nextUrl.searchParams;
   const state = params.get("state");
   const cookieState = request.cookies.get(signInCookieName(requestConfig))?.value;
   const pendingRaw = state ? await getSessionStore(requestConfig.sessionStoreUrl).take(pendingSignInKey(state)) : null;
   const pending = pendingRaw ? (JSON.parse(pendingRaw) as PendingSignIn) : null;
   // Finish at the realm the sign-in started at (a demo installation serves several).
-  const config = pending?.tenant ? getAuthConfig(process.env, pending.tenant) : requestConfig;
+  const config = pending?.tenant && pending.tenant !== requestConfig.tenant ? getAuthConfig(process.env, pending.tenant) : requestConfig;
   const locale = pending?.locale ?? "en";
 
   const problem = (reason: string) => {

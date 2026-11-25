@@ -1,5 +1,5 @@
 import { NextResponse, type NextRequest } from "next/server";
-import { apiFetch, forgetLocalizationSettings } from "@/lib/api";
+import { apiFetch, forgetBranding, forgetLocalizationSettings } from "@/lib/api";
 import { authConfigFor } from "@/lib/auth/config";
 import { isSameOriginRequest, secretsMatch } from "@/lib/auth/security";
 import { getSession } from "@/lib/auth/session";
@@ -12,7 +12,7 @@ import { isVisitorPath } from "@/lib/visitor-paths";
  * session's CSRF token in the `X-CSRF-Token` header.
  */
 async function forward(request: NextRequest, { params }: { params: Promise<{ path: string[] }> }) {
-  const config = authConfigFor(request);
+  const config = (await authConfigFor(request));
   const { path } = await params;
   if (path[0] !== "v1" || path.some((part) => part === ".." || part === ".")) {
     return problem(404, "not-found");
@@ -75,6 +75,11 @@ async function forward(request: NextRequest, { params }: { params: Promise<{ pat
   if (request.method === "PUT" && path.join("/") === "v1/settings/localization" && response.ok) {
     // Visitors' pages read the tenant defaults through a short cache.
     forgetLocalizationSettings(config.tenant);
+  }
+
+  if (request.method === "POST" && /^v1\/settings\/branding\/(publish|discard)$/.test(path.join("/")) && response.ok) {
+    // Task F1: every page shows the published branding at once.
+    forgetBranding(config.tenant);
   }
 
   const result = new NextResponse(response.status === 204 ? null : response.body, { status: response.status });

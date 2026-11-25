@@ -51,7 +51,19 @@ internal interface IKeycloakAdmin
     /// Returns its Keycloak id.
     /// </summary>
     Task<string> FindOrCreateUserAsync(string realm, string email, string firstName, string lastName, CancellationToken cancellationToken);
+
+    /// <summary>
+    /// Task F1: the sign-in page's product name and image (realm display name), and the web app's
+    /// addresses: the installation's own plus the tenant's verified custom domains.
+    /// </summary>
+    Task ApplyBrandingAsync(string realm, RealmBranding branding, CancellationToken cancellationToken);
 }
+
+/// <summary>What the sign-in pages of a realm show, and where the web app runs (task F1).</summary>
+/// <param name="DisplayName">Product name (plain text).</param>
+/// <param name="DisplayNameHtml">Product name with the sign-in image, built by Zelvo with every value encoded.</param>
+/// <param name="WebUrls">Addresses of the web app: the installation's and each verified custom domain.</param>
+internal sealed record RealmBranding(string DisplayName, string DisplayNameHtml, IReadOnlyList<string> WebUrls);
 
 /// <summary>An integration's OAuth client to create.</summary>
 /// <param name="ClientId">Keycloak client id, <c>zelvo-int-…</c>.</param>
@@ -471,6 +483,33 @@ internal sealed class KeycloakAdminClient : IKeycloakAdmin
         return response.StatusCode == HttpStatusCode.NotFound
             ? null
             : await response.Content.ReadFromJsonAsync<JsonNode>(Json, cancellationToken).ConfigureAwait(false);
+    }
+
+    public async Task ApplyBrandingAsync(string realm, RealmBranding branding, CancellationToken cancellationToken)
+    {
+        ArgumentNullException.ThrowIfNull(branding);
+        using (await SendAsync(HttpMethod.Put, $"realms/{E(realm)}", new JsonObject
+        {
+            ["displayName"] = branding.DisplayName,
+            ["displayNameHtml"] = branding.DisplayNameHtml,
+        }, cancellationToken).ConfigureAwait(false))
+        {
+        }
+
+        var clients = await GetArrayAsync($"realms/{E(realm)}/clients?clientId=zelvo-web", cancellationToken).ConfigureAwait(false);
+        if (clients.Count == 0 || clients[0] is not JsonObject client || (string?)client["id"] is not { } id)
+        {
+            return;
+        }
+
+        client["redirectUris"] = new JsonArray([.. branding.WebUrls.Select(u => (JsonNode)JsonValue.Create($"{u}/auth/callback"))]);
+        client["webOrigins"] = new JsonArray([.. branding.WebUrls.Select(u => (JsonNode)JsonValue.Create(u))]);
+        var attributes = client["attributes"] as JsonObject ?? [];
+        attributes["post.logout.redirect.uris"] = string.Join("##", branding.WebUrls.Select(u => $"{u}/*"));
+        client["attributes"] = attributes;
+        using (await SendAsync(HttpMethod.Put, $"realms/{E(realm)}/clients/{E(id)}", client.DeepClone(), cancellationToken).ConfigureAwait(false))
+        {
+        }
     }
 
     internal async Task<IReadOnlyList<JsonNode?>> GetArrayAsync(string path, CancellationToken cancellationToken) =>

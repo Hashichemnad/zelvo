@@ -15,7 +15,7 @@ Code: `src/api/Zelvo.Data/Tickets/TicketComment.cs`, `src/api/Zelvo.Data/Workspa
 
 - **List:** a view picker (built-in views *My open incidents*, *My groups' queue*, *Unassigned*, *At risk*, *Breached*, *All open incidents*, and the saved views the person sees), filters (state, priority, assignee, group, SLA, sort, open only, major), a live SLA timer and the assignee per row, check boxes and the bulk bar, paging.
 - **Open incident** (`/workspace/{id}`): number, title, live SLA timers, description, facts, the **conversation** with the composer, the work panel of B1–B3 (assignment, state, impact and urgency, category and location, parent), the major-incident timeline, attachments and the history.
-- **Beside it:** the **customer** (name, email when the person's roles show it, language, customer groups, open and total incidents, the ten most recent other incidents, linked into the workspace) and the place of the **AI assistant**, which the AI features fill in task E5.
+- **Beside it:** the **customer** (name, email when the person's roles show it, language, customer groups, open and total incidents, the ten most recent other incidents, linked into the workspace) and the **AI assistant** of task E5 (triage suggestion, sentiment, possible duplicates, summary; `ai-features.md`).
 
 Choosing an incident, a view, a filter or a page changes the address (`/workspace/{id}?open=true&assignee=me&sort=due`) with Next.js soft navigation: the server renders the new data through the public API and the page never reloads; links can be shared and the back button works. Without filters in the address the view is *My open incidents*; an empty filter set is sent as `sort=created` (every incident, newest first).
 
@@ -34,7 +34,7 @@ English and Arabic, right to left, WCAG 2.2 AA (axe checks in `tests/e2e/specs/w
 - **Who reads:** staff with `incidents.read` see everything; the requester sees public replies only, without mentions or canned-response links.
 - **Response clock (B3, decision 2026-11-24):** the first public reply by a staff member who is not the requester sets `tickets.responded_at` and stops the response clock, unless work had already started.
 - **@mentions:** up to 20 active people whose roles hold `incidents.read`; the composer inserts `@Name` and sends their ids.
-- **LANG-7:** each message stores the language it was written in and is shown with `lang` and its own direction. The composer writes in the agent's language by default, shows the requester's own language, and offers canned responses in either language. One-click AI translation comes with E5 (the button is there, turned off).
+- **LANG-7:** each message stores the language it was written in and is shown with `lang` and its own direction. The composer writes in the agent's language by default, shows the requester's own language, and offers canned responses in either language. Task E5 adds one-click AI translation of messages in the other language, "Suggest a reply" and "Translate into …" for the draft (`ai-features.md`).
 
 ## Canned responses
 
@@ -116,7 +116,7 @@ All four new tables have forced row-level security (`EnableTenantIsolation`); th
 
 ## Not in B4
 
-- One-click translation, summaries and suggested replies (E5; the AI assistant column and the translate button are in place).
+- (Done in E5: one-click translation, summaries and suggested replies.)
 - Attachments on a reply or note: files stay on the ticket's attachments panel (B1). A file meant for an internal note would be visible to the requester until the note is posted, so this needs its own design.
 - A requester reply notifying the assignee (not among the approved events; the workspace shows it live). Suggested for the rule builder (C3) or a later decision.
 - Comments written by integrations and AI agents through the MCP server.

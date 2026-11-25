@@ -1,0 +1,31 @@
+{
+  "incident": "Incident",
+  "serviceRequest": "Service request",
+  "state": "State",
+  "priority": "Priority",
+  "category": "Category",
+  "group": "Group",
+  "requester": "Requester",
+  "assignee": "Assigned to",
+  "created": "Logged",
+  "resolved": "Resolved",
+  "description": "Description",
+  "resolutionNotes": "Resolution notes",
+  "conversation": "Conversation",
+  "noConversation": "No messages yet.",
+  "requesterLabel": "Requester",
+  "staff": "Staff",
+  "internalNote": "Internal note",
+  "exported": "Exported {date}",
+  "page": "Page",
+  "poweredBy": "Powered by Zelvo",
+  "states": {
+    "New": "New",
+    "Assigned": "Assigned",
+    "InProgress": "In progress",
+    "OnHold": "On hold",
+    "Resolved": "Resolved",
+    "Closed": "Closed",
+    "Reopened": "Reopened"
+  }
+}

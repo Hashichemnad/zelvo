@@ -6,16 +6,31 @@ import { PortalChatLauncher } from "@/components/channels/PortalChatLauncher";
 import { PoweredByFooter } from "@/components/PoweredByFooter";
 import { SiteHeader } from "@/components/SiteHeader";
 import { getDirection, routing } from "@/i18n/routing";
+import { getBranding } from "@/lib/api";
+import { getRequestAuthConfig } from "@/lib/auth/config";
+import { brandingCss, brandingImagePath } from "@/lib/branding";
 import "../globals.css";
 
 export function generateStaticParams() {
   return routing.locales.map((locale) => ({ locale }));
 }
 
+/**
+ * Task F1: the tenant's product name names the browser tab (pages' titles come first) and its
+ * favicon replaces Zelvo's.
+ */
 export async function generateMetadata({ params }: LayoutProps<"/[locale]">): Promise<Metadata> {
   const { locale } = await params;
   const t = await getTranslations({ locale, namespace: "meta" });
-  return { title: t("title"), description: t("description") };
+  const { tenant } = await getRequestAuthConfig();
+  const branding = await getBranding(tenant);
+  const product = (locale === "ar" ? branding?.productName.ar ?? branding?.productName.en : branding?.productName.en ?? branding?.productName.ar) ?? null;
+  const favicon = brandingImagePath(tenant, "Favicon", branding?.images.favicon);
+  return {
+    title: product ? { default: product, template: `%s · ${product}` } : t("title"),
+    description: t("description"),
+    ...(favicon ? { icons: { icon: favicon } } : {}),
+  };
 }
 
 export default async function LocaleLayout({ children, params }: LayoutProps<"/[locale]">) {
@@ -25,9 +40,13 @@ export default async function LocaleLayout({ children, params }: LayoutProps<"/[
   }
   setRequestLocale(locale);
   const t = await getTranslations({ locale, namespace: "common" });
+  const { tenant } = await getRequestAuthConfig();
+  const branding = await getBranding(tenant);
 
   return (
     <html lang={locale} dir={getDirection(locale)}>
+      {/* Task F1: the tenant's published colours and font; only checked values reach the style sheet. */}
+      {branding?.publishedAt && <head><style data-testid="branding-style">{brandingCss(branding)}</style></head>}
       <body className="flex min-h-screen flex-col font-sans antialiased">
         <a
           href="#main"

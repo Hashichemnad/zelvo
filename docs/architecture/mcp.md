@@ -21,7 +21,7 @@ Product owner decisions (2026-11-24):
 4. **Customers' MCP servers**: Settings → AI → MCP servers, plus tool calls in the AI gateway.
    - Read-only tools run on their own.
    - Tools the administrator marks as changing data run only after a person's approval.
-   - The first feature to use them is the virtual agent (E5).
+   - The first feature to use them is the virtual agent (E5): read-only tools in the chat; a tool that changes data hands the chat to a person (`ai-features.md`).
 
 The MCP SDK is the official C# SDK (`ModelContextProtocol.AspNetCore` and `ModelContextProtocol.Core` 2.4.0, Apache-2.0). It is a new dependency, proposed in the E6 pull request.
 
@@ -192,5 +192,5 @@ Errors have stable codes: `address-not-allowed`, `connection-failed`, `timeout`,
 - Sign-in by a person on an agent's behalf (OAuth authorization code with PKCE, protected resource metadata, dynamic client registration), needed for claude.ai and ChatGPT connectors.
 - Catalog request tools (C4). Tools for other modules are added as those modules arrive.
 - Email or in-app notice of waiting approvals (B5).
-- A feature that uses customers' tools: the virtual agent in E5.
+- (Done in E5: the virtual agent uses customers' read-only tools; approving changes inside the conversation comes with module 23.)
 - Native tool calling of each provider. The JSON protocol works with all of them; native calling can be added behind `IAiToolRunner` later.

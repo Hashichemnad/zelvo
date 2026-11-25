@@ -61,6 +61,12 @@ public static class NotificationEvents
     /// <summary>Someone was @mentioned in a comment on an incident (task B4).</summary>
     public const string IncidentMentioned = "incident.mentioned";
 
+    /// <summary>
+    /// The AI found the requester of an incident frustrated (task E5; product owner decision
+    /// 2026-11-24): the group's team leads hear about it, or the assignee when the group has none.
+    /// </summary>
+    public const string IncidentRequesterFrustrated = "incident.requester-frustrated";
+
     /// <summary>A ticket reached an escalation threshold of an SLA target (task B3).</summary>
     public const string SlaThreshold = "sla.threshold";
 
@@ -111,6 +117,8 @@ public static class NotificationEvents
             [Placeholders.TicketNumber, Placeholders.TicketTitle, Placeholders.TicketPriority, Placeholders.TicketGroup, Placeholders.RequesterName]),
         new(IncidentReplied, NotificationAudience.Requester, true, [Placeholders.TicketNumber, Placeholders.TicketTitle, Placeholders.CommentText, Placeholders.CommentAuthor]),
         new(IncidentMentioned, NotificationAudience.Staff, true, [Placeholders.TicketNumber, Placeholders.TicketTitle, Placeholders.CommentText, Placeholders.CommentAuthor]),
+        new(IncidentRequesterFrustrated, NotificationAudience.Staff, true,
+            [Placeholders.TicketNumber, Placeholders.TicketTitle, Placeholders.TicketPriority, Placeholders.TicketGroup, Placeholders.RequesterName]),
         new(SlaThreshold, NotificationAudience.Staff, false,
             [Placeholders.TicketNumber, Placeholders.TicketTitle, Placeholders.TicketPriority, Placeholders.SlaTarget, Placeholders.SlaPercent, Placeholders.SlaDueAt]),
         new(SlaBreached, NotificationAudience.Staff, false,

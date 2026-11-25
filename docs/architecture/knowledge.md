@@ -9,7 +9,7 @@ Covers module 7:
 
 Also LANG-5 (articles hold both languages; a missing one is reported).
 
-AI-drafted articles come in E5. The portal's search-first home (D2) reuses the reader pages built here.
+AI-drafted articles came in E5 ("Draft with AI", `ai-features.md`). The portal's search-first home (D2) reuses the reader pages built here.
 
 Product owner decisions (2026-11-24):
 
@@ -88,7 +88,7 @@ Seeder `d1-knowledge` (order 200) creates articles for both sample organisations
 
 ## Not in D1
 
-- AI article drafts (E5).
+- (Done in E5: AI article drafts, see `ai-features.md`.)
 - The portal's search-first home across catalog, knowledge and tickets (D2).
 - Article attachments other than images.
 - Scheduled review dates.

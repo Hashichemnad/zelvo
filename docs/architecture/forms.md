@@ -86,7 +86,7 @@ A form has a key (`laptop-problem`), a bilingual name and description, a state a
 | Rich text | Markdown | Shown with the knowledge base's Markdown viewer, never as HTML, without images |
 
 - Every field has a bilingual label and can have help text and a placeholder. Keys are camelCase and unique in the form, field sets included.
-- **Personal data.** Fields can be marked as personal data. Their answers are stored apart (`personal_answers`, masked in the audit log) and are replaced with placeholders before any text goes to AI (E5).
+- **Personal data.** Fields can be marked as personal data. Their answers are stored apart (`personal_answers`, masked in the audit log) and are replaced with placeholders before any text goes to AI (the gateway masks them; E5 sends title, description and comments, not form answers).
   - The flag is always on for the Emirates ID, phone, email and IBAN formats, for profile email, phone and Emirates ID, and for signatures.
 - **Format checks.**
   - **Emirates ID:** 15 digits starting with 784, with a valid Luhn check digit. Dashes, spaces and Arabic-Indic digits are allowed.

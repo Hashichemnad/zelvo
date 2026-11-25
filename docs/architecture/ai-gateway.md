@@ -1,6 +1,6 @@
 # AI gateway and Settings → AI (task E4, module 9)
 
-Covers module 9 "AI providers (Settings → AI)" and the AI safety row of the non-functional requirements ("personal data masked before reaching the model; prompt-injection guards; human approval for actions"). The AI features themselves (triage, summaries, suggested replies, translation, duplicates, sentiment, virtual agent, article drafts) come in task E5; the MCP server and customers' MCP servers came in E6 (`mcp.md`), whose tool calls go through this gateway (`IAiToolRunner`).
+Covers module 9 "AI providers (Settings → AI)" and the AI safety row of the non-functional requirements ("personal data masked before reaching the model; prompt-injection guards; human approval for actions"). The AI features themselves (triage, summaries, suggested replies, translation, duplicates, sentiment, virtual agent, article drafts) came in task E5 (`ai-features.md`); the MCP server and customers' MCP servers came in E6 (`mcp.md`), whose tool calls go through this gateway (`IAiToolRunner`).
 
 Product owner decisions (2026-11-23):
 
@@ -74,7 +74,7 @@ The provider's own message is added to the error with personal data masked.
    - The placeholders are swapped back for the real values on Zelvo's side, so they never leave the installation.
 6. **Record:** an `ai_calls` row is written, along with an audit entry (category `Ai`, action `ai.call`) with the feature, provider, model, outcome, tokens, cost, injection flag and what the call was about. Both are written through a scope of their own, for the caller's tenant and actor, so they are saved whatever the caller does with its own unit of work. A trace span and metrics follow the OpenTelemetry GenAI conventions (`gen_ai.*`); they contain no prompt or answer text.
 
-The gateway never changes tickets or other records. E5 applies an answer only after a person accepts it, or through a rule the administrator approved (module 9).
+The gateway never changes tickets or other records. E5 applies an answer only after a person accepts it, or through a rule the administrator approved (module 9): "apply triage automatically" (`ai-features.md`).
 
 ## Usage, cost and the monthly limit
 

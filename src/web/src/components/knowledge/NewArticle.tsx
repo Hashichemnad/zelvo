@@ -7,6 +7,7 @@ import { ApiError, postJson } from "@/lib/client-api";
 import type { TreeNode } from "@/lib/directory";
 import type { Locale } from "@/lib/incidents";
 import type { ArticleDetail } from "@/lib/knowledge";
+import { aiErrorKey } from "@/lib/ai-features";
 import { ArticleEditor, type ArticleContent } from "./ArticleEditor";
 
 /** Starts a new article as a draft, then opens it. */
@@ -34,32 +35,45 @@ export function NewArticle({ categories, locale, csrfToken }: { categories: Tree
   );
 }
 
-/** "Turn this ticket into an article" on a resolved or closed incident. */
-export function CreateArticleFromIncident({ incidentId, csrfToken }: { incidentId: string; csrfToken: string }) {
+/**
+ * "Turn this ticket into an article" on a resolved or closed incident. Task E5: with the AI feature
+ * articleDrafts on, the AI can write the draft in English and Arabic from the whole conversation;
+ * it is still a draft for the four-eyes review.
+ */
+export function CreateArticleFromIncident({ incidentId, csrfToken, withAi = false }: { incidentId: string; csrfToken: string; withAi?: boolean }) {
   const t = useTranslations("knowledge.fromIncident");
+  const tAi = useTranslations("ai.assist");
   const router = useRouter();
   const [busy, setBusy] = useState(false);
-  const [failed, setFailed] = useState(false);
+  const [failed, setFailed] = useState<string | null>(null);
 
-  async function create() {
+  async function create(draftWithAi: boolean) {
     setBusy(true);
-    setFailed(false);
+    setFailed(null);
     try {
-      const created = await postJson<ArticleDetail>(`/v1/incidents/${incidentId}/knowledge-article`, undefined, csrfToken);
+      const created = await postJson<ArticleDetail>(`/v1/incidents/${incidentId}/knowledge-article${draftWithAi ? "?draftWithAi=true" : ""}`, undefined, csrfToken);
       router.push(`/knowledge/${created.article.id}`);
-    } catch {
-      setFailed(true);
+    } catch (refused) {
+      setFailed(draftWithAi ? tAi(aiErrorKey(refused instanceof ApiError ? refused.code : null)) : t("failed"));
       setBusy(false);
     }
   }
 
+  const button = "rounded-md border border-line px-4 py-2 font-semibold focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand";
   return (
     <div className="space-y-1">
-      <button type="button" disabled={busy} onClick={create} className="rounded-md border border-line px-4 py-2 font-semibold focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand" data-testid="create-article-from-incident">
-        {t("button")}
-      </button>
-      <p className="text-sm text-ink-muted">{t("help")}</p>
-      {failed && <p role="alert" className="text-bad">{t("failed")}</p>}
+      <div className="flex flex-wrap gap-2">
+        <button type="button" disabled={busy} onClick={() => void create(false)} className={button} data-testid="create-article-from-incident">
+          {t("button")}
+        </button>
+        {withAi && (
+          <button type="button" disabled={busy} onClick={() => void create(true)} className={button} data-testid="draft-article-with-ai">
+            {busy ? tAi("working") : t("withAi")}
+          </button>
+        )}
+      </div>
+      <p className="text-sm text-ink-muted">{withAi ? t("helpWithAi") : t("help")}</p>
+      {failed && <p role="alert" className="text-bad">{failed}</p>}
     </div>
   );
 }

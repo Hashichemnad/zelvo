@@ -32,6 +32,9 @@ public sealed class TicketAttachment : ITenantOwned, IAuditedEntity
     /// <summary>Task C2: the catalog service, for its image and the templates of its required documents.</summary>
     public Guid? ServiceId { get; init; }
 
+    /// <summary>Branding images (task F1): which image of the tenant's branding it is; no ticket.</summary>
+    public Branding.BrandingSlot? BrandingSlot { get; init; }
+
     /// <summary>
     /// Task C1: the form field the file answers (a file upload or a drawn signature). Files are
     /// uploaded before the form is sent; until then they belong to nobody but their uploader and

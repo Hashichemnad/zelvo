@@ -115,7 +115,7 @@ internal static class KnowledgeEndpoints
             .WithTags("Knowledge")
             .RequireTenant()
             .WithName("CreateKnowledgeArticleFromIncident")
-            .WithSummary("\"Turn this ticket into an article\": a draft from a resolved or closed incident's title, description and resolution notes, with personal data replaced by placeholders such as [PERSON_1] for the author to edit. Linked to the incident. Needs knowledge.write and incidents.read; audited.")
+            .WithSummary("\"Turn this ticket into an article\": a draft from a resolved or closed incident's title, description and resolution notes, with personal data replaced by placeholders such as [PERSON_1] for the author to edit; with draftWithAi=true the AI (feature articleDrafts) writes it in English and Arabic from the whole conversation, still a draft for the four-eyes review. Linked to the incident. Needs knowledge.write and incidents.read; audited.")
             .RequirePermission(Permissions.KnowledgeWrite)
             .Produces<ArticleDetailResponse>(StatusCodes.Status201Created);
 
@@ -517,7 +517,7 @@ internal static class KnowledgeEndpoints
     }
 
     internal static async Task<IResult> FromIncidentAsync(
-        Guid id, HttpContext http, ZelvoDbContext db, CurrentUser user, ITenantContext tenant, TenantSettingsStore settings, ISearchIndexer indexer,
+        Guid id, bool? draftWithAi, HttpContext http, ZelvoDbContext db, CurrentUser user, ITenantContext tenant, TenantSettingsStore settings, ISearchIndexer indexer,
         IAuditLog audit, CancellationToken cancellationToken)
     {
         if (!user.Has(Permissions.IncidentsRead))
@@ -538,10 +538,33 @@ internal static class KnowledgeEndpoints
         }
 
         var request = FromTicket(ticket);
+        long? aiCallId = null;
+        if (draftWithAi == true)
+        {
+            // Task E5: the AI writes the draft in both languages; it is still a draft for the four-eyes review.
+            var drafted = await http.RequestServices.GetRequiredService<Zelvo.Ai.Features.AgentAssist>().DraftArticleAsync(ticket.Id, cancellationToken);
+            if (drafted.Value is not { } draft)
+            {
+                return Zelvo.Api.Ai.AiFeatureEndpoints.AiProblem(drafted.ErrorCode, drafted.Error);
+            }
+
+            aiCallId = draft.CallId;
+            request = new ArticleContentRequest
+            {
+                Title = new LocalizedTextInput { En = draft.Title.En, Ar = draft.Title.Ar },
+                Summary = new LocalizedTextInput { En = draft.Summary.En, Ar = draft.Summary.Ar },
+                Body = new ArticleTextInput { En = draft.Body.En, Ar = draft.Body.Ar },
+                Keywords = draft.Keywords,
+                Visibility = ArticleVisibility.Internal,
+                CategoryId = ticket.CategoryId,
+                ChangeNote = $"Drafted by AI from {ticket.Number}.",
+            };
+        }
+
         await using var transaction = await db.Database.BeginTransactionAsync(cancellationToken);
         var article = await NewArticleAsync(db, tenant, settings, user, request, ticket.Id, cancellationToken);
         audit.Add(AuditCategory.Create, "knowledge.article.created-from-ticket", "kb_article", article.Id.ToString(),
-            new Dictionary<string, object?>(StringComparer.Ordinal) { ["ticketId"] = ticket.Id.ToString(), ["ticket"] = ticket.Number });
+            new Dictionary<string, object?>(StringComparer.Ordinal) { ["ticketId"] = ticket.Id.ToString(), ["ticket"] = ticket.Number, ["aiCallId"] = aiCallId });
         var result = await SaveAsync(http, db, user, settings, indexer, article, cancellationToken, created: true);
         await transaction.CommitAsync(cancellationToken);
         return result;

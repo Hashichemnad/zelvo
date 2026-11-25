@@ -94,6 +94,12 @@
       "body": "Hello {{recipient.name}},\n\nIncident {{ticket.number}}, “{{ticket.title}}”, is waiting in the queue of {{ticket.group}} with nobody assigned.\n\nPriority: {{ticket.priority}}\nRequester: {{requester.name}}\n\n{{tenant.name}}",
       "action": "Open the incident"
     },
+    "incident.requester-frustrated": {
+      "subject": "Requester sounds frustrated: {{ticket.number}}",
+      "inApp": "{{requester.name}} sounds frustrated on {{ticket.number}} “{{ticket.title}}”.",
+      "body": "Hello {{recipient.name}},\n\nThe AI assistant found that {{requester.name}} sounds frustrated in their latest message on incident {{ticket.number}}, “{{ticket.title}}”.\n\nPriority: {{ticket.priority}}\nGroup: {{ticket.group}}\n\nPlease look at the incident and consider contacting the requester.\n\n{{tenant.name}}",
+      "action": "Open the incident"
+    },
     "sla.threshold": {
       "subject": "{{ticket.number}} has used {{sla.percent}} of its {{sla.target}} time",
       "inApp": "“{{ticket.title}}” has used {{sla.percent}} of its {{sla.target}} time; due {{sla.dueAt}}.",

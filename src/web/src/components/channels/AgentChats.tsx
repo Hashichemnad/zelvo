@@ -8,6 +8,7 @@ import { usePolling } from "@/lib/use-polling";
 import { ApiError, getJson, postJson, putJson } from "@/lib/client-api";
 import { formatDateTime, type DateDisplayOptions } from "@/lib/format";
 import { mergeMessages, textIn, type AgentChat, type ChatMessage, type ChatQueue, type ChatSummary } from "@/lib/channels";
+import { TranslateButton } from "@/components/ai/TranslateButton";
 
 interface GroupDetail {
   id: string;
@@ -176,6 +177,14 @@ function ChatPanel({
   const [groups, setGroups] = useState<{ id: string; name: { en: string | null; ar: string | null } }[]>([]);
   const [target, setTarget] = useState("");
   const [error, setError] = useState<string | null>(null);
+  const [canTranslate, setCanTranslate] = useState(false);
+
+  // Task E5: one-click translation of messages when the AI feature is available.
+  useEffect(() => {
+    getJson<{ features: { feature: string; available: boolean }[] }>("/v1/ai/status")
+      .then((status) => setCanTranslate(status.features.some((f) => f.feature === "translation" && f.available)))
+      .catch(() => setCanTranslate(false));
+  }, []);
 
   const load = useCallback(async () => {
     const last = messages.at(-1);
@@ -264,14 +273,17 @@ function ChatPanel({
         {messages.map((message) => (
           <li key={message.id} className={message.sender === "System" ? "text-center text-sm text-ink-muted" : message.sender === "Agent" ? "ms-8 rounded-md bg-surface-muted p-2" : "me-8 rounded-md border border-line p-2"}>
             {message.sender === "System" ? (
-              tChat(`events.${["accepted", "transferred", "ended", "ticket"].includes(message.event ?? "") ? message.event : "other"}`, { agent: message.authorName ?? "", number: message.body })
+              tChat(`events.${["accepted", "transferred", "ended", "ticket", "handover"].includes(message.event ?? "") ? message.event : "other"}`, { agent: message.authorName ?? "", number: message.body })
             ) : (
               <>
                 <span className="block text-xs font-semibold">
-                  {message.sender === "Visitor" ? chat.visitorName : message.authorName ?? tChat("agent")} ·{" "}
+                  {message.sender === "Visitor" ? chat.visitorName : message.sender === "Assistant" ? tChat("assistant") : message.authorName ?? tChat("agent")} ·{" "}
                   <time dateTime={message.createdAt}>{formatDateTime(new Date(message.createdAt), display)}</time>
                 </span>
                 <span dir="auto" className="whitespace-pre-wrap break-words">{message.body}</span>
+                {canTranslate && message.sender === "Visitor" && (
+                  <TranslateButton path={`/chat/sessions/${sessionId}/messages/${message.id}/translation`} language={locale === "ar" ? "ar" : "en"} csrfToken={csrfToken} />
+                )}
               </>
             )}
           </li>

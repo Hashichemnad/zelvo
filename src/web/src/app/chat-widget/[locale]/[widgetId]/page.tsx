@@ -1,6 +1,6 @@
 import { getTranslations, setRequestLocale } from "next-intl/server";
 import { WidgetFrame } from "@/components/channels/WidgetFrame";
-import { getJsonAs } from "@/lib/api";
+import { getBranding, getJsonAs } from "@/lib/api";
 import { getRequestAuthConfig } from "@/lib/auth/config";
 import type { PublicChatWidget } from "@/lib/channels";
 import { isId } from "@/lib/incident-pages";
@@ -26,5 +26,8 @@ export default async function ChatWidgetPage({ params, searchParams }: PageProps
     return <p role="alert" className="p-4">{t("unavailableWidget")}</p>;
   }
   const poweredBy = await getTranslations({ locale, namespace: "common" });
-  return <WidgetFrame widget={widget} locale={locale} origin={origin} poweredBy={poweredBy("poweredBy")} />;
+  // Task F1: the tenant's product name beside the "Powered by Zelvo" mark.
+  const branding = await getBranding(config.tenant);
+  const product = (locale === "ar" ? branding?.productName.ar ?? branding?.productName.en : branding?.productName.en ?? branding?.productName.ar) ?? null;
+  return <WidgetFrame widget={widget} locale={locale} origin={origin} poweredBy={poweredBy("poweredBy")} productName={product} />;
 }

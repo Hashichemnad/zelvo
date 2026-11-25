@@ -4,7 +4,11 @@
     <Description>Zelvo ticket core (module 1): state rules, the tenant's ticket settings, incident search documents, the attachment store and malware scanning, and the worker jobs that close resolved tickets and scan attachments.</Description>
   </PropertyGroup>
   <ItemGroup>
+    <PackageReference Include="DnsClient" />
     <PackageReference Include="Microsoft.Extensions.Hosting.Abstractions" />
+  </ItemGroup>
+  <ItemGroup>
+    <EmbeddedResource Include="Exports\Texts\*.json" LogicalName="Zelvo.Tickets.Exports.Texts.%(Filename).json" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\Zelvo.Data\Zelvo.Data.csproj" />

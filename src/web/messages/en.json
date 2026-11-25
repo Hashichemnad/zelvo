@@ -247,6 +247,10 @@
       "customerVoice": {
         "title": "Customer voice",
         "description": "Anonymous messages, complaint severities and root causes, and the happiness meter."
+      },
+      "branding": {
+        "title": "Branding",
+        "description": "Your product name, logos, colours and font, custom domains and the email sender domain."
       }
     },
     "missingWarning": "{count, plural, one {# text is} other {# texts are}} missing a translation.",
@@ -464,7 +468,8 @@
         "voice_edit": "Work on complaints, inquiries and suggestions",
         "voice_assign": "Assign complaints, inquiries and suggestions",
         "voice_report": "See the customer voice and happiness report",
-        "voice_manage": "Change customer voice settings and the happiness meter"
+        "voice_manage": "Change customer voice settings and the happiness meter",
+        "branding_manage": "Change the branding, custom domains and email sender domain"
       },
       "events": {
         "user_created": "A user was created",
@@ -1030,6 +1035,25 @@
           "secret-unreadable": "The stored credential cannot be read; enter it again.",
           "other": "The connection failed."
         }
+      },
+      "triage": {
+        "title": "Rule: apply triage automatically",
+        "autoApply": "Apply the suggestion to new incidents without waiting for an agent",
+        "autoApplyHelp": "The AI fills in the category when none was chosen, impact and urgency, and the group unless someone already took the incident. Agents can still correct it. Off: suggestions wait for an agent.",
+        "saved": "Saved.",
+        "accuracyTitle": "Last {days} days",
+        "counts": {
+          "accepted": "Accepted",
+          "corrected": "Corrected",
+          "dismissed": "Dismissed",
+          "autoApplied": "Applied automatically"
+        },
+        "kept": {
+          "category": "Category kept",
+          "priority": "Priority kept",
+          "group": "Group kept"
+        },
+        "learning": "Agents' corrections are given to the next suggestions as examples, so they improve over time."
       }
     },
     "knowledge": {
@@ -1110,6 +1134,134 @@
         "close": "Close",
         "previous": "Previous page",
         "next": "Next page"
+      }
+    },
+    "branding": {
+      "intro": "Run Zelvo under your own brand. Changes are a draft until you publish them; the preview shows them in English and Arabic, in light and dark mode.",
+      "poweredByNote": "The “Powered by Zelvo” mark is always shown and cannot be changed here.",
+      "saveDraft": "Save draft",
+      "draftSaved": "Draft saved. Publish it when you are ready.",
+      "published": "Published. Every page now shows the new branding.",
+      "discarded": "The draft was thrown away.",
+      "look": {
+        "title": "Name, colours and font",
+        "nameEn": "Product name in English",
+        "nameAr": "Product name in Arabic",
+        "lightColour": "Brand colour, light mode",
+        "darkColour": "Brand colour, dark mode",
+        "lightPicker": "Pick the light mode colour",
+        "darkPicker": "Pick the dark mode colour",
+        "colourHelp": "Six-digit colour such as #0f5c8a.",
+        "font": "Font"
+      },
+      "checks": {
+        "title": "Contrast checks (WCAG 2.2 AA, at least 4.5:1)",
+        "light_text": "Links and headings on light backgrounds",
+        "light_button": "Button text on the brand colour, light mode",
+        "dark_text": "Links and headings on dark backgrounds",
+        "dark_button": "Button text on the brand colour, dark mode",
+        "passed": "passes",
+        "failed": "too low; choose a darker or lighter colour"
+      },
+      "preview": {
+        "title": "Live preview",
+        "text": "Your service desk, in your colours.",
+        "link": "Read the help articles",
+        "button": "Report an incident",
+        "name": "Product name in {language}"
+      },
+      "images": {
+        "title": "Logos and images",
+        "help": "PNG, JPEG or WebP up to 2 MB (the favicon also ICO, up to 256 KB). Images are checked for malware before they can be published.",
+        "slots": {
+          "LogoLight": "Logo for light backgrounds",
+          "LogoDark": "Logo for dark backgrounds",
+          "Favicon": "Browser tab icon",
+          "LoginImage": "Sign-in page image"
+        },
+        "choose": "Choose an image",
+        "remove": "Remove",
+        "previewAlt": "Preview: {name}",
+        "scan": {
+          "Pending": "Being checked for malware…",
+          "Clean": "Checked: no malware found.",
+          "Infected": "Rejected: malware was found.",
+          "NotScanned": "Not checked (scanning is off in this installation)."
+        }
+      },
+      "publish": {
+        "title": "Publish",
+        "unpublished": "The draft has changes that are not published yet.",
+        "upToDate": "Everything is published.",
+        "button": "Publish",
+        "discard": "Throw the draft away"
+      },
+      "problems": {
+        "contrast": "Contrast too low: {check}.",
+        "image": "{image} is not ready ({status})."
+      },
+      "dns": {
+        "type": "Type",
+        "name": "Name",
+        "value": "Value",
+        "status": "Status",
+        "states": {
+          "Unknown": "Not checked",
+          "Passed": "Found",
+          "Missing": "Missing",
+          "Wrong": "Different value"
+        }
+      },
+      "domains": {
+        "title": "Custom domains",
+        "help": "Serve your portal on your own address, such as support.entity.gov.ae. Add the DNS records below, then verify. A certificate is obtained automatically, or upload your own for offline networks.",
+        "host": "Host name",
+        "add": "Add domain",
+        "verify": "Verify",
+        "remove": "Remove",
+        "status": {
+          "Pending": "Waiting for verification",
+          "Verified": "Verified: served on this address"
+        },
+        "errors": {
+          "txtMissing": "the TXT record was not found",
+          "txtWrong": "the TXT record has another value"
+        },
+        "certificate": {
+          "Automatic": "Certificate: automatic.",
+          "Uploaded": "Certificate: your own, uploaded.",
+          "useAutomatic": "Use an automatic certificate",
+          "upload": "Upload your own certificate",
+          "help": "PEM certificate chain and its private key (not encrypted). The key is stored encrypted and never shown again.",
+          "chain": "Certificate chain (PEM)",
+          "key": "Private key (PEM)",
+          "save": "Upload certificate"
+        }
+      },
+      "sender": {
+        "title": "Email sender domain",
+        "help": "Send notification emails from your own address. Publish the three DNS records, then check. Until SPF and DKIM pass, emails keep the installation's sender.",
+        "localPart": "Name before the @",
+        "domain": "Domain",
+        "save": "Save sender",
+        "check": "Check DNS",
+        "remove": "Use the installation's sender",
+        "verified": "Emails go out from {address}.",
+        "notVerified": "{address} is not verified yet.",
+        "lastChecked": "Last checked {time}."
+      },
+      "errors": {
+        "failed": "That did not work. Try again.",
+        "rate-limited": "Too many requests. Wait a moment.",
+        "colour": "Give both colours as #rrggbb.",
+        "validation-failed": "Check the values and try again.",
+        "file-too-large": "The image is too large.",
+        "file-type-not-allowed": "This image type is not accepted.",
+        "file-content-mismatch": "The file's content does not match its type.",
+        "branding-not-ready": "The draft cannot be published until every problem is solved.",
+        "too-many-domains": "You have the most domains allowed.",
+        "domain-not-found": "That domain no longer exists.",
+        "sender-domain-not-set": "No sender domain is set."
       }
     }
   },
@@ -1632,7 +1784,8 @@
         "requests": "Service requests",
         "channels": "Email and chat",
         "chat": "Live chat",
-        "voice": "Customer voice"
+        "voice": "Customer voice",
+        "branding": "Branding"
       },
       "tenant_manage": "Change the organisation's name",
       "translations_read": "See missing translations",
@@ -1672,7 +1825,8 @@
       "voice_edit": "Work on complaints, inquiries and suggestions",
       "voice_assign": "Assign complaints, inquiries and suggestions",
       "voice_report": "See the customer voice and happiness report",
-      "voice_manage": "Change customer voice settings and the happiness meter"
+      "voice_manage": "Change customer voice settings and the happiness meter",
+      "branding_manage": "Change the branding, custom domains and email sender domain"
     },
     "assignment": {
       "intro": "The rules are checked in order and the first that matches decides where a new ticket goes. They run when a ticket is created and when an agent chooses \"Route again\"; they never move a ticket on their own later.",
@@ -1960,7 +2114,9 @@
     "fromIncident": {
       "button": "Turn into a knowledge article",
       "help": "Starts a draft from the description and resolution notes, with personal data replaced by placeholders.",
-      "failed": "The article could not be created."
+      "failed": "The article could not be created.",
+      "withAi": "Draft with AI",
+      "helpWithAi": "Starts a draft from the description and resolution notes, or lets the AI write it in English and Arabic from the whole conversation. Personal data is left out; a publisher still reviews it."
     }
   },
   "sla": {
@@ -2207,7 +2363,8 @@
       "inquiry_answered": "Your inquiry was answered",
       "suggestion_reviewed": "Your suggestion was reviewed",
       "voice_assigned": "A complaint, inquiry or suggestion is assigned to you",
-      "voice_queued": "A new complaint, inquiry or suggestion is in your group's queue"
+      "voice_queued": "A new complaint, inquiry or suggestion is in your group's queue",
+      "incident_requester_frustrated": "A requester sounds frustrated"
     },
     "audiences": {
       "Requester": "Your incidents",
@@ -2722,8 +2879,6 @@
       "removeMention": "Remove the mention of {name}",
       "addNote": "Add note",
       "sendReply": "Send reply",
-      "translate": "Translate",
-      "translateLater": "One-click translation comes with the AI features.",
       "sending": "Sending…",
       "sent": "Sent.",
       "failed": "It could not be sent. Try again.",
@@ -2734,7 +2889,11 @@
         "validation-failed": "Check the text and the people mentioned.",
         "forbidden": "You may not write on this incident.",
         "incident-not-found": "This incident does not exist or you cannot see it."
-      }
+      },
+      "suggestReply": "Suggest a reply",
+      "translateTo": "Translate into {language}",
+      "basedOn": "Based on:",
+      "aiReview": "Check AI suggestions and translations before you send them."
     },
     "sla": {
       "label": "Service level timers",
@@ -2762,7 +2921,7 @@
     },
     "ai": {
       "title": "AI assistant",
-      "comingSoon": "Summaries, suggested replies and translation will appear here once the AI features are set up."
+      "comingSoon": "Open an incident to see what the AI assistant found."
     },
     "bulk": {
       "heading": "{count, plural, one {# incident selected} other {# incidents selected}}",
@@ -3400,7 +3559,8 @@
         "transferred": "The chat was passed to a colleague.",
         "ended": "The chat ended.",
         "ticket": "Ticket {number} was opened for this chat.",
-        "other": "The chat changed."
+        "other": "The chat changed.",
+        "handover": "The chat was passed to the team."
       },
       "you": "You",
       "agent": "Service desk",
@@ -3409,7 +3569,13 @@
       "rateLimited": "Too many messages in a short time. Please wait a moment.",
       "invalid": "Please check your name, email address and message.",
       "failed": "That did not work. Please try again.",
-      "unavailableWidget": "This chat is not available here."
+      "unavailableWidget": "This chat is not available here.",
+      "withAssistant": "You are chatting with the virtual agent. Ask for a person at any time.",
+      "assistant": "Virtual agent",
+      "sources": "From:",
+      "talkToPerson": "Talk to a person",
+      "handoverOffline": "Nobody is available right now. You can leave this conversation as a message, and we will reply by email.",
+      "leaveConversation": "Leave it as a message"
     },
     "agent": {
       "nav": "Chats",
@@ -3438,7 +3604,8 @@
       "states": {
         "Waiting": "Waiting for an agent",
         "Active": "In progress",
-        "Ended": "Ended"
+        "Ended": "Ended",
+        "Assistant": "With the virtual agent"
       },
       "ticket": "Ticket {number}",
       "answer": "Your answer",
@@ -3670,7 +3837,10 @@
       "acceptsChats": "Accepts chats",
       "originsInvalid": "Enter website addresses such as https://www.entity.gov.ae, without paths.",
       "invalid": "Please check the name and group.",
-      "failed": "That did not work. Please try again."
+      "failed": "That did not work. Please try again.",
+      "virtualAgent": "Virtual agent answers first",
+      "virtualAgentOn": "Virtual agent",
+      "virtualAgentHelp": "Answers from published knowledge articles and passes the chat to the group when asked or when it cannot help, also when nobody is online. Needs the AI feature \"Virtual agent\"."
     }
   },
   "voice": {
@@ -4079,5 +4249,85 @@
       "finished": "Finished",
       "updated": "Updated {when}"
     }
+  },
+  "ai": {
+    "assist": {
+      "title": "AI assistant",
+      "off": "Summaries, suggestions and translation appear here once an administrator sets up the AI features in Settings → AI.",
+      "disclaimer": "The AI suggests; you decide. Every AI call is recorded in the AI log.",
+      "working": "Working…",
+      "translate": "Translate",
+      "translating": "Translating…",
+      "hideTranslation": "Hide translation",
+      "machineTranslation": "Machine translation",
+      "errors": {
+        "ai-off": "This AI feature is off. An administrator turns it on in Settings → AI.",
+        "limit-reached": "The monthly AI limit is reached. AI starts again next month or when the limit is raised.",
+        "rate-limited": "Too many requests. Wait a moment and try again.",
+        "failed": "The AI gave no usable answer. Try again."
+      },
+      "sentiment": {
+        "label": "Requester sounds:",
+        "Positive": "pleased",
+        "Neutral": "neutral",
+        "Negative": "unhappy",
+        "Frustrated": "frustrated",
+        "since": "Frustrated since {time}. The group's team leads were alerted."
+      },
+      "triage": {
+        "title": "Suggested triage",
+        "run": "Suggest triage",
+        "status": {
+          "Pending": "Waiting for your decision",
+          "Accepted": "Accepted",
+          "Corrected": "Accepted with corrections",
+          "Dismissed": "Dismissed",
+          "AutoApplied": "Applied automatically",
+          "Outdated": "Out of date"
+        },
+        "confidence": "Confidence {percent} %",
+        "category": "Category",
+        "priority": "Priority",
+        "impact": "Impact",
+        "urgency": "Urgency",
+        "group": "Group",
+        "accept": "Accept",
+        "correct": "Correct",
+        "dismiss": "Dismiss",
+        "keep": "Keep the current one",
+        "saveCorrection": "Apply with corrections",
+        "cancel": "Cancel",
+        "errors": {
+          "fields-read-only": "Your role may not change some of these fields.",
+          "forbidden": "Changing the group needs the right to assign incidents.",
+          "version-mismatch": "The incident changed meanwhile. Reload it and decide again.",
+          "ticket-not-open": "Only open incidents are triaged.",
+          "suggestion-not-found": "This suggestion was already decided."
+        }
+      },
+      "duplicates": {
+        "title": "Possible duplicates",
+        "confidence": "Confidence {percent} %",
+        "link": "Link as duplicate",
+        "dismiss": "Not a duplicate",
+        "errors": {
+          "incident-has-children": "This incident has children of its own, so it cannot be linked.",
+          "parent-has-parent": "The other incident is itself a child; link to its parent instead.",
+          "duplicate-not-found": "This was already decided.",
+          "ticket-closed": "The incident is closed."
+        }
+      },
+      "summary": {
+        "title": "Summary",
+        "made": "Made {time}",
+        "make": "Summarise the thread",
+        "refresh": "Summarise again"
+      }
+    }
+  },
+  "exports": {
+    "download": "Download PDF",
+    "making": "Making the PDF…",
+    "failed": "The PDF could not be made. Try again later."
   }
 }

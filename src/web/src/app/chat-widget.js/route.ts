@@ -9,8 +9,8 @@ import type { NextRequest } from "next/server";
  * It adds a chat button and, when pressed, a frame with the widget page from this server, so the
  * website never sees the chat. Which websites may frame it is set per widget in Settings → Live chat.
  */
-export function GET(request: NextRequest) {
-  const appUrl = authConfigFor(request).appUrl.origin;
+export async function GET(request: NextRequest) {
+  const appUrl = (await authConfigFor(request)).appUrl.origin;
   const labels = {
     en: { open: en.channels.chat.open, close: en.channels.chat.close, dialog: en.channels.chat.dialog },
     ar: { open: ar.channels.chat.open, close: ar.channels.chat.close, dialog: ar.channels.chat.dialog },

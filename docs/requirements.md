@@ -280,6 +280,8 @@ Admins build and change the whole service catalog themselves, with a drag-and-dr
 - Virtual agent in portal and chat that answers from the knowledge base and hands over to a human.
 - Detect duplicate tickets and sentiment; escalate frustrated customers.
 - Every AI action is logged; the AI never closes or changes a ticket without a human or a rule the admin approved.
+- Triage (product owner decision 2026-11-24): the AI suggests category, priority and group and agents accept or correct; an administrator may turn on "apply triage automatically to new incidents" (off by default), the approved rule; agents' corrections are given to later suggestions as examples.
+- Frustrated customers (product owner decision 2026-11-24): the ticket shows that the requester sounds frustrated, and the team leads of its group are alerted by a notification administrators switch on or off and word in English and Arabic.
 - *Story:* As an agent, I want a suggested reply drafted from the knowledge base, so that I answer faster and consistently.
 
 **AI providers (Settings → AI)**
@@ -320,6 +322,8 @@ Zelvo is the platform name; each customer runs it under its own brand, set by it
 - Branded email, WhatsApp, SMS and notification templates; branded PDF reports and exports.
 - Live preview of every change before it is published.
 - A "Powered by Zelvo" mark in the portal footer, which is always shown and cannot be removed or changed in Settings.
+- Custom domains (product owner decision 2026-11-24): Zelvo ships a reverse proxy (Caddy) that gets certificates automatically by ACME, only for domains a tenant verified, or uses the customer's own uploaded certificate for offline networks.
+- PDF exports (product owner decision 2026-11-24): made on the server with headless Chromium, so Arabic is shaped and laid out right to left; first for incidents and service requests, then reports.
 - *Story:* As a customer admin, I want to upload our logo and set our own product name, so that our employees and citizens only ever see our brand.
 
 ### 12. Licensing and copy protection

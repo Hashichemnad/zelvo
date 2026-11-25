@@ -10,7 +10,7 @@ import { localeOf } from "@/lib/auth/security";
  * so this cannot redirect anywhere else.
  */
 export async function GET(request: NextRequest) {
-  const config = authConfigFor(request);
+  const config = (await authConfigFor(request));
   const locale = localeOf(request.nextUrl.searchParams.get("locale"));
   const home = new URL(`/${locale}`, config.appUrl);
   const methods = await getSignInMethods(config.tenant);

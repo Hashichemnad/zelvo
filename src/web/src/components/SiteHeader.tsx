@@ -1,6 +1,7 @@
 import { getLocale, getTranslations } from "next-intl/server";
 import { Link } from "@/i18n/navigation";
-import { getCurrentUser, getDemo } from "@/lib/api";
+import { getBranding, getCurrentUser, getDemo } from "@/lib/api";
+import { brandingImagePath } from "@/lib/branding";
 import { getRequestAuthConfig } from "@/lib/auth/config";
 import { getSession } from "@/lib/auth/session";
 import { getDisplayFormat } from "@/lib/display";
@@ -26,6 +27,12 @@ export async function SiteHeader() {
   const tVoice = await getTranslations("voice.nav");
   const tPortal = await getTranslations("portal.nav");
   const config = await getRequestAuthConfig();
+  const locale = await getLocale();
+  // Task F1: the tenant's product name and logos (light and dark mode) instead of Zelvo's.
+  const branding = await getBranding(config.tenant);
+  const product = (locale === "ar" ? branding?.productName.ar ?? branding?.productName.en : branding?.productName.en ?? branding?.productName.ar) ?? t("productName");
+  const logoLight = brandingImagePath(config.tenant, "LogoLight", branding?.images.logoLight);
+  const logoDark = brandingImagePath(config.tenant, "LogoDark", branding?.images.logoDark) ?? logoLight;
   const session = await getSession(config).catch(() => null);
   const user = session ? await getCurrentUser(session.data.accessToken, config.tenant) : null;
   // Demo installations only: the API says whether this is one.
@@ -36,7 +43,7 @@ export async function SiteHeader() {
   let lastReset: string | null = null;
   if (demo?.lastResetAt) {
     const format = await getDisplayFormat();
-    lastReset = formatDateTime(new Date(demo.lastResetAt), { locale: await getLocale(), ...format });
+    lastReset = formatDateTime(new Date(demo.lastResetAt), { locale, ...format });
   }
 
   return (
@@ -45,7 +52,16 @@ export async function SiteHeader() {
         <div className="mx-auto flex max-w-5xl flex-wrap items-center justify-between gap-4 px-4 py-3">
           <div className="flex flex-wrap items-center gap-4">
             {/* Task D2: the product name leads to the portal's home. */}
-            <Link href="/" className="text-lg font-bold text-brand">{t("productName")}</Link>
+            <Link href="/" className="flex items-center gap-2 text-lg font-bold text-brand" data-testid="product-name">
+              {logoLight && (
+                <picture>
+                  {logoDark && <source srcSet={logoDark} media="(prefers-color-scheme: dark)" />}
+                  {/* The product name beside it says what the logo shows. */}
+                  <img src={logoLight} alt="" className="h-8 w-auto" />
+                </picture>
+              )}
+              <span>{product}</span>
+            </Link>
             <nav aria-label={tIncidents("label")}>
               <ul className="flex flex-wrap gap-3 text-sm font-semibold">
                 <li>

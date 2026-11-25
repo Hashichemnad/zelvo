@@ -2,15 +2,20 @@ using System.ComponentModel.DataAnnotations;
 using System.Security.Cryptography;
 using System.Text;
 using Microsoft.EntityFrameworkCore;
+using Zelvo.Ai;
+using Zelvo.Ai.Features;
+using Zelvo.Api.Catalog;
 using Zelvo.Api.Conventions;
 using Zelvo.Api.Identity;
 using Zelvo.Api.Incidents;
 using Zelvo.Api.Integrations;
 using Zelvo.Api.Security.RateLimiting;
 using Zelvo.Api.ServiceDesk;
+using Zelvo.Api.Settings;
 using Zelvo.Api.Tenancy;
 using Zelvo.Channels;
 using Zelvo.Data;
+using Zelvo.Data.Ai;
 using Zelvo.Data.Auditing;
 using Zelvo.Data.Channels;
 using Zelvo.Data.Identity;
@@ -65,7 +70,7 @@ internal static partial class ChatEndpoints
             .Produces<PublicChatWidgetResponse>();
         widgets.MapPost("/{id:guid}/sessions", StartAsync)
             .WithName("StartChat")
-            .WithSummary("Starts a chat. Visitors give their name and email and get a chat token (send it as X-Chat-Token); signed-in people need neither. Refused with chat-offline when nobody is online. A few per address and 10 minutes; audited.")
+            .WithSummary("Starts a chat. Visitors give their name and email and get a chat token (send it as X-Chat-Token); signed-in people need neither. When the widget's virtual agent is on (task E5), it answers first, also when nobody is online; otherwise refused with chat-offline when nobody is online. A few per address and 10 minutes; audited.")
             .AllowAnonymousAccess()
             .Produces<StartChatResponse>(StatusCodes.Status201Created)
             .ProducesValidationProblem();
@@ -90,10 +95,16 @@ internal static partial class ChatEndpoints
             .Produces<VisitorChatResponse>();
         sessions.MapPost("/{id:guid}/messages", VisitorWriteAsync)
             .WithName("WriteChatMessage")
-            .WithSummary("The visitor writes in the chat. The chat's token or the signed-in visitor; at most 20 a minute; audited.")
+            .WithSummary("The visitor writes in the chat. While the virtual agent has the chat, its answer from the knowledge base is added before this returns, and it hands the chat to the group's queue when the visitor asks for a person or it cannot help. The chat's token or the signed-in visitor; at most 20 a minute; audited.")
             .AllowAnonymousAccess()
             .Produces<ChatMessageResponse>(StatusCodes.Status201Created)
             .ProducesValidationProblem();
+        sessions.MapPost("/{id:guid}/handover", HandoverAsync)
+            .WithName("HandOverChat")
+            .WithSummary("The visitor asks for a person while chatting with the virtual agent (task E5): the chat joins the group's queue with its whole conversation. With nobody online it is refused with chat-offline, unless leaveMessage is true: the conversation then becomes an incident and the chat ends. The chat's token or the signed-in visitor; audited.")
+            .AllowAnonymousAccess()
+            .Produces<VisitorChatResponse>()
+            .ProducesProblem(StatusCodes.Status409Conflict);
         sessions.MapPost("/{id:guid}/end", VisitorEndAsync)
             .WithName("EndChat")
             .WithSummary("The visitor ends the chat. The chat's token or the signed-in visitor; audited.")
@@ -139,6 +150,12 @@ internal static partial class ChatEndpoints
             .WithSummary("Makes an incident (channel Chat) from the chat for the visitor (an account is made for their email when there is none), assigned to the agent in the chat's group, with the transcript as its conversation. Needs chat.handle and incidents.create; audited.")
             .RequirePermission(Permissions.ChatHandle)
             .Produces<AgentChatResponse>()
+            .ProducesValidationProblem();
+        agent.MapPost("/sessions/{id:guid}/messages/{messageId:guid}/translation", TranslateMessageAsync)
+            .WithName("TranslateChatMessage")
+            .WithSummary("One-click translation of a chat message into en or ar (LANG-7; Modern Standard Arabic and Gulf dialect are understood). Cached per language. Needs chat.handle and the AI feature translation.")
+            .RequirePermission(Permissions.ChatHandle)
+            .Produces<Ai.AiTranslationResponse>()
             .ProducesValidationProblem();
         agent.MapPost("/sessions/{id:guid}/link", LinkTicketAsync)
             .WithName("LinkChatToTicket")
@@ -286,6 +303,11 @@ internal static partial class ChatEndpoints
             widget.Active = active;
         }
 
+        if (request.VirtualAgent is { } virtualAgent)
+        {
+            widget.VirtualAgent = virtualAgent;
+        }
+
         return null;
     }
 
@@ -308,21 +330,30 @@ internal static partial class ChatEndpoints
 
     // --- Visitors ---
 
-    internal static async Task<IResult> PortalWidgetAsync(ZelvoDbContext db, CancellationToken cancellationToken)
+    internal static async Task<IResult> PortalWidgetAsync(HttpContext http, ZelvoDbContext db, CancellationToken cancellationToken)
     {
         var widget = await db.ChatWidgets.AsNoTracking().Where(w => w.Active && w.OnPortal).OrderBy(w => w.CreatedAt).FirstOrDefaultAsync(cancellationToken);
-        return widget is null ? WidgetNotFound() : TypedResults.Ok(await PublicAsync(db, widget, null, cancellationToken));
+        return widget is null ? WidgetNotFound() : TypedResults.Ok(await PublicAsync(http, db, widget, null, cancellationToken));
     }
 
-    internal static async Task<IResult> PublicWidgetAsync(Guid id, string? origin, ZelvoDbContext db, CancellationToken cancellationToken)
+    internal static async Task<IResult> PublicWidgetAsync(Guid id, string? origin, HttpContext http, ZelvoDbContext db, CancellationToken cancellationToken)
     {
         var widget = await db.ChatWidgets.AsNoTracking().SingleOrDefaultAsync(w => w.Id == id && w.Active, cancellationToken);
-        return widget is null ? WidgetNotFound() : TypedResults.Ok(await PublicAsync(db, widget, origin, cancellationToken));
+        return widget is null ? WidgetNotFound() : TypedResults.Ok(await PublicAsync(http, db, widget, origin, cancellationToken));
     }
 
-    private static async Task<PublicChatWidgetResponse> PublicAsync(ZelvoDbContext db, ChatWidget widget, string? origin, CancellationToken cancellationToken) =>
+    private static async Task<PublicChatWidgetResponse> PublicAsync(HttpContext http, ZelvoDbContext db, ChatWidget widget, string? origin, CancellationToken cancellationToken) =>
         new(widget.Id, LocalizedTextDto.From(widget.Name), LocalizedTextDto.From(widget.Greeting),
-            await OnlineAsync(db, widget.GroupId, cancellationToken), origin is null ? widget.OnPortal : IsAllowedOrigin(widget, origin), widget.AllowedOrigins);
+            await OnlineAsync(db, widget.GroupId, cancellationToken), origin is null ? widget.OnPortal : IsAllowedOrigin(widget, origin), widget.AllowedOrigins,
+            await VirtualAgentOnAsync(http.RequestServices, widget, cancellationToken));
+
+    /// <summary>
+    /// Whether the widget's virtual agent answers now: on for the widget, and the AI feature
+    /// available. The AI gateway is asked only for widgets that use it.
+    /// </summary>
+    internal static async Task<bool> VirtualAgentOnAsync(IServiceProvider services, ChatWidget widget, CancellationToken cancellationToken) =>
+        widget.VirtualAgent && (await services.GetRequiredService<IAiGateway>().AvailabilityAsync(cancellationToken))
+            .Any(a => a.Feature == AiFeatures.VirtualAgent && a.Available);
 
     internal static async Task<IResult> StartAsync(
         Guid id, StartChatRequest request, HttpContext http, ZelvoDbContext db, CurrentUser user, IRateLimitStore limits,
@@ -357,7 +388,8 @@ internal static partial class ChatEndpoints
             return UserEndpoints.Validation("email", "Enter your email address.");
         }
 
-        if (!await OnlineAsync(db, widget.GroupId, cancellationToken))
+        var withAssistant = await VirtualAgentOnAsync(http.RequestServices, widget, cancellationToken);
+        if (!withAssistant && !await OnlineAsync(db, widget.GroupId, cancellationToken))
         {
             return ApiProblem.Create(StatusCodes.Status409Conflict, "chat-offline", "Nobody can chat right now. Leave a message instead.");
         }
@@ -374,16 +406,24 @@ internal static partial class ChatEndpoints
             VisitorTokenHash = token is null ? null : Hash(token),
             Language = request.Language is LocalizedText.Arabic ? LocalizedText.Arabic : LocalizedText.English,
             Origin = NormalizeOrigin(request.Origin),
+            State = withAssistant ? ChatState.Assistant : ChatState.Waiting,
             StartedAt = now,
             LastVisitorActivityAt = now,
         };
         db.ChatSessions.Add(session);
+        var asked = false;
         if (request.Message is { } first && IncidentIntake.Clean(first, ChatMessage.BodyMaxLength) is { Length: > 0 } body)
         {
             db.ChatMessages.Add(new ChatMessage { SessionId = session.Id, Sender = ChatSender.Visitor, Body = body, CreatedAt = now });
+            asked = true;
         }
 
         await db.SaveChangesAsync(cancellationToken);
+        if (withAssistant && asked)
+        {
+            await AssistantAnswerAsync(db, user, http.RequestServices.GetRequiredService<VirtualAgent>(), session, cancellationToken);
+        }
+
         return TypedResults.Created($"/api/v1/chat/sessions/{session.Id}", new StartChatResponse(session.Id, token));
     }
 
@@ -484,7 +524,150 @@ internal static partial class ChatEndpoints
         db.ChatMessages.Add(message);
         session.LastVisitorActivityAt = now;
         await db.SaveChangesAsync(cancellationToken);
+        if (session.State == ChatState.Assistant)
+        {
+            await AssistantAnswerAsync(db, user, http.RequestServices.GetRequiredService<VirtualAgent>(), session, cancellationToken);
+        }
+
         return TypedResults.Created($"/api/v1/chat/sessions/{id}", ChatMessageResponse.From(message, null));
+    }
+
+    internal static async Task<IResult> HandoverAsync(
+        Guid id, HandoverRequest? request, HttpContext http, ZelvoDbContext db, CurrentUser user, IncidentIntake intake, ITenantContext tenant, IAuditLog audit,
+        CancellationToken cancellationToken)
+    {
+        var session = await VisitorSessionAsync(db, http, user, id, cancellationToken, track: true);
+        if (session is null)
+        {
+            return ChatNotFound();
+        }
+
+        if (session.State == ChatState.Ended)
+        {
+            return Ended();
+        }
+
+        if (session.State == ChatState.Assistant)
+        {
+            if (await OnlineAsync(db, session.GroupId, cancellationToken))
+            {
+                HandOver(db, session);
+            }
+            else if (request?.LeaveMessage == true)
+            {
+                // Routing locks the group until the commit (task B2).
+                await using var transaction = await db.Database.BeginTransactionAsync(cancellationToken);
+                await LeaveConversationAsync(db, user, intake, tenant, audit, session, cancellationToken);
+                await db.SaveChangesAsync(cancellationToken);
+                await transaction.CommitAsync(cancellationToken);
+            }
+            else
+            {
+                return ApiProblem.Create(StatusCodes.Status409Conflict, "chat-offline", "Nobody can chat right now. Leave your conversation as a message instead.");
+            }
+
+            await db.SaveChangesAsync(cancellationToken);
+        }
+
+        return TypedResults.Ok(await VisitorViewAsync(db, session, null, cancellationToken));
+    }
+
+    internal static async Task<IResult> TranslateMessageAsync(
+        Guid id, Guid messageId, ChatTranslationRequest request, ZelvoDbContext db, CurrentUser user, AgentAssist assist, CancellationToken cancellationToken)
+    {
+        if (!LocalizationSettings.IsLanguage(request.Language))
+        {
+            return UserEndpoints.Validation("language", "Translate into en or ar.");
+        }
+
+        var session = await AgentSessionAsync(db, user, id, cancellationToken);
+        var message = session is null ? null : await db.ChatMessages.AsNoTracking().SingleOrDefaultAsync(m => m.Id == messageId && m.SessionId == id && m.Body != "", cancellationToken);
+        if (message is null)
+        {
+            return ChatNotFound();
+        }
+
+        var outcome = await assist.TranslateAsync(TranslationSource.ChatMessage, message.Id, message.Body, request.Language!, [session!.VisitorName, session.VisitorEmail], cancellationToken);
+        return outcome.Value is { } translation
+            ? TypedResults.Ok(new Ai.AiTranslationResponse(translation.Text, translation.Language, translation.Cached))
+            : Ai.AiFeatureEndpoints.AiProblem(outcome.ErrorCode, outcome.Error);
+    }
+
+    /// <summary>
+    /// The virtual agent answers the visitor's newest message (task E5). It hands the chat over when
+    /// it says so and someone is online; when the AI cannot answer, the chat goes to the queue, or
+    /// stays with a short note offering a message when nobody is online.
+    /// </summary>
+    private static async Task AssistantAnswerAsync(ZelvoDbContext db, CurrentUser user, VirtualAgent assistant, ChatSession session, CancellationToken cancellationToken)
+    {
+        var history = await db.ChatMessages.AsNoTracking().Where(m => m.SessionId == session.Id && (m.Sender == ChatSender.Visitor || m.Sender == ChatSender.Assistant))
+            .OrderByDescending(m => m.Sequence).Take(VirtualAgent.HistoryTurns).ToListAsync(cancellationToken);
+        history.Reverse();
+        var readers = (await CatalogScope.OfAsync(db, user, cancellationToken)).Readers;
+        var (answer, _) = await assistant.AnswerAsync(
+            [.. history.Select(m => new VirtualAgentTurn(m.Sender == ChatSender.Visitor, m.Body))], session.Language, readers, user.Account is not null,
+            [session.VisitorName, session.VisitorEmail], session.Id.ToString(), cancellationToken);
+        var tracked = await db.ChatSessions.SingleAsync(c => c.Id == session.Id, cancellationToken);
+        if (answer is not null)
+        {
+            db.ChatMessages.Add(new ChatMessage
+            {
+                SessionId = tracked.Id,
+                Sender = ChatSender.Assistant,
+                Body = IncidentIntake.Clean(answer.Text, ChatMessage.BodyMaxLength),
+                Citations = answer.Articles.Count == 0 ? null : [.. answer.Articles.Select(a => a.Id)],
+                CreatedAt = DateTimeOffset.UtcNow,
+            });
+        }
+
+        if ((answer is null || answer.Handover) && await OnlineAsync(db, tracked.GroupId, cancellationToken))
+        {
+            HandOver(db, tracked);
+        }
+        else if (answer is null)
+        {
+            db.ChatMessages.Add(new ChatMessage
+            {
+                SessionId = tracked.Id,
+                Sender = ChatSender.Assistant,
+                Body = tracked.Language == LocalizedText.Arabic
+                    ? "عذرًا، لا أستطيع الإجابة الآن، ولا يوجد موظف متاح حاليًا. يمكنكم ترك رسالة وسنعاود التواصل معكم."
+                    : "Sorry, I cannot answer right now, and nobody is available at the moment. You can leave a message and we will get back to you.",
+                CreatedAt = DateTimeOffset.UtcNow,
+            });
+        }
+
+        await db.SaveChangesAsync(cancellationToken);
+    }
+
+    // The chat joins the group's queue, with the whole conversation, for the agent who accepts it.
+    private static void HandOver(ZelvoDbContext db, ChatSession session)
+    {
+        session.State = ChatState.Waiting;
+        db.ChatMessages.Add(new ChatMessage { SessionId = session.Id, Sender = ChatSender.System, Body = string.Empty, Event = ChatEvents.Handover, CreatedAt = DateTimeOffset.UtcNow });
+    }
+
+    // Nobody online: the conversation with the virtual agent becomes an incident (E2: a message left while nobody is online always does).
+    private static async Task LeaveConversationAsync(
+        ZelvoDbContext db, CurrentUser user, IncidentIntake intake, ITenantContext tenant, IAuditLog audit, ChatSession session, CancellationToken cancellationToken)
+    {
+        var widget = await db.ChatWidgets.AsNoTracking().SingleAsync(w => w.Id == session.WidgetId, cancellationToken);
+        var requester = session.VisitorUserId is { } known
+            ? await db.Users.SingleAsync(u => u.Id == known, cancellationToken)
+            : await RequesterAsync(db, audit, session.VisitorEmail, session.VisitorName, session.Language, cancellationToken);
+        var transcript = await db.ChatMessages.AsNoTracking().Where(m => m.SessionId == session.Id).OrderBy(m => m.Sequence).ToListAsync(cancellationToken);
+        var first = transcript.FirstOrDefault(m => m.Sender == ChatSender.Visitor)?.Body.Split('\n')[0].Trim();
+        var title = first is { Length: >= 3 } line ? line : session.VisitorName;
+        var description = string.Join("\n\n", transcript.Where(m => m.Sender is ChatSender.Visitor or ChatSender.Assistant && m.Body.Length > 0)
+            .Select(m => (m.Sender == ChatSender.Visitor ? session.VisitorName : session.Language == LocalizedText.Arabic ? "المساعد الافتراضي" : "Virtual agent") + ": " + m.Body));
+        var now = DateTimeOffset.UtcNow;
+        var ticket = await intake.CreateAsync(tenant.TenantId!.Value, new IncidentIntakeRequest(
+            title.Length <= 120 ? title : $"{title[..119]}…", IncidentIntake.Clean(description, Ticket.DescriptionMaxLength), TicketChannel.Chat, requester.Id,
+            CreatedById: user.Account?.Id, CategoryId: widget.CategoryId, GroupId: session.GroupId), now, cancellationToken);
+        session.TicketId = ticket.Id;
+        session.VisitorUserId ??= requester.Id;
+        db.ChatMessages.Add(new ChatMessage { SessionId = session.Id, Sender = ChatSender.System, Body = ticket.Number, Event = ChatEvents.Ticket, CreatedAt = now });
+        End(db, session, ChatEndedBy.Visitor, null);
     }
 
     internal static async Task<IResult> VisitorEndAsync(Guid id, HttpContext http, ZelvoDbContext db, CurrentUser user, CancellationToken cancellationToken)
@@ -910,13 +1093,15 @@ internal static partial class ChatEndpoints
     private static async Task<VisitorChatResponse> VisitorViewAsync(ZelvoDbContext db, ChatSession session, long? after, CancellationToken cancellationToken)
     {
         var (messages, names) = await MessagesAsync(db, session.Id, after, cancellationToken);
+        var numbers = await CitationsAsync(db, messages, cancellationToken);
         var agentName = session.AgentId is { } agent ? names.GetValueOrDefault(agent) ?? await db.Users.AsNoTracking().Where(u => u.Id == agent).Select(u => u.DisplayName).FirstOrDefaultAsync(cancellationToken) : null;
-        return new VisitorChatResponse(session.Id, session.State, agentName, session.EndedBy, [.. messages.Select(m => ChatMessageResponse.From(m, m.AuthorId is { } a ? names.GetValueOrDefault(a) : null))]);
+        return new VisitorChatResponse(session.Id, session.State, agentName, session.EndedBy, [.. messages.Select(m => ChatMessageResponse.From(m, m.AuthorId is { } a ? names.GetValueOrDefault(a) : null, numbers))]);
     }
 
     private static async Task<AgentChatResponse> AgentViewAsync(ZelvoDbContext db, ChatSession session, long? after, CancellationToken cancellationToken)
     {
         var (messages, names) = await MessagesAsync(db, session.Id, after, cancellationToken);
+        var numbers = await CitationsAsync(db, messages, cancellationToken);
         var groups = await GroupNamesAsync(db, [session.GroupId], cancellationToken);
         var number = session.TicketId is { } ticketId ? await db.Tickets.AsNoTracking().Where(t => t.Id == ticketId).Select(t => t.Number).FirstOrDefaultAsync(cancellationToken) : null;
         var agentName = session.AgentId is { } agent ? await db.Users.AsNoTracking().Where(u => u.Id == agent).Select(u => u.DisplayName ?? u.Email).FirstOrDefaultAsync(cancellationToken) : null;
@@ -924,7 +1109,7 @@ internal static partial class ChatEndpoints
             new NamedRef(session.GroupId, groups.GetValueOrDefault(session.GroupId) ?? LocalizedTextDto.From(new LocalizedText(null, null))),
             session.AgentId is { } agentId ? new PersonResponse(agentId, agentName) : null,
             session.TicketId, number, session.StartedAt, session.AcceptedAt, session.EndedAt, session.EndedBy,
-            [.. messages.Select(m => ChatMessageResponse.From(m, m.AuthorId is { } a ? names.GetValueOrDefault(a) : null))]);
+            [.. messages.Select(m => ChatMessageResponse.From(m, m.AuthorId is { } a ? names.GetValueOrDefault(a) : null, numbers))]);
     }
 
     private static async Task<(List<ChatMessage> Messages, Dictionary<Guid, string?> Names)> MessagesAsync(ZelvoDbContext db, Guid sessionId, long? after, CancellationToken cancellationToken)
@@ -933,6 +1118,14 @@ internal static partial class ChatEndpoints
             .OrderBy(m => m.Sequence).Take(500).ToListAsync(cancellationToken);
         var names = await IncidentEndpoints.Names(db, messages.Where(m => m.AuthorId is not null).Select(m => m.AuthorId!.Value), cancellationToken);
         return (messages, names);
+    }
+
+    // Numbers of the articles virtual agent answers cite, while they are still published.
+    private static async Task<Dictionary<Guid, string>> CitationsAsync(ZelvoDbContext db, List<ChatMessage> messages, CancellationToken cancellationToken)
+    {
+        var ids = messages.SelectMany(m => m.Citations ?? []).Distinct().ToList();
+        return ids.Count == 0 ? [] : await db.KbArticles.AsNoTracking().Where(a => ids.Contains(a.Id) && a.State == Data.Knowledge.ArticleState.Published)
+            .ToDictionaryAsync(a => a.Id, a => a.Number, cancellationToken);
     }
 
     private static async Task<Dictionary<Guid, LocalizedTextDto>> GroupNamesAsync(ZelvoDbContext db, IEnumerable<Guid> ids, CancellationToken cancellationToken)
@@ -1007,6 +1200,9 @@ public sealed class ChatWidgetRequest
 
     /// <summary>Accepts chats.</summary>
     public bool? Active { get; init; }
+
+    /// <summary>The virtual agent answers first from the knowledge base (task E5; needs the AI feature virtualAgent).</summary>
+    public bool? VirtualAgent { get; init; }
 }
 
 /// <summary>A visitor starting a chat.</summary>
@@ -1100,16 +1296,17 @@ public sealed class LinkChatRequest
 /// <summary>A chat widget as administrators see it.</summary>
 internal sealed record ChatWidgetResponse(
     Guid Id, LocalizedTextDto Name, LocalizedTextDto Greeting, Guid GroupId, Guid? CategoryId, IReadOnlyList<string> AllowedOrigins, bool OnPortal, bool Active,
-    DateTimeOffset UpdatedAt)
+    bool VirtualAgent, DateTimeOffset UpdatedAt)
 {
     public static ChatWidgetResponse From(ChatWidget w) => new(
-        w.Id, LocalizedTextDto.From(w.Name), LocalizedTextDto.From(w.Greeting), w.GroupId, w.CategoryId, w.AllowedOrigins, w.OnPortal, w.Active, w.UpdatedAt);
+        w.Id, LocalizedTextDto.From(w.Name), LocalizedTextDto.From(w.Greeting), w.GroupId, w.CategoryId, w.AllowedOrigins, w.OnPortal, w.Active, w.VirtualAgent, w.UpdatedAt);
 }
 
 /// <summary>What a visitor's chat window shows.</summary>
 /// <param name="Allowed">Whether the website (or the portal) may show the widget.</param>
 /// <param name="AllowedOrigins">Websites that may embed it (for the page's frame-ancestors policy).</param>
-internal sealed record PublicChatWidgetResponse(Guid Id, LocalizedTextDto Name, LocalizedTextDto Greeting, bool Online, bool Allowed, IReadOnlyList<string> AllowedOrigins);
+/// <param name="VirtualAgent">The virtual agent answers first (on for the widget and the AI feature available): a chat can start with nobody online.</param>
+internal sealed record PublicChatWidgetResponse(Guid Id, LocalizedTextDto Name, LocalizedTextDto Greeting, bool Online, bool Allowed, IReadOnlyList<string> AllowedOrigins, bool VirtualAgent);
 
 /// <summary>A started chat; visitors keep the token for the chat's lifetime.</summary>
 internal sealed record StartChatResponse(Guid SessionId, string? Token);
@@ -1118,9 +1315,32 @@ internal sealed record StartChatResponse(Guid SessionId, string? Token);
 internal sealed record LeftMessageResponse(string Number);
 
 /// <summary>A chat message.</summary>
-internal sealed record ChatMessageResponse(Guid Id, long Sequence, ChatSender Sender, string? AuthorName, string Body, string? Event, DateTimeOffset CreatedAt)
+/// <param name="Citations">Virtual agent answers: the knowledge articles it answered from.</param>
+internal sealed record ChatMessageResponse(Guid Id, long Sequence, ChatSender Sender, string? AuthorName, string Body, string? Event, DateTimeOffset CreatedAt, IReadOnlyList<ChatCitation> Citations)
 {
-    public static ChatMessageResponse From(ChatMessage m, string? authorName) => new(m.Id, m.Sequence, m.Sender, authorName, m.Body, m.Event, m.CreatedAt);
+    public static ChatMessageResponse From(ChatMessage m, string? authorName, IReadOnlyDictionary<Guid, string>? numbers = null) =>
+        new(m.Id, m.Sequence, m.Sender, authorName, m.Body, m.Event, m.CreatedAt,
+            [.. (m.Citations ?? []).Where(id => numbers is null || numbers.ContainsKey(id)).Select(id => new ChatCitation(id, numbers?.GetValueOrDefault(id) ?? string.Empty))]);
+}
+
+/// <summary>A knowledge article a virtual agent answer used.</summary>
+/// <param name="Id">The article (its page is /help/articles/{id}).</param>
+/// <param name="Number">Its number, for example KB-000012.</param>
+internal sealed record ChatCitation(Guid Id, string Number);
+
+/// <summary>Asking for a person.</summary>
+public sealed class HandoverRequest
+{
+    /// <summary>With nobody online: turn the conversation into an incident instead.</summary>
+    public bool? LeaveMessage { get; init; }
+}
+
+/// <summary>What to translate a chat message into.</summary>
+public sealed class ChatTranslationRequest
+{
+    /// <summary><c>en</c> or <c>ar</c>.</summary>
+    [StringLength(5)]
+    public string? Language { get; init; }
 }
 
 /// <summary>A chat as its visitor sees it.</summary>

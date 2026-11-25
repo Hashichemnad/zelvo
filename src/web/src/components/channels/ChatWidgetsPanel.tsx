@@ -71,6 +71,7 @@ function WidgetCard({ widget, appUrl, groups, onEdit }: { widget: ChatWidget; ap
       <p className="text-sm">
         {widget.active ? t("active") : t("inactive")} · {group ? textOf(group.name, locale) : "—"}
         {widget.onPortal && <> · {t("onPortal")}</>}
+        {widget.virtualAgent && <> · {t("virtualAgentOn")}</>}
       </p>
       {widget.allowedOrigins.length > 0 ? (
         <>
@@ -114,6 +115,7 @@ function WidgetForm({
   const [origins, setOrigins] = useState((widget?.allowedOrigins ?? []).join("\n"));
   const [onPortal, setOnPortal] = useState(widget?.onPortal ?? true);
   const [active, setActive] = useState(widget?.active ?? true);
+  const [virtualAgent, setVirtualAgent] = useState(widget?.virtualAgent ?? false);
   const [error, setError] = useState<string | null>(null);
 
   async function save(event: FormEvent) {
@@ -128,6 +130,7 @@ function WidgetForm({
       allowedOrigins: origins.split(/[\s,]+/).map((o) => o.trim()).filter(Boolean),
       onPortal,
       active,
+      virtualAgent,
     };
     try {
       if (widget) await patchJson(`/v1/chat/widgets/${widget.id}`, body, csrfToken);
@@ -180,6 +183,11 @@ function WidgetForm({
       <div className="flex flex-wrap gap-6">
         <label className="flex items-center gap-2"><input type="checkbox" checked={onPortal} onChange={() => setOnPortal(!onPortal)} />{t("showOnPortal")}</label>
         <label className="flex items-center gap-2"><input type="checkbox" checked={active} onChange={() => setActive(!active)} />{t("acceptsChats")}</label>
+        <label className="flex items-center gap-2">
+          <input type="checkbox" checked={virtualAgent} onChange={() => setVirtualAgent(!virtualAgent)} aria-describedby={`${id}-va-help`} />
+          {t("virtualAgent")}
+        </label>
+        <p id={`${id}-va-help`} className="text-sm text-ink-muted">{t("virtualAgentHelp")}</p>
       </div>
       {error && <p role="alert" className="text-bad">{error}</p>}
       <div className="flex gap-2">

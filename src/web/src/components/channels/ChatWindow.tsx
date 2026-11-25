@@ -7,6 +7,9 @@ import { mergeMessages, textIn, type ChatMessage, type PublicChatWidget, type Vi
 
 type Stage = "start" | "offline" | "left" | "chat";
 
+/** The first stage: a chat can start while someone is online or the virtual agent answers (task E5). */
+const firstStage = (widget: PublicChatWidget): Stage => (widget.online || widget.virtualAgent ? "start" : "offline");
+
 interface Stored {
   sessionId: string;
   token: string | null;
@@ -35,7 +38,9 @@ function writeStored(widgetId: string, value: Stored | null) {
 /**
  * A visitor's live chat window (task E2): on the portal for signed-in people (no details asked)
  * and in the widget frame of other websites, where visitors give their name and email first. With
- * nobody online, visitors leave a message, which becomes a ticket.
+ * nobody online, visitors leave a message, which becomes a ticket. Task E5: when the widget's
+ * virtual agent is on, it answers first from the knowledge base (with the articles it used) and
+ * hands over to a person on request; with nobody online the conversation can be left as a message.
  */
 export function ChatWindow({
   widget,
@@ -56,7 +61,8 @@ export function ChatWindow({
 }) {
   const t = useTranslations("channels.chat");
   const id = useId();
-  const [stage, setStage] = useState<Stage>(widget.online ? "start" : "offline");
+  const [stage, setStage] = useState<Stage>(firstStage(widget));
+  const [offlineHandover, setOfflineHandover] = useState(false);
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [text, setText] = useState("");
@@ -87,7 +93,7 @@ export function ChatWindow({
       if (response.status === 404) {
         writeStored(widget.id, null);
         setSession(null);
-        setStage(widget.online ? "start" : "offline");
+        setStage(firstStage(widget));
         return;
       }
       if (!response.ok) return;
@@ -95,7 +101,7 @@ export function ChatWindow({
       setChat(loaded);
       setMessages((current) => mergeMessages(current, loaded.messages));
     },
-    [session, messages, headers, widget.id, widget.online],
+    [session, messages, headers, widget],
   );
 
   // A chat of this visit carries on after a page reload.
@@ -208,6 +214,39 @@ export function ChatWindow({
     }
   }
 
+  // Task E5: ask the virtual agent for a person; with nobody online, offer to leave the conversation.
+  async function handover(leaveMessage: boolean) {
+    if (!session) return;
+    setBusy(true);
+    setError(null);
+    try {
+      const response = await fetch(`/bff/api/v1/chat/sessions/${session.sessionId}/handover`, {
+        method: "POST",
+        headers: headers(session),
+        body: JSON.stringify({ leaveMessage }),
+      });
+      const body = (await response.json().catch(() => ({}))) as Partial<VisitorChat> & { code?: string };
+      if (!response.ok) {
+        if (body.code === "chat-offline") setOfflineHandover(true);
+        else setError(response.status === 429 ? t("rateLimited") : t("failed"));
+        return;
+      }
+      setOfflineHandover(false);
+      const number = body.messages?.findLast((m) => m.event === "ticket")?.body;
+      if (leaveMessage && number) {
+        writeStored(widget.id, null);
+        setTicketNumber(number);
+        setStage("left");
+        return;
+      }
+      await load();
+    } catch {
+      setError(t("failed"));
+    } finally {
+      setBusy(false);
+    }
+  }
+
   async function end() {
     if (!session) return;
     await fetch(`/bff/api/v1/chat/sessions/${session.sessionId}/end`, { method: "POST", headers: headers(session) });
@@ -220,7 +259,8 @@ export function ChatWindow({
     setSession(null);
     setChat(null);
     setMessages([]);
-    setStage(widget.online ? "start" : "offline");
+    setOfflineHandover(false);
+    setStage(firstStage(widget));
   }
 
   const greeting = textIn(widget.greeting, locale);
@@ -278,20 +318,35 @@ export function ChatWindow({
       {stage === "chat" && (
         <>
           <p role="status" className="text-sm text-ink-muted">
-            {chat?.state === "Active" ? t("with", { agent: chat.agentName ?? "" }) : chat?.state === "Ended" ? t("ended") : t("waiting")}
+            {chat?.state === "Active" ? t("with", { agent: chat.agentName ?? "" }) : chat?.state === "Ended" ? t("ended") : chat?.state === "Assistant" ? t("withAssistant") : t("waiting")}
           </p>
           <ol ref={list} className="flex-1 space-y-2 overflow-y-auto" aria-live="polite" aria-label={t("messages")}>
             {messages.map((message) => (
               <li key={message.id} className={message.sender === "System" ? "text-center text-sm text-ink-muted" : message.sender === "Visitor" ? "ms-8 rounded-md bg-surface-muted p-2" : "me-8 rounded-md border border-line p-2"}>
                 {message.sender === "System" ? (
-                  t(`events.${message.event === "accepted" || message.event === "transferred" || message.event === "ended" || message.event === "ticket" ? message.event : "other"}`, {
+                  t(`events.${message.event === "accepted" || message.event === "transferred" || message.event === "ended" || message.event === "ticket" || message.event === "handover" ? message.event : "other"}`, {
                     agent: message.authorName ?? "",
                     number: message.body,
                   })
                 ) : (
                   <>
-                    <span className="block text-xs font-semibold">{message.sender === "Visitor" ? t("you") : message.authorName ?? t("agent")}</span>
+                    <span className="block text-xs font-semibold">
+                      {message.sender === "Visitor" ? t("you") : message.sender === "Assistant" ? t("assistant") : message.authorName ?? t("agent")}
+                    </span>
                     <span dir="auto" className="whitespace-pre-wrap break-words">{message.body}</span>
+                    {message.sender === "Assistant" && message.citations && message.citations.length > 0 && (
+                      <span className="mt-1 block text-xs text-ink-muted">
+                        {t("sources")}{" "}
+                        {message.citations.map((article, index) => (
+                          <span key={article.id}>
+                            {index > 0 && (locale === "ar" ? "، " : ", ")}
+                            <a href={`/${locale}/help/articles/${article.id}`} target="_blank" rel="noopener noreferrer" className="font-semibold text-brand underline" dir="ltr">
+                              {article.number}
+                            </a>
+                          </span>
+                        ))}
+                      </span>
+                    )}
                   </>
                 )}
               </li>
@@ -304,8 +359,21 @@ export function ChatWindow({
               <label htmlFor={`${id}-text`} className="sr-only">{t("yourMessage")}</label>
               <textarea id={`${id}-text`} dir="auto" rows={2} maxLength={4000} value={text} onChange={(e) => setText(e.target.value)} placeholder={t("yourMessage")} className="block w-full rounded-md border border-line bg-surface px-3 py-2" />
               {error && <p role="alert" className="text-bad">{error}</p>}
-              <div className="flex gap-2">
+              {offlineHandover && (
+                <div role="alert" className="space-y-2 rounded-md border border-warn p-2 text-sm">
+                  <p>{t("handoverOffline")}</p>
+                  <button type="button" disabled={busy} onClick={() => void handover(true)} className="rounded-md bg-brand px-3 py-1 font-semibold text-surface disabled:opacity-60">
+                    {t("leaveConversation")}
+                  </button>
+                </div>
+              )}
+              <div className="flex flex-wrap gap-2">
                 <button type="submit" disabled={busy || !text.trim()} className="rounded-md bg-brand px-4 py-2 font-semibold text-surface disabled:opacity-60">{t("send")}</button>
+                {chat?.state === "Assistant" && (
+                  <button type="button" disabled={busy} onClick={() => void handover(false)} className="rounded-md border border-brand px-4 py-2 font-semibold text-brand disabled:opacity-60">
+                    {t("talkToPerson")}
+                  </button>
+                )}
                 <button type="button" onClick={end} className="rounded-md border border-line px-4 py-2 font-semibold">{t("end")}</button>
               </div>
             </form>

@@ -10,7 +10,7 @@ export type { PendingSignIn } from "@/lib/auth/sign-in";
  * `mfa=1` the user is asked for a second factor (`acr_values=mfa`).
  */
 export async function GET(request: NextRequest) {
-  const config = authConfigFor(request);
+  const config = (await authConfigFor(request));
   const params = request.nextUrl.searchParams;
   const locale = localeOf(params.get("locale"));
   return startSignIn(config, {

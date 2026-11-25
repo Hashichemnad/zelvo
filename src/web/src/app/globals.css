@@ -2,9 +2,17 @@
 @import "@fontsource/ibm-plex-sans-arabic/400.css";
 @import "@fontsource/ibm-plex-sans-arabic/600.css";
 @import "@fontsource/ibm-plex-sans-arabic/700.css";
+/* Fonts the tenant's branding can choose (task F1); browsers download only the one in use. */
+@import "@fontsource/cairo/400.css";
+@import "@fontsource/cairo/700.css";
+@import "@fontsource/tajawal/400.css";
+@import "@fontsource/tajawal/700.css";
+@import "@fontsource/almarai/400.css";
+@import "@fontsource/almarai/700.css";
 
 /*
- * Design tokens. Tenant branding (module 11) will override the brand colours at runtime.
+ * Design tokens. Tenant branding (module 11, task F1) overrides the brand colours and the font
+ * at runtime (lib/branding.ts), after the contrast checks.
  * Contrast pairs are chosen for WCAG 2.2 AA in light and dark mode.
  */
 @theme {

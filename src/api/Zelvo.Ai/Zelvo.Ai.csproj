@@ -11,6 +11,7 @@
     <ProjectReference Include="..\Zelvo.Data\Zelvo.Data.csproj" />
     <ProjectReference Include="..\Zelvo.Secrets\Zelvo.Secrets.csproj" />
     <ProjectReference Include="..\Zelvo.Integrations\Zelvo.Integrations.csproj" />
+    <ProjectReference Include="..\Zelvo.Tickets\Zelvo.Tickets.csproj" />
   </ItemGroup>
   <ItemGroup>
     <InternalsVisibleTo Include="Zelvo.Api.Tests" />

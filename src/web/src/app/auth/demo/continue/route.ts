@@ -8,7 +8,7 @@ import { demoSwitchKey, finishDemoSwitch, type DemoSwitch } from "@/lib/demo-swi
  * the ticket (random, used once, valid five minutes) says who to sign in next.
  */
 export async function GET(request: NextRequest) {
-  const config = authConfigFor(request);
+  const config = (await authConfigFor(request));
   const ticket = request.nextUrl.searchParams.get("ticket");
   const raw = ticket && config.demoTenants.length > 0 ? await getSessionStore(config.sessionStoreUrl).take(demoSwitchKey(ticket)) : null;
   if (!raw) {

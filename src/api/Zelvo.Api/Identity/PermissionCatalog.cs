@@ -117,6 +117,14 @@ internal static class Permissions
     /// </summary>
     public const string ChannelsManage = "channels.manage";
 
+    /// <summary>
+    /// Settings → Branding (module 11, task F1): product name, logos, favicon, sign-in image,
+    /// colours and font with the contrast checks, publishing, custom domains with their
+    /// certificates, and the email sender domain. Not for integrations (for approval): a
+    /// certificate's private key and the DKIM key are set here.
+    /// </summary>
+    public const string BrandingManage = "branding.manage";
+
     /// <summary>Answer live chats of one's groups: accept, reply, transfer, end, and make tickets from them (task E2).</summary>
     public const string ChatHandle = "chat.handle";
 
@@ -227,6 +235,7 @@ internal static class PermissionCatalog
         Permissions.VoiceAssign,
         Permissions.VoiceReport,
         Permissions.VoiceManage,
+        Permissions.BrandingManage,
     ];
 
     /// <summary>
@@ -245,6 +254,9 @@ internal static class PermissionCatalog
         // Task E2, for the product owner's approval: mailbox settings hold credentials, and an
         // integration could point a mailbox at a server of its own.
         Permissions.ChannelsManage,
+        // Task F1, for the product owner's approval: certificates' private keys, DKIM keys and the
+        // domains the installation answers for are set here.
+        Permissions.BrandingManage,
     };
 
     /// <summary>Permissions an integration may be given as scopes.</summary>

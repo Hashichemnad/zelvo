@@ -37,6 +37,7 @@ worker NotificationDispatcher (every 2 s, per tenant, lease + SKIP LOCKED)  ▼
    | `knowledge.review-requested` | Active people with `knowledge.publish`, except the version's creator, last editor and submitter (four-eyes rule) | A version is submitted for review |
    | `incident.replied` (B4) | The requester | A staff member posts a public reply on their incident (from the workspace or by email; not for chat transcripts) |
    | `incident.mentioned` (B4) | The people mentioned | Someone @mentions them in a reply or internal note (links to the workspace) |
+   | `incident.requester-frustrated` (E5) | The team leads of the incident's group, or the assignee when the group has none | The AI's sentiment reading of the requester turns to frustrated (product owner decision 2026-11-24; links to the workspace; see `ai-features.md`) |
    | `voice.received` (C6) | The requester | A complaint, inquiry or suggestion is sent (not for anonymous ones) |
    | `voice.replied` (C6) | The requester | Staff reply publicly on their complaint, inquiry or suggestion |
    | `complaint.resolved` (C6) | The requester | Their complaint is resolved; it asks them to confirm or reject the resolution |
@@ -132,3 +133,7 @@ Requester notifications of tickets that came in by email go out **from the ticke
 - Digests and quiet hours (not in the requirements).
 - Notifications for B4's public replies and mentions: added with B4 (`incident.replied`, `incident.mentioned`; see `workspace.md`).
 - Notifications for B4's internal notes and mentions (added with B4; public replies came with E2).
+
+## Branding (task F1)
+
+The letterhead follows the tenant's published branding: brand colour for the heading, links and button, the light logo embedded as `cid:zelvo-logo`, and the product name beside "Powered by Zelvo". With a verified sender domain, emails go out from the tenant's own address, signed with its DKIM key. See `branding.md`.
