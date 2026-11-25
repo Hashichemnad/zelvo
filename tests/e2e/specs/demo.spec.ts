@@ -57,6 +57,8 @@ test.describe("demo mode", () => {
   });
 
   test("the admin resets the demo after confirming", async ({ page }) => {
+    // Resetting empties and reseeds both sample organisations (six months of sample data since F2).
+    test.setTimeout(240_000);
     await page.goto("/en");
     await (await openPanel(page)).getByRole("button", { name: /Tenant administrator\s*Fatima Al Hammadi/ }).click();
     await expect(page.getByRole("link", { name: /Fatima Al Hammadi/ })).toBeVisible();
@@ -68,7 +70,7 @@ test.describe("demo mode", () => {
     await expect(panel.getByText(/The audit log is kept/)).toBeVisible();
     await panel.getByRole("button", { name: "Reset now" }).click();
 
-    await expect.poll(() => lastResetAt("demo-company"), { timeout: 60_000 }).not.toBe(before);
+    await expect.poll(() => lastResetAt("demo-company"), { timeout: 180_000 }).not.toBe(before);
     // Still signed in after the reset.
     await expect(page.getByRole("link", { name: /Fatima Al Hammadi/ })).toBeVisible();
   });

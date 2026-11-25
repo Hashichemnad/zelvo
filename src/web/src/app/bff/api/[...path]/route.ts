@@ -41,6 +41,8 @@ async function forward(request: NextRequest, { params }: { params: Promise<{ pat
   // Live updates (task B4): the SignalR connection's requests are long (Server-Sent Events, long
   // polling), so they end when the browser goes away rather than after the usual timeout.
   const live = path[1] === "live";
+  // "Reset demo" empties and reseeds every sample organisation, which takes longer than the usual timeout.
+  const demoReset = request.method === "POST" && path.join("/") === "v1/demo/reset";
   const headers = new Headers();
   // The chat token proves a visitor's chat is theirs (task E2).
   for (const name of ["content-type", "accept", "accept-language", "if-match", "x-chat-token", ...(live ? ["x-requested-with", "x-signalr-user-agent"] : [])]) {
@@ -53,7 +55,7 @@ async function forward(request: NextRequest, { params }: { params: Promise<{ pat
     method: request.method,
     headers,
     body: changes ? await request.arrayBuffer() : undefined,
-    ...(live ? { signal: request.signal } : {}),
+    ...(live ? { signal: request.signal } : demoReset ? { signal: AbortSignal.timeout(300_000) } : {}),
   });
 
   // A saved profile language applies on this device right away (LANG-2).
