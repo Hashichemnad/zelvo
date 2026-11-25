@@ -49,8 +49,12 @@ internal static class DemoEndpoints
     }
 
     internal static async Task<Results<Ok<DemoResetResponse>, ProblemHttpResult>> ResetAsync(
-        ILicenseService license, ITenantContext tenant, CurrentUser user, DemoReset reset, IAuditLog audit, CancellationToken cancellationToken)
+        ILicenseService license, ITenantContext tenant, CurrentUser user, DemoReset reset, IAuditLog audit, IHostApplicationLifetime lifetime)
     {
+        // A reset empties and reseeds every sample organisation, which takes longer than a browser or
+        // the web proxy may wait; it is never stopped half-way because the caller went away, only when
+        // the API shuts down.
+        var cancellationToken = lifetime.ApplicationStopping;
         if (!license.IsDemo() || DemoCatalog.Find(tenant.Slug ?? string.Empty) is null)
         {
             return NotDemo();

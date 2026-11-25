@@ -22,7 +22,7 @@ export default async function MyRequestsPage({ params, searchParams }: PageProps
   const requested = Number((await searchParams).page);
   const page = Number.isInteger(requested) && requested > 0 && requested < 10_000 ? requested : 1;
   const [requests, format] = await Promise.all([
-    getJsonAs<ServiceRequestPage>(`/api/v1/service-requests?${new URLSearchParams({ mine: "true", page: String(page), pageSize: "25" })}`, session.data.accessToken, tenant),
+    getJsonAs<ServiceRequestPage>(`/api/v1/service-requests?${new URLSearchParams({ mine: "true", parts: "false", page: String(page), pageSize: "25" })}`, session.data.accessToken, tenant),
     getDisplayFormat(),
   ]);
   return (

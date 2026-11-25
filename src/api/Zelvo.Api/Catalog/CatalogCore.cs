@@ -276,8 +276,85 @@ internal static class ServiceCardCheck
             await Workflows.WorkflowReferences.CheckConditionsAsync(db, fulfilment.Overrides[i].Conditions, $"fulfilment.overrides.{i}.conditions", problems, cancellationToken).ConfigureAwait(false);
         }
 
+        // Task E8: fee rules refer to things that exist, and the gateway does.
+        for (var i = 0; i < card.Fee.Rules.Count; i++)
+        {
+            await Workflows.WorkflowReferences.CheckConditionsAsync(db, card.Fee.Rules[i].Conditions, $"fee.rules.{i}.conditions", problems, cancellationToken).ConfigureAwait(false);
+        }
+
+        if (card.Fee.GatewayId is { } gateway && !await db.PaymentGateways.AnyAsync(g => g.Id == gateway, cancellationToken).ConfigureAwait(false))
+        {
+            Add("fee.gatewayId", "gateway-unknown", "Choose a payment gateway that exists.");
+        }
+
         await Workflows.WorkflowReferences.CheckLevelsAsync(db, card.Approvals.BeforeAssignment, "approvals.beforeAssignment", problems, cancellationToken).ConfigureAwait(false);
         await Workflows.WorkflowReferences.CheckLevelsAsync(db, card.Approvals.AfterFulfilment, "approvals.afterFulfilment", problems, cancellationToken).ConfigureAwait(false);
+
+        // Task C5: a bundle's services are single, internal services that exist; proactive
+        // triggers refer to a service with that date field and to people who exist.
+        var bundleIds = card.Bundle.Items.Where(i => i.ServiceId is not null).Select(i => i.ServiceId!.Value).Distinct().ToList();
+        var sourceIds = card.Proactive.Triggers.Where(t => t.SourceServiceId is not null).Select(t => t.SourceServiceId!.Value).Distinct().ToList();
+        var referenced = bundleIds.Concat(sourceIds).Distinct().ToList();
+        if (referenced.Count > 0)
+        {
+            var cards = (await db.CatalogServices.AsNoTracking().Where(x => referenced.Contains(x.Id) && x.State != ServiceState.Retired)
+                .Select(x => new { x.Id, VersionId = x.PublishedVersionId ?? x.WorkingVersionId })
+                .Join(db.CatalogServiceVersions.AsNoTracking(), x => x.VersionId, v => v.Id, (x, v) => new { x.Id, v.Content })
+                .ToListAsync(cancellationToken).ConfigureAwait(false)).ToDictionary(x => x.Id, x => ServiceCards.Read(x.Content));
+            for (var i = 0; i < card.Bundle.Items.Count; i++)
+            {
+                if (card.Bundle.Items[i].ServiceId is not { } item)
+                {
+                    continue;
+                }
+
+                if (item == service.Id || !cards.TryGetValue(item, out var part))
+                {
+                    Add($"bundle.items.{i}.serviceId", "service-unknown", "Choose a service that exists, is not retired and is not this bundle.");
+                }
+                else if (part.Kind == ServiceKind.Bundle)
+                {
+                    Add($"bundle.items.{i}.serviceId", "bundle-in-bundle", "A bundle holds single services, not other bundles.");
+                }
+                else if (part.Type == ServiceType.External)
+                {
+                    Add($"bundle.items.{i}.serviceId", "bundle-external", "External services are requested on the provider's site; they cannot be in a bundle.");
+                }
+            }
+
+            for (var i = 0; i < card.Proactive.Triggers.Count; i++)
+            {
+                var trigger = card.Proactive.Triggers[i];
+                if (trigger.Kind != Data.Catalog.ProactiveTriggerKind.Date || trigger.SourceServiceId is not { } source)
+                {
+                    continue;
+                }
+
+                if (!cards.TryGetValue(source, out var sourceCard))
+                {
+                    Add($"proactive.triggers.{i}.sourceServiceId", "service-unknown", "Choose a service that exists and is not retired.");
+                    continue;
+                }
+
+                var sourceForm = sourceCard.FormId is { } sf ? await FormResolver.PublishedAsync(db, sf, cancellationToken).ConfigureAwait(false) : null;
+                if (sourceForm is null || !sourceForm.PlainFields.Any(x => x.Key == trigger.SourceFieldKey && x.Type == Zelvo.Tickets.Forms.FieldType.Date))
+                {
+                    Add($"proactive.triggers.{i}.sourceFieldKey", "date-field-unknown", "The service's published form has no date field with this key.");
+                }
+            }
+        }
+
+        foreach (var (trigger, i) in card.Proactive.Triggers.Select((t, i) => (t, i)).Where(x => x.t.Kind == Data.Catalog.ProactiveTriggerKind.Schedule))
+        {
+            var at = $"proactive.triggers.{i}.people";
+            await KnownAsync(db.SupportGroups.Select(g => g.Id), trigger.People.GroupIds, at, "group-unknown", "A group does not exist.").ConfigureAwait(false);
+            await KnownAsync(db.Departments.Select(x => x.Id), trigger.People.DepartmentIds, at, "department-unknown", "A department does not exist.").ConfigureAwait(false);
+            await KnownAsync(db.Users.Select(x => x.Id), trigger.People.UserIds, at, "user-unknown", "A user does not exist.").ConfigureAwait(false);
+            if (trigger.People.RoleKeys.Any(r => !roles.Contains(r)))
+            {
+                Add(at, "role-unknown", "A role does not exist.");
+            }
+        }
 
         var files = card.Documents.Where(x => x.TemplateFileId is not null).Select(x => x.TemplateFileId!.Value).ToList();
         if (card.ImageFileId is { } image)

@@ -107,6 +107,13 @@ public sealed class Ticket : ITenantOwned, IAuditedEntity
     /// </summary>
     public bool AwaitingApproval { get; set; }
 
+    /// <summary>
+    /// Held back from the service desk (tasks C5 and E8): a part of a bundle waiting for the parts
+    /// before it, or a request waiting for its fee. It is not routed and its SLA clocks are paused;
+    /// the reason is on the service request's details.
+    /// </summary>
+    public bool Held { get; set; }
+
     /// <summary>How many times it was reopened.</summary>
     public int ReopenCount { get; set; }
 
@@ -212,6 +219,9 @@ public enum TicketChannel
 
     /// <summary>An AI agent, through Zelvo's MCP server (module 9).</summary>
     AiAgent,
+
+    /// <summary>Started by Zelvo itself: a proactive service (task C5).</summary>
+    Proactive,
 }
 
 /// <summary>Incident details of a ticket: impact, urgency, priority and the major-incident flag.</summary>

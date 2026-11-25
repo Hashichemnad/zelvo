@@ -18,6 +18,9 @@ import { CatalogStatusLine, ServiceStateBadge } from "./common";
 import { PeopleList } from "./PeopleList";
 import { ApprovalLevelsEditor } from "@/components/workflows/WorkflowEditors";
 import { FulfilmentEditor } from "./FulfilmentEditor";
+import { BundleEditor, ProactiveEditor } from "./BundleProactiveEditor";
+import { FeePaymentEditor } from "@/components/payments/FeePaymentEditor";
+import type { DateDisplayOptions } from "@/lib/format";
 
 export interface ServiceEditorChoices {
   services: ServiceSummary[];
@@ -29,12 +32,16 @@ export interface ServiceEditorChoices {
   roles: Role[];
   /** Published forms to choose from; null without forms.manage. */
   forms: FormSummary[] | null;
+  /** Payment gateways (task E8); null without payments.manage. */
+  gateways?: { id: string; name: string }[] | null;
 }
 
 export interface ServiceEditorProps {
   initial: ServiceDetail;
   choices: ServiceEditorChoices;
   csrfToken: string;
+  /** Dates in the person's calendar and digits (proactive runs, task C5). */
+  display?: DateDisplayOptions;
 }
 
 /**
@@ -42,7 +49,7 @@ export interface ServiceEditorProps {
  * with If-Match, and the lifecycle actions the API allows (`actions`). Requesters keep the
  * published card until a reviewer other than the author approves the working one.
  */
-export function ServiceEditor({ initial, choices, csrfToken }: ServiceEditorProps) {
+export function ServiceEditor({ initial, choices, csrfToken, display }: ServiceEditorProps) {
   const t = useTranslations("catalog.editor");
   const tProblems = useTranslations("catalog.problems");
   const locale = useLocale() as Locale;
@@ -220,6 +227,13 @@ export function ServiceEditor({ initial, choices, csrfToken }: ServiceEditorProp
             onChange={(imageFileId) => update({ imageFileId })} onUploaded={(next) => setDetail((d) => ({ ...d, files: next.files }))} />
         </Section>
 
+        {card.type === "Internal" && (
+          <Section title={t("bundle")}>
+            <BundleEditor kind={card.kind} items={card.bundle.items} choices={choices} selfId={detail.id}
+              onChange={(kind, items) => update({ kind, bundle: { items } })} />
+          </Section>
+        )}
+
         <Section title={t("form")}>
           {choices.forms ? (
             <Select id={`${id}-form`} label={t("formLabel")} value={card.formId ?? ""} onChange={(v) => update({ formId: v || null })}
@@ -229,7 +243,7 @@ export function ServiceEditor({ initial, choices, csrfToken }: ServiceEditorProp
           )}
         </Section>
 
-        <Section title={t("documents")}>
+        {card.kind !== "Bundle" && <Section title={t("documents")}>
           <ListEditor items={card.documents} onChange={(documents) => update({ documents })} addLabel={t("addDocument")}
             blank={() => ({ key: "", name: emptyText(), description: emptyText(), required: true, fileTypes: [], maxSizeMb: null, templateFileId: null })}
             render={(doc, i, set) => (
@@ -260,7 +274,7 @@ export function ServiceEditor({ initial, choices, csrfToken }: ServiceEditorProp
                   csrfToken={csrfToken} onChange={(templateFileId) => set({ ...doc, templateFileId })} onUploaded={(next) => setDetail((d) => ({ ...d, files: next.files }))} />
               </div>
             )} />
-        </Section>
+        </Section>}
 
         <Section title={t("steps")}>
           <ListEditor items={card.steps} onChange={(steps) => update({ steps })} addLabel={t("addStep")} ordered
@@ -300,6 +314,9 @@ export function ServiceEditor({ initial, choices, csrfToken }: ServiceEditorProp
               <p id={`${id}-days-hint`} className="text-sm text-ink-muted">{t("daysHint")}</p>
             </div>
           </div>
+          {card.fee.paid && card.kind !== "Bundle" && (
+            <FeePaymentEditor fee={card.fee} gateways={choices.gateways ?? null} choices={choices} onChange={(fee) => update({ fee })} />
+          )}
           <TextPair id={`${id}-fee-notes`} label={t("feeNotes")} value={card.fee.notes} max={500} onChange={(notes) => update({ fee: { ...card.fee, notes } })} />
           <CheckList legend={t("channels")} items={deliveryChannels.map((c) => ({ value: c, label: t(`channelNames.${c}`) }))} selected={card.channels}
             onChange={(channels) => update({ channels: channels as ServiceCard["channels"] })} />
@@ -348,13 +365,20 @@ export function ServiceEditor({ initial, choices, csrfToken }: ServiceEditorProp
             )} />
         </Section>
 
-        {card.type === "Internal" && (
+        {card.type === "Internal" && card.kind !== "Bundle" && (
           <Section title={t("fulfilment")}>
             <FulfilmentEditor value={card.fulfilment} choices={choices} onChange={(fulfilment) => update({ fulfilment })} />
           </Section>
         )}
 
         {card.type === "Internal" && (
+          <Section title={t("proactive")}>
+            <ProactiveEditor value={card.proactive} choices={choices} serviceId={detail.id}
+              display={display ?? { locale, calendar: "gregory", digits: "latn", timeZone: "Asia/Dubai" }} onChange={(proactive) => update({ proactive })} />
+          </Section>
+        )}
+
+        {card.type === "Internal" && card.kind !== "Bundle" && (
           <Section title={t("approvals")}>
             <p className="text-sm text-ink-muted">{t("approvalsHint")}</p>
             <ApprovalLevelsEditor legend={t("approvalsBefore")} hint={t("approvalsBeforeHint")} levels={card.approvals.beforeAssignment} choices={choices}

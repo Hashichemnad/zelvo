@@ -36,6 +36,9 @@ internal static class CatalogBrowseEndpoints
         published.MapGet("/{id:guid}/request-form", RequestFormAsync).WithName("GetPublishedServiceRequestForm")
             .WithSummary("The service's published form with the requester's defaults. People requesting on behalf of someone (roles the service allows) name the requester.")
             .RequireAuthorization().Produces<ResolvedFormResponse>();
+        published.MapGet("/{id:guid}/bundle-form", BundleFormAsync).WithName("GetPublishedBundleForm")
+            .WithSummary("A bundle's combined form (task C5): its own form and each of its services' forms with the requester's defaults, documents and fees. A field several forms share is answered once. Mandatory services the requester may not request make the bundle unavailable (available false).")
+            .RequireAuthorization().Produces<BundleFormResponse>();
         published.MapGet("/{id:guid}/files/{fileId:guid}", FileAsync).WithName("GetPublishedServiceFile")
             .WithSummary("The image or a document template of a published service, for whoever may see the service. Only once scanned clean.")
             .AllowAnonymousAccess().Produces<byte[]>(contentType: "application/octet-stream");
@@ -144,7 +147,85 @@ internal static class CatalogBrowseEndpoints
             card.FormId is not null,
             open && scope.UserId is not null,
             open && CatalogAccess.MayRequestOnBehalf(card, scope),
-            open && scope.UserId is null));
+            open && scope.UserId is null,
+            card.Kind,
+            BundleItems(card, visible, ids)));
+    }
+
+    /// <summary>The services of a bundle (task C5), with the stage each starts in; services the caller may not see are left out.</summary>
+    private static List<PublishedBundleItem> BundleItems(ServiceCard card, IReadOnlyList<PublishedService> visible, IReadOnlySet<Guid> ids)
+    {
+        var items = new List<PublishedBundleItem>();
+        var stage = -1;
+        foreach (var item in card.Kind == ServiceKind.Bundle ? card.Bundle.Items : [])
+        {
+            stage += item.ParallelWithPrevious && stage >= 0 ? 0 : 1;
+            if (visible.FirstOrDefault(v => v.Service.Id == item.ServiceId) is { } service)
+            {
+                items.Add(new PublishedBundleItem(PublishedServiceSummary.From(service, ids, 0), item.Required, item.ParallelWithPrevious, stage));
+            }
+        }
+
+        return items;
+    }
+
+    /// <summary>
+    /// The combined form of a bundle (task C5): the bundle's own form and each service's form with
+    /// the requester's defaults, and each service's documents. A field several forms share is asked once.
+    /// </summary>
+    internal static async Task<IResult> BundleFormAsync(
+        Guid id, Guid? requesterId, string? language, ZelvoDbContext db, CurrentUser user, IAuditLog audit, CancellationToken cancellationToken)
+    {
+        var scope = await CatalogScope.OfAsync(db, user, cancellationToken);
+        var found = await PublishedServices.FindAsync(db, scope, id, cancellationToken);
+        if (found is null || found.Card.Kind != ServiceKind.Bundle)
+        {
+            return NotFound();
+        }
+
+        UserAccount? requester = user.Account;
+        if (requesterId is { } other && other != user.Account?.Id)
+        {
+            if (!CatalogAccess.MayRequestOnBehalf(found.Card, scope))
+            {
+                return ApiProblem.Create(StatusCodes.Status403Forbidden, "forbidden", "Your roles may not request this service on behalf of someone else.");
+            }
+
+            requester = await db.Users.AsNoTracking().SingleOrDefaultAsync(u => u.Id == other && u.Status == UserStatus.Active, cancellationToken);
+            if (requester is null)
+            {
+                return UserEndpoints.Validation("requesterId", "The requester is not an active user of this organisation.");
+            }
+        }
+
+        var requesterScope = requester is null ? scope : await CatalogScope.OfUserAsync(db, requester, cancellationToken);
+        async Task<ResolvedFormResponse> FormOfAsync(ServiceCard card)
+        {
+            var form = card.FormId is { } formId ? await FormResolver.PublishedAsync(db, formId, cancellationToken) : null;
+            var defaults = form is null || requester is null ? [] : await FormSubmission.DefaultsForAsync(db, user, audit, form.PlainFields, requester, language, cancellationToken);
+            return await FormEndpoints.ResolvedResponseAsync(db, form, defaults, language, cancellationToken);
+        }
+
+        var parts = new List<BundleFormPart>();
+        var stage = -1;
+        foreach (var item in found.Card.Bundle.Items)
+        {
+            stage += item.ParallelWithPrevious && stage >= 0 ? 0 : 1;
+            var part = await PublishedServices.FindAsync(db, requesterScope, item.ServiceId!.Value, cancellationToken);
+            var available = part is not null && part.Service.State == ServiceState.Active && part.Card.Type == ServiceType.Internal && part.Card.Kind == ServiceKind.Service;
+            if (part is null && !item.Required)
+            {
+                continue;
+            }
+
+            parts.Add(new BundleFormPart(
+                item.ServiceId!.Value, part is null ? null : LocalizedTextDto.From(part.Card.Name), part?.Service.Code, item.Required, stage, available,
+                part is null ? [] : [.. part.Card.Documents.Select(d => new PublishedDocument(d.Key, LocalizedTextDto.From(d.Name), LocalizedTextDto.From(d.Description), d.Required, d.FileTypes, d.MaxSizeMb, d.TemplateFileId))],
+                part is null ? null : new PublishedFee(part.Card.Fee.Paid, part.Card.Fee.AmountAed, LocalizedTextDto.From(part.Card.Fee.Notes)),
+                part is null || !available ? null : await FormOfAsync(part.Card)));
+        }
+
+        return TypedResults.Ok(new BundleFormResponse(await FormOfAsync(found.Card), parts));
     }
 
     internal static async Task<IResult> RequestFormAsync(
@@ -279,4 +360,16 @@ internal sealed record PublishedServiceResponse(
     IReadOnlyList<DeliveryChannel> Channels, IReadOnlyList<TargetAudience> Audiences, IReadOnlyList<PublishedPartner> Partners,
     IReadOnlyList<PublishedFaq> Faq, PublishedServiceSummary? Parent, IReadOnlyList<PublishedServiceSummary> SubServices,
     IReadOnlyList<PublishedServiceSummary> Related, IReadOnlyList<PublishedPrerequisite> Prerequisites,
-    bool HasForm, bool MayRequest, bool MayRequestOnBehalf, bool SignInToRequest);
+    bool HasForm, bool MayRequest, bool MayRequestOnBehalf, bool SignInToRequest,
+    ServiceKind Kind = ServiceKind.Service, IReadOnlyList<PublishedBundleItem>? BundleItems = null);
+
+/// <summary>A service of a bundle (task C5) for requesters: mandatory or optional, and the stage it starts in (0 first; parts of a stage run together).</summary>
+internal sealed record PublishedBundleItem(PublishedServiceSummary Service, bool Required, bool ParallelWithPrevious, int Stage);
+
+/// <summary>A bundle's combined form.</summary>
+internal sealed record BundleFormResponse(ResolvedFormResponse Form, IReadOnlyList<BundleFormPart> Parts);
+
+/// <summary>One service of the combined form: its form (none when it has no form or is unavailable), documents and fee.</summary>
+internal sealed record BundleFormPart(
+    Guid ServiceId, LocalizedTextDto? Name, string? Code, bool Required, int Stage, bool Available,
+    IReadOnlyList<PublishedDocument> Documents, PublishedFee? Fee, ResolvedFormResponse? Form);

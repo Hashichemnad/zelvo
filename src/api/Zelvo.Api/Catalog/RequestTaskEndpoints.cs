@@ -138,7 +138,8 @@ internal static class RequestTaskEndpoints
     }
 
     internal static async Task<IResult> CompleteAsync(
-        Guid id, CompleteTaskRequest? request, ZelvoDbContext db, CurrentUser user, ApprovalService approvals, SlaTracker sla, CancellationToken cancellationToken)
+        Guid id, CompleteTaskRequest? request, ZelvoDbContext db, CurrentUser user, ApprovalService approvals, SlaTracker sla, BundleProgress bundles,
+        CancellationToken cancellationToken)
     {
         await using var transaction = await db.Database.BeginTransactionAsync(cancellationToken);
         var (task, ticket, problem) = await LockAsync(db, id, cancellationToken);
@@ -172,6 +173,8 @@ internal static class RequestTaskEndpoints
         await sla.UpdateAsync([ticket], now, cancellationToken);
         await db.SaveChangesAsync(cancellationToken);
         await transaction.CommitAsync(cancellationToken);
+        // Task C5: the last task may have completed a part of a bundle.
+        await bundles.AfterPartChangedAsync(ticket.Id, cancellationToken);
         return TypedResults.Ok((await ResponsesAsync(db, user, [task], cancellationToken)).Single());
     }
 

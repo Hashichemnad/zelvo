@@ -39,7 +39,7 @@ internal enum DecisionError
 /// The ticket waits (<see cref="Ticket.AwaitingApproval"/>, SLA clocks paused) while a process is
 /// pending. Every step is audited. Callers save inside a transaction.
 /// </summary>
-internal sealed class ApprovalService(ZelvoDbContext db, IApprovalEngine engine, ITenantContext tenant, IAuditLog audit, TenantSettingsStore settings)
+internal sealed class ApprovalService(ZelvoDbContext db, IApprovalEngine engine, ITenantContext tenant, IAuditLog audit, TenantSettingsStore settings, Payments.PaymentService payments)
 {
     /// <summary>
     /// Starts a process of <paramref name="levels"/> (at least one) for <paramref name="ticket"/>:
@@ -186,7 +186,13 @@ internal sealed class ApprovalService(ZelvoDbContext db, IApprovalEngine engine,
         switch (process.Stage, process.State)
         {
             case (ApprovalStage.BeforeAssignment, ApprovalProcessState.Approved):
-                await Catalog.ServiceRequestRouting.ReleaseAsync(db, settings, ticket, null, now, cancellationToken);
+                // Task E8: a fee due after approval is paid before the request reaches the service desk.
+                var card = await Catalog.ServiceRequestEndpoints.CardOfAsync(db, ticket.Id, cancellationToken);
+                if (!await payments.HoldIfDueAsync(ticket, card, Data.Payments.PaymentTiming.AfterApproval, cancellationToken))
+                {
+                    await Catalog.ServiceRequestRouting.ReleaseAsync(db, settings, ticket, card, now, cancellationToken);
+                }
+
                 break;
             case (ApprovalStage.BeforeAssignment, _):
                 // Rejected before assignment: closed with the reason (product owner decision 2026-11-24).

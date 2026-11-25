@@ -15,6 +15,15 @@ export type TargetAudience = "Individuals" | "Businesses" | "GovernmentEntities"
 export type ServiceAccessMode = "Everyone" | "Public" | "Restricted";
 export type PartnerKind = "Department" | "Entity" | "Vendor";
 export type ServiceStepStage = "Submitted" | "Approval" | "Assigned" | "InProgress" | "OnHold" | "Resolved" | "Closed";
+/** A single service or a bundle of services (task C5). */
+export type ServiceKind = "Service" | "Bundle";
+export type ProactiveMode = "Offer" | "AutoStart";
+export type ProactiveTriggerKind = "Date" | "Schedule" | "Event";
+export type ScheduleUnit = "Day" | "Week" | "Month" | "Year";
+export type ProactiveRunState = "Scheduled" | "Offered" | "Started" | "Accepted" | "Declined" | "Expired" | "Failed";
+export const proactiveModes: ProactiveMode[] = ["Offer", "AutoStart"];
+export const triggerKinds: ProactiveTriggerKind[] = ["Event", "Date", "Schedule"];
+export const scheduleUnits: ScheduleUnit[] = ["Day", "Week", "Month", "Year"];
 
 export const serviceStates: ServiceState[] = ["Draft", "UnderReview", "Active", "Suspended", "Retired"];
 export const deliveryChannels: DeliveryChannel[] = ["Portal", "Mobile", "WhatsApp", "Chat", "Email", "CallCentre", "ServiceCentre"];
@@ -122,6 +131,60 @@ export interface RequestTask {
   etag: string;
 }
 
+/** A service in a bundle (task C5). */
+export interface BundleItem {
+  serviceId: string | null;
+  required: boolean;
+  parallelWithPrevious: boolean;
+}
+
+/** One trigger of a proactive service (task C5). */
+export interface ProactiveTrigger {
+  key: string;
+  kind: ProactiveTriggerKind;
+  sourceServiceId: string | null;
+  sourceFieldKey: string | null;
+  offsetDays: number;
+  startOn: string | null;
+  every: number;
+  unit: ScheduleUnit;
+  people: { groupIds: string[]; roleKeys: string[]; departmentIds: string[]; userIds: string[] };
+}
+
+/** When Zelvo offers or starts the service by itself (task C5). */
+export interface ServiceProactive {
+  enabled: boolean;
+  mode: ProactiveMode;
+  offerDays: number;
+  triggers: ProactiveTrigger[];
+}
+
+export function newTrigger(kind: ProactiveTriggerKind, index: number): ProactiveTrigger {
+  return {
+    key: `${kind.toLowerCase()}${index + 1}`, kind, sourceServiceId: null, sourceFieldKey: null, offsetDays: kind === "Date" ? -30 : 0,
+    startOn: null, every: 1, unit: "Year", people: { groupIds: [], roleKeys: [], departmentIds: [], userIds: [] },
+  };
+}
+
+/**
+ * The stage each bundle item starts in (0 first): an item "together with the one before" shares
+ * its stage, the others start a new one, as the API works it out.
+ */
+export function bundleStages(items: readonly { parallelWithPrevious: boolean }[]): number[] {
+  let stage = -1;
+  return items.map((item) => (stage = item.parallelWithPrevious && stage >= 0 ? stage : stage + 1));
+}
+
+/** A service's fee; online payment of it came with task E8. */
+export interface ServiceFee {
+  paid: boolean;
+  amountAed: number | null;
+  notes: Text;
+  timing: import("./payments").PaymentTiming;
+  gatewayId: string | null;
+  rules: { name: Text; amountAed: number; conditions: WorkflowCondition[] }[];
+}
+
 export interface ServiceCard {
   name: Text;
   summary: Text;
@@ -136,7 +199,7 @@ export interface ServiceCard {
   formId: string | null;
   documents: ServiceDocument[];
   steps: ServiceStep[];
-  fee: { paid: boolean; amountAed: number | null; notes: Text };
+  fee: ServiceFee;
   days: number | null;
   channels: DeliveryChannel[];
   audiences: TargetAudience[];
@@ -153,6 +216,10 @@ export interface ServiceCard {
   approvals: { beforeAssignment: ApprovalLevelDefinition[]; afterFulfilment: ApprovalLevelDefinition[] };
   /** Initial group, service SLA and tasks (task C4). */
   fulfilment: ServiceFulfilment;
+  /** A single service or a bundle (task C5). */
+  kind: ServiceKind;
+  bundle: { items: BundleItem[] };
+  proactive: ServiceProactive;
 }
 
 export const emptyText = (): Text => ({ en: null, ar: null });
@@ -168,7 +235,11 @@ export function completeCard(card: Partial<ServiceCard> | null | undefined): Ser
     formId: c.formId ?? null,
     documents: (c.documents ?? []).map((d) => ({ key: d.key ?? "", name: text(d.name), description: text(d.description), required: !!d.required, fileTypes: d.fileTypes ?? [], maxSizeMb: d.maxSizeMb ?? null, templateFileId: d.templateFileId ?? null })),
     steps: (c.steps ?? []).map((s) => ({ name: text(s.name), description: text(s.description), stage: s.stage ?? "InProgress", taskKey: s.taskKey ?? null })),
-    fee: { paid: !!c.fee?.paid, amountAed: c.fee?.amountAed ?? null, notes: text(c.fee?.notes) },
+    fee: {
+      paid: !!c.fee?.paid, amountAed: c.fee?.amountAed ?? null, notes: text(c.fee?.notes),
+      timing: c.fee?.timing ?? "OnSubmission", gatewayId: c.fee?.gatewayId ?? null,
+      rules: (c.fee?.rules ?? []).map((r) => ({ name: text(r.name), amountAed: r.amountAed ?? 0, conditions: r.conditions ?? [] })),
+    },
     days: c.days ?? null, channels: c.channels ?? ["Portal"], audiences: c.audiences ?? [],
     partners: (c.partners ?? []).map((p) => ({ kind: p.kind ?? "Entity", departmentId: p.departmentId ?? null, name: text(p.name) })),
     relatedServiceIds: c.relatedServiceIds ?? [], prerequisiteServiceIds: c.prerequisiteServiceIds ?? [], keywords: c.keywords ?? [],
@@ -186,6 +257,16 @@ export function completeCard(card: Partial<ServiceCard> | null | undefined): Ser
       escalations: c.fulfilment?.escalations ?? [],
       tasks: (c.fulfilment?.tasks ?? []).map((t) => ({ key: t.key ?? "", name: text(t.name), description: text(t.description), groupId: t.groupId ?? null,
         parallelWithPrevious: !!t.parallelWithPrevious, targetMinutes: t.targetMinutes ?? null })),
+    },
+    kind: c.kind ?? "Service",
+    bundle: { items: (c.bundle?.items ?? []).map((i) => ({ serviceId: i.serviceId ?? null, required: i.required ?? true, parallelWithPrevious: !!i.parallelWithPrevious })) },
+    proactive: {
+      enabled: !!c.proactive?.enabled, mode: c.proactive?.mode ?? "Offer", offerDays: c.proactive?.offerDays ?? 14,
+      triggers: (c.proactive?.triggers ?? []).map((t) => ({
+        key: t.key ?? "", kind: t.kind ?? "Event", sourceServiceId: t.sourceServiceId ?? null, sourceFieldKey: t.sourceFieldKey ?? null,
+        offsetDays: t.offsetDays ?? 0, startOn: t.startOn ?? null, every: t.every ?? 1, unit: t.unit ?? "Year",
+        people: { groupIds: t.people?.groupIds ?? [], roleKeys: t.people?.roleKeys ?? [], departmentIds: t.people?.departmentIds ?? [], userIds: t.people?.userIds ?? [] },
+      })),
     },
   };
 }
@@ -342,6 +423,72 @@ export interface PublishedService {
   mayRequest: boolean;
   mayRequestOnBehalf: boolean;
   signInToRequest: boolean;
+  /** Task C5: a bundle and its services (those the caller may see), with the stage each starts in. */
+  kind?: ServiceKind;
+  bundleItems?: { service: PublishedServiceSummary; required: boolean; parallelWithPrevious: boolean; stage: number }[];
+}
+
+/** A bundle's combined form (task C5): its own form and each service's form, documents and fee. */
+export interface BundleForm {
+  form: import("./forms/types").ResolvedForm;
+  parts: {
+    serviceId: string;
+    name: Bilingual | null;
+    code: string | null;
+    required: boolean;
+    stage: number;
+    available: boolean;
+    documents: PublishedService["documents"];
+    fee: PublishedService["fee"] | null;
+    form: import("./forms/types").ResolvedForm | null;
+  }[];
+}
+
+/** A part of a bundle request on its tracking screen (task C5). */
+export interface BundlePart {
+  id: string;
+  number: string;
+  title: string;
+  state: TicketState;
+  service: { id: string; code: string; name: Bilingual } | null;
+  stage: number;
+  optional: boolean;
+  held: boolean;
+  awaitingApproval: boolean;
+  group: { id: string; name: Bilingual } | null;
+  stepCount: number;
+  currentStep: number;
+}
+
+/** A service Zelvo offers the person (task C5); answers fill in its form. */
+export interface ServiceOffer {
+  id: string;
+  service: { id: string; code: string; name: Bilingual };
+  summary: Bilingual;
+  state: ProactiveRunState;
+  offeredAt: string | null;
+  expiresAt: string | null;
+  kind: ServiceKind;
+  answers: Record<string, unknown> | null;
+}
+
+/** A time a proactive service was due for someone (task C5). */
+export interface ProactiveRun {
+  id: string;
+  service: { id: string; code: string; name: Bilingual } | null;
+  trigger: string;
+  kind: ProactiveTriggerKind;
+  person: Person;
+  occurrence: string;
+  dueOn: string;
+  state: ProactiveRunState;
+  reason: string | null;
+  request: { id: string; number: string } | null;
+  source: { id: string; number: string } | null;
+  offeredAt: string | null;
+  expiresAt: string | null;
+  endedAt: string | null;
+  createdAt: string;
 }
 
 export interface ServiceRequest {
@@ -369,6 +516,12 @@ export interface ServiceRequest {
   updatedAt: string;
   resolvedAt: string | null;
   closedAt: string | null;
+  /** Task C5: a bundle with its parts, or a part of a bundle. */
+  isBundle?: boolean;
+  held?: boolean;
+  hold?: "None" | "Bundle" | "Payment";
+  bundle?: { id: string; number: string } | null;
+  parts?: BundlePart[] | null;
 }
 
 export interface ServiceRequestPage {
@@ -417,7 +570,10 @@ export function cardForApi(card: ServiceCard): ServiceCard {
     name: cleanText(card.name), summary: cleanText(card.summary), description: cleanText(card.description),
     externalUrl: card.externalUrl?.trim() || null,
     documents: card.documents.map((d) => ({ ...d, key: d.key.trim(), name: cleanText(d.name), description: cleanText(d.description) })),
-    fee: { ...card.fee, notes: cleanText(card.fee.notes), amountAed: card.fee.paid ? card.fee.amountAed : null },
+    fee: {
+      ...card.fee, notes: cleanText(card.fee.notes), amountAed: card.fee.paid ? card.fee.amountAed : null,
+      rules: card.fee.paid ? card.fee.rules.map((r) => ({ ...r, name: cleanText(r.name) })) : [],
+    },
     partners: card.partners.map((p) => ({ ...p, name: cleanText(p.name) })),
     faq: card.faq.map((f) => ({ question: cleanText(f.question), answer: cleanText(f.answer) })),
     keywords: card.keywords.map((k) => k.trim()).filter(Boolean),

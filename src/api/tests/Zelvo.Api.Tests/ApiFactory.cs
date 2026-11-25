@@ -21,6 +21,10 @@ public class ApiFactory : WebApplicationFactory<Program>
         ["Services:OpenSearch"] = "http://127.0.0.1:1/",
         ["Services:KeycloakHealth"] = "http://127.0.0.1:1/health/ready",
         ["Identity:PublicUrl"] = TestTokens.PublicUrl,
+        // Task C5: tests run the catalog jobs themselves.
+        ["Catalog:Jobs:Enabled"] = "false",
+        // Task E8: tests run the payment jobs themselves.
+        ["Payments:Jobs:Enabled"] = "false",
     };
 
     private readonly List<Action<IServiceCollection>> _services = [];

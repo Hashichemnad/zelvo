@@ -166,12 +166,14 @@ Admins build and change the whole service catalog themselves, with a drag-and-dr
 - The requester fills one combined form; Zelvo creates a child request for each service, each with its own team, approvals and SLA.
 - Admins choose which services in a bundle are mandatory or optional, and whether children run in sequence or in parallel.
 - The bundle closes when every child request is complete; the requester tracks all parts on one screen.
+- Bundles in Phase 1 task C5 (2026-11-25): the combined form asks a question several services share once; parts of a stage start together, later stages wait (not routed, clocks paused) until the parts before them are complete; the bundle resolves when every part is complete and closes when every part is closed. A bundle has no team, SLA, approvals, documents or fee of its own.
 
 **Proactive services**
 
 - Services Zelvo starts without the user asking, triggered by a date (for example, 30 days before a permit or contract expires), a schedule, or an event from another system through the API (for example, a new joiner created in the HR system).
 - For each proactive service, the admin chooses to notify the person and ask them to confirm, or to start the request automatically.
 - Notifications go by email, SMS, WhatsApp or the portal in the person's language.
+- Proactive services in Phase 1 task C5 (2026-11-25): dates come from a date answer on the person's completed request of another service (for example 30 days before a trade licence's expiry date) or from another system through the API; "notify and confirm" sends an offer that opens the service's form filled in with what Zelvo knows, which the person submits or declines; offers expire after a number of days the admin sets; an automatic start becomes an offer when the form or required documents need the person. SMS and WhatsApp come with task E3.
 
 **Service FAQ**
 
@@ -426,11 +428,14 @@ Each customer can switch online payments on or off in Settings and connect its o
 - When to pay: on submission, after approval, or on completion.
 - Which gateway to use, if the customer has more than one.
 
+- Phase 1 task E8 (2026-11-25): a fee due on completion leaves the request resolved, and it closes only once paid (no expiry); a fee due on submission or after approval holds the request in "Awaiting payment", and when it expires the request is closed with the reason "payment not received".
+
 **Receipts, refunds and finance**
 
 - Bilingual e-receipt with transaction ID, emailed and available in the portal.
 - Refunds recorded with a reason, sent through the gateway's refund API where it offers one, otherwise marked as a manual refund.
 - Daily reconciliation report matching Zelvo payments to gateway transactions; export to Excel for finance.
+- Reconciliation in Phase 1 task E8 (2026-11-25): each of the day's payments is checked with the gateway's status API, and the gateway's settlement file (CSV or Excel) can be imported to find transactions Zelvo does not know.
 
 **Security**
 

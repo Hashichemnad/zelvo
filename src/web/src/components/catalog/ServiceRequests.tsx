@@ -73,6 +73,75 @@ export function RequestProgress({ request }: { request: ServiceRequest }) {
   );
 }
 
+/**
+ * A bundle's parts on one screen (task C5): each part's service, state, team and progress through
+ * its own steps; parts waiting for the ones before them, or for an approval, say so in words.
+ */
+export function BundleParts({ request, basePath }: { request: ServiceRequest; basePath: string }) {
+  const t = useTranslations("catalog.requests.bundle");
+  const tr = useTranslations("catalog.requests");
+  const locale = useLocale() as Locale;
+  if (!request.isBundle || !request.parts?.length) return null;
+  const cell = "border-b border-line px-2 py-2 text-start align-top";
+  return (
+    <section aria-labelledby="bundle-parts" className="space-y-2" data-testid="bundle-parts">
+      <h2 id="bundle-parts" className="text-xl font-semibold">{t("parts")}</h2>
+      <div className="overflow-x-auto">
+        <table className="w-full border-collapse">
+          <thead>
+            <tr>
+              <th scope="col" className={cell}>{tr("number")}</th>
+              <th scope="col" className={cell}>{tr("service")}</th>
+              <th scope="col" className={cell}>{tr("state")}</th>
+              <th scope="col" className={cell}>{t("team")}</th>
+              <th scope="col" className={cell}>{tr("progress")}</th>
+            </tr>
+          </thead>
+          <tbody>
+            {request.parts.map((p) => {
+              const percent = p.stepCount > 1 && p.currentStep >= 0 ? Math.round((p.currentStep / (p.stepCount - 1)) * 100) : p.currentStep >= 0 && p.stepCount > 0 ? 100 : 0;
+              return (
+                <tr key={p.id} data-testid="bundle-part">
+                  <td className={cell}><Link href={`${basePath}/${p.id}`} className="font-mono font-semibold text-brand underline" dir="ltr">{p.number}</Link></td>
+                  <td className={cell}>
+                    {p.service ? <Localized text={p.service.name} locale={locale} /> : <span dir="auto">{p.title}</span>}
+                    {p.optional && <span className="ms-1 text-sm text-ink-muted">({t("optionalPart")})</span>}
+                  </td>
+                  <td className={cell}>
+                    {p.held ? <span>{t("waiting")}</span> : p.awaitingApproval ? <span>{t("approval")}</span> : <StateBadge state={p.state} />}
+                  </td>
+                  <td className={cell}>{p.group ? <Localized text={p.group.name} locale={locale} /> : "—"}</td>
+                  <td className={cell}>
+                    {p.stepCount > 0 ? (
+                      <div role="progressbar" aria-valuemin={0} aria-valuemax={100} aria-valuenow={percent}
+                        aria-valuetext={t("progress", { current: Math.max(p.currentStep, 0) + 1, total: p.stepCount })} aria-label={p.number}
+                        className="h-2 w-32 overflow-hidden rounded-full bg-surface-muted">
+                        <div className="h-full bg-brand" style={{ width: `${percent}%` }} />
+                      </div>
+                    ) : t("noSteps")}
+                  </td>
+                </tr>
+              );
+            })}
+          </tbody>
+        </table>
+      </div>
+    </section>
+  );
+}
+
+/** A part of a bundle links to its bundle (task C5). */
+export function BundleLink({ request, basePath }: { request: ServiceRequest; basePath: string }) {
+  const t = useTranslations("catalog.requests.bundle");
+  if (!request.bundle) return null;
+  return (
+    <p className="rounded-md border border-line p-2">
+      <Link href={`${basePath}/${request.bundle.id}`} className="font-semibold text-brand underline">{t("partOf", { number: request.bundle.number })}</Link>
+      {request.held && <span className="ms-2">{t("waiting")}</span>}
+    </p>
+  );
+}
+
 /** Facts of a request: service, state, requester (and who made it for them), dates, resolution. */
 export function RequestFacts({ request, display, settings, basePath }: { request: ServiceRequest; display: DateDisplayOptions; settings: IncidentSettings | null; basePath: string }) {
   const t = useTranslations("catalog.requests");

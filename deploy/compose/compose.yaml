@@ -42,6 +42,17 @@ x-ai-env: &ai-env
   Ai__AllowedPrivateNetworks__1: 192.168.0.0/16
   Ai__AllowedPrivateNetworks__2: 10.0.0.0/8
 
+# Payments (module 15, task E8): like AI, development lets gateways on the Compose network over
+# plain HTTP be reached, so Settings → Payments and the demo can use the local payment-mock
+# (http://payment-mock:8098). Installs leave both off; the gateway is the customer's own HTTPS
+# service. PublicUrl is the address gateways send the payer back to and notify.
+x-payments-env: &payments-env
+  Payments__AllowInsecureHttp: "true"
+  Payments__AllowedPrivateNetworks__0: 172.16.0.0/12
+  Payments__AllowedPrivateNetworks__1: 192.168.0.0/16
+  Payments__AllowedPrivateNetworks__2: 10.0.0.0/8
+  Payments__PublicUrl: http://localhost:${WEB_PORT:-3000}/
+
 # Notifications (module 10, task B5; product owner decision 2026-11-24): one mail server for the
 # whole installation, set by the operator. Development sends to Mailpit (http://localhost:8025)
 # without TLS; installs set their own relay, port, user and password (from .env, never committed)
@@ -320,6 +331,29 @@ services:
       timeout: 5s
       retries: 20
 
+  # Development only: a payment gateway sandbox for Settings → Payments and the demo (task E8). Its
+  # payer page is http://localhost:8098/pay/…; it notifies Zelvo through the web app on the
+  # Compose network. No real money and no card data.
+  payment-mock:
+    <<: *restart
+    image: node:24-alpine
+    command: ["node", "/app/server.mjs"]
+    user: node
+    working_dir: /app
+    environment:
+      PORT: "8098"
+      PUBLIC_ORIGIN: http://localhost:${PAYMENT_MOCK_PORT:-8098}
+      CALLBACK_ORIGIN: http://web:3000
+    volumes:
+      - ./payment-mock:/app:ro
+    ports:
+      - "127.0.0.1:${PAYMENT_MOCK_PORT:-8098}:8098"
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://127.0.0.1:8098/healthz"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+
   # Development only: an OpenAI-compatible AI provider for trying Settings → AI without a real
   # provider or key. Use http://ai-mock:8097/v1 as the endpoint of an "OpenAI-compatible" provider;
   # http://localhost:8097/received lists what it got (newest first).
@@ -396,7 +430,7 @@ services:
       Search__Password: ${OPENSEARCH_API_PASSWORD}
       Search__CaFile: /run/certs/ca.crt
       Services__KeycloakHealth: http://keycloak:9000/health/ready
-      <<: [*identity, *secrets-env, *telemetry-env, *integrations-env, *ai-env, *notifications-env, *channels-env, *branding-env]
+      <<: [*identity, *secrets-env, *telemetry-env, *integrations-env, *ai-env, *notifications-env, *channels-env, *branding-env, *payments-env]
       # Development: everything in the Compose network (the web app's server) may forward client
       # addresses. Installs list their proxies' exact addresses.
       Network__TrustedProxies__0: 172.16.0.0/12

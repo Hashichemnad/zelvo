@@ -18,16 +18,19 @@ interface Upload {
   fileName: string;
 }
 
-type Status = "idle" | "saving" | "invalid" | "failed" | "rateLimited" | "formChanged" | "suspended" | "prerequisite" | "external" | "forbidden" | "notOffered";
+type Status = "idle" | "saving" | "invalid" | "failed" | "rateLimited" | "formChanged" | "suspended" | "prerequisite" | "external" | "forbidden" | "notOffered" | "offerGone";
 
 /**
  * Requesting a service (task C2): an optional title and details, the service's form, the
  * required documents (uploaded with /form-uploads under document<Key>) and, for roles the
  * service allows, someone else to request it for. Server refusals show under their field.
  */
-export function RequestServiceForm({ service, initialForm, csrfToken, locations }: {
+export function RequestServiceForm({ service, initialForm, csrfToken, locations, offer }: {
   service: PublishedService; initialForm: ResolvedForm | null; csrfToken: string; locations: TreeNode[];
+  /** A proactive offer this request accepts (task C5): its answers fill in the form. */
+  offer?: { id: string; answers: Answers } | null;
 }) {
+  const tOffers = useTranslations("catalog.offers");
   const t = useTranslations("catalog.request");
   const tCommon = useTranslations("common");
   const locale = useLocale() as Locale;
@@ -36,7 +39,8 @@ export function RequestServiceForm({ service, initialForm, csrfToken, locations 
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
   const [form, setForm] = useState<ResolvedForm | null>(initialForm?.form ? initialForm : null);
-  const [answers, setAnswers] = useState<Answers>({});
+  const [answers, setAnswers] = useState<Answers>(() =>
+    Object.fromEntries(Object.entries(offer?.answers ?? {}).filter(([key]) => initialForm?.fields.some((f) => f.field.key === key))));
   const [formErrors, setFormErrors] = useState<AnswerError[]>([]);
   const [documentErrors, setDocumentErrors] = useState<AnswerError[]>([]);
   const [uploads, setUploads] = useState<Record<string, Upload[]>>({});
@@ -115,6 +119,7 @@ export function RequestServiceForm({ service, initialForm, csrfToken, locations 
     try {
       const created = await postJson<ServiceRequest>("/v1/service-requests", {
         serviceId: service.id,
+        offerId: offer?.id,
         requesterId: requester && onBehalf ? requester.id : undefined,
         title: title.trim() || undefined,
         description: description.trim() || undefined,
@@ -140,6 +145,7 @@ export function RequestServiceForm({ service, initialForm, csrfToken, locations 
         error.rateLimited ? "rateLimited"
           : error.code === "form-changed" ? "formChanged"
             : error.code === "service-suspended" ? "suspended"
+              : error.code === "offer-unavailable" ? "offerGone"
               : error.code === "prerequisite-missing" ? "prerequisite"
                 : error.code === "service-external" ? "external"
                   : error.status === 403 ? "forbidden"
@@ -153,12 +159,13 @@ export function RequestServiceForm({ service, initialForm, csrfToken, locations 
   const messages: Record<Status, string> = {
     idle: "", saving: t("submitting"), invalid: t("invalid"), failed: t("failed"), rateLimited: tCommon("rateLimited"), formChanged: t("formChanged"),
     suspended: t("errors.service-suspended"), prerequisite: t("errors.prerequisite-missing"), external: t("errors.service-external"),
-    forbidden: t("errors.forbidden"), notOffered: t("errors.not-offered"),
+    forbidden: t("errors.forbidden"), notOffered: t("errors.not-offered"), offerGone: t("bundle.errors.offer-unavailable"),
   };
 
   return (
     <form onSubmit={submit} className="max-w-2xl space-y-5" noValidate data-testid="request-service">
-      {service.mayRequestOnBehalf && (
+      {offer && <p role="note" className="rounded-md border border-line p-2">{tOffers("filling")}</p>}
+      {service.mayRequestOnBehalf && !offer && (
         <fieldset className="space-y-2 rounded-lg border border-line p-4" data-testid="on-behalf">
           <legend className="font-semibold">{t("forWhom")}</legend>
           <label className="flex items-center gap-2">

@@ -122,6 +122,14 @@ public static class NotificationSamples
             [Placeholders.ApprovalReason] = Both(Placeholders.ApprovalReason),
             [Placeholders.TaskName] = Both(Placeholders.TaskName),
             [Placeholders.TaskDueAt] = PlaceholderValue.OfDate(now.AddDays(1)),
+            [Placeholders.OfferExpiresAt] = PlaceholderValue.OfDate(now.AddDays(14)),
+            [Placeholders.PaymentAmount] = PlaceholderValue.OfText("150.00"),
+            [Placeholders.PaymentReceipt] = PlaceholderValue.OfText("RCT-000123"),
+            [Placeholders.PaymentTransaction] = PlaceholderValue.OfText("TXN-48151623"),
+            [Placeholders.PaymentPaidAt] = PlaceholderValue.OfDate(now),
+            [Placeholders.PaymentDueBy] = PlaceholderValue.OfDate(now.AddDays(3)),
+            [Placeholders.RefundAmount] = PlaceholderValue.OfText("50.00"),
+            [Placeholders.RefundReason] = Both(Placeholders.RefundReason),
         };
     }
 }

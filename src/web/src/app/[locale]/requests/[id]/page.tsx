@@ -1,12 +1,13 @@
 import { notFound } from "next/navigation";
 import { getTranslations, setRequestLocale } from "next-intl/server";
 import { FormAnswersView } from "@/components/forms/FormAnswersView";
-import { RequestAttachments, RequestFacts, RequestProgress, RequestWorkPanel } from "@/components/catalog/ServiceRequests";
+import { BundleLink, BundleParts, RequestAttachments, RequestFacts, RequestProgress, RequestWorkPanel } from "@/components/catalog/ServiceRequests";
 import { SlaClocks } from "@/components/sla/SlaClocks";
 import { ExportPdfButton } from "@/components/ExportPdfButton";
 import { CancelApprovalButton, RequestApprovals } from "@/components/workflows/Approvals";
 import { RequestTasksPanel } from "@/components/catalog/RequestTasks";
 import type { RequestTask } from "@/lib/catalog";
+import { PaymentPanel } from "@/components/payments/PaymentPanel";
 import { Link } from "@/i18n/navigation";
 import { getJsonAs } from "@/lib/api";
 import type { GroupSummary } from "@/lib/directory";
@@ -40,7 +41,7 @@ export default async function RequestPage({ params }: PageProps<"/[locale]/reque
     permissions.includes("directory.read") ? getJsonAs<GroupSummary[]>("/api/v1/groups", token, tenant) : Promise.resolve(null),
     getJsonAs<RequestTask[]>(`/api/v1/service-requests/${encodeURIComponent(id)}/tasks`, token, tenant),
   ]);
-  const { request, settings, attachments, form, display, documentNames, approvals } = data;
+  const { request, settings, attachments, form, display, documentNames, approvals, payments } = data;
   if (!request) {
     return (
       <section className="space-y-4">
@@ -59,7 +60,10 @@ export default async function RequestPage({ params }: PageProps<"/[locale]/reque
       {/* Task F1: a branded PDF in the page's language. */}
       <ExportPdfButton path={`/service-requests/${request.id}`} csrfToken={session.data.csrfToken} />
       {request.awaitingApproval && <p role="status" className="rounded-md border border-line bg-surface-muted p-3 font-semibold">{tApprovals("awaitingStaff")}</p>}
+      <BundleLink request={request} basePath="/requests" />
       <RequestProgress request={request} />
+      <BundleParts request={request} basePath="/requests" />
+      <PaymentPanel payments={payments} mayPay={false} mayRefund={permissions.includes("payments.refund")} display={display} csrfToken={session.data.csrfToken} />
       <RequestFacts request={request} display={display} settings={settings} basePath="/requests" />
       {request.sla.length > 0 && <SlaClocks clocks={request.sla} display={display} />}
       {form && <FormAnswersView view={form} attachmentBase={`/bff/api/v1/service-requests/${request.id}/attachments`} />}

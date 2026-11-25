@@ -310,6 +310,41 @@ public sealed class ServiceRequestDetails : ITenantOwned, IAuditedEntity
 
     /// <summary>The service's escalation thresholds (JSON array of <see cref="ServiceEscalation"/>); none: the policy's.</summary>
     public string Escalations { get; set; } = "[]";
+
+    /// <summary>
+    /// The request is a bundle (task C5): a container whose parts are child requests, one per
+    /// service of the bundle. It has no group, clocks or tasks of its own; it resolves when every
+    /// part is complete and closes when every part is closed.
+    /// </summary>
+    public bool IsBundle { get; init; }
+
+    /// <summary>The bundle this request is a part of (task C5); also the ticket's parent.</summary>
+    public Guid? BundleId { get; init; }
+
+    /// <summary>Stage of the part in its bundle (0-based): parts of a stage run in parallel, stages in sequence.</summary>
+    public int? BundleStage { get; init; }
+
+    /// <summary>Whether the part was optional in the bundle (the requester chose it).</summary>
+    public bool BundleOptional { get; init; }
+
+    /// <summary>Why the request is held back from the service desk (<see cref="Tickets.Ticket.Held"/>).</summary>
+    public ServiceRequestHold Hold { get; set; }
+
+    /// <summary>The proactive run that started or offered it (task C5), if any.</summary>
+    public Guid? ProactiveRunId { get; init; }
+}
+
+/// <summary>Why a service request waits before it reaches the service desk.</summary>
+public enum ServiceRequestHold
+{
+    /// <summary>Not held.</summary>
+    None,
+
+    /// <summary>A part of a bundle in sequence, waiting for the parts before it (task C5).</summary>
+    Bundle,
+
+    /// <summary>Waiting for its fee to be paid (task E8).</summary>
+    Payment,
 }
 
 /// <summary>An escalation threshold of a service's SLA (task C4), like an SLA policy's.</summary>
@@ -423,4 +458,131 @@ public enum RequestTaskState
 
     /// <summary>No longer needed (the request was resolved or closed by hand).</summary>
     Cancelled,
+}
+
+
+/// <summary>What starts a proactive service (task C5).</summary>
+public enum ProactiveTriggerKind
+{
+    /// <summary>A date: an answer on the person's completed request of another service, or a date sent through the API, with an offset in days.</summary>
+    Date,
+
+    /// <summary>A repeating schedule for named groups, roles, departments or people.</summary>
+    Schedule,
+
+    /// <summary>An event another system sends through the API (for example a new joiner in the HR system).</summary>
+    Event,
+}
+
+/// <summary>What Zelvo does when a proactive service is due for someone.</summary>
+public enum ProactiveMode
+{
+    /// <summary>Tell the person and ask them to confirm: the offer opens the service's form filled in with what Zelvo knows.</summary>
+    Offer,
+
+    /// <summary>Start the request at once (an offer instead when the form or documents need the person).</summary>
+    AutoStart,
+}
+
+/// <summary>Where a proactive run stands.</summary>
+public enum ProactiveRunState
+{
+    /// <summary>Due later (a date in the future).</summary>
+    Scheduled,
+
+    /// <summary>The person was told and asked to confirm.</summary>
+    Offered,
+
+    /// <summary>The request was started automatically.</summary>
+    Started,
+
+    /// <summary>The person requested the service from the offer.</summary>
+    Accepted,
+
+    /// <summary>The person declined the offer.</summary>
+    Declined,
+
+    /// <summary>The offer expired without an answer.</summary>
+    Expired,
+
+    /// <summary>It could not be offered or started (for example the service is not offered to the person); see the reason.</summary>
+    Failed,
+}
+
+/// <summary>
+/// One time a proactive service (task C5, module 2) is due for one person: from a date, a schedule
+/// occurrence or an event. Unique per service, trigger, person and occurrence, so the same date,
+/// occurrence or event never offers or starts the service twice.
+/// </summary>
+public sealed class ProactiveRun : ITenantOwned, IAuditedEntity
+{
+    /// <summary>Maximum length of <see cref="TriggerKey"/>.</summary>
+    public const int KeyMaxLength = 40;
+
+    /// <summary>Maximum length of <see cref="Occurrence"/>.</summary>
+    public const int OccurrenceMaxLength = 200;
+
+    /// <summary>Maximum length of <see cref="Reason"/>.</summary>
+    public const int ReasonMaxLength = 300;
+
+    /// <summary>Unique id (UUID version 7).</summary>
+    public Guid Id { get; init; } = Guid.CreateVersion7();
+
+    /// <inheritdoc />
+    public Guid TenantId { get; set; }
+
+    /// <summary>The proactive service.</summary>
+    public Guid ServiceId { get; init; }
+
+    /// <summary>The trigger of its card.</summary>
+    public required string TriggerKey { get; init; }
+
+    /// <summary>Kind of trigger.</summary>
+    public ProactiveTriggerKind Kind { get; init; }
+
+    /// <summary>The person it is for.</summary>
+    public Guid PersonId { get; init; }
+
+    /// <summary>
+    /// What makes this run unique for the trigger and person: the source request and date, the
+    /// schedule's occurrence date, or the event reference sent by the other system.
+    /// </summary>
+    public required string Occurrence { get; init; }
+
+    /// <summary>When it is due (UTC date).</summary>
+    public DateOnly DueOn { get; init; }
+
+    /// <summary>Where it stands.</summary>
+    public ProactiveRunState State { get; set; } = ProactiveRunState.Scheduled;
+
+    /// <summary>The earlier request whose date answer started it (date triggers).</summary>
+    public Guid? SourceTicketId { get; init; }
+
+    /// <summary>Answers to fill in (JSON object by field key): from the source request or sent with the event.</summary>
+    [AuditLengthOnly]
+    public string Answers { get; init; } = "{}";
+
+    /// <summary>The integration that sent the event or date, if any.</summary>
+    public Guid? ApiClientId { get; init; }
+
+    /// <summary>The request made: started automatically or from the offer.</summary>
+    public Guid? TicketId { get; set; }
+
+    /// <summary>Why it was offered instead of started, or why it failed (English, for administrators).</summary>
+    public string? Reason { get; set; }
+
+    /// <summary>When the person was told.</summary>
+    public DateTimeOffset? OfferedAt { get; set; }
+
+    /// <summary>When the offer expires.</summary>
+    public DateTimeOffset? ExpiresAt { get; set; }
+
+    /// <summary>When it was started, accepted, declined, expired or failed.</summary>
+    public DateTimeOffset? EndedAt { get; set; }
+
+    /// <summary>When it was created.</summary>
+    public DateTimeOffset CreatedAt { get; init; } = DateTimeOffset.UtcNow;
+
+    /// <summary>Optimistic concurrency token (PostgreSQL <c>xmin</c>).</summary>
+    public uint Version { get; init; }
 }

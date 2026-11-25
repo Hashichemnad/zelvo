@@ -114,6 +114,13 @@ export async function SiteHeader() {
                       </Link>
                     </li>
                   )}
+                  {user.permissions.includes("payments.read") && (
+                    <li>
+                      <Link href="/payments" className="text-brand underline-offset-4 hover:underline">
+                        {t("payments")}
+                      </Link>
+                    </li>
+                  )}
                   {user.permissions.includes("incidents.read") && (
                     <>
                       <li>

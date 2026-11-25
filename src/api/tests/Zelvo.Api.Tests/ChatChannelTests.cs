@@ -87,7 +87,7 @@ public sealed class ChatChannelTests(DatabaseFixture database) : IAsyncDisposabl
 
         // Nobody else can read the chat.
         Assert.Equal(HttpStatusCode.NotFound, (await AsVisitorAsync(visitor, HttpMethod.Get, $"/api/v1/chat/sessions/{session}", null)).StatusCode);
-        Assert.Equal(HttpStatusCode.NotFound, (await AsVisitorAsync(visitor, HttpMethod.Get, $"/api/v1/chat/sessions/{session}", token[..^1] + "0")).StatusCode);
+        Assert.Equal(HttpStatusCode.NotFound, (await AsVisitorAsync(visitor, HttpMethod.Get, $"/api/v1/chat/sessions/{session}", token[..^1] + (token[^1] == '0' ? "1" : "0"))).StatusCode);
 
         // The agent sees it waiting, accepts it, and the colleague cannot take it too.
         var queue = await agent.SendOkAsync(HttpMethod.Get, "/api/v1/chat/queue");

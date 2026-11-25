@@ -216,6 +216,124 @@ public sealed record FulfilmentTask
     public int? TargetMinutes { get; init; }
 }
 
+/// <summary>A single service or a bundle of services (task C5).</summary>
+public enum ServiceKind
+{
+    /// <summary>One service, fulfilled by its own group and tasks.</summary>
+    Service,
+
+    /// <summary>
+    /// Several services requested together with one combined form; each becomes a child request
+    /// with its own team, approvals and SLA.
+    /// </summary>
+    Bundle,
+}
+
+/// <summary>The services of a bundle (task C5, module 2), in order.</summary>
+public sealed record ServiceBundle
+{
+    /// <summary>The services, in order.</summary>
+    public IReadOnlyList<BundleItem> Items { get; init; } = [];
+}
+
+/// <summary>A service in a bundle.</summary>
+public sealed record BundleItem
+{
+    /// <summary>The service (a single, internal service).</summary>
+    public Guid? ServiceId { get; init; }
+
+    /// <summary>Mandatory (always requested) or optional (the requester chooses).</summary>
+    public bool Required { get; init; } = true;
+
+    /// <summary>Starts together with the service before it instead of after it is complete.</summary>
+    public bool ParallelWithPrevious { get; init; }
+}
+
+/// <summary>How often a schedule repeats.</summary>
+public enum ScheduleUnit
+{
+    /// <summary>Days.</summary>
+    Day,
+
+    /// <summary>Weeks.</summary>
+    Week,
+
+    /// <summary>Months (the same day of the month, or the month's last day).</summary>
+    Month,
+
+    /// <summary>Years.</summary>
+    Year,
+}
+
+/// <summary>
+/// A proactive service (task C5, module 2): Zelvo offers or starts it without the person asking,
+/// when a date comes near, on a schedule, or when another system sends an event through the API.
+/// </summary>
+public sealed record ServiceProactive
+{
+    /// <summary>On or off.</summary>
+    public bool Enabled { get; init; }
+
+    /// <summary>Notify and ask to confirm (an offer), or start the request automatically.</summary>
+    public Data.Catalog.ProactiveMode Mode { get; init; } = Data.Catalog.ProactiveMode.Offer;
+
+    /// <summary>Days an offer stays open.</summary>
+    public int OfferDays { get; init; } = 14;
+
+    /// <summary>What starts it.</summary>
+    public IReadOnlyList<ProactiveTrigger> Triggers { get; init; } = [];
+}
+
+/// <summary>One trigger of a proactive service.</summary>
+public sealed record ProactiveTrigger
+{
+    /// <summary>Key, camelCase, unique in the card; other systems name it in their events.</summary>
+    public string Key { get; init; } = string.Empty;
+
+    /// <summary>Date, schedule or event.</summary>
+    public Data.Catalog.ProactiveTriggerKind Kind { get; init; } = Data.Catalog.ProactiveTriggerKind.Event;
+
+    /// <summary>Date: the service whose completed requests hold the date (for example a trade licence); none: dates come through the API only.</summary>
+    public Guid? SourceServiceId { get; init; }
+
+    /// <summary>Date: the date field of that service's form (for example <c>expiryDate</c>).</summary>
+    public string? SourceFieldKey { get; init; }
+
+    /// <summary>Date: days after the date (negative: before it, for example -30).</summary>
+    public int OffsetDays { get; init; }
+
+    /// <summary>Schedule: the first occurrence.</summary>
+    public DateOnly? StartOn { get; init; }
+
+    /// <summary>Schedule: repeats every this many units.</summary>
+    public int Every { get; init; } = 1;
+
+    /// <summary>Schedule: the unit.</summary>
+    public ScheduleUnit Unit { get; init; } = ScheduleUnit.Year;
+
+    /// <summary>Schedule: who it is for.</summary>
+    public ProactivePeople People { get; init; } = new();
+}
+
+/// <summary>The people a scheduled proactive service is for: members of groups, holders of roles, people of departments, named users.</summary>
+public sealed record ProactivePeople
+{
+    /// <summary>Support groups whose members.</summary>
+    public IReadOnlyList<Guid> GroupIds { get; init; } = [];
+
+    /// <summary>Roles whose holders.</summary>
+    public IReadOnlyList<string> RoleKeys { get; init; } = [];
+
+    /// <summary>Departments whose people.</summary>
+    public IReadOnlyList<Guid> DepartmentIds { get; init; } = [];
+
+    /// <summary>Named users.</summary>
+    public IReadOnlyList<Guid> UserIds { get; init; } = [];
+
+    /// <summary>How many entries name people.</summary>
+    public int Count => GroupIds.Count + RoleKeys.Count + DepartmentIds.Count + UserIds.Count;
+}
+
 /// <summary>Fee of a service in AED (payments come with module 15).</summary>
 public sealed record ServiceFee
 {
@@ -227,6 +345,28 @@ public sealed record ServiceFee
 
     /// <summary>Notes, for example "urgent delivery costs extra".</summary>
     public LocalizedText Notes { get; init; } = new(null, null);
+
+    /// <summary>When it is paid online (task E8): on submission, after approval or on completion.</summary>
+    public Data.Payments.PaymentTiming Timing { get; init; } = Data.Payments.PaymentTiming.OnSubmission;
+
+    /// <summary>The gateway (task E8); none: the tenant's default gateway.</summary>
+    public Guid? GatewayId { get; init; }
+
+    /// <summary>Amounts added when the form answers say so (task E8), for example urgent delivery.</summary>
+    public IReadOnlyList<FeeRule> Rules { get; init; } = [];
+}
+
+/// <summary>An amount added to a service's fee when the answers match (task E8).</summary>
+public sealed record FeeRule
+{
+    /// <summary>What it is, for the receipt.</summary>
+    public LocalizedText Name { get; init; } = new(null, null);
+
+    /// <summary>When all hold (C3 conditions, usually on answers).</summary>
+    public IReadOnlyList<Zelvo.Workflows.Rules.WorkflowCondition> Conditions { get; init; } = [];
+
+    /// <summary>Amount in AED added.</summary>
+    public decimal AmountAed { get; init; }
 }
 
 /// <summary>Another department, entity or vendor involved in delivering the service.</summary>
@@ -363,6 +503,15 @@ public sealed record ServiceCard
 
     /// <summary>Initial group, SLAs and tasks (task C4).</summary>
     public ServiceFulfilment Fulfilment { get; init; } = new();
+
+    /// <summary>A single service or a bundle (task C5).</summary>
+    public ServiceKind Kind { get; init; } = ServiceKind.Service;
+
+    /// <summary>The services of a bundle (task C5).</summary>
+    public ServiceBundle Bundle { get; init; } = new();
+
+    /// <summary>When Zelvo offers or starts the service by itself (task C5).</summary>
+    public ServiceProactive Proactive { get; init; } = new();
 }
 
 /// <summary>Limits, JSON and the self-contained checks of service cards.</summary>
@@ -444,7 +593,12 @@ public static partial class ServiceCards
             FileTypes = [.. (d.FileTypes ?? []).Select(t => t.Trim().TrimStart('.').ToLowerInvariant()).Where(t => t.Length > 0).Distinct()],
         })],
         Steps = [.. (card.Steps ?? []).Select(s => s with { Name = Clean(s.Name), Description = Clean(s.Description), TaskKey = string.IsNullOrWhiteSpace(s.TaskKey) ? null : s.TaskKey.Trim() })],
-        Fee = (card.Fee ?? new ServiceFee()) with { Notes = Clean(card.Fee?.Notes), AmountAed = card.Fee?.Paid == true ? card.Fee.AmountAed : null },
+        Fee = (card.Fee ?? new ServiceFee()) with
+        {
+            Notes = Clean(card.Fee?.Notes),
+            AmountAed = card.Fee?.Paid == true ? card.Fee.AmountAed : null,
+            Rules = card.Fee?.Paid == true ? [.. (card.Fee.Rules ?? []).Select(r => r with { Name = Clean(r.Name), Conditions = r.Conditions ?? [] })] : [],
+        },
         Channels = [.. (card.Channels ?? []).Distinct()],
         Audiences = [.. (card.Audiences ?? []).Distinct()],
         Partners = [.. (card.Partners ?? []).Select(p => p with { Name = Clean(p.Name) })],
@@ -468,6 +622,22 @@ public static partial class ServiceCards
             AfterFulfilment = [.. (card.Approvals?.AfterFulfilment ?? []).Select(CleanLevel)],
         },
         Fulfilment = CleanFulfilment(card.Fulfilment),
+        Bundle = new ServiceBundle { Items = card.Bundle?.Items ?? [] },
+        Proactive = (card.Proactive ?? new ServiceProactive()) with
+        {
+            Triggers = [.. (card.Proactive?.Triggers ?? []).Select(t => t with
+            {
+                Key = t.Key?.Trim() ?? string.Empty,
+                SourceFieldKey = string.IsNullOrWhiteSpace(t.SourceFieldKey) ? null : t.SourceFieldKey.Trim(),
+                People = (t.People ?? new ProactivePeople()) with
+                {
+                    GroupIds = [.. (t.People?.GroupIds ?? []).Distinct()],
+                    RoleKeys = [.. (t.People?.RoleKeys ?? []).Distinct(StringComparer.Ordinal)],
+                    DepartmentIds = [.. (t.People?.DepartmentIds ?? []).Distinct()],
+                    UserIds = [.. (t.People?.UserIds ?? []).Distinct()],
+                },
+            })],
+        },
     };
 
     private static ServiceFulfilment CleanFulfilment(ServiceFulfilment? f) => f is null ? new() : f with
@@ -520,6 +690,33 @@ public static partial class ServiceCards
         }
 
         Length(card.Fee.Notes, "fee.notes", MaxShortText);
+        // Task E8: amounts added by answers.
+        if (card.Fee.Rules.Count > MaxFulfilmentItems)
+        {
+            Add("fee.rules", "too-many", $"At most {MaxFulfilmentItems} fee rules.");
+        }
+
+        for (var i = 0; i < card.Fee.Rules.Count; i++)
+        {
+            var rule = card.Fee.Rules[i];
+            if (rule.AmountAed <= 0 || rule.AmountAed > MaxFee || decimal.Round(rule.AmountAed, 2) != rule.AmountAed)
+            {
+                Add($"fee.rules.{i}.amountAed", "fee-invalid", "Add an amount in AED above zero, with at most two decimals.");
+            }
+
+            if (!rule.Name.HasAnyValue)
+            {
+                Add($"fee.rules.{i}.name", "fee-rule-name-required", "Name the addition in English or Arabic, for the receipt.");
+            }
+
+            if (rule.Conditions.Count == 0)
+            {
+                Add($"fee.rules.{i}.conditions", "conditions-required", "Say which answers add this amount.");
+            }
+
+            Length(rule.Name, $"fee.rules.{i}.name", MaxShortText);
+            Zelvo.Workflows.Rules.RuleDocuments.CheckConditions(rule.Conditions, $"fee.rules.{i}.conditions", problems);
+        }
         if (card.Days is { } days && (days < 1 || days > MaxDays))
         {
             Add("days", "days-invalid", $"Use 1 to {MaxDays} working days.");
@@ -628,6 +825,8 @@ public static partial class ServiceCards
         Zelvo.Workflows.Rules.RuleDocuments.CheckLevels(card.Approvals.BeforeAssignment, "approvals.beforeAssignment", problems);
         Zelvo.Workflows.Rules.RuleDocuments.CheckLevels(card.Approvals.AfterFulfilment, "approvals.afterFulfilment", problems);
         CheckFulfilment(card, problems);
+        CheckBundle(card, problems);
+        CheckProactive(card, problems);
         if (card.Type == ServiceType.External && card.Approvals.BeforeAssignment.Count + card.Approvals.AfterFulfilment.Count > 0)
         {
             Add("approvals", "external-has-approvals", "External services are requested on the provider's site; remove the approvals.");
@@ -748,6 +947,177 @@ public static partial class ServiceCards
             if (card.Steps[i].TaskKey is { } key && !keys.Contains(key))
             {
                 Add($"steps.{i}.taskKey", "task-unknown", "The step refers to a task the service does not have.");
+            }
+        }
+    }
+
+    /// <summary>Most services in a bundle.</summary>
+    public const int MaxBundleItems = 20;
+
+    /// <summary>Most triggers of a proactive service.</summary>
+    public const int MaxTriggers = 10;
+
+    /// <summary>Longest offer, in days.</summary>
+    public const int MaxOfferDays = 90;
+
+    /// <summary>Largest date offset, in days.</summary>
+    public const int MaxOffsetDays = 3650;
+
+    /// <summary>Checks a bundle (task C5): its services, and that it has no fulfilment, approvals, documents or fee of its own.</summary>
+    private static void CheckBundle(ServiceCard card, List<FormProblem> problems)
+    {
+        void Add(string field, string code, string message) => problems.Add(new FormProblem(field, code, message));
+        var items = card.Bundle.Items;
+        if (card.Kind != ServiceKind.Bundle)
+        {
+            if (items.Count > 0)
+            {
+                Add("bundle", "bundle-items-on-service", "Only bundles list services; make it a bundle or remove the services.");
+            }
+
+            return;
+        }
+
+        if (card.Type == ServiceType.External)
+        {
+            Add("type", "external-bundle", "A bundle is requested in Zelvo; make it internal.");
+        }
+
+        if (items.Count == 0)
+        {
+            Add("bundle.items", "bundle-empty", "Add the services of the bundle.");
+        }
+
+        if (items.Count > MaxBundleItems)
+        {
+            Add("bundle.items", "too-many", $"At most {MaxBundleItems} services.");
+        }
+
+        var seen = new HashSet<Guid>();
+        for (var i = 0; i < items.Count; i++)
+        {
+            if (items[i].ServiceId is not { } id)
+            {
+                Add($"bundle.items.{i}.serviceId", "service-required", "Choose the service.");
+            }
+            else if (!seen.Add(id))
+            {
+                Add($"bundle.items.{i}.serviceId", "service-duplicate", "Each service is in the bundle once.");
+            }
+        }
+
+        if (items.Count > 0 && items[0].ParallelWithPrevious)
+        {
+            Add("bundle.items.0.parallelWithPrevious", "first-item-parallel", "The first service starts the bundle; later ones can run alongside it.");
+        }
+
+        var f = card.Fulfilment;
+        if (f.GroupId is not null || f.Tasks.Count + f.Overrides.Count + f.Escalations.Count > 0 || f.OwnershipMinutes is not null || f.CompletionMinutes is not null)
+        {
+            Add("fulfilment", "bundle-has-fulfilment", "Each service of the bundle is fulfilled by its own team; remove the bundle's group, targets and tasks.");
+        }
+
+        if (card.Approvals.BeforeAssignment.Count + card.Approvals.AfterFulfilment.Count > 0)
+        {
+            Add("approvals", "bundle-has-approvals", "Each service of the bundle has its own approvals; remove the bundle's.");
+        }
+
+        if (card.Documents.Count > 0)
+        {
+            Add("documents", "bundle-has-documents", "The services of the bundle ask for their own documents; remove the bundle's.");
+        }
+
+        if (card.Fee.Paid)
+        {
+            Add("fee", "bundle-has-fee", "Fees belong to the services of the bundle; make the bundle free.");
+        }
+
+        if (card.Steps.Any(s => s.TaskKey is not null))
+        {
+            Add("steps", "bundle-step-task", "A bundle has no tasks of its own; its steps follow its stage.");
+        }
+    }
+
+    /// <summary>Checks the proactive section (task C5): mode, offer days and triggers.</summary>
+    private static void CheckProactive(ServiceCard card, List<FormProblem> problems)
+    {
+        void Add(string field, string code, string message) => problems.Add(new FormProblem(field, code, message));
+        var p = card.Proactive;
+        if (!p.Enabled && p.Triggers.Count == 0)
+        {
+            return;
+        }
+
+        if (card.Type == ServiceType.External && p.Enabled)
+        {
+            Add("proactive", "external-proactive", "External services are requested on the provider's site; they cannot be proactive.");
+        }
+
+        if (p.Enabled && p.Triggers.Count == 0)
+        {
+            Add("proactive.triggers", "triggers-required", "Say what starts the service: a date, a schedule or an event.");
+        }
+
+        if (p.Triggers.Count > MaxTriggers)
+        {
+            Add("proactive.triggers", "too-many", $"At most {MaxTriggers} triggers.");
+        }
+
+        if (p.OfferDays < 1 || p.OfferDays > MaxOfferDays)
+        {
+            Add("proactive.offerDays", "offer-days-invalid", $"Offers stay open 1 to {MaxOfferDays} days.");
+        }
+
+        var keys = new HashSet<string>(StringComparer.Ordinal);
+        for (var i = 0; i < p.Triggers.Count; i++)
+        {
+            var t = p.Triggers[i];
+            var at = $"proactive.triggers.{i}";
+            if (!IsDocumentKey(t.Key) || t.Key.Length > Data.Catalog.ProactiveRun.KeyMaxLength)
+            {
+                Add($"{at}.key", "trigger-key-invalid", "Trigger keys are camelCase letters and digits, starting with a lower-case letter.");
+            }
+            else if (!keys.Add(t.Key))
+            {
+                Add($"{at}.key", "trigger-key-taken", "Each trigger has its own key.");
+            }
+
+            switch (t.Kind)
+            {
+                case Data.Catalog.ProactiveTriggerKind.Date:
+                    if (t.OffsetDays is < -MaxOffsetDays or > MaxOffsetDays)
+                    {
+                        Add($"{at}.offsetDays", "offset-invalid", $"Use {-MaxOffsetDays} to {MaxOffsetDays} days.");
+                    }
+
+                    if ((t.SourceServiceId is null) != (t.SourceFieldKey is null))
+                    {
+                        Add($"{at}.sourceFieldKey", "source-incomplete", "Choose both the service and its date field, or neither (dates then come through the API).");
+                    }
+
+                    break;
+                case Data.Catalog.ProactiveTriggerKind.Schedule:
+                    if (t.StartOn is null)
+                    {
+                        Add($"{at}.startOn", "start-required", "Choose the first date of the schedule.");
+                    }
+
+                    if (t.Every is < 1 or > 365)
+                    {
+                        Add($"{at}.every", "every-invalid", "Repeat every 1 to 365 days, weeks, months or years.");
+                    }
+
+                    if (t.People.Count == 0)
+                    {
+                        Add($"{at}.people", "people-required", "Name the groups, roles, departments or people the schedule is for.");
+                    }
+
+                    if (t.People.Count > 90)
+                    {
+                        Add($"{at}.people", "people-too-long", "Name at most 90 groups, roles, departments and people.");
+                    }
+
+                    break;
             }
         }
     }

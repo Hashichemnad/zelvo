@@ -219,8 +219,15 @@ public sealed class SlaTracker(ZelvoDbContext db, IAuditLog audit)
         var people = new Recipients(db);
         var services = await ServiceSla.LoadAsync(db, tickets, cancellationToken).ConfigureAwait(false);
 
+        // Task C5: bundles are containers; their parts have the clocks.
+        var bundles = await ServiceSla.BundlesAsync(db, tickets, cancellationToken).ConfigureAwait(false);
         foreach (var ticket in tickets.DistinctBy(t => t.Id))
         {
+            if (bundles.Contains(ticket.Id))
+            {
+                continue;
+            }
+
             var subject = new SlaSubject(ticket.Type, ticket.Incident?.Priority ?? ticket.Voice?.Priority, setup.CategoryAncestry(ticket.CategoryId),
                 setup.CustomerGroupsOf(ticket.RequesterId, emails.GetValueOrDefault(ticket.RequesterId)));
             var matched = SlaMatcher.FirstMatch(setup.Policies, subject);
@@ -409,7 +416,8 @@ public sealed class SlaTracker(ZelvoDbContext db, IAuditLog audit)
         }
 
         // Task C3 (module 2): clocks also pause while the ticket waits for an approval.
-        return ticket.AwaitingApproval || (ticket.State == TicketState.OnHold && ticket.OnHoldReason is { } reason && pausingReasons.Contains(reason))
+        // Tasks C5 and E8: also while held back (a later part of a bundle, a fee to pay).
+        return ticket.AwaitingApproval || ticket.Held || (ticket.State == TicketState.OnHold && ticket.OnHoldReason is { } reason && pausingReasons.Contains(reason))
             ? SlaClockState.Paused
             : SlaClockState.Running;
     }
@@ -456,6 +464,24 @@ internal sealed class ServiceSla
     private int? _ownership;
     private int? _completion;
     private List<Data.Catalog.ServiceEscalation> _escalations = [];
+
+    /// <summary>The bundle requests among <paramref name="tickets"/> (task C5).</summary>
+    public static async Task<HashSet<Guid>> BundlesAsync(ZelvoDbContext db, IReadOnlyCollection<Ticket> tickets, CancellationToken cancellationToken)
+    {
+        var ids = tickets.Where(t => t.Type == TicketType.ServiceRequest).Select(t => t.Id).ToList();
+        if (ids.Count == 0)
+        {
+            return [];
+        }
+
+        var result = db.ChangeTracker.Entries<Data.Catalog.ServiceRequestDetails>().Where(e => e.Entity.IsBundle && ids.Contains(e.Entity.TicketId)).Select(e => e.Entity.TicketId).ToHashSet();
+        foreach (var id in await db.ServiceRequests.AsNoTracking().Where(r => r.IsBundle && ids.Contains(r.TicketId)).Select(r => r.TicketId).ToListAsync(cancellationToken).ConfigureAwait(false))
+        {
+            result.Add(id);
+        }
+
+        return result;
+    }
 
     /// <summary>The service SLAs of the request tickets among <paramref name="tickets"/> that have one.</summary>
     public static async Task<Dictionary<Guid, ServiceSla>> LoadAsync(ZelvoDbContext db, IReadOnlyCollection<Ticket> tickets, CancellationToken cancellationToken)

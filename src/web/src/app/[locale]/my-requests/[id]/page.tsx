@@ -1,10 +1,11 @@
 import { notFound } from "next/navigation";
 import { getTranslations, setRequestLocale } from "next-intl/server";
 import { FormAnswersView } from "@/components/forms/FormAnswersView";
-import { ReopenRequestButton, RequestAttachments, RequestFacts, RequestProgress } from "@/components/catalog/ServiceRequests";
+import { BundleLink, BundleParts, ReopenRequestButton, RequestAttachments, RequestFacts, RequestProgress } from "@/components/catalog/ServiceRequests";
 import { TicketRatingBlock } from "@/components/voice/TicketRatingBlock";
 import { ExportPdfButton } from "@/components/ExportPdfButton";
 import { CancelApprovalButton, RequestApprovals } from "@/components/workflows/Approvals";
+import { PaymentPanel } from "@/components/payments/PaymentPanel";
 import { Link } from "@/i18n/navigation";
 import { isId } from "@/lib/incident-pages";
 import { loadRequest } from "@/lib/request-pages";
@@ -24,7 +25,7 @@ export default async function MyRequestPage({ params }: PageProps<"/[locale]/my-
   const { session, tenant } = await requireSignedIn(locale, `/${locale}/my-requests/${id}`);
   const t = await getTranslations({ locale, namespace: "catalog.requests" });
   const tApprovals = await getTranslations({ locale, namespace: "approvals" });
-  const { request, settings, attachments, form, display, documentNames, approvals } = await loadRequest(id, session.data.accessToken, tenant, locale);
+  const { request, settings, attachments, form, display, documentNames, approvals, payments } = await loadRequest(id, session.data.accessToken, tenant, locale);
   if (!request) {
     return (
       <section className="space-y-4">
@@ -43,7 +44,10 @@ export default async function MyRequestPage({ params }: PageProps<"/[locale]/my-
       {/* Task F1: a branded PDF in the page's language. */}
       <ExportPdfButton path={`/service-requests/${request.id}`} csrfToken={session.data.csrfToken} />
       {request.awaitingApproval && <p role="status" className="rounded-md border border-line bg-surface-muted p-3 font-semibold">{tApprovals("awaitingRequester")}</p>}
+      <BundleLink request={request} basePath="/my-requests" />
       <RequestProgress request={request} />
+      <BundleParts request={request} basePath="/my-requests" />
+      <PaymentPanel payments={payments} mayPay={true} mayRefund={false} display={display} csrfToken={session.data.csrfToken} />
       <RequestFacts request={request} display={display} settings={settings} basePath="/my-requests" />
       {form && <FormAnswersView view={form} attachmentBase={`/bff/api/v1/service-requests/${request.id}/attachments`} />}
       <RequestAttachments requestId={request.id} attachments={attachments} documentNames={documentNames} />
