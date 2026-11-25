@@ -843,7 +843,7 @@ internal static partial class BrandingEndpoints
             return ExportNotFound();
         }
 
-        audit.Add(AuditCategory.View, "export.downloaded", "ticket", export.EntityId.ToString(), new Dictionary<string, object?>(StringComparer.Ordinal) { ["exportId"] = export.Id.ToString() });
+        audit.Add(AuditCategory.View, "export.downloaded", export.Kind == ExportKind.Report ? "report" : "ticket", export.EntityId?.ToString(), new Dictionary<string, object?>(StringComparer.Ordinal) { ["exportId"] = export.Id.ToString() });
         await db.SaveChangesAsync(cancellationToken);
         return TypedResults.File(export.Content, "application/pdf", export.FileName);
     }
@@ -915,7 +915,7 @@ internal sealed record SenderDomainResponse(
 }
 
 /// <summary>A PDF export.</summary>
-internal sealed record ExportResponse(Guid Id, ExportKind Kind, Guid EntityId, string Language, ExportStatus Status, string? FileName, string? Error, DateTimeOffset CreatedAt)
+internal sealed record ExportResponse(Guid Id, ExportKind Kind, Guid? EntityId, string Language, ExportStatus Status, string? FileName, string? Error, DateTimeOffset CreatedAt)
 {
     public static ExportResponse From(DocumentExport e) => new(e.Id, e.Kind, e.EntityId, e.Language, e.Status, e.FileName, e.Status == ExportStatus.Failed ? e.Error : null, e.CreatedAt);
 }

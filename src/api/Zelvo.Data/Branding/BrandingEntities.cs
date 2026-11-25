@@ -189,6 +189,9 @@ public enum ExportKind
 
     /// <summary>A service request with its conversation.</summary>
     ServiceRequest,
+
+    /// <summary>A dashboard of module 10 (task F2) with its filter, built with the asker's access.</summary>
+    Report,
 }
 
 /// <summary>Where an export is.</summary>
@@ -226,8 +229,11 @@ public sealed class DocumentExport : ITenantOwned
     /// <summary>What it is of.</summary>
     public ExportKind Kind { get; init; }
 
-    /// <summary>The ticket.</summary>
-    public Guid EntityId { get; init; }
+    /// <summary>The ticket; null for reports.</summary>
+    public Guid? EntityId { get; init; }
+
+    /// <summary>Reports (task F2): the dashboard and its filter as JSON.</summary>
+    public string? Parameters { get; init; }
 
     /// <summary>Language of the PDF (<c>en</c> or <c>ar</c>).</summary>
     public required string Language { get; init; }

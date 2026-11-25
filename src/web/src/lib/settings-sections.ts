@@ -35,7 +35,9 @@ export interface SettingsSection {
     | "ai"
     | "importExport"
     | "workflows"
-    | "translations";
+    | "translations"
+    | "reports"
+    | "setup";
   /** Path below /[locale]. */
   href: string;
   /** Permission needed to open the section. */
@@ -45,6 +47,8 @@ export interface SettingsSection {
 }
 
 export const settingsSections: readonly SettingsSection[] = [
+  // Task F2: the setup wizard and department templates lead a new tenant to go-live.
+  { key: "setup", href: "/setup", permission: "setup.manage" },
   { key: "language", href: "/settings/language", permission: "settings.manage" },
   // Task F1: white-label branding, custom domains and the email sender domain.
   { key: "branding", href: "/settings/branding", permission: "branding.manage" },
@@ -79,6 +83,8 @@ export const settingsSections: readonly SettingsSection[] = [
   { key: "integrations", href: "/settings/integrations", permission: "integrations.manage" },
   { key: "ai", href: "/settings/ai", permission: "ai.manage" },
   { key: "importExport", href: "/settings/import-export", permission: "users.manage" },
+  // Task F2: targets of the dashboards.
+  { key: "reports", href: "/settings/reports", permission: "reports.manage" },
   { key: "translations", href: "/settings/translations", permission: "translations.read" },
 ];
 

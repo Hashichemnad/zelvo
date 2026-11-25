@@ -188,34 +188,8 @@ public sealed partial class NotificationProcessor(
             return null;
         }
 
-        var letterhead = await composer.LetterheadAsync(cancellationToken).ConfigureAwait(false);
-        var domain = options.Smtp.From.Split('@') is [_, { Length: > 0 } host] ? host : "zelvo.invalid";
-        // Task F1: the tenant's own verified sender domain, signed with its DKIM key, and the logo.
-        var senderDomain = await db.SenderDomains.AsNoTracking().FirstOrDefaultAsync(s => s.Verified, cancellationToken).ConfigureAwait(false);
-        DkimKey? dkim = null;
-        if (senderDomain is not null)
-        {
-            var secrets = services.GetRequiredService<Zelvo.Secrets.ISecretProtector>();
-            dkim = new DkimKey(senderDomain.Domain, senderDomain.DkimSelector,
-                await secrets.UnprotectAsync(SenderDomainKeys.Purpose, senderDomain.DkimPrivateKeyCiphertext, cancellationToken).ConfigureAwait(false));
-            domain = senderDomain.Domain;
-        }
-
-        IReadOnlyList<EmailImage> images = [];
-        if (delivery.HtmlBody.Contains($"cid:{NotificationRenderer.LogoContentId}", StringComparison.Ordinal)
-            && await Zelvo.Tickets.Branding.BrandingReader.ImageAsync(db, await Zelvo.Tickets.Branding.BrandingReader.PublishedAsync(db, cancellationToken).ConfigureAwait(false),
-                Data.Branding.BrandingSlot.LogoLight, cancellationToken).ConfigureAwait(false) is { } logo)
-        {
-            images = [new EmailImage(NotificationRenderer.LogoContentId, logo.ContentType, logo.Content)];
-        }
-
-        var message = new EmailMessage(delivery.Address, letterhead.NameIn(delivery.Language), delivery.Subject, delivery.HtmlBody, delivery.TextBody,
-            delivery.Language, $"zelvo.{delivery.TenantId:N}.{delivery.Id}@{domain}")
-        {
-            FromAddress = senderDomain is null ? null : $"{senderDomain.LocalPart}@{senderDomain.Domain}",
-            Dkim = dkim,
-            Images = images,
-        };
+        var message = await MessageAsync(delivery.Address, delivery.Language, delivery.Subject, delivery.HtmlBody, delivery.TextBody,
+            $"zelvo.{delivery.TenantId:N}.{delivery.Id}", cancellationToken).ConfigureAwait(false);
         var result = await sender.SendAsync(message, cancellationToken).ConfigureAwait(false);
 
         var now = time.GetUtcNow();
@@ -247,6 +221,43 @@ public sealed partial class NotificationProcessor(
 
         await db.SaveChangesAsync(cancellationToken).ConfigureAwait(false);
         return result;
+    }
+
+    /// <summary>
+    /// An email from the tenant to <paramref name="to"/>: the organisation's name as sender, its own
+    /// verified sender domain signed with DKIM (task F1) and the logo when the body shows it. Also
+    /// used by scheduled reports (task F2).
+    /// </summary>
+    public async Task<EmailMessage> MessageAsync(
+        string to, string language, string subject, string html, string text, string messageIdLocalPart, CancellationToken cancellationToken)
+    {
+        var letterhead = await composer.LetterheadAsync(cancellationToken).ConfigureAwait(false);
+        var domain = options.Smtp.From.Split('@') is [_, { Length: > 0 } host] ? host : "zelvo.invalid";
+        // Task F1: the tenant's own verified sender domain, signed with its DKIM key, and the logo.
+        var senderDomain = await db.SenderDomains.AsNoTracking().FirstOrDefaultAsync(s => s.Verified, cancellationToken).ConfigureAwait(false);
+        DkimKey? dkim = null;
+        if (senderDomain is not null)
+        {
+            var secrets = services.GetRequiredService<Zelvo.Secrets.ISecretProtector>();
+            dkim = new DkimKey(senderDomain.Domain, senderDomain.DkimSelector,
+                await secrets.UnprotectAsync(SenderDomainKeys.Purpose, senderDomain.DkimPrivateKeyCiphertext, cancellationToken).ConfigureAwait(false));
+            domain = senderDomain.Domain;
+        }
+
+        IReadOnlyList<EmailImage> images = [];
+        if (html.Contains($"cid:{NotificationRenderer.LogoContentId}", StringComparison.Ordinal)
+            && await Zelvo.Tickets.Branding.BrandingReader.ImageAsync(db, await Zelvo.Tickets.Branding.BrandingReader.PublishedAsync(db, cancellationToken).ConfigureAwait(false),
+                Data.Branding.BrandingSlot.LogoLight, cancellationToken).ConfigureAwait(false) is { } logo)
+        {
+            images = [new EmailImage(NotificationRenderer.LogoContentId, logo.ContentType, logo.Content)];
+        }
+
+        return new EmailMessage(to, letterhead.NameIn(language), subject, html, text, language, $"{messageIdLocalPart}@{domain}")
+        {
+            FromAddress = senderDomain is null ? null : $"{senderDomain.LocalPart}@{senderDomain.Domain}",
+            Dkim = dkim,
+            Images = images,
+        };
     }
 
     [LoggerMessage(Level = LogLevel.Warning, Message = "Notification {NotificationId} could not be rendered (attempt {Attempt}).")]

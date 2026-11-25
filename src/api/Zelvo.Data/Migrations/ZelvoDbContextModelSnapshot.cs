@@ -865,7 +865,7 @@ namespace Zelvo.Data.Migrations
                         .HasColumnType("timestamp with time zone")
                         .HasColumnName("created_at");
 
-                    b.Property<Guid>("EntityId")
+                    b.Property<Guid?>("EntityId")
                         .HasColumnType("uuid")
                         .HasColumnName("entity_id");
 
@@ -898,6 +898,10 @@ namespace Zelvo.Data.Migrations
                     b.Property<DateTimeOffset?>("LeaseUntil")
                         .HasColumnType("timestamp with time zone")
                         .HasColumnName("lease_until");
+
+                    b.Property<string>("Parameters")
+                        .HasColumnType("jsonb")
+                        .HasColumnName("parameters");
 
                     b.Property<Guid>("RequestedById")
                         .HasColumnType("uuid")
@@ -935,11 +939,13 @@ namespace Zelvo.Data.Migrations
 
                     b.ToTable("document_exports", null, t =>
                         {
-                            t.HasCheckConstraint("ck_document_exports_kind", "kind IN ('Incident', 'ServiceRequest')");
+                            t.HasCheckConstraint("ck_document_exports_kind", "kind IN ('Incident', 'ServiceRequest', 'Report')");
 
                             t.HasCheckConstraint("ck_document_exports_language", "language IN ('en', 'ar')");
 
                             t.HasCheckConstraint("ck_document_exports_status", "status IN ('Pending', 'Ready', 'Failed')");
+
+                            t.HasCheckConstraint("ck_document_exports_subject", "(kind = 'Report') = (entity_id IS NULL AND parameters IS NOT NULL)");
                         });
                 });
 
@@ -5263,6 +5269,222 @@ namespace Zelvo.Data.Migrations
                     b.ToTable("notification_templates", (string)null);
                 });
 
+            modelBuilder.Entity("Zelvo.Data.Reports.ReportDelivery", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<int>("Attempts")
+                        .HasColumnType("integer")
+                        .HasColumnName("attempts");
+
+                    b.Property<DateTimeOffset>("CreatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("created_at");
+
+                    b.Property<string>("Error")
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)")
+                        .HasColumnName("error");
+
+                    b.Property<DateTimeOffset?>("LeaseUntil")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("lease_until");
+
+                    b.Property<DateTimeOffset?>("NextAttemptAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("next_attempt_at");
+
+                    b.Property<DateOnly>("PeriodFrom")
+                        .HasColumnType("date")
+                        .HasColumnName("period_from");
+
+                    b.Property<DateOnly>("PeriodTo")
+                        .HasColumnType("date")
+                        .HasColumnName("period_to");
+
+                    b.Property<Guid>("RecipientId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("recipient_id");
+
+                    b.Property<DateTimeOffset>("RunAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("run_at");
+
+                    b.Property<Guid>("ScheduleId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("schedule_id");
+
+                    b.Property<DateTimeOffset?>("SentAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("sent_at");
+
+                    b.Property<string>("Status")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("character varying(20)")
+                        .HasColumnName("status");
+
+                    b.Property<Guid>("TenantId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("tenant_id");
+
+                    b.HasKey("Id")
+                        .HasName("pk_report_deliveries");
+
+                    b.HasIndex("NextAttemptAt")
+                        .HasDatabaseName("ix_report_deliveries_due")
+                        .HasFilter("status = 'Pending'");
+
+                    b.HasIndex("RecipientId")
+                        .HasDatabaseName("ix_report_deliveries_recipient_id");
+
+                    b.HasIndex("TenantId", "CreatedAt")
+                        .HasDatabaseName("ix_report_deliveries_tenant_id_created_at");
+
+                    b.HasIndex("ScheduleId", "RecipientId", "RunAt")
+                        .IsUnique()
+                        .HasDatabaseName("ix_report_deliveries_schedule_id_recipient_id_run_at");
+
+                    b.ToTable("report_deliveries", null, t =>
+                        {
+                            t.HasCheckConstraint("ck_report_deliveries_status", "status IN ('Pending', 'Sent', 'Failed', 'Skipped')");
+                        });
+                });
+
+            modelBuilder.Entity("Zelvo.Data.Reports.ReportSchedule", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<bool>("Active")
+                        .HasColumnType("boolean")
+                        .HasColumnName("active");
+
+                    b.Property<DateTimeOffset>("CreatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("created_at");
+
+                    b.Property<int?>("DayOfMonth")
+                        .HasColumnType("integer")
+                        .HasColumnName("day_of_month");
+
+                    b.Property<int?>("DayOfWeek")
+                        .HasColumnType("integer")
+                        .HasColumnName("day_of_week");
+
+                    b.Property<string>("Filters")
+                        .IsRequired()
+                        .HasColumnType("jsonb")
+                        .HasColumnName("filters");
+
+                    b.Property<string>("Frequency")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("character varying(20)")
+                        .HasColumnName("frequency");
+
+                    b.Property<DateTimeOffset?>("LastRunAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("last_run_at");
+
+                    b.Property<DateTimeOffset?>("LeaseUntil")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("lease_until");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(150)
+                        .HasColumnType("character varying(150)")
+                        .HasColumnName("name");
+
+                    b.Property<DateTimeOffset?>("NextRunAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("next_run_at");
+
+                    b.Property<Guid>("OwnerId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("owner_id");
+
+                    b.Property<string>("Report")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("character varying(20)")
+                        .HasColumnName("report");
+
+                    b.Property<Guid>("TenantId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("tenant_id");
+
+                    b.Property<int>("TimeOfDay")
+                        .HasColumnType("integer")
+                        .HasColumnName("time_of_day");
+
+                    b.Property<DateTimeOffset>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("updated_at");
+
+                    b.Property<uint>("Version")
+                        .IsConcurrencyToken()
+                        .ValueGeneratedOnAddOrUpdate()
+                        .HasColumnType("xid")
+                        .HasColumnName("xmin");
+
+                    b.HasKey("Id")
+                        .HasName("pk_report_schedules");
+
+                    b.HasIndex("NextRunAt")
+                        .HasDatabaseName("ix_report_schedules_due")
+                        .HasFilter("active AND next_run_at IS NOT NULL");
+
+                    b.HasIndex("OwnerId")
+                        .HasDatabaseName("ix_report_schedules_owner_id");
+
+                    b.HasIndex("TenantId")
+                        .HasDatabaseName("ix_report_schedules_tenant_id");
+
+                    b.ToTable("report_schedules", null, t =>
+                        {
+                            t.HasCheckConstraint("ck_report_schedules_day_of_month", "(frequency = 'Monthly') = (day_of_month IS NOT NULL) AND (day_of_month IS NULL OR day_of_month BETWEEN 1 AND 28)");
+
+                            t.HasCheckConstraint("ck_report_schedules_day_of_week", "(frequency = 'Weekly') = (day_of_week IS NOT NULL) AND (day_of_week IS NULL OR day_of_week BETWEEN 1 AND 7)");
+
+                            t.HasCheckConstraint("ck_report_schedules_frequency", "frequency IN ('Daily', 'Weekly', 'Monthly')");
+
+                            t.HasCheckConstraint("ck_report_schedules_report", "report IN ('Overview', 'Volumes', 'Backlog', 'Sla', 'Agents', 'Happiness')");
+
+                            t.HasCheckConstraint("ck_report_schedules_time_of_day", "time_of_day BETWEEN 0 AND 1439");
+                        });
+                });
+
+            modelBuilder.Entity("Zelvo.Data.Reports.ReportScheduleRecipient", b =>
+                {
+                    b.Property<Guid>("ScheduleId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("schedule_id");
+
+                    b.Property<Guid>("UserId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("user_id");
+
+                    b.Property<Guid>("TenantId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("tenant_id");
+
+                    b.HasKey("ScheduleId", "UserId")
+                        .HasName("pk_report_schedule_recipients");
+
+                    b.HasIndex("TenantId")
+                        .HasDatabaseName("ix_report_schedule_recipients_tenant_id");
+
+                    b.HasIndex("UserId")
+                        .HasDatabaseName("ix_report_schedule_recipients_user_id");
+
+                    b.ToTable("report_schedule_recipients", (string)null);
+                });
+
             modelBuilder.Entity("Zelvo.Data.Search.SearchIndexState", b =>
                 {
                     b.Property<Guid>("TenantId")
@@ -7611,7 +7833,6 @@ namespace Zelvo.Data.Migrations
                         .WithMany()
                         .HasForeignKey("EntityId")
                         .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired()
                         .HasConstraintName("fk_document_exports_tickets_entity_id");
 
                     b.HasOne("Zelvo.Data.Identity.UserAccount", null)
@@ -8721,6 +8942,71 @@ namespace Zelvo.Data.Migrations
                         .HasConstraintName("fk_notification_templates_tenants_tenant_id");
                 });
 
+            modelBuilder.Entity("Zelvo.Data.Reports.ReportDelivery", b =>
+                {
+                    b.HasOne("Zelvo.Data.Identity.UserAccount", null)
+                        .WithMany()
+                        .HasForeignKey("RecipientId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired()
+                        .HasConstraintName("fk_report_deliveries_users_recipient_id");
+
+                    b.HasOne("Zelvo.Data.Reports.ReportSchedule", null)
+                        .WithMany()
+                        .HasForeignKey("ScheduleId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired()
+                        .HasConstraintName("fk_report_deliveries_report_schedules_schedule_id");
+
+                    b.HasOne("Zelvo.Data.Tenancy.Tenant", null)
+                        .WithMany()
+                        .HasForeignKey("TenantId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired()
+                        .HasConstraintName("fk_report_deliveries_tenants_tenant_id");
+                });
+
+            modelBuilder.Entity("Zelvo.Data.Reports.ReportSchedule", b =>
+                {
+                    b.HasOne("Zelvo.Data.Identity.UserAccount", null)
+                        .WithMany()
+                        .HasForeignKey("OwnerId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired()
+                        .HasConstraintName("fk_report_schedules_users_owner_id");
+
+                    b.HasOne("Zelvo.Data.Tenancy.Tenant", null)
+                        .WithMany()
+                        .HasForeignKey("TenantId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired()
+                        .HasConstraintName("fk_report_schedules_tenants_tenant_id");
+                });
+
+            modelBuilder.Entity("Zelvo.Data.Reports.ReportScheduleRecipient", b =>
+                {
+                    b.HasOne("Zelvo.Data.Reports.ReportSchedule", null)
+                        .WithMany("Recipients")
+                        .HasForeignKey("ScheduleId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired()
+                        .HasConstraintName("fk_report_schedule_recipients_report_schedules_schedule_id");
+
+                    b.HasOne("Zelvo.Data.Tenancy.Tenant", null)
+                        .WithMany()
+                        .HasForeignKey("TenantId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired()
+                        .HasConstraintName("fk_report_schedule_recipients_tenants_tenant_id");
+
+                    b.HasOne("Zelvo.Data.Identity.UserAccount", null)
+                        .WithMany()
+                        .HasForeignKey("UserId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired()
+                        .HasConstraintName("fk_report_schedule_recipients_users_user_id");
+                });
+
             modelBuilder.Entity("Zelvo.Data.Search.SearchIndexState", b =>
                 {
                     b.HasOne("Zelvo.Data.Tenancy.Tenant", null)
@@ -9334,6 +9620,11 @@ namespace Zelvo.Data.Migrations
                     b.Navigation("Roles");
 
                     b.Navigation("Skills");
+                });
+
+            modelBuilder.Entity("Zelvo.Data.Reports.ReportSchedule", b =>
+                {
+                    b.Navigation("Recipients");
                 });
 
             modelBuilder.Entity("Zelvo.Data.Sla.BusinessCalendar", b =>
