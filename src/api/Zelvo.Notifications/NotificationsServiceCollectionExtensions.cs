@@ -34,7 +34,7 @@ public static class NotificationsServiceCollectionExtensions
         return services;
     }
 
-    /// <summary>The worker side: rendering and sending, and removal of old notifications.</summary>
+    /// <summary>The worker side: rendering and sending, removal of old notifications, and scheduled reports (task F2).</summary>
     public static IServiceCollection AddZelvoNotificationJobs(this IServiceCollection services, IConfiguration configuration)
     {
         services.AddZelvoNotifications(configuration);
@@ -42,6 +42,11 @@ public static class NotificationsServiceCollectionExtensions
         services.TryAddSingleton<NotificationPurge>();
         services.AddHostedService(sp => sp.GetRequiredService<NotificationDispatcher>());
         services.AddHostedService(sp => sp.GetRequiredService<NotificationPurge>());
+        // Task F2: scheduled reports, printed with the PDF renderer of task F1.
+        services.TryAddSingleton(_ => Zelvo.Tickets.Exports.PdfOptions.From(configuration));
+        services.TryAddSingleton<Zelvo.Tickets.Exports.IPdfRenderer, Zelvo.Tickets.Exports.ChromiumPdfRenderer>();
+        services.TryAddSingleton<ReportScheduleJob>();
+        services.AddHostedService(sp => sp.GetRequiredService<ReportScheduleJob>());
         return services;
     }
 }

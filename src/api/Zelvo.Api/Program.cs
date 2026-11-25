@@ -28,6 +28,8 @@ using Zelvo.Api.Security.RateLimiting;
 using Zelvo.Api.Settings;
 using Zelvo.Api.Sla;
 using Zelvo.Api.Tenancy;
+using Zelvo.Api.Reports;
+using Zelvo.Api.Setup;
 using Zelvo.Api.Workspace;
 using Zelvo.Data;
 using Zelvo.Data.Localization;
@@ -98,6 +100,7 @@ builder.Services.AddZelvoApiNotifications(builder.Configuration);
 builder.Services.AddZelvoLiveUpdates();
 builder.Services.AddZelvoApiChannels(builder.Configuration);
 builder.Services.AddZelvoBranding(builder.Configuration);
+builder.Services.AddZelvoReports();
 
 var app = builder.Build();
 
@@ -158,6 +161,8 @@ v1.MapMcpEndpoints();
 v1.MapMcpServerEndpoints();
 v1.MapNotificationEndpoints();
 v1.MapWorkspaceEndpoints();
+v1.MapZelvoReportEndpoints();
+v1.MapSetupEndpoints();
 app.MapZelvoLiveUpdates();
 v1.MapZelvoChannels();
 app.MapBrandingEndpoints(v1);

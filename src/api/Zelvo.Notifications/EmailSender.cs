@@ -24,7 +24,13 @@ public sealed record EmailMessage(string To, string FromName, string Subject, st
 
     /// <summary>Images embedded in the HTML by content id (the letterhead's logo).</summary>
     public IReadOnlyList<EmailImage> Images { get; init; } = [];
+
+    /// <summary>Files attached to the email (task F2: scheduled report PDFs).</summary>
+    public IReadOnlyList<EmailAttachment> Attachments { get; init; } = [];
 }
+
+/// <summary>A file attached to an email.</summary>
+public sealed record EmailAttachment(string FileName, string ContentType, byte[] Content);
 
 /// <summary>An image embedded in an email (<c>cid:</c>).</summary>
 public sealed record EmailImage(string ContentId, string ContentType, byte[] Content);
@@ -134,6 +140,11 @@ public sealed class SmtpEmailSender(NotificationOptions options) : IEmailSender
         {
             var resource = body.LinkedResources.Add(image.ContentId, image.Content, ContentType.Parse(image.ContentType));
             resource.ContentId = image.ContentId;
+        }
+
+        foreach (var attachment in message.Attachments)
+        {
+            body.Attachments.Add(attachment.FileName, attachment.Content, ContentType.Parse(attachment.ContentType));
         }
 
         mime.Body = body.ToMessageBody();

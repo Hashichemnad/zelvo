@@ -159,6 +159,18 @@ internal static class Permissions
     /// <summary>Happiness and customer-voice reporting (GOV-3).</summary>
     public const string VoiceReport = Zelvo.Tickets.VoicePermissions.Report;
 
+    /// <summary>Dashboards of the groups the person leads and their agents (module 10, task F2).</summary>
+    public const string ReportsRead = Zelvo.Tickets.Reports.ReportPermissions.Read;
+
+    /// <summary>Dashboards of the whole tenant: every group and agent (task F2).</summary>
+    public const string ReportsAll = Zelvo.Tickets.Reports.ReportPermissions.All;
+
+    /// <summary>Scheduled reports for other people, every schedule of the tenant, and the report targets (task F2).</summary>
+    public const string ReportsManage = Zelvo.Tickets.Reports.ReportPermissions.Manage;
+
+    /// <summary>The setup wizard and department templates (module 10, task F2).</summary>
+    public const string SetupManage = "setup.manage";
+
     /// <summary>Settings → Customer voice: anonymous submission, severities, root causes and the happiness meter (GOV-2).</summary>
     public const string VoiceManage = Zelvo.Tickets.VoicePermissions.Manage;
 }
@@ -236,6 +248,10 @@ internal static class PermissionCatalog
         Permissions.VoiceReport,
         Permissions.VoiceManage,
         Permissions.BrandingManage,
+        Permissions.ReportsRead,
+        Permissions.ReportsAll,
+        Permissions.ReportsManage,
+        Permissions.SetupManage,
     ];
 
     /// <summary>
@@ -257,6 +273,9 @@ internal static class PermissionCatalog
         // Task F1, for the product owner's approval: certificates' private keys, DKIM keys and the
         // domains the installation answers for are set here.
         Permissions.BrandingManage,
+        // Task F2, for the product owner's approval: department templates create groups, SLA
+        // policies and assignment rules in bulk.
+        Permissions.SetupManage,
     };
 
     /// <summary>Permissions an integration may be given as scopes.</summary>
@@ -323,7 +342,7 @@ internal static class PermissionCatalog
         new(BuiltInRoles.TeamLead, new LocalizedText("Team lead", "قائد الفريق"),
             [Permissions.UsersRead, Permissions.IncidentsRead, Permissions.IncidentsCreate, Permissions.IncidentsEdit, Permissions.IncidentsAssign, Permissions.IncidentsMajor, Permissions.DirectoryRead,
                 Permissions.KnowledgeRead, Permissions.KnowledgeWrite, Permissions.KnowledgePublish, Permissions.RequestsRead, Permissions.RequestsEdit, Permissions.RequestsAssign, Permissions.ChatHandle,
-                Permissions.VoiceRead, Permissions.VoiceEdit, Permissions.VoiceAssign, Permissions.VoiceReport],
+                Permissions.VoiceRead, Permissions.VoiceEdit, Permissions.VoiceAssign, Permissions.VoiceReport, Permissions.ReportsRead],
             new Dictionary<string, FieldAccess> { ["users.email"] = FieldAccess.Read }),
         new(BuiltInRoles.Approver, new LocalizedText("Approver", "المعتمِد"), [], new Dictionary<string, FieldAccess>()),
         new(BuiltInRoles.TenantAdmin, new LocalizedText("Tenant administrator", "مسؤول الجهة"),
@@ -331,7 +350,7 @@ internal static class PermissionCatalog
             new Dictionary<string, FieldAccess> { ["users.email"] = FieldAccess.Read, ["users.emiratesId"] = FieldAccess.Edit, ["users.phone"] = FieldAccess.Edit }),
         new(BuiltInRoles.ExecutiveAuditor, new LocalizedText("Executive / auditor", "تنفيذي / مدقق"),
             [Permissions.AuditRead, Permissions.UsersRead, Permissions.IncidentsRead, Permissions.DirectoryRead, Permissions.KnowledgeRead, Permissions.RequestsRead,
-                Permissions.VoiceRead, Permissions.VoiceReport],
+                Permissions.VoiceRead, Permissions.VoiceReport, Permissions.ReportsRead, Permissions.ReportsAll],
             new Dictionary<string, FieldAccess> { ["users.email"] = FieldAccess.Read }),
     ];
 
