@@ -119,6 +119,9 @@ builder.Services.AddZelvoApiChannels(builder.Configuration);
 builder.Services.AddZelvoConnectors(builder.Configuration);
 builder.Services.AddZelvoBranding(builder.Configuration);
 builder.Services.AddZelvoReports();
+// Task F4: where update packages are kept, and the running version.
+builder.Services.AddZelvoUpdateOptions(builder.Configuration);
+builder.Services.AddSingleton<InstalledVersionProvider>();
 
 var app = builder.Build();
 
@@ -174,6 +177,8 @@ v1.MapNotificationEndpoints();
 v1.MapSetupEndpoints();
 // Task F3: the license screens; the rest of each module answers only when the license includes it.
 v1.MapLicenseEndpoints();
+// Task F4: offline update packages.
+v1.MapUpdateEndpoints();
 v1.ForModule(LicensedModules.Incidents).MapIncidentEndpoints();
 v1.ForModule(LicensedModules.Incidents).MapIncidentSettingsEndpoints();
 v1.ForModule(LicensedModules.Sla).MapSlaEndpoints();

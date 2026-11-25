@@ -104,6 +104,9 @@ internal sealed partial class LicenseService : ILicenseService, IInstallationWat
 
     public bool VerifyVendorSignature(ReadOnlySpan<byte> data, string keyId, ReadOnlySpan<byte> signature) => _keys.Verify(keyId, data, signature);
 
+    /// <summary>Whether a vendor key id is trusted (to tell an unknown key from a bad signature).</summary>
+    internal bool TrustsKey(string keyId) => _keys.Contains(keyId);
+
     public async Task<ActivationRequest> CreateActivationRequestAsync(CancellationToken cancellationToken = default)
     {
         var fingerprint = await FingerprintAsync(cancellationToken).ConfigureAwait(false);

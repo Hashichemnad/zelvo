@@ -50,6 +50,15 @@ while IFS= read -r line || [[ -n "$line" ]]; do
   fi
 done < "$compose_dir/.env.example"
 
+# Task F4: the updater runs Docker Compose on this project from inside its container, where bind
+# mounts resolve on the host, so it needs this directory's absolute path.
+abs_compose_dir="$(cd "$compose_dir" && pwd)"
+if grep -q '^ZELVO_COMPOSE_DIR=' "$env_file"; then
+  sed -i.bak "s#^ZELVO_COMPOSE_DIR=.*#ZELVO_COMPOSE_DIR=${abs_compose_dir}#" "$env_file" && rm -f "$env_file.bak"
+else
+  printf 'ZELVO_COMPOSE_DIR=%s\n' "$abs_compose_dir" >> "$env_file"
+fi
+
 # Files the containers read as Compose secrets (git-ignored, created once).
 secrets_dir="$compose_dir/secrets"
 mkdir -p "$secrets_dir"

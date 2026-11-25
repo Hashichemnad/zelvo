@@ -29,14 +29,40 @@
 	}
 }
 
-# The installation's own address. Development uses Caddy's internal certificate authority.
-{$ZELVO_PUBLIC_HOST:localhost} {
-	tls {$ZELVO_PUBLIC_TLS:internal}
+# Task F4: while an update is installed the web app is stopped, and every page answers with the
+# maintenance page (bilingual, its texts in maintenance/messages.json), which follows the
+# updater's progress (status.json: state and step names only) and reloads when Zelvo is back.
+# Incoming messages (zelvo_hooks) then get 503 too, and their providers send them again later.
+(zelvo) {
 	encode zstd gzip
 	import zelvo_hooks
+	handle_path /_zelvo/maintenance/* {
+		root * /srv/maintenance
+		file_server
+	}
+	handle /_zelvo/status.json {
+		root * /srv/zelvo-status
+		rewrite * /status.json
+		header Cache-Control no-store
+		file_server
+	}
 	handle {
 		reverse_proxy web:3000
 	}
+	handle_errors 502 503 504 {
+		root * /srv/maintenance
+		rewrite * /index.html
+		header Cache-Control no-store
+		file_server {
+			status 503
+		}
+	}
+}
+
+# The installation's own address. Development uses Caddy's internal certificate authority.
+{$ZELVO_PUBLIC_HOST:localhost} {
+	tls {$ZELVO_PUBLIC_TLS:internal}
+	import zelvo
 }
 
 # Tenants' custom domains.
@@ -45,9 +71,5 @@ https:// {
 		get_certificate http http://api:8080/internal/tls/certificate?token={$ZELVO_TLS_TOKEN}
 		on_demand
 	}
-	encode zstd gzip
-	import zelvo_hooks
-	handle {
-		reverse_proxy web:3000
-	}
+	import zelvo
 }

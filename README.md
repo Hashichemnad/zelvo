@@ -52,9 +52,11 @@ make up
 
 ```
 docs/            requirements, build plan, architecture notes, security (ASVS L2 checklist)
-src/api/         ASP.NET Core API, data layer and migrations (Zelvo.Data), licensing contract and stub, backend tests
+src/api/         ASP.NET Core API, data layer and migrations (Zelvo.Data), licensing (Zelvo.Licensing), backend tests
 src/web/         Next.js frontend (portal, agent workspace, admin)
 src/worker/      background jobs
+src/updater/     updater service that installs update packages (Settings → Updates)
+src/tools/       zelvo-sign, the offline signing tool for licenses and update packages (signing computer only)
 src/keycloak/    Keycloak extension (email one-time code sign-in) and login/email theme, built into Zelvo's Keycloak image
 deploy/compose/  Docker Compose for development (observability and security configuration in observability/ and security/)
 deploy/helm/     Helm charts for Kubernetes installs (later Phase 1 task)

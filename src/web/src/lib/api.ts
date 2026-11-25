@@ -66,6 +66,11 @@ export function getHealth(): Promise<HealthReport | null> {
   return getJson<HealthReport>("/health/ready");
 }
 
+/** Task F4: the update users are told about (open to everyone). */
+export function getMaintenance(): Promise<import("./updates").Maintenance | null> {
+  return getJson("/api/v1/system/maintenance");
+}
+
 export function getSystemInfo(): Promise<SystemInfo | null> {
   return getJson<SystemInfo>("/api/v1/system/info");
 }

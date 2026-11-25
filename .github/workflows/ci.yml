@@ -163,6 +163,7 @@ jobs:
           - { name: web, context: src/web, dockerfile: src/web/Dockerfile }
           - { name: keycloak, context: src/keycloak, dockerfile: src/keycloak/Dockerfile }
           - { name: opensearch, context: deploy/opensearch, dockerfile: deploy/opensearch/Dockerfile }
+          - { name: updater, context: ., dockerfile: src/updater/Zelvo.Updater/Dockerfile }
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - name: Build image

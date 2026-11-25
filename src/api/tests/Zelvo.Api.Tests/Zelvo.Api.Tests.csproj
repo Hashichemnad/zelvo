@@ -32,5 +32,6 @@
     <ProjectReference Include="..\..\Zelvo.Connectors\Zelvo.Connectors.csproj" />
     <ProjectReference Include="..\..\Zelvo.Licensing\Zelvo.Licensing.csproj" />
     <ProjectReference Include="..\..\..\tools\Zelvo.SigningTool\Zelvo.SigningTool.csproj" />
+    <ProjectReference Include="..\..\..\updater\Zelvo.Updater\Zelvo.Updater.csproj" />
   </ItemGroup>
 </Project>

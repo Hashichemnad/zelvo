@@ -18,6 +18,7 @@ import { DemoPanel } from "./DemoPanel";
 import { LanguageSwitcher } from "./LanguageSwitcher";
 import { TestInstallationBanner } from "./TestInstallationBanner";
 import { ActivationBanner } from "./ActivationBanner";
+import { MaintenanceBanner } from "./MaintenanceBanner";
 import { moduleShown, modules } from "@/lib/license";
 
 export async function SiteHeader() {
@@ -203,6 +204,7 @@ export async function SiteHeader() {
         </div>
       </header>
       <ActivationBanner />
+      <MaintenanceBanner />
       <TestInstallationBanner />
       {demo && (
         <DemoPanel

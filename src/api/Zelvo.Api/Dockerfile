@@ -40,6 +40,9 @@ WORKDIR /app
 COPY --from=build /app .
 ENV ASPNETCORE_HTTP_PORTS=8080
 EXPOSE 8080
+# Task F4: the updates volume (packages and the inbox) starts owned by the API's user.
+RUN mkdir -p /var/lib/zelvo/updates/packages /var/lib/zelvo/updates/inbox /var/lib/zelvo/updates/status \
+    && chown -R "$APP_UID" /var/lib/zelvo
 # Non-root user provided by the .NET base image.
 USER $APP_UID
 # `migrate` as the first argument applies database migrations and exits (see MigrateCommand).

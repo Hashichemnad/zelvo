@@ -17,5 +17,5 @@
 - [ ] Builds, tests pass, and it runs in Docker Compose (`make up`)
 - [ ] Every user-facing string is in both `en` and `ar` translation files
 - [ ] Layout works left to right and right to left (logical CSS properties only)
-- [ ] No secrets committed; no licensing logic in this repository
+- [ ] No secrets committed; no signing private keys, license files or signed packages committed (tests make their own at run time)
 - [ ] Progress in `CLAUDE.md` updated

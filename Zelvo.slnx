@@ -19,6 +19,9 @@
   <Folder Name="/src/tools/">
     <Project Path="src/tools/Zelvo.SigningTool/Zelvo.SigningTool.csproj" />
   </Folder>
+  <Folder Name="/src/updater/">
+    <Project Path="src/updater/Zelvo.Updater/Zelvo.Updater.csproj" />
+  </Folder>
   <Folder Name="/src/worker/">
     <Project Path="src/worker/Zelvo.Worker/Zelvo.Worker.csproj" />
   </Folder>

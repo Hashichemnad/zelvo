@@ -352,8 +352,15 @@ public sealed partial class ZelvoDbContext(DbContextOptions<ZelvoDbContext> opti
     /// <summary>Data subject requests (task F5).</summary>
     public DbSet<DataSubjectRequest> DataSubjectRequests => Set<DataSubjectRequest>();
 
+    /// <summary>Imported update packages (module 13, task F4); installation-wide.</summary>
+    public DbSet<Installation.UpdatePackage> UpdatePackages => Set<Installation.UpdatePackage>();
+
+    /// <summary>Installs of update packages; installation-wide.</summary>
+    public DbSet<Installation.UpdateInstall> UpdateInstalls => Set<Installation.UpdateInstall>();
+
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
+        ConfigureUpdates(modelBuilder);
         modelBuilder.Entity<Tenant>(tenant =>
         {
             tenant.ToTable("tenants", table =>
@@ -1909,6 +1916,50 @@ public sealed partial class ZelvoDbContext(DbContextOptions<ZelvoDbContext> opti
             export.HasIndex(e => e.EntityId);
             export.HasIndex(e => e.RequestedById);
             export.HasIndex(e => e.CreatedAt).HasFilter("status = 'Pending'").HasDatabaseName("ix_document_exports_due");
+        });
+    }
+
+    // Task F4: update packages and their installs belong to the whole installation (no tenant).
+    private static void ConfigureUpdates(ModelBuilder modelBuilder)
+    {
+        modelBuilder.Entity<Installation.UpdatePackage>(package =>
+        {
+            package.ToTable("update_packages", table =>
+            {
+                table.HasCheckConstraint("ck_update_packages_status", EnumCheck("status", Enum.GetNames<Installation.UpdatePackageStatus>()));
+                table.HasCheckConstraint("ck_update_packages_type", "package_type IN ('Security', 'Feature')");
+            });
+            package.HasKey(p => p.Id);
+            package.Property(p => p.Id).ValueGeneratedNever();
+            package.Property(p => p.Version).HasMaxLength(Installation.UpdatePackage.VersionMaxLength);
+            package.Property(p => p.PackageType).HasMaxLength(10);
+            package.Property(p => p.FileName).HasMaxLength(Installation.UpdatePackage.FileNameMaxLength);
+            package.Property(p => p.StoragePath).HasMaxLength(500);
+            package.Property(p => p.Sha256).HasMaxLength(64);
+            package.Property(p => p.Manifest).HasColumnType("jsonb");
+            package.Property(p => p.Status).HasConversion<string>().HasMaxLength(20);
+            package.HasIndex(p => p.ImportedAt);
+        });
+
+        modelBuilder.Entity<Installation.UpdateInstall>(install =>
+        {
+            install.ToTable("update_installs", table =>
+            {
+                table.HasCheckConstraint("ck_update_installs_state", EnumCheck("state", Enum.GetNames<Installation.UpdateInstallState>()));
+                table.HasCheckConstraint("ck_update_installs_notice", "notice_from <= scheduled_for");
+                table.HasCheckConstraint("ck_update_installs_minutes", "expected_minutes BETWEEN 1 AND 1440");
+            });
+            install.HasKey(i => i.Id);
+            install.Property(i => i.Id).ValueGeneratedNever();
+            install.HasOne<Installation.UpdatePackage>().WithMany().HasForeignKey(i => i.PackageId).OnDelete(DeleteBehavior.Restrict);
+            install.Property(i => i.FromVersion).HasMaxLength(Installation.UpdatePackage.VersionMaxLength);
+            install.Property(i => i.ToVersion).HasMaxLength(Installation.UpdatePackage.VersionMaxLength);
+            install.Property(i => i.State).HasConversion<string>().HasMaxLength(20);
+            install.Property(i => i.Steps).HasColumnType("jsonb");
+            install.Property(i => i.Error).HasMaxLength(Installation.UpdateInstall.MessageMaxLength);
+            install.Property(i => i.BackupPath).HasMaxLength(500);
+            // One install at a time: ux_update_installs_active (SQL in the migration) allows at most one scheduled or running.
+            install.HasIndex(i => i.CreatedAt);
         });
     }
 
