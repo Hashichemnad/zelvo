@@ -196,6 +196,48 @@ public sealed class UpdatePackageTests : IDisposable
         Assert.Empty(thirdHost.Calls);
     }
 
+    [Fact]
+    public void The_updater_asks_compose_only_for_flags_it_has_and_never_pulls_images()
+    {
+        var host = new DockerComposeHost(Microsoft.Extensions.Options.Options.Create(new UpdaterOptions { ComposeDirectory = "/srv/zelvo" }));
+        var commands = new Dictionary<string, List<string>>
+        {
+            ["stop"] = host.StopArguments(["api"]),
+            ["up"] = host.StartArguments(["api", "web"]),
+            ["run"] = host.MigrateArguments(),
+            ["exec"] = host.BackupArguments("zelvo"),
+        };
+        Assert.Equal(["run", "--rm", "--pull", "never", "migrate"], commands["run"].SkipWhile(a => a != "run"));
+        Assert.Contains("never", commands["up"]);
+        Assert.Equal("zelvo", host.RestoreArguments("zelvo")[^1]);
+
+        // Where Docker Compose is installed (CI, developers), every flag must be one Compose knows.
+        System.Diagnostics.Process? probe = null;
+        try
+        {
+            probe = System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo("docker", "compose version") { RedirectStandardOutput = true, RedirectStandardError = true });
+        }
+        catch (System.ComponentModel.Win32Exception)
+        {
+        }
+
+        if (probe is null || !probe.WaitForExit(30_000) || probe.ExitCode != 0)
+        {
+            Assert.Skip("Docker Compose is not installed here.");
+        }
+
+        foreach (var (command, arguments) in commands)
+        {
+            using var help = System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo("docker", $"compose {command} --help") { RedirectStandardOutput = true })!;
+            var text = help.StandardOutput.ReadToEnd();
+            help.WaitForExit();
+            var flags = arguments.SkipWhile(a => a != command).Skip(1).TakeWhile(a => a.StartsWith('-')).Where(a => a.StartsWith("--", StringComparison.Ordinal) || a.Length == 2);
+            Assert.All(flags, flag => Assert.Contains(flag, text, StringComparison.Ordinal));
+        }
+
+        probe.Dispose();
+    }
+
     private static string Step(InstallOutcome outcome, string key) => outcome.Steps.Single(s => s.Key == key).State;
 
     private async Task<InstallPlan> PlanAsync(string version)

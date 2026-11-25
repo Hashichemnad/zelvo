@@ -57,7 +57,7 @@ Every 15 seconds it records that it is there (`installation.updater_seen_at`; Se
 3. **stop**: Zelvo's services (`opensearch`, `keycloak`, `api`, `worker`, `web`); the reverse proxy shows the maintenance page;
 4. **backup**: `pg_dump --format=custom --create` of Zelvo's and Keycloak's databases (inside the PostgreSQL container, which has the matching tools), and copies of `.env` and the Compose files, under `backups/` of the updates volume (the last 3 installs are kept);
 5. **switch-version**: `ZELVO_VERSION=<new>` in `.env` (every Zelvo image is tagged `zelvo/<name>:${ZELVO_VERSION}`);
-6. **migrate**: `docker compose run --rm migrate` of the new version;
+6. **migrate**: `docker compose run --rm --pull never migrate` of the new version (images only ever come from the package, never from a registry);
 7. **start**: the services on the new version;
 8. **health**: the API's readiness and the web app answer within 10 minutes.
 

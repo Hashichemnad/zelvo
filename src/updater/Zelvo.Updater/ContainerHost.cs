@@ -41,31 +41,44 @@ internal sealed class DockerComposeHost(IOptions<UpdaterOptions> options) : ICon
     }
 
     public Task StopAsync(IReadOnlyList<string> services, CancellationToken cancellationToken) =>
-        RunAsync("docker", [.. Compose(), "stop", .. services], null, null, cancellationToken);
+        RunAsync("docker", StopArguments(services), null, null, cancellationToken);
 
     public Task StartAsync(IReadOnlyList<string> services, CancellationToken cancellationToken) =>
-        RunAsync("docker", [.. Compose(), "up", "--detach", "--no-build", "--no-deps", .. services], null, null, cancellationToken);
+        RunAsync("docker", StartArguments(services), null, null, cancellationToken);
 
     public Task MigrateAsync(CancellationToken cancellationToken) =>
-        RunAsync("docker", [.. Compose(), "run", "--rm", "--no-build", Options.MigrateService], null, null, cancellationToken);
+        RunAsync("docker", MigrateArguments(), null, null, cancellationToken);
 
     public async Task BackupDatabaseAsync(string database, string file, CancellationToken cancellationToken)
     {
         await using var target = File.Create(file);
-        await RunAsync("docker", [.. Compose(), "exec", "-T", Options.PostgresService, "sh", "-c",
-            "pg_dump --username=\"$POSTGRES_USER\" --format=custom --create \"$1\"", "zelvo-backup", database], target, null, cancellationToken).ConfigureAwait(false);
+        await RunAsync("docker", BackupArguments(database), target, null, cancellationToken).ConfigureAwait(false);
     }
 
     public async Task RestoreDatabaseAsync(string database, string file, CancellationToken cancellationToken)
     {
         await using var source = File.OpenRead(file);
-        await RunAsync("docker", [.. Compose(), "exec", "-T", Options.PostgresService, "sh", "-c",
-            "dropdb --username=\"$POSTGRES_USER\" --if-exists --force \"$1\" && pg_restore --username=\"$POSTGRES_USER\" --create --exit-on-error --dbname=postgres",
-            "zelvo-restore", database], null, source, cancellationToken).ConfigureAwait(false);
+        await RunAsync("docker", RestoreArguments(database), null, source, cancellationToken).ConfigureAwait(false);
     }
 
     public Task RestartSelfAsync(CancellationToken cancellationToken) =>
-        RunAsync("docker", [.. Compose(), "up", "--detach", "--no-build", "--no-deps", Options.SelfService], null, null, cancellationToken);
+        RunAsync("docker", StartArguments([Options.SelfService]), null, null, cancellationToken);
+
+    // The arguments of each command, kept apart so tests can check them against Compose itself.
+    // Images never come from a registry: only from packages we signed (`--pull never`).
+    internal List<string> StopArguments(IReadOnlyList<string> services) => [.. Compose(), "stop", .. services];
+
+    internal List<string> StartArguments(IReadOnlyList<string> services) =>
+        [.. Compose(), "up", "--detach", "--no-build", "--no-deps", "--pull", "never", .. services];
+
+    internal List<string> MigrateArguments() => [.. Compose(), "run", "--rm", "--pull", "never", Options.MigrateService];
+
+    internal List<string> BackupArguments(string database) => [.. Compose(), "exec", "-T", Options.PostgresService, "sh", "-c",
+        "pg_dump --username=\"$POSTGRES_USER\" --format=custom --create \"$1\"", "zelvo-backup", database];
+
+    internal List<string> RestoreArguments(string database) => [.. Compose(), "exec", "-T", Options.PostgresService, "sh", "-c",
+        "dropdb --username=\"$POSTGRES_USER\" --if-exists --force \"$1\" && pg_restore --username=\"$POSTGRES_USER\" --create --exit-on-error --dbname=postgres",
+        "zelvo-restore", database];
 
     private List<string> Compose()
     {
@@ -80,7 +93,7 @@ internal sealed class DockerComposeHost(IOptions<UpdaterOptions> options) : ICon
         return arguments;
     }
 
-    private static async Task<string> RunAsync(string program, IReadOnlyList<string> arguments, Stream? stdout, Stream? stdin, CancellationToken cancellationToken)
+    private static async Task<string> RunAsync(string program, List<string> arguments, Stream? stdout, Stream? stdin, CancellationToken cancellationToken)
     {
         var start = new ProcessStartInfo(program) { RedirectStandardError = true, RedirectStandardOutput = true, RedirectStandardInput = stdin is not null, UseShellExecute = false };
         foreach (var argument in arguments)
