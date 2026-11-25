@@ -58,7 +58,8 @@ internal static class LicensedModuleExtensions
 /// <summary>
 /// Enforces the license on every API request (task F3). While the installation waits for activation
 /// (no license, or a license for other servers) only what the activation needs answers: sign-in and
-/// the person's own details, the tenant's name and look, the setup wizard and the license screens;
+/// the person's own details, the tenant's name and look, the published privacy notice, the setup wizard
+/// and the license screens;
 /// everything else answers 503 <c>license-required</c>. Endpoints of a module the license does not
 /// include answer 403 <c>module-not-licensed</c>, and integrations (API keys and OAuth clients) need
 /// the integrations module (14).
@@ -69,6 +70,8 @@ internal sealed class LicenseEnforcementMiddleware(RequestDelegate next)
     [
         "/api/v1/system", "/api/v1/tenant", "/api/v1/me", "/api/v1/license", "/api/v1/setup", "/api/v1/branding", "/api/v1/translations",
         "/api/v1/demo",
+        // Task F5: the published privacy notice people accept (GOV-5) is shown before activation too.
+        "/api/v1/privacy/notice",
     ];
 
     public async Task InvokeAsync(HttpContext context, ILicenseService license, CurrentUser user)

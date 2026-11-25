@@ -55,7 +55,7 @@ Every request and import, accepted or refused, is in the audit log (`license.act
 | Status | API | Worker |
 | --- | --- | --- |
 | Valid | Everything licensed. | All jobs. |
-| Waiting for activation (no license, a license for other servers or another installation profile, database not reachable) | **Activation mode**: only `/system`, `/tenant`, `/me`, `/license`, `/setup`, `/branding`, `/translations` and `/demo` answer; everything else is 503 `license-required`; integrations are refused. The web app shows a banner on every page. | Waits before its jobs start, and checks again every 30 seconds. |
+| Waiting for activation (no license, a license for other servers or another installation profile, database not reachable) | **Activation mode**: only `/system`, `/tenant`, `/me`, `/license`, `/setup`, `/branding`, `/translations`, `/demo` and the published privacy notice (`/privacy/notice`) answer; everything else is 503 `license-required`; integrations are refused. The web app shows a banner on every page. | Waits before its jobs start, and checks again every 30 seconds. |
 | Tampered (signature not valid, unknown key, malformed, another customer's license in a customer build) | Refuses to start (critical log). | Refuses to start. |
 
 `LicenseRefreshService` verifies again every minute, so a license imported through the API applies in the worker within a minute.
