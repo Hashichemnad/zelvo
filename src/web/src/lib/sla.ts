@@ -73,12 +73,16 @@ export interface Escalation {
   notifyGroup: NamedRef | null;
 }
 
+/** Record types SLA policies apply to (task C6 adds complaints, inquiries and suggestions). */
+export type SlaRecordType = "Incident" | "ServiceRequest" | "Complaint" | "Inquiry" | "Suggestion";
+export const slaRecordTypes: SlaRecordType[] = ["Incident", "ServiceRequest", "Complaint", "Inquiry", "Suggestion"];
+
 export interface SlaPolicy {
   id: string;
   name: Bilingual;
   position: number;
   active: boolean;
-  recordType: "Incident" | null;
+  recordType: SlaRecordType | null;
   category: PathRef | null;
   customerGroup: NamedRef | null;
   calendar: NamedRef | null;
@@ -100,7 +104,7 @@ export interface EscalationInput {
 export interface PolicyInput {
   name: { en: string | null; ar: string | null };
   active: boolean;
-  recordType: "Incident" | null;
+  recordType: SlaRecordType | null;
   categoryId: string | null;
   customerGroupId: string | null;
   calendarId: string | null;

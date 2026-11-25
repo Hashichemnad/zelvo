@@ -24,6 +24,8 @@ export async function SiteHeader() {
   const tApprovals = await getTranslations("aiApprovals");
   const tChats = await getTranslations("channels.agent");
   const tCatalog = await getTranslations("catalog.nav");
+  const tVoice = await getTranslations("voice.nav");
+  const tPortal = await getTranslations("portal.nav");
   const config = await getRequestAuthConfig();
   const locale = await getLocale();
   // Task F1: the tenant's product name and logos (light and dark mode) instead of Zelvo's.
@@ -49,6 +51,7 @@ export async function SiteHeader() {
       <header className="border-b border-line bg-surface">
         <div className="mx-auto flex max-w-5xl flex-wrap items-center justify-between gap-4 px-4 py-3">
           <div className="flex flex-wrap items-center gap-4">
+            {/* Task D2: the product name leads to the portal's home. */}
             <Link href="/" className="flex items-center gap-2 text-lg font-bold text-brand" data-testid="product-name">
               {logoLight && (
                 <picture>
@@ -71,18 +74,25 @@ export async function SiteHeader() {
                     {tCatalog("catalog")}
                   </Link>
                 </li>
+                <li>
+                  <Link href="/contact" className="text-brand underline-offset-4 hover:underline">
+                    {tVoice("contact")}
+                  </Link>
+                </li>
                 {user && (
                   <>
                   <li>
-                    <Link href="/my-incidents" className="text-brand underline-offset-4 hover:underline">
-                      {tIncidents("myIncidents")}
+                    <Link href="/my-tickets" className="text-brand underline-offset-4 hover:underline">
+                      {tPortal("myTickets")}
                     </Link>
                   </li>
-                  <li>
-                    <Link href="/my-requests" className="text-brand underline-offset-4 hover:underline">
-                      {tCatalog("myRequests")}
-                    </Link>
-                  </li>
+                  {user.permissions.includes("voice.read") && (
+                    <li>
+                      <Link href="/customer-voice" className="text-brand underline-offset-4 hover:underline">
+                        {tVoice("staff")}
+                      </Link>
+                    </li>
+                  )}
                   {user.permissions.includes("requests.read") && (
                     <li>
                       <Link href="/requests" className="text-brand underline-offset-4 hover:underline">

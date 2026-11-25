@@ -5,6 +5,7 @@ import { FormAnswersView } from "@/components/forms/FormAnswersView";
 import { IncidentFacts } from "@/components/incidents/IncidentFacts";
 import { MajorTimeline } from "@/components/incidents/MajorTimeline";
 import { ReopenButton } from "@/components/incidents/ReopenButton";
+import { TicketRatingBlock } from "@/components/voice/TicketRatingBlock";
 import { Composer, ConversationList } from "@/components/workspace/Conversation";
 import { ExportPdfButton } from "@/components/ExportPdfButton";
 import { Link } from "@/i18n/navigation";
@@ -68,6 +69,9 @@ export default async function MyIncidentPage({ params }: PageProps<"/[locale]/my
       <ExportPdfButton path={`/incidents/${incident.id}`} csrfToken={session.data.csrfToken} />
       <IncidentFacts incident={incident} settings={settings} display={display} basePath="/my-incidents" />
       {form && <FormAnswersView view={form} attachmentBase={`/bff/api/v1/incidents/${incident.id}/attachments`} />}
+      {(incident.state === "Resolved" || closed) && (
+        <TicketRatingBlock ticketId={incident.id} accessToken={session.data.accessToken} tenant={tenant} csrfToken={session.data.csrfToken} />
+      )}
       {incident.canReopen && <ReopenButton incidentId={incident.id} csrfToken={session.data.csrfToken} />}
       {closed && (
         <div className="space-y-2 rounded-lg border border-line p-4">

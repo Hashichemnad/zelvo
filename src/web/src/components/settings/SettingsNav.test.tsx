@@ -26,6 +26,7 @@ describe("Settings sections", () => {
     // Task C2: the catalog for managers and for publishers.
     expect(sectionsFor(["catalog.manage"]).map((s) => s.key)).toEqual(["catalog"]);
     expect(sectionsFor(["catalog.publish"]).map((s) => s.key)).toEqual(["catalog"]);
+    expect(sectionsFor(["voice.manage"]).map((s) => s.key)).toEqual(["customerVoice"]);
     expect(sectionsFor(["search.manage", "translations.read", "settings.manage"]).map((s) => s.key)).toEqual(["language", "incidents", "attachments", "knowledge", "search", "translations"]);
   });
 });

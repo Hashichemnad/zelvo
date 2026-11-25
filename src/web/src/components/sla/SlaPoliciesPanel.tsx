@@ -20,6 +20,8 @@ import {
   type SlaPolicy,
   type SlaPreview,
   type Target,
+  slaRecordTypes,
+  type SlaRecordType,
 } from "@/lib/sla";
 import { BilingualInputs, Localized, SaveStatusLine, inputClass, primaryButton, secondaryButton, smallButton, useSaver } from "@/components/directory/common";
 
@@ -65,6 +67,8 @@ function PolicyForm({ policy, choices, onSubmit, onCancel, busy }: {
   const [name, setName] = useState({ en: policy?.name.en ?? "", ar: policy?.name.ar ?? "" });
   const [active, setActive] = useState(policy?.active ?? true);
   const [categoryId, setCategoryId] = useState(policy?.category?.id ?? "");
+  // Task C6: complaints, inquiries and suggestions have their own SLAs.
+  const [recordType, setRecordType] = useState<SlaRecordType | "">(policy ? (policy.recordType ?? "") : "Incident");
   const [customerGroupId, setCustomerGroupId] = useState(policy?.customerGroup?.id ?? "");
   const [calendarId, setCalendarId] = useState(policy?.calendar?.id ?? "");
   const [rows, setRows] = useState<TargetRow[]>(toRows(policy?.targets ?? []));
@@ -93,7 +97,7 @@ function PolicyForm({ policy, choices, onSubmit, onCancel, busy }: {
         onSubmit({
           name: toInput(name.en, name.ar),
           active,
-          recordType: "Incident",
+          recordType: recordType || null,
           categoryId: categoryId || null,
           customerGroupId: customerGroupId || null,
           calendarId: calendarId || null,
@@ -108,8 +112,15 @@ function PolicyForm({ policy, choices, onSubmit, onCancel, busy }: {
         <input type="checkbox" checked={active} onChange={(e) => setActive(e.target.checked)} />
         {t("active")}
       </label>
-      <fieldset className="grid gap-3 sm:grid-cols-3">
+      <fieldset className="grid gap-3 sm:grid-cols-4">
         <legend className="font-semibold">{t("when")}</legend>
+        <div className="space-y-1">
+          <label htmlFor={`${id}-type`} className="block text-sm">{t("recordType")}</label>
+          <select id={`${id}-type`} value={recordType} onChange={(e) => setRecordType(e.target.value as SlaRecordType | "")} className={inputClass}>
+            <option value="">{t("anyRecordType")}</option>
+            {slaRecordTypes.map((type) => <option key={type} value={type}>{t(`recordTypes.${type}`)}</option>)}
+          </select>
+        </div>
         <div className="space-y-1">
           <label htmlFor={`${id}-category`} className="block text-sm">{t("category")}</label>
           <select id={`${id}-category`} value={categoryId} onChange={(e) => setCategoryId(e.target.value)} className={inputClass}>

@@ -38,6 +38,15 @@ worker NotificationDispatcher (every 2 s, per tenant, lease + SKIP LOCKED)  ▼
    | `incident.replied` (B4) | The requester | A staff member posts a public reply on their incident (from the workspace or by email; not for chat transcripts) |
    | `incident.mentioned` (B4) | The people mentioned | Someone @mentions them in a reply or internal note (links to the workspace) |
    | `incident.requester-frustrated` (E5) | The team leads of the incident's group, or the assignee when the group has none | The AI's sentiment reading of the requester turns to frustrated (product owner decision 2026-11-24; links to the workspace; see `ai-features.md`) |
+   | `voice.received` (C6) | The requester | A complaint, inquiry or suggestion is sent (not for anonymous ones) |
+   | `voice.replied` (C6) | The requester | Staff reply publicly on their complaint, inquiry or suggestion |
+   | `complaint.resolved` (C6) | The requester | Their complaint is resolved; it asks them to confirm or reject the resolution |
+   | `inquiry.answered` (C6) | The requester | Their inquiry is resolved with the answer |
+   | `suggestion.reviewed` (C6) | The requester | Their suggestion's review changes, with the feedback |
+   | `voice.assigned` (C6) | The new assignee | A complaint, inquiry or suggestion is assigned to them, unless they assigned themselves |
+   | `voice.queued` (C6) | Members of the group | One arrives in a group with nobody assigned |
+
+   The seven C6 events were approved by the product owner on 2026-11-24. Like every event, they are rendered in the recipient's language and administrators switch each on or off, with or without email, in Settings → Notifications.
 
 3. **Rendered for the recipient** (`NotificationProcessor`, in the worker). The event must be on and the recipient active, otherwise the notification is *Suppressed*. The language is the recipient's own, then the tenant default, then English (LANG-2, LANG-6); calendar and digits likewise (LANG-8); dates are shown in the time zone of the tenant's default business calendar (`Asia/Dubai` without one). The wording is the tenant's template for that language, field by field, else Zelvo's default. The in-app title and text are stored in the recipient's language; later language changes do not rewrite old notifications, so the list marks them with their own language and direction.
 4. **Email.** When the event sends email, the recipient has an address and (for events that allow it) has not turned it off, a `notification_deliveries` row holds the rendered subject, HTML and plain text. The dispatcher sends due emails (four at a time per tenant) and retries after 1 min, 5 min, 15 min, 1 h, 3 h, 6 h and 12 h (`Notifications:RetryDelays`); answers that will not improve (a refused address or message) fail at once. An SLA alert counts as delivered (`sla_alerts.delivered_at`) when its first notification is rendered.

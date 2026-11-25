@@ -76,6 +76,27 @@ public static class NotificationEvents
     /// <summary>A knowledge article version waits for review (four-eyes rule, task D1).</summary>
     public const string KnowledgeReviewRequested = "knowledge.review-requested";
 
+    /// <summary>A requester's complaint, inquiry or suggestion was received (task C6).</summary>
+    public const string VoiceReceived = "voice.received";
+
+    /// <summary>Staff replied publicly on a complaint, inquiry or suggestion.</summary>
+    public const string VoiceReplied = "voice.replied";
+
+    /// <summary>A complaint was resolved; the requester confirms or rejects the resolution.</summary>
+    public const string ComplaintResolved = "complaint.resolved";
+
+    /// <summary>An inquiry was answered (resolved).</summary>
+    public const string InquiryAnswered = "inquiry.answered";
+
+    /// <summary>A suggestion's review changed, with feedback to the submitter.</summary>
+    public const string SuggestionReviewed = "suggestion.reviewed";
+
+    /// <summary>A complaint, inquiry or suggestion was assigned to someone (not by themselves).</summary>
+    public const string VoiceAssigned = "voice.assigned";
+
+    /// <summary>A complaint, inquiry or suggestion arrived in a group's queue without an assignee.</summary>
+    public const string VoiceQueued = "voice.queued";
+
     /// <summary>Event type of test emails sent from Settings → Notifications.</summary>
     public const string TestEmail = "notifications.test";
 
@@ -103,6 +124,13 @@ public static class NotificationEvents
         new(SlaBreached, NotificationAudience.Staff, false,
             [Placeholders.TicketNumber, Placeholders.TicketTitle, Placeholders.TicketPriority, Placeholders.SlaTarget, Placeholders.SlaDueAt]),
         new(KnowledgeReviewRequested, NotificationAudience.Publisher, true, [Placeholders.ArticleNumber, Placeholders.ArticleTitle, Placeholders.AuthorName]),
+        new(VoiceReceived, NotificationAudience.Requester, true, [Placeholders.TicketNumber, Placeholders.TicketTitle, Placeholders.TicketType, Placeholders.TicketCreatedAt]),
+        new(VoiceReplied, NotificationAudience.Requester, true, [Placeholders.TicketNumber, Placeholders.TicketTitle, Placeholders.TicketType, Placeholders.CommentText, Placeholders.CommentAuthor]),
+        new(ComplaintResolved, NotificationAudience.Requester, true, [Placeholders.TicketNumber, Placeholders.TicketTitle, Placeholders.TicketResolutionNotes]),
+        new(InquiryAnswered, NotificationAudience.Requester, true, [Placeholders.TicketNumber, Placeholders.TicketTitle, Placeholders.TicketResolutionNotes]),
+        new(SuggestionReviewed, NotificationAudience.Requester, true, [Placeholders.TicketNumber, Placeholders.TicketTitle, Placeholders.ReviewState, Placeholders.ReviewFeedback]),
+        new(VoiceAssigned, NotificationAudience.Staff, true, [Placeholders.TicketNumber, Placeholders.TicketTitle, Placeholders.TicketType, Placeholders.TicketGroup, Placeholders.RequesterName]),
+        new(VoiceQueued, NotificationAudience.Staff, true, [Placeholders.TicketNumber, Placeholders.TicketTitle, Placeholders.TicketType, Placeholders.TicketGroup, Placeholders.RequesterName]),
     ];
 
     /// <summary>The event with key <paramref name="type"/>, or <see langword="null"/>.</summary>
@@ -168,4 +196,13 @@ public static class Placeholders
 
     /// <summary>Who submitted the version for review.</summary>
     public const string AuthorName = "author.name";
+
+    /// <summary>Record type in words: complaint, inquiry or suggestion (task C6).</summary>
+    public const string TicketType = "ticket.type";
+
+    /// <summary>A suggestion's review state in words.</summary>
+    public const string ReviewState = "review.state";
+
+    /// <summary>Feedback to a suggestion's submitter.</summary>
+    public const string ReviewFeedback = "review.feedback";
 }

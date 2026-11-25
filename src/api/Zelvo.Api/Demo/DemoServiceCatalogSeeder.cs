@@ -321,8 +321,9 @@ internal sealed class DemoServiceCatalogSeeder : IDemoSeeder
             await transaction.CommitAsync(cancellationToken).ConfigureAwait(false);
         }
 
-        // Listed services are found in search.
+        // Listed services, and the requests (task D2), are found in search.
         var indexer = context.Get<Zelvo.Search.ISearchIndexer>();
+        await RequestSearch.IndexAsync(db, indexer, await db.Tickets.AsNoTracking().Where(t => t.Type == TicketType.ServiceRequest).ToListAsync(cancellationToken).ConfigureAwait(false), cancellationToken).ConfigureAwait(false);
         foreach (var service in services)
         {
             await CatalogSearch.IndexAsync(db, indexer, service, cancellationToken).ConfigureAwait(false);

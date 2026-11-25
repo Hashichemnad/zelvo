@@ -494,6 +494,147 @@ public sealed class CommentNotificationSource : INotificationSource
 }
 
 /// <summary>
+/// Customer voice notifications (task C6): to the requester when their complaint, inquiry or
+/// suggestion is received, when staff reply publicly, when a complaint is resolved (asking them to
+/// confirm), an inquiry is answered or a suggestion's review changes; to staff when one is assigned
+/// to them or arrives in their group's queue. Anonymous submissions notify nobody on the requester
+/// side: their submitters follow them with the tracking code.
+/// </summary>
+public sealed class VoiceNotificationSource : INotificationSource
+{
+    /// <summary>Path of a record for its requester.</summary>
+    public static string RequesterPath(Guid ticketId) => $"/my-voice/{ticketId}";
+
+    /// <summary>Path of a record for staff.</summary>
+    public static string StaffPath(Guid ticketId) => $"/customer-voice/{ticketId}";
+
+    /// <inheritdoc />
+    public async Task<IReadOnlyList<NotificationRequest>> CollectAsync(ZelvoDbContext db, Guid? actorId, CancellationToken cancellationToken)
+    {
+        ArgumentNullException.ThrowIfNull(db);
+        var entries = db.ChangeTracker.Entries<Ticket>()
+            .Where(e => VoiceTypes.Is(e.Entity.Type) && e.State is EntityState.Added or EntityState.Modified)
+            .ToList();
+        var reviews = db.ChangeTracker.Entries<Data.Voice.CustomerVoiceRecord>()
+            .Where(e => e.State == EntityState.Modified && e.Property(v => v.Review).IsModified
+                && !Equals(e.Property(v => v.Review).OriginalValue, e.Property(v => v.Review).CurrentValue))
+            .Select(e => e.Entity).ToList();
+        var comments = db.ChangeTracker.Entries<TicketComment>()
+            .Where(e => e.State == EntityState.Added && e.Entity.Visibility == CommentVisibility.Public && e.Entity.ByStaff && e.Entity.Source != CommentSource.Chat)
+            .Select(e => e.Entity).ToList();
+        if (entries.Count == 0 && reviews.Count == 0 && comments.Count == 0)
+        {
+            return [];
+        }
+
+        var requests = new List<(string Event, Ticket Ticket, IReadOnlyCollection<Guid> To, string Path, TicketComment? Comment)>();
+        var queuedGroups = new HashSet<Guid>();
+        async Task<bool> AnonymousAsync(Ticket ticket) =>
+            (ticket.Voice ?? await db.CustomerVoiceRecords.AsNoTracking().FirstOrDefaultAsync(v => v.TicketId == ticket.Id, cancellationToken).ConfigureAwait(false))?.Anonymous == true;
+
+        foreach (var entry in entries)
+        {
+            var ticket = entry.Entity;
+            var anonymous = await AnonymousAsync(ticket).ConfigureAwait(false);
+            if (!anonymous)
+            {
+                if (entry.State == EntityState.Added)
+                {
+                    requests.Add((NotificationEvents.VoiceReceived, ticket, [ticket.RequesterId], RequesterPath(ticket.Id), null));
+                }
+                else if (SourceLookups.Changed(entry, t => t.State) && ticket.State == TicketState.Resolved && ticket.RequesterId != actorId)
+                {
+                    var resolvedEvent = ticket.Type switch
+                    {
+                        TicketType.Complaint => NotificationEvents.ComplaintResolved,
+                        TicketType.Inquiry => NotificationEvents.InquiryAnswered,
+                        _ => null,
+                    };
+                    if (resolvedEvent is not null)
+                    {
+                        requests.Add((resolvedEvent, ticket, [ticket.RequesterId], RequesterPath(ticket.Id), null));
+                    }
+                }
+            }
+
+            var assigned = entry.State == EntityState.Added ? ticket.AssigneeId is not null : SourceLookups.Changed(entry, t => t.AssigneeId);
+            if (assigned && ticket.AssigneeId is { } assignee && assignee != actorId)
+            {
+                requests.Add((NotificationEvents.VoiceAssigned, ticket, [assignee], StaffPath(ticket.Id), null));
+            }
+            else if (ticket.AssigneeId is null && ticket.GroupId is { } group && (entry.State == EntityState.Added || SourceLookups.Changed(entry, t => t.GroupId)))
+            {
+                queuedGroups.Add(group);
+                requests.Add((NotificationEvents.VoiceQueued, ticket, [], StaffPath(ticket.Id), null));
+            }
+        }
+
+        foreach (var review in reviews)
+        {
+            if (!review.Anonymous && await SourceLookups.TicketAsync(db, review.TicketId, cancellationToken).ConfigureAwait(false) is { } ticket && ticket.RequesterId != actorId)
+            {
+                requests.Add((NotificationEvents.SuggestionReviewed, ticket, [ticket.RequesterId], RequesterPath(ticket.Id), null));
+            }
+        }
+
+        foreach (var comment in comments)
+        {
+            if (await SourceLookups.TicketAsync(db, comment.TicketId, cancellationToken).ConfigureAwait(false) is { } ticket && VoiceTypes.Is(ticket.Type)
+                && ticket.RequesterId != comment.AuthorId && ticket.RequesterId != actorId && !await AnonymousAsync(ticket).ConfigureAwait(false))
+            {
+                requests.Add((NotificationEvents.VoiceReplied, ticket, [ticket.RequesterId], RequesterPath(ticket.Id), comment));
+            }
+        }
+
+        if (requests.Count == 0)
+        {
+            return [];
+        }
+
+        var memberRows = queuedGroups.Count == 0
+            ? []
+            : await db.SupportGroupMembers.AsNoTracking().Where(m => queuedGroups.Contains(m.GroupId))
+                .Select(m => new { m.GroupId, m.UserId }).ToListAsync(cancellationToken).ConfigureAwait(false);
+        var members = memberRows.ToLookup(m => m.GroupId, m => m.UserId);
+        var groups = await SourceLookups.GroupNamesAsync(db, requests.Select(r => r.Ticket.GroupId), cancellationToken).ConfigureAwait(false);
+        var names = await SourceLookups.NamesAsync(db, requests.Select(r => (Guid?)r.Ticket.RequesterId).Concat(requests.Select(r => r.Comment?.AuthorId)), cancellationToken).ConfigureAwait(false);
+        var result = new List<NotificationRequest>();
+        foreach (var (eventType, ticket, to, path, comment) in requests)
+        {
+            var voice = ticket.Voice ?? await db.CustomerVoiceRecords.AsNoTracking().FirstOrDefaultAsync(v => v.TicketId == ticket.Id, cancellationToken).ConfigureAwait(false);
+            var values = new Dictionary<string, PlaceholderValue>(StringComparer.Ordinal)
+            {
+                [Placeholders.TicketNumber] = PlaceholderValue.OfText(ticket.Number),
+                [Placeholders.TicketTitle] = PlaceholderValue.OfText(ticket.Title),
+                [Placeholders.TicketType] = PlaceholderValue.OfTerm($"ticket.type.{ticket.Type}"),
+                [Placeholders.TicketCreatedAt] = PlaceholderValue.OfDate(ticket.CreatedAt),
+                [Placeholders.TicketResolutionNotes] = PlaceholderValue.OfText(ticket.ResolutionNotes),
+                [Placeholders.TicketGroup] = ticket.GroupId is { } g && groups.TryGetValue(g, out var name) ? name : PlaceholderValue.OfText(string.Empty),
+                [Placeholders.RequesterName] = PlaceholderValue.OfText(voice?.Anonymous == true ? "—" : names.GetValueOrDefault(ticket.RequesterId)),
+                [Placeholders.ReviewState] = PlaceholderValue.OfTerm($"review.{voice?.Review ?? Data.Voice.SuggestionReview.UnderReview}"),
+                [Placeholders.ReviewFeedback] = PlaceholderValue.OfText(voice?.ReviewFeedback),
+            };
+            if (comment is not null)
+            {
+                var text = comment.Body.Length <= CommentNotificationSource.TextLimit ? comment.Body : string.Concat(comment.Body.AsSpan(0, CommentNotificationSource.TextLimit - 1), "…");
+                values[Placeholders.CommentText] = PlaceholderValue.OfText(text);
+                values[Placeholders.CommentAuthor] = PlaceholderValue.OfText(names.GetValueOrDefault(comment.AuthorId));
+            }
+
+            var recipients = eventType == NotificationEvents.VoiceQueued
+                ? members[ticket.GroupId!.Value].Where(m => m != actorId).ToList()
+                : to;
+            if (recipients.Count > 0)
+            {
+                result.Add(new(eventType, recipients, values, path, TicketId: ticket.Id, CommentId: comment?.Id));
+            }
+        }
+
+        return result;
+    }
+}
+
+/// <summary>
 /// Frustrated requesters (task E5; product owner decision 2026-11-24): when the AI's sentiment
 /// reading of an incident turns to frustrated, the group's team leads are alerted, or the assignee
 /// when the group has no team leads (or the incident has no group).

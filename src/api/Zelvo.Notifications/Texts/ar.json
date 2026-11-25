@@ -42,7 +42,14 @@
   },
   "terms": {
     "sla.target.response": "الاستجابة",
-    "sla.target.resolution": "المعالجة"
+    "sla.target.resolution": "المعالجة",
+    "ticket.type.Complaint": "شكوى",
+    "ticket.type.Inquiry": "استفسار",
+    "ticket.type.Suggestion": "اقتراح",
+    "review.UnderReview": "قيد الدراسة",
+    "review.Accepted": "مقبول",
+    "review.Implemented": "تم تنفيذه",
+    "review.Declined": "لم تتم الموافقة عليه"
   },
   "templates": {
     "incident.received": {
@@ -128,6 +135,48 @@
       "inApp": "أشار إليكم {{comment.author}} في البلاغ «{{ticket.title}}».",
       "body": "تحية طيبة، {{recipient.name}}\n\nأشار إليكم {{comment.author}} في البلاغ رقم {{ticket.number}} بعنوان «{{ticket.title}}»، ونص الملاحظة:\n\n{{comment.text}}\n\nمع خالص التحية،\n{{tenant.name}}",
       "action": "فتح البلاغ"
+    },
+    "voice.received": {
+      "subject": "رقم {{ticket.number}}: تم استلام {{ticket.type}}",
+      "inApp": "تم استلام {{ticket.type}} المقدَّم منكم «{{ticket.title}}».",
+      "body": "تحية طيبة، {{recipient.name}}\n\nنشكركم على تواصلكم معنا، ونفيدكم باستلام {{ticket.type}} رقم {{ticket.number}} بعنوان «{{ticket.title}}» بتاريخ {{ticket.createdAt}}، وسيتولى الفريق المختص دراسته وإفادتكم بالمستجدات.\n\nيمكنكم متابعة الحالة أو إضافة معلومات في أي وقت عبر بوابة الخدمات.\n\nمع خالص التحية،\n{{tenant.name}}",
+      "action": "عرض التفاصيل"
+    },
+    "voice.replied": {
+      "subject": "رقم {{ticket.number}}: رد جديد",
+      "inApp": "ورد رد من {{comment.author}} على «{{ticket.title}}».",
+      "body": "تحية طيبة، {{recipient.name}}\n\nنفيدكم بورود رد من {{comment.author}} على {{ticket.type}} رقم {{ticket.number}} بعنوان «{{ticket.title}}»، ونصه:\n\n{{comment.text}}\n\nيمكنكم الرد من صفحة الطلب.\n\nمع خالص التحية،\n{{tenant.name}}",
+      "action": "عرض الرد والإجابة عليه"
+    },
+    "complaint.resolved": {
+      "subject": "شكوى رقم {{ticket.number}}: يُرجى تأكيد المعالجة",
+      "inApp": "تمت معالجة شكواكم «{{ticket.title}}»، ويُرجى تأكيد ذلك.",
+      "body": "تحية طيبة، {{recipient.name}}\n\nيسرّنا إفادتكم بأنه تمت معالجة شكواكم رقم {{ticket.number}} بعنوان «{{ticket.title}}».\n\nطريقة المعالجة: {{ticket.resolutionNotes}}\n\nنرجو تأكيد ما إذا كانت المعالجة قد أنهت شكواكم، وفي حال عدم رضاكم يمكنكم رفض المعالجة لنعيد دراستها. وفي حال عدم الرد، تُغلق الشكوى تلقائيًا بعد أيام قليلة.\n\nمع خالص التحية،\n{{tenant.name}}",
+      "action": "تأكيد المعالجة أو رفضها"
+    },
+    "inquiry.answered": {
+      "subject": "استفسار رقم {{ticket.number}}: تمت الإجابة على استفساركم",
+      "inApp": "تمت الإجابة على استفساركم «{{ticket.title}}».",
+      "body": "تحية طيبة، {{recipient.name}}\n\nنفيدكم بالإجابة على استفساركم رقم {{ticket.number}} بعنوان «{{ticket.title}}»، وهي:\n\n{{ticket.resolutionNotes}}\n\nفي حال حاجتكم إلى مزيد من المعلومات، يمكنكم إعادة فتح الاستفسار ما دام لم يُغلق.\n\nمع خالص التحية،\n{{tenant.name}}",
+      "action": "عرض الإجابة"
+    },
+    "suggestion.reviewed": {
+      "subject": "اقتراح رقم {{ticket.number}}: {{review.state}}",
+      "inApp": "حالة اقتراحكم «{{ticket.title}}»: {{review.state}}.",
+      "body": "تحية طيبة، {{recipient.name}}\n\nنشكركم على اقتراحكم رقم {{ticket.number}} بعنوان «{{ticket.title}}»، ونفيدكم بأن حالته الآن: {{review.state}}.\n\n{{review.feedback}}\n\nمع خالص التحية،\n{{tenant.name}}",
+      "action": "عرض الاقتراح"
+    },
+    "voice.assigned": {
+      "subject": "تم إسناد رقم {{ticket.number}} إليكم",
+      "inApp": "{{ticket.type}}: «{{ticket.title}}» من {{requester.name}}.",
+      "body": "تحية طيبة، {{recipient.name}}\n\nتم إسناد {{ticket.type}} رقم {{ticket.number}} بعنوان «{{ticket.title}}» إليكم.\n\nالفريق: {{ticket.group}}\nمن: {{requester.name}}\n\nمع خالص التحية،\n{{tenant.name}}",
+      "action": "فتح التفاصيل"
+    },
+    "voice.queued": {
+      "subject": "{{ticket.type}} جديد لدى {{ticket.group}}: {{ticket.number}}",
+      "inApp": "{{ticket.type}} جديد لدى {{ticket.group}}: «{{ticket.title}}».",
+      "body": "تحية طيبة، {{recipient.name}}\n\nيوجد {{ticket.type}} جديد رقم {{ticket.number}} بعنوان «{{ticket.title}}» بانتظار المعالجة لدى {{ticket.group}}.\n\nمن: {{requester.name}}\n\nمع خالص التحية،\n{{tenant.name}}",
+      "action": "فتح التفاصيل"
     }
   },
   "samples": {
@@ -140,6 +189,7 @@
     "author.name": "عمر الهاشمي",
     "recipient.name": "مريم الكتبي",
     "comment.text": "نرجو إعادة تشغيل الطابعة وإفادتنا باستمرار ظهور مؤشر الخطأ من عدمه.",
-    "comment.author": "عمر الهاشمي"
+    "comment.author": "عمر الهاشمي",
+    "review.feedback": "نشكركم على اقتراحكم، وسيتم تمديد ساعات العمل المسائية في مركز الخدمة اعتبارًا من الشهر المقبل."
   }
 }

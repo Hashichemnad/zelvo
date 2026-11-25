@@ -76,7 +76,8 @@ public sealed class DemoModeTests(DatabaseFixture database) : IAsyncDisposable
         foreach (var (tenant, organisation) in new[] { (gov, DemoCatalog.Government), (company, DemoCatalog.Company) })
         {
             await using var db = TestData.AppContext(database, tenant);
-            var users = await db.Users.Include(u => u.Roles).ThenInclude(r => r.Role).ToListAsync(Ct);
+            // Task C6: the anonymous account of anonymous submissions is not a person.
+            var users = await db.Users.Include(u => u.Roles).ThenInclude(r => r.Role).Where(u => !u.Subject.StartsWith("system:")).ToListAsync(Ct);
             Assert.Equal(6, users.Count);
             foreach (var demoUser in organisation.Users)
             {
@@ -103,7 +104,8 @@ public sealed class DemoModeTests(DatabaseFixture database) : IAsyncDisposable
             Assert.Equal(3, await db.AssignmentRules.CountAsync(Ct));
             Assert.True(await db.Categories.AnyAsync(c => c.Depth == 2, Ct));
             Assert.True(await db.Locations.AnyAsync(c => c.Depth == 3, Ct));
-            Assert.All(await db.Tickets.ToListAsync(Ct), t => Assert.True(t.CategoryId is not null && t.LocationId is not null && t.GroupId is not null));
+            Assert.All(await db.Tickets.Where(t => t.Type == Data.Tickets.TicketType.Incident || t.Type == Data.Tickets.TicketType.ServiceRequest).ToListAsync(Ct),
+                t => Assert.True(t.CategoryId is not null && t.LocationId is not null && t.GroupId is not null));
             var agent = await db.Users.Include(u => u.Skills).SingleAsync(u => u.Email == organisation.UsernameOf(organisation.User("agent")!), Ct);
             Assert.Equal(["en", "ar"], agent.Languages);
             Assert.Equal(2, agent.Skills.Count);
@@ -123,7 +125,8 @@ public sealed class DemoModeTests(DatabaseFixture database) : IAsyncDisposable
             Assert.Equal(2, await db.SlaPolicies.CountAsync(Ct));
             Assert.Single(await db.CustomerGroupMembers.ToListAsync(Ct));
             Assert.True(await db.SupportGroups.AnyAsync(g => g.CalendarId != null, Ct));
-            Assert.Equal(await db.Tickets.CountAsync(Ct) * 2, await db.TicketSlas.CountAsync(Ct));
+            // Task C6: the closed sample complaints, inquiries and suggestions of past months have no clocks.
+            Assert.Equal(await db.Tickets.CountAsync(t => t.Voice == null || t.State != Data.Tickets.TicketState.Closed, Ct) * 2, await db.TicketSlas.CountAsync(Ct));
             // Task B5: in the API, saving the sample incidents queued their notifications once.
             Assert.Equal(await db.Tickets.CountAsync(t => t.Type == Data.Tickets.TicketType.Incident, Ct),
                 await db.Notifications.CountAsync(n => n.EventType == Zelvo.Notifications.NotificationEvents.IncidentReceived, Ct));
@@ -239,7 +242,7 @@ public sealed class DemoModeTests(DatabaseFixture database) : IAsyncDisposable
             var settings = await db.TenantSettings.Where(s => s.Key.StartsWith("localization.")).ToDictionaryAsync(s => s.Key, s => s.Value, Ct);
             Assert.Contains("ar", settings["localization.defaultLanguage"], StringComparison.Ordinal);
             Assert.Contains("Gregorian", settings["localization.defaultCalendar"], StringComparison.Ordinal);
-            Assert.Equal(6, await db.Users.CountAsync(Ct));
+            Assert.Equal(6, await db.Users.CountAsync(u => !u.Subject.StartsWith("system:"), Ct));
             var actions = await db.AuditEvents.Select(e => e.Action).ToListAsync(Ct);
             Assert.True(actions.Count > auditBefore, "The audit log keeps its earlier entries and records the reset.");
             Assert.Contains("demo.reset", actions);
