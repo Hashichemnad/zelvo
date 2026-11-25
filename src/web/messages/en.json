@@ -9,7 +9,8 @@
     "poweredBy": "Powered by Zelvo",
     "rateLimited": "Too many requests in a short time. Please wait a minute, then try again.",
     "testInstallation": "Test installation: data here is for building and trying integrations, not live data.",
-    "approvals": "My approvals"
+    "approvals": "My approvals",
+    "payments": "Payments"
   },
   "language": {
     "name": "English",
@@ -256,6 +257,10 @@
       "workflows": {
         "title": "Workflow rules",
         "description": "When / if / then rules that assign, ask for approval and notify."
+      },
+      "payments": {
+        "title": "Payments",
+        "description": "Online payments, payment gateways and their sandbox tests."
       }
     },
     "missingWarning": "{count, plural, one {# text is} other {# texts are}} missing a translation.",
@@ -478,7 +483,10 @@
         "voice_manage": "Change customer voice settings and the happiness meter",
         "branding_manage": "Change the branding, custom domains and email sender domain",
         "workflows_manage": "Build workflow rules",
-        "approvals_read": "See every approval"
+        "approvals_read": "See every approval",
+        "payments_manage": "Set up online payments and payment gateways",
+        "payments_read": "See payments, receipts, reconciliation and the Excel export",
+        "payments_refund": "Refund payments"
       },
       "events": {
         "user_created": "A user was created",
@@ -1798,7 +1806,8 @@
         "branding": "Branding",
         "workflows": "Workflows",
         "approvals": "Approvals",
-        "proactive": "Proactive services"
+        "proactive": "Proactive services",
+        "payments": "Payments"
       },
       "tenant_manage": "Change the organisation's name",
       "translations_read": "See missing translations",
@@ -1842,7 +1851,10 @@
       "voice_manage": "Change customer voice settings and the happiness meter",
       "branding_manage": "Change the branding, custom domains and email sender domain",
       "workflows_manage": "Build workflow rules",
-      "approvals_read": "See every approval"
+      "approvals_read": "See every approval",
+      "payments_manage": "Set up online payments and payment gateways",
+      "payments_read": "See payments, receipts, reconciliation and the Excel export",
+      "payments_refund": "Refund payments"
     },
     "assignment": {
       "intro": "The rules are checked in order and the first that matches decides where a new ticket goes. They run when a ticket is created and when an agent chooses \"Route again\"; they never move a ticket on their own later.",
@@ -2393,7 +2405,11 @@
       "request_queued": "A new request is in your group's queue",
       "task_assigned": "A task is assigned to you",
       "task_queued": "A new task is waiting in your group",
-      "proactive_offered": "A service is offered to you"
+      "proactive_offered": "A service is offered to you",
+      "payment_requested": "Your request waits for its fee",
+      "payment_received": "Your payment receipt",
+      "payment_refunded": "Your payment was refunded",
+      "payment_expired": "Your request was closed because its fee was not paid"
     },
     "audiences": {
       "Requester": "Your incidents",
@@ -3442,7 +3458,9 @@
       "start-required": "Choose the first date of the schedule.",
       "every-invalid": "Repeat every 1 to 365 days, weeks, months or years.",
       "people-required": "Name the groups, roles or departments the schedule is for.",
-      "people-too-long": "Name at most 90 groups, roles, departments and people."
+      "people-too-long": "Name at most 90 groups, roles, departments and people.",
+      "fee-rule-name-required": "Name each addition, for the receipt.",
+      "gateway-unknown": "Choose a payment gateway that exists."
     },
     "browse": {
       "title": "Services",
@@ -4862,5 +4880,229 @@
     "askedBy": "Requested by {name}",
     "awaitingRequester": "Your request is waiting for approval. You will be told when it is decided.",
     "awaitingStaff": "This request is waiting for an approval; it cannot be changed meanwhile."
+  },
+  "payments": {
+    "request": {
+      "title": "Fee",
+      "aed": "{amount} AED",
+      "states": {
+        "AwaitingPayment": "Awaiting payment",
+        "Paid": "Paid",
+        "Expired": "Not paid in time",
+        "Cancelled": "Cancelled",
+        "PartlyRefunded": "Partly refunded",
+        "Refunded": "Refunded"
+      },
+      "dueBy": "Pay by {date}, or the request is closed.",
+      "onCompletion": "The request is complete; it closes once the fee is paid.",
+      "lastFailed": "The last payment did not go through. You can try again.",
+      "payNow": "Pay now",
+      "cardNote": "You enter your card details on the payment gateway's own page; Zelvo never sees them.",
+      "redirecting": "Opening the payment page…",
+      "gatewayUnavailable": "The payment gateway did not answer. Try again in a moment.",
+      "failed": "That did not work. Try again.",
+      "receipt": "Receipt {number}",
+      "refundStates": {
+        "Completed": "Refunded",
+        "Failed": "Refund failed",
+        "Manual": "Refunded outside Zelvo"
+      },
+      "refundAmount": "Amount to refund (AED, empty: all)",
+      "refundReason": "Reason",
+      "refund": "Refund",
+      "refunded": "The refund was recorded.",
+      "refundFailed": "The gateway did not refund the payment; nothing was refunded."
+    },
+    "return": {
+      "title": "Payment",
+      "unknown": "We could not find this payment.",
+      "outcomes": {
+        "paid": "Thank you: your payment was received.",
+        "failed": "The payment did not go through. You can try again from your request.",
+        "pending": "The gateway has not confirmed the payment yet. We will update your request as soon as it does.",
+        "unknown": "We could not check this payment."
+      },
+      "receipt": "View receipt {number}",
+      "backToRequest": "Back to request {number}"
+    },
+    "receipt": {
+      "title": "Payment receipt",
+      "notFound": "This receipt does not exist, or you may not see it.",
+      "print": "Print",
+      "number": "Receipt number",
+      "paidAt": "Paid on",
+      "request": "Request",
+      "service": "Service",
+      "payer": "Paid by",
+      "transaction": "Transaction ID",
+      "gateway": "Payment gateway",
+      "lines": "Fee",
+      "total": "Total",
+      "refunded": "Refunded",
+      "note": "This e-receipt was issued electronically and needs no signature."
+    },
+    "settings": {
+      "intro": "Turn online payments on and connect your payment gateway, for example AjmanPay, with the generic connector: map the gateway's API from its own documentation. While payments are off, fees are shown for information only.",
+      "switchTitle": "Online payments",
+      "on": "Online payments are on: paid services ask for their fee.",
+      "off": "Online payments are off: fees are shown for information only.",
+      "unpaidExpiryHours": "Hours an unpaid request waits before it is closed",
+      "turnOn": "Turn online payments on",
+      "turnOff": "Turn online payments off",
+      "saveHours": "Save the hours",
+      "saved": "Saved.",
+      "failed": "That did not work. Try again.",
+      "noGateway": "Connect a payment gateway first.",
+      "gateways": "Payment gateways",
+      "gatewaysHint": "Test the connection, make a test payment in sandbox mode, then go live.",
+      "noGateways": "No gateway is connected yet.",
+      "default": "default",
+      "modes": {
+        "Test": "Sandbox (test)",
+        "Live": "Live"
+      },
+      "enabled": "In use",
+      "disabled": "Turned off",
+      "testPassed": "test payment passed",
+      "edit": "Edit",
+      "testConnection": "Test connection",
+      "testPayment": "Make a test payment",
+      "goLive": "Go live",
+      "backToTest": "Back to sandbox",
+      "delete": "Delete",
+      "addGateway": "Connect a gateway",
+      "reachable": "The gateway answered (HTTP {code}, {ms} ms).",
+      "unreachable": "The gateway could not be reached ({error}).",
+      "testPaymentOpened": "The sandbox payment page opened in a new window. Complete it there; once confirmed you can go live.",
+      "errors": {
+        "test-payment-required": "Make a successful test payment in sandbox mode before going live.",
+        "gateway-in-use": "Payments were made through this gateway; turn it off instead.",
+        "gateway-unavailable": "The gateway did not start the payment.",
+        "gateway-live": "Test payments are made in sandbox mode."
+      },
+      "name": "Name",
+      "merchantId": "Merchant ID",
+      "isDefault": "Default gateway",
+      "placeholdersHint": "Templates can use {list}, and {secret} for a credential.",
+      "create": "Start a payment",
+      "status": "Status API",
+      "hasRefund": "The gateway has a refund API",
+      "refund": "Refund API",
+      "statusValues": "Statuses",
+      "statuses": {
+        "paid": "Paid (comma-separated)",
+        "failed": "Failed",
+        "cancelled": "Cancelled"
+      },
+      "minorUnits": "The status API gives amounts in fils",
+      "callback": "Direct notification from the gateway",
+      "referenceField": "Where the reference is (JSON path or form field)",
+      "callbackSignature": "How the gateway signs it",
+      "settlement": "Settlement file columns",
+      "settlementColumns": {
+        "reference": "Reference column",
+        "transactionId": "Transaction column",
+        "amount": "Amount column"
+      },
+      "credentials": "Credentials",
+      "credentialsHint": "Stored encrypted and never shown again. Leave a value empty to keep it; a new gateway address needs them again.",
+      "credentialName": "Name of credential {number}",
+      "credentialValue": "Value of credential {number}",
+      "kept": "kept",
+      "removeCredential": "Remove credential {number}",
+      "remove": "Remove",
+      "addCredential": "Add a credential",
+      "save": "Save the gateway",
+      "cancel": "Cancel",
+      "saving": "Saving…",
+      "invalid": "Check the problems listed.",
+      "connector": {
+        "method": "Method",
+        "url": "Address",
+        "bodyFormat": "Body",
+        "formats": {
+          "None": "None",
+          "Json": "JSON",
+          "Form": "Form"
+        },
+        "headers": "Headers",
+        "body": "Body fields",
+        "response": "Answer fields (name = path)",
+        "linesHint": "One per line: name = value. Answers are read by dot paths, for example data.id.",
+        "requestSignature": "Signature over the request",
+        "algorithm": "Signature",
+        "algorithms": {
+          "None": "None",
+          "HmacSha256": "HMAC-SHA256",
+          "HmacSha512": "HMAC-SHA512"
+        },
+        "secretName": "Credential with the key",
+        "header": "Header",
+        "encoding": "Encoding",
+        "prefix": "Prefix"
+      }
+    },
+    "finance": {
+      "title": "Payments",
+      "noAccess": "You may not see payments.",
+      "unavailable": "Payments cannot be shown right now. Try again later.",
+      "filters": "Filter payments",
+      "from": "From",
+      "to": "To",
+      "show": "Show",
+      "exportExcel": "Export to Excel",
+      "exportCsv": "Export to CSV",
+      "payments": "Payments",
+      "noPayments": "No payments in this period.",
+      "columns": {
+        "receipt": "Receipt",
+        "request": "Request",
+        "service": "Service",
+        "payer": "Payer",
+        "amount": "Amount",
+        "state": "State",
+        "paidAt": "Paid on"
+      },
+      "refundedAmount": "refunded {amount}",
+      "reconciliation": "Daily reconciliation",
+      "reconciliationHint": "Each day Zelvo checks every payment with the gateway's status API. Import the gateway's settlement file to find transactions Zelvo does not know.",
+      "gateway": "Gateway",
+      "day": "Day",
+      "run": "Reconcile the day",
+      "reconciled": "The day was reconciled.",
+      "imported": "The settlement file was matched.",
+      "fileInvalid": "The file could not be read; check its columns.",
+      "failed": "That did not work. Try again.",
+      "noReconciliations": "No day has been reconciled yet.",
+      "reconColumns": {
+        "day": "Day",
+        "gateway": "Gateway",
+        "matched": "Matched",
+        "mismatched": "Different",
+        "unknown": "Unknown to Zelvo",
+        "total": "Total",
+        "file": "Settlement file"
+      },
+      "settlementFile": "Settlement file for {day}",
+      "exportLines": "Export the lines"
+    },
+    "fee": {
+      "timing": "When it is paid online",
+      "timings": {
+        "OnSubmission": "On submission",
+        "AfterApproval": "After approval",
+        "OnCompletion": "On completion"
+      },
+      "gateway": "Payment gateway",
+      "defaultGateway": "The default gateway",
+      "rules": "Amounts added by answers",
+      "rulesHint": "For example, urgent delivery adds a fee. Each addition is listed on the receipt.",
+      "ruleName": "Addition {number}",
+      "ruleAmount": "Amount (AED)",
+      "when": "When the answers are",
+      "removeRule": "Remove addition {number}",
+      "remove": "Remove",
+      "addRule": "Add an amount"
+    }
   }
 }

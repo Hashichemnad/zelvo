@@ -276,6 +276,17 @@ internal static class ServiceCardCheck
             await Workflows.WorkflowReferences.CheckConditionsAsync(db, fulfilment.Overrides[i].Conditions, $"fulfilment.overrides.{i}.conditions", problems, cancellationToken).ConfigureAwait(false);
         }
 
+        // Task E8: fee rules refer to things that exist, and the gateway does.
+        for (var i = 0; i < card.Fee.Rules.Count; i++)
+        {
+            await Workflows.WorkflowReferences.CheckConditionsAsync(db, card.Fee.Rules[i].Conditions, $"fee.rules.{i}.conditions", problems, cancellationToken).ConfigureAwait(false);
+        }
+
+        if (card.Fee.GatewayId is { } gateway && !await db.PaymentGateways.AnyAsync(g => g.Id == gateway, cancellationToken).ConfigureAwait(false))
+        {
+            Add("fee.gatewayId", "gateway-unknown", "Choose a payment gateway that exists.");
+        }
+
         await Workflows.WorkflowReferences.CheckLevelsAsync(db, card.Approvals.BeforeAssignment, "approvals.beforeAssignment", problems, cancellationToken).ConfigureAwait(false);
         await Workflows.WorkflowReferences.CheckLevelsAsync(db, card.Approvals.AfterFulfilment, "approvals.afterFulfilment", problems, cancellationToken).ConfigureAwait(false);
 

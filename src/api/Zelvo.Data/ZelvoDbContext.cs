@@ -1,3 +1,4 @@
+using Zelvo.Data.Payments;
 using Microsoft.EntityFrameworkCore;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 using Zelvo.Data.Ai;
@@ -151,6 +152,21 @@ public sealed class ZelvoDbContext(DbContextOptions<ZelvoDbContext> options) : D
 
     /// <summary>Times a proactive service is due for a person (task C5).</summary>
     public DbSet<ProactiveRun> ProactiveRuns => Set<ProactiveRun>();
+
+    /// <summary>Payment gateways (module 15, task E8).</summary>
+    public DbSet<PaymentGateway> PaymentGateways => Set<PaymentGateway>();
+
+    /// <summary>Fees of service requests and sandbox test payments (task E8).</summary>
+    public DbSet<Payment> Payments => Set<Payment>();
+
+    /// <summary>Tries at paying (task E8).</summary>
+    public DbSet<PaymentAttempt> PaymentAttempts => Set<PaymentAttempt>();
+
+    /// <summary>Refunds (task E8).</summary>
+    public DbSet<PaymentRefund> PaymentRefunds => Set<PaymentRefund>();
+
+    /// <summary>Daily reconciliations (task E8).</summary>
+    public DbSet<PaymentReconciliation> PaymentReconciliations => Set<PaymentReconciliation>();
 
     /// <summary>Workflow rules of the no-code builder (task C3).</summary>
     public DbSet<Workflows.WorkflowRule> WorkflowRules => Set<Workflows.WorkflowRule>();
@@ -900,6 +916,107 @@ public sealed class ZelvoDbContext(DbContextOptions<ZelvoDbContext> options) : D
             task.HasIndex(t => t.GroupId);
             task.HasIndex(t => t.AssigneeId);
             task.HasIndex(t => t.CompletedById);
+        });
+
+        modelBuilder.Entity<PaymentGateway>(gateway =>
+        {
+            gateway.ToTable("payment_gateways", t => t.HasCheckConstraint("ck_payment_gateways_mode", EnumCheck("mode", Enum.GetNames<GatewayMode>())));
+            gateway.HasKey(g => g.Id);
+            gateway.Property(g => g.Id).ValueGeneratedNever();
+            gateway.HasOne<Tenant>().WithMany().HasForeignKey(g => g.TenantId).OnDelete(DeleteBehavior.Restrict);
+            gateway.Property(g => g.Name).HasMaxLength(PaymentGateway.NameMaxLength);
+            gateway.Property(g => g.MerchantId).HasMaxLength(PaymentGateway.MerchantIdMaxLength);
+            gateway.Property(g => g.Mode).HasConversion<string>().HasMaxLength(10);
+            gateway.Property(g => g.Connector).HasColumnType("jsonb").HasDefaultValueSql("'{}'::jsonb");
+            gateway.Property(g => g.CredentialNames).HasColumnType("text[]").HasDefaultValueSql("'{}'");
+            gateway.Property(g => g.Version).IsRowVersion();
+            gateway.HasIndex(g => new { g.TenantId, g.Name }).IsUnique();
+            // One default gateway per tenant.
+            gateway.HasIndex(g => g.TenantId).IsUnique().HasFilter("is_default").HasDatabaseName("ix_payment_gateways_default");
+        });
+
+        modelBuilder.Entity<Payment>(payment =>
+        {
+            payment.ToTable("payments", t =>
+            {
+                t.HasCheckConstraint("ck_payments_state", EnumCheck("state", Enum.GetNames<PaymentState>()));
+                t.HasCheckConstraint("ck_payments_timing", EnumCheck("timing", Enum.GetNames<PaymentTiming>()));
+                t.HasCheckConstraint("ck_payments_amount", "amount_aed > 0 AND refunded_aed >= 0 AND refunded_aed <= amount_aed");
+                t.HasCheckConstraint("ck_payments_ticket", "is_test OR ticket_id IS NOT NULL");
+            });
+            payment.HasKey(p => p.Id);
+            payment.Property(p => p.Id).ValueGeneratedNever();
+            payment.HasOne<Tenant>().WithMany().HasForeignKey(p => p.TenantId).OnDelete(DeleteBehavior.Restrict);
+            payment.HasOne<Ticket>().WithMany().HasForeignKey(p => p.TicketId).OnDelete(DeleteBehavior.Cascade);
+            payment.HasOne<PaymentGateway>().WithMany().HasForeignKey(p => p.GatewayId).OnDelete(DeleteBehavior.Restrict);
+            payment.Property(p => p.AmountAed).HasPrecision(12, 2);
+            payment.Property(p => p.RefundedAed).HasPrecision(12, 2);
+            payment.Property(p => p.Breakdown).HasColumnType("jsonb").HasDefaultValueSql("'[]'::jsonb");
+            payment.Property(p => p.Timing).HasConversion<string>().HasMaxLength(20);
+            payment.Property(p => p.State).HasConversion<string>().HasMaxLength(20);
+            payment.Property(p => p.TransactionId).HasMaxLength(PaymentAttempt.GatewayValueMaxLength);
+            payment.Property(p => p.ReceiptNumber).HasMaxLength(Payment.ReceiptMaxLength);
+            payment.Property(p => p.Version).IsRowVersion();
+            payment.HasIndex(p => p.TicketId);
+            payment.HasIndex(p => p.GatewayId);
+            payment.HasIndex(p => new { p.TenantId, p.State, p.ExpiresAt });
+            payment.HasIndex(p => new { p.TenantId, p.PaidAt });
+            payment.HasIndex(p => new { p.TenantId, p.ReceiptSequence }).IsUnique();
+        });
+
+        modelBuilder.Entity<PaymentAttempt>(attempt =>
+        {
+            attempt.ToTable("payment_attempts", t => t.HasCheckConstraint("ck_payment_attempts_state", EnumCheck("state", Enum.GetNames<PaymentAttemptState>())));
+            attempt.HasKey(a => a.Id);
+            attempt.Property(a => a.Id).ValueGeneratedNever();
+            attempt.HasOne<Tenant>().WithMany().HasForeignKey(a => a.TenantId).OnDelete(DeleteBehavior.Restrict);
+            attempt.HasOne<Payment>().WithMany().HasForeignKey(a => a.PaymentId).OnDelete(DeleteBehavior.Cascade);
+            attempt.HasOne<PaymentGateway>().WithMany().HasForeignKey(a => a.GatewayId).OnDelete(DeleteBehavior.Restrict);
+            attempt.HasOne<UserAccount>().WithMany().HasForeignKey(a => a.StartedById).OnDelete(DeleteBehavior.SetNull);
+            attempt.Property(a => a.Reference).HasMaxLength(PaymentAttempt.ReferenceMaxLength);
+            attempt.Property(a => a.State).HasConversion<string>().HasMaxLength(20);
+            attempt.Property(a => a.TransactionId).HasMaxLength(PaymentAttempt.GatewayValueMaxLength);
+            attempt.Property(a => a.GatewayStatus).HasMaxLength(PaymentAttempt.GatewayValueMaxLength);
+            attempt.Property(a => a.Version).IsRowVersion();
+            // References are random and unique in the installation: the anonymous callback finds the tenant by them.
+            attempt.HasIndex(a => a.Reference).IsUnique();
+            attempt.HasIndex(a => a.PaymentId);
+            attempt.HasIndex(a => a.GatewayId);
+            attempt.HasIndex(a => a.StartedById);
+            attempt.HasIndex(a => new { a.GatewayId, a.TransactionId }).IsUnique().HasFilter("transaction_id IS NOT NULL");
+        });
+
+        modelBuilder.Entity<PaymentRefund>(refund =>
+        {
+            refund.ToTable("payment_refunds", t =>
+            {
+                t.HasCheckConstraint("ck_payment_refunds_state", EnumCheck("state", Enum.GetNames<RefundState>()));
+                t.HasCheckConstraint("ck_payment_refunds_amount", "amount_aed > 0");
+            });
+            refund.HasKey(r => r.Id);
+            refund.Property(r => r.Id).ValueGeneratedNever();
+            refund.HasOne<Tenant>().WithMany().HasForeignKey(r => r.TenantId).OnDelete(DeleteBehavior.Restrict);
+            refund.HasOne<Payment>().WithMany().HasForeignKey(r => r.PaymentId).OnDelete(DeleteBehavior.Cascade);
+            refund.HasOne<UserAccount>().WithMany().HasForeignKey(r => r.CreatedById).OnDelete(DeleteBehavior.SetNull);
+            refund.Property(r => r.AmountAed).HasPrecision(12, 2);
+            refund.Property(r => r.Reason).HasMaxLength(PaymentRefund.ReasonMaxLength);
+            refund.Property(r => r.State).HasConversion<string>().HasMaxLength(20);
+            refund.Property(r => r.GatewayRefundId).HasMaxLength(PaymentAttempt.GatewayValueMaxLength);
+            refund.HasIndex(r => r.PaymentId);
+            refund.HasIndex(r => r.CreatedById);
+        });
+
+        modelBuilder.Entity<PaymentReconciliation>(day =>
+        {
+            day.ToTable("payment_reconciliations");
+            day.HasKey(r => r.Id);
+            day.Property(r => r.Id).ValueGeneratedNever();
+            day.HasOne<Tenant>().WithMany().HasForeignKey(r => r.TenantId).OnDelete(DeleteBehavior.Restrict);
+            day.HasOne<PaymentGateway>().WithMany().HasForeignKey(r => r.GatewayId).OnDelete(DeleteBehavior.Cascade);
+            day.Property(r => r.TotalAed).HasPrecision(14, 2);
+            day.Property(r => r.Lines).HasColumnType("jsonb").HasDefaultValueSql("'[]'::jsonb");
+            day.HasIndex(r => new { r.TenantId, r.GatewayId, r.Day }).IsUnique();
+            day.HasIndex(r => r.GatewayId);
         });
 
         modelBuilder.Entity<ProactiveRun>(run =>

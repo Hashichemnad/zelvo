@@ -59,7 +59,8 @@
     "ticket.state.Closed": "Closed",
     "ticket.state.Reopened": "Reopened",
     "request.tasks-done": "All tasks are done: {tasks}.",
-    "request.bundle-done": "All parts of the bundle are complete: {parts}."
+    "request.bundle-done": "All parts of the bundle are complete: {parts}.",
+    "payment.expired-note": "Closed: the fee was not paid in time."
   },
   "templates": {
     "incident.received": {
@@ -265,6 +266,30 @@
       "inApp": "We can start “{{service.name}}” for you. Check the details and confirm by {{offer.expiresAt}}.",
       "body": "Dear {{recipient.name}},\n\nThe service “{{service.name}}” is now due for you. We have filled in what we already know; please check the details, add anything missing and confirm your request by {{offer.expiresAt}}. If you do not need it, you can decline the offer.\n\nKind regards,\n{{tenant.name}}",
       "action": "Check and confirm"
+    },
+    "payment.requested": {
+      "subject": "{{ticket.number}}: please pay the fee",
+      "inApp": "Your request “{{ticket.title}}” waits for its fee of {{payment.amount}} AED.",
+      "body": "Dear {{recipient.name}},\n\nYour request {{ticket.number}} for “{{service.name}}” has a fee of {{payment.amount}} AED. Please pay it online from the request's page; the request is handled once it is paid. Unpaid requests are closed after {{payment.dueBy}}.\n\nKind regards,\n{{tenant.name}}",
+      "action": "Pay now"
+    },
+    "payment.received": {
+      "subject": "{{ticket.number}}: receipt {{payment.receipt}}",
+      "inApp": "We received your payment of {{payment.amount}} AED (receipt {{payment.receipt}}).",
+      "body": "Dear {{recipient.name}},\n\nWe received your payment for request {{ticket.number}}, “{{service.name}}”.\n\nReceipt number: {{payment.receipt}}\nAmount: {{payment.amount}} AED\nTransaction ID: {{payment.transactionId}}\nPaid on: {{payment.paidAt}}\n\nYou can view and print the receipt in the portal at any time.\n\nKind regards,\n{{tenant.name}}",
+      "action": "View the receipt"
+    },
+    "payment.refunded": {
+      "subject": "{{ticket.number}}: refund of {{refund.amount}} AED",
+      "inApp": "{{refund.amount}} AED of your payment (receipt {{payment.receipt}}) was refunded.",
+      "body": "Dear {{recipient.name}},\n\nWe refunded {{refund.amount}} AED of your payment for request {{ticket.number}}, “{{service.name}}” (receipt {{payment.receipt}}).\n\nReason: {{refund.reason}}\n\nThe amount reaches your account as your bank processes it.\n\nKind regards,\n{{tenant.name}}",
+      "action": "View the request"
+    },
+    "payment.expired": {
+      "subject": "{{ticket.number}}: closed because the fee was not paid",
+      "inApp": "Your request “{{ticket.title}}” was closed because its fee was not paid in time.",
+      "body": "Dear {{recipient.name}},\n\nYour request {{ticket.number}} for “{{service.name}}” was closed because its fee of {{payment.amount}} AED was not paid in time. You are welcome to request the service again.\n\nKind regards,\n{{tenant.name}}",
+      "action": "View the request"
     }
   },
   "samples": {

@@ -47,5 +47,5 @@ export default async function proxy(request: NextRequest) {
 export const config = {
   // Everything except API routes, sign-in routes (/auth/...), the API proxy (/bff/...), the health
   // endpoint, Next internals and files with an extension.
-  matcher: "/((?!api|auth/|bff/|branding/|healthz|_next|_vercel|.*\\..*).*)",
+  matcher: "/((?!api|auth/|bff/|branding/|payments/callback/|healthz|_next|_vercel|.*\\..*).*)",
 };

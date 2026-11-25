@@ -59,7 +59,8 @@
     "ticket.state.Closed": "مغلق",
     "ticket.state.Reopened": "أُعيد فتحه",
     "request.tasks-done": "اكتملت جميع المهام: {tasks}.",
-    "request.bundle-done": "اكتملت جميع أجزاء الباقة: {parts}."
+    "request.bundle-done": "اكتملت جميع أجزاء الباقة: {parts}.",
+    "payment.expired-note": "أُغلق الطلب لعدم سداد الرسوم في الموعد المحدد."
   },
   "templates": {
     "incident.received": {
@@ -265,6 +266,30 @@
       "inApp": "يمكننا البدء بخدمة «{{service.name}}» لكم. يُرجى مراجعة البيانات وتأكيد الطلب قبل {{offer.expiresAt}}.",
       "body": "حضرة {{recipient.name}} المحترم،\n\nحان موعد خدمة «{{service.name}}» الخاصة بكم، وقد عبّأنا البيانات المتوفرة لدينا. يُرجى مراجعتها واستكمال ما يلزم وتأكيد الطلب قبل {{offer.expiresAt}}، ويمكنكم الاعتذار عن العرض إن لم تكونوا بحاجة إليه.\n\nمع التحية،\n{{tenant.name}}",
       "action": "المراجعة والتأكيد"
+    },
+    "payment.requested": {
+      "subject": "{{ticket.number}}: يُرجى سداد الرسوم",
+      "inApp": "طلبكم «{{ticket.title}}» بانتظار سداد رسومه البالغة {{payment.amount}} درهم.",
+      "body": "حضرة {{recipient.name}} المحترم،\n\nيترتب على طلبكم {{ticket.number}} لخدمة «{{service.name}}» رسوم قدرها {{payment.amount}} درهم. يُرجى سدادها إلكترونياً من صفحة الطلب، وستتم معالجة الطلب بعد السداد. وتُغلق الطلبات غير المسددة بعد {{payment.dueBy}}.\n\nمع التحية،\n{{tenant.name}}",
+      "action": "السداد الآن"
+    },
+    "payment.received": {
+      "subject": "{{ticket.number}}: الإيصال {{payment.receipt}}",
+      "inApp": "استلمنا دفعتكم البالغة {{payment.amount}} درهم (الإيصال {{payment.receipt}}).",
+      "body": "حضرة {{recipient.name}} المحترم،\n\nاستلمنا دفعتكم الخاصة بالطلب {{ticket.number}}، «{{service.name}}».\n\nرقم الإيصال: {{payment.receipt}}\nالمبلغ: {{payment.amount}} درهم\nرقم المعاملة: {{payment.transactionId}}\nتاريخ السداد: {{payment.paidAt}}\n\nيمكنكم عرض الإيصال وطباعته من البوابة في أي وقت.\n\nمع التحية،\n{{tenant.name}}",
+      "action": "عرض الإيصال"
+    },
+    "payment.refunded": {
+      "subject": "{{ticket.number}}: استرداد مبلغ {{refund.amount}} درهم",
+      "inApp": "تم استرداد {{refund.amount}} درهم من دفعتكم (الإيصال {{payment.receipt}}).",
+      "body": "حضرة {{recipient.name}} المحترم،\n\nتم استرداد مبلغ {{refund.amount}} درهم من دفعتكم الخاصة بالطلب {{ticket.number}}، «{{service.name}}» (الإيصال {{payment.receipt}}).\n\nالسبب: {{refund.reason}}\n\nيصل المبلغ إلى حسابكم وفق إجراءات البنك.\n\nمع التحية،\n{{tenant.name}}",
+      "action": "عرض الطلب"
+    },
+    "payment.expired": {
+      "subject": "{{ticket.number}}: أُغلق الطلب لعدم سداد الرسوم",
+      "inApp": "أُغلق طلبكم «{{ticket.title}}» لعدم سداد رسومه في الموعد المحدد.",
+      "body": "حضرة {{recipient.name}} المحترم،\n\nأُغلق طلبكم {{ticket.number}} لخدمة «{{service.name}}» لعدم سداد رسومه البالغة {{payment.amount}} درهم في الموعد المحدد. ويسعدنا تقديم طلب جديد متى شئتم.\n\nمع التحية،\n{{tenant.name}}",
+      "action": "عرض الطلب"
     }
   },
   "samples": {

@@ -428,11 +428,14 @@ Each customer can switch online payments on or off in Settings and connect its o
 - When to pay: on submission, after approval, or on completion.
 - Which gateway to use, if the customer has more than one.
 
+- Phase 1 task E8 (2026-11-25): a fee due on completion leaves the request resolved, and it closes only once paid (no expiry); a fee due on submission or after approval holds the request in "Awaiting payment", and when it expires the request is closed with the reason "payment not received".
+
 **Receipts, refunds and finance**
 
 - Bilingual e-receipt with transaction ID, emailed and available in the portal.
 - Refunds recorded with a reason, sent through the gateway's refund API where it offers one, otherwise marked as a manual refund.
 - Daily reconciliation report matching Zelvo payments to gateway transactions; export to Excel for finance.
+- Reconciliation in Phase 1 task E8 (2026-11-25): each of the day's payments is checked with the gateway's status API, and the gateway's settlement file (CSV or Excel) can be imported to find transactions Zelvo does not know.
 
 **Security**
 

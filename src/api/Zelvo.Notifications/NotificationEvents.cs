@@ -138,6 +138,18 @@ public static class NotificationEvents
     /// <summary>A proactive service is offered to someone, to confirm with the form filled in (task C5).</summary>
     public const string ProactiveOffered = "proactive.offered";
 
+    /// <summary>A request waits for its fee to be paid (task E8).</summary>
+    public const string PaymentRequested = "payment.requested";
+
+    /// <summary>A fee was paid: the e-receipt (task E8).</summary>
+    public const string PaymentReceived = "payment.received";
+
+    /// <summary>A payment was refunded (task E8).</summary>
+    public const string PaymentRefunded = "payment.refunded";
+
+    /// <summary>A request was closed because its fee was not paid in time (task E8).</summary>
+    public const string PaymentExpired = "payment.expired";
+
     /// <summary>
     /// A notify action of a workflow rule (task C3). Its wording is the rule's own, carried in the
     /// notification's values; it is not listed in Settings → Notifications or Account → Notifications.
@@ -196,6 +208,13 @@ public static class NotificationEvents
         new(TaskQueued, NotificationAudience.Staff, true,
             [Placeholders.TicketNumber, Placeholders.TicketTitle, Placeholders.TaskName, Placeholders.TaskDueAt, Placeholders.TicketGroup, Placeholders.ServiceName]),
         new(ProactiveOffered, NotificationAudience.Requester, true, [Placeholders.ServiceName, Placeholders.OfferExpiresAt]),
+        new(PaymentRequested, NotificationAudience.Requester, true, [Placeholders.TicketNumber, Placeholders.TicketTitle, Placeholders.ServiceName, Placeholders.PaymentAmount, Placeholders.PaymentDueBy]),
+        // The e-receipt: its email cannot be turned off.
+        new(PaymentReceived, NotificationAudience.Requester, false,
+            [Placeholders.TicketNumber, Placeholders.TicketTitle, Placeholders.ServiceName, Placeholders.PaymentAmount, Placeholders.PaymentReceipt, Placeholders.PaymentTransaction, Placeholders.PaymentPaidAt]),
+        new(PaymentRefunded, NotificationAudience.Requester, false,
+            [Placeholders.TicketNumber, Placeholders.TicketTitle, Placeholders.ServiceName, Placeholders.PaymentReceipt, Placeholders.RefundAmount, Placeholders.RefundReason]),
+        new(PaymentExpired, NotificationAudience.Requester, true, [Placeholders.TicketNumber, Placeholders.TicketTitle, Placeholders.ServiceName, Placeholders.PaymentAmount]),
     ];
 
     /// <summary>Events that are not set up in Settings (their wording comes from elsewhere).</summary>
@@ -286,6 +305,27 @@ public static class Placeholders
 
     /// <summary>When a fulfilment task is due.</summary>
     public const string TaskDueAt = "task.dueAt";
+
+    /// <summary>A fee in AED (task E8).</summary>
+    public const string PaymentAmount = "payment.amount";
+
+    /// <summary>The receipt number (task E8).</summary>
+    public const string PaymentReceipt = "payment.receipt";
+
+    /// <summary>The gateway's transaction id (task E8).</summary>
+    public const string PaymentTransaction = "payment.transactionId";
+
+    /// <summary>When it was paid (task E8).</summary>
+    public const string PaymentPaidAt = "payment.paidAt";
+
+    /// <summary>When an unpaid request closes (task E8).</summary>
+    public const string PaymentDueBy = "payment.dueBy";
+
+    /// <summary>An amount refunded (task E8).</summary>
+    public const string RefundAmount = "refund.amount";
+
+    /// <summary>Why it was refunded (task E8).</summary>
+    public const string RefundReason = "refund.reason";
 
     /// <summary>When a proactive offer expires (task C5).</summary>
     public const string OfferExpiresAt = "offer.expiresAt";

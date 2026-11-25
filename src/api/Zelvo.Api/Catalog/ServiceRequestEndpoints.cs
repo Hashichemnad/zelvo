@@ -414,9 +414,34 @@ internal static class ServiceRequestEndpoints
             return AwaitingApproval();
         }
 
+        // Task E8: staff may close a request that waits for its fee (the payment is cancelled);
+        // a completed request closes only once its fee is paid.
+        var payments = http.RequestServices.GetRequiredService<Payments.PaymentService>();
+        var closingUnpaid = to == TicketState.Closed && ticket.Held
+            && await db.ServiceRequests.AnyAsync(r => r.TicketId == ticket.Id && r.Hold == ServiceRequestHold.Payment, cancellationToken);
+        if (closingUnpaid)
+        {
+            await using var closing = await db.Database.BeginTransactionAsync(cancellationToken);
+            await payments.CancelOpenAsync(ticket.Id, cancellationToken);
+            var details = await db.ServiceRequests.SingleAsync(r => r.TicketId == ticket.Id, cancellationToken);
+            details.Hold = ServiceRequestHold.None;
+            ticket.Held = false;
+            var now = DateTimeOffset.UtcNow;
+            ticket.State = TicketState.Closed;
+            ticket.ClosedAt = now;
+            ticket.UpdatedAt = now;
+            ticket.ResolutionNotes = string.IsNullOrWhiteSpace(request.ResolutionNotes) ? ticket.ResolutionNotes : request.ResolutionNotes.Trim();
+            return await SaveAsync(http, db, user, ticket, cancellationToken);
+        }
+
         if (await ManagedProblemAsync(db, ticket, cancellationToken) is { } managed)
         {
             return managed;
+        }
+
+        if (to == TicketState.Closed && await payments.OutstandingAsync(ticket.Id, cancellationToken))
+        {
+            return ApiProblem.Create(StatusCodes.Status409Conflict, "payment-outstanding", "The request closes once its fee is paid.");
         }
 
         if (to == TicketState.OnHold)
@@ -622,6 +647,12 @@ internal static class ServiceRequestEndpoints
         await using var transaction = db.Database.CurrentTransaction is null ? await db.Database.BeginTransactionAsync(cancellationToken) : null;
         try
         {
+            // Task E8: a completed request whose fee is due on completion asks for it now.
+            if (ticket.State == TicketState.Resolved)
+            {
+                await http.RequestServices.GetRequiredService<Payments.PaymentService>().DueOnCompletionAsync(ticket, cancellationToken);
+            }
+
             await http.RequestServices.GetRequiredService<SlaTracker>().UpdateAsync([ticket], DateTimeOffset.UtcNow, cancellationToken);
             await RequestSearch.IndexAsync(db, http.RequestServices.GetRequiredService<Zelvo.Search.ISearchIndexer>(), [ticket], cancellationToken);
             await db.SaveChangesAsync(cancellationToken);

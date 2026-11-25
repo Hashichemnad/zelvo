@@ -120,6 +120,10 @@ public sealed partial class TicketAutoCloseJob(IServiceScopeFactory scopes, ILog
             .FromSql($"""
                 SELECT *, xmin FROM tickets
                 WHERE state = 'Resolved' AND resolved_at < {due}
+                  -- Task E8: a request whose fee is due on completion closes only once paid.
+                  AND NOT EXISTS (SELECT 1 FROM payments p WHERE p.ticket_id = tickets.id AND p.state = 'AwaitingPayment')
+                  -- Task C5: a bundle closes when its parts are closed.
+                  AND NOT EXISTS (SELECT 1 FROM service_requests r WHERE r.ticket_id = tickets.id AND r.is_bundle)
                 ORDER BY resolved_at
                 LIMIT {BatchSize}
                 FOR UPDATE SKIP LOCKED

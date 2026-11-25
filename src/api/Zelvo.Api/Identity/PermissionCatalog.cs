@@ -153,6 +153,15 @@ internal static class Permissions
     /// </summary>
     public const string ProactiveTrigger = "proactive.trigger";
 
+    /// <summary>Settings → Payments: the switch and the gateways with their credentials (task E8).</summary>
+    public const string PaymentsManage = "payments.manage";
+
+    /// <summary>See every payment, receipts, reconciliation and the Excel export (finance; task E8).</summary>
+    public const string PaymentsRead = "payments.read";
+
+    /// <summary>Refund payments, through the gateway or recorded as manual (task E8).</summary>
+    public const string PaymentsRefund = "payments.refund";
+
     /// <summary>See every complaint, inquiry and suggestion (task C6). Requesters always see their own.</summary>
     public const string VoiceRead = Zelvo.Tickets.VoicePermissions.Read;
 
@@ -245,6 +254,9 @@ internal static class PermissionCatalog
         Permissions.RequestsEdit,
         Permissions.RequestsAssign,
         Permissions.ProactiveTrigger,
+        Permissions.PaymentsManage,
+        Permissions.PaymentsRead,
+        Permissions.PaymentsRefund,
         Permissions.VoiceRead,
         Permissions.VoiceEdit,
         Permissions.VoiceAssign,
@@ -277,6 +289,9 @@ internal static class PermissionCatalog
         // Task C3, for the product owner's approval: rules send wording of their own to anyone,
         // like notification templates, and could route requests past their approvers.
         Permissions.WorkflowsManage,
+        // Task E8, for the product owner's approval: gateways hold credentials, and an integration
+        // could point a gateway at an address of its own.
+        Permissions.PaymentsManage,
     };
 
     /// <summary>Permissions an integration may be given as scopes.</summary>
@@ -351,7 +366,7 @@ internal static class PermissionCatalog
             new Dictionary<string, FieldAccess> { ["users.email"] = FieldAccess.Read, ["users.emiratesId"] = FieldAccess.Edit, ["users.phone"] = FieldAccess.Edit }),
         new(BuiltInRoles.ExecutiveAuditor, new LocalizedText("Executive / auditor", "تنفيذي / مدقق"),
             [Permissions.AuditRead, Permissions.UsersRead, Permissions.IncidentsRead, Permissions.DirectoryRead, Permissions.KnowledgeRead, Permissions.RequestsRead,
-                Permissions.VoiceRead, Permissions.VoiceReport, Permissions.ApprovalsRead],
+                Permissions.VoiceRead, Permissions.VoiceReport, Permissions.ApprovalsRead, Permissions.PaymentsRead],
             new Dictionary<string, FieldAccess> { ["users.email"] = FieldAccess.Read }),
     ];
 

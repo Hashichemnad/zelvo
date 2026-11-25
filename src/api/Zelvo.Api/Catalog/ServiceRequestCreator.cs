@@ -89,7 +89,7 @@ internal sealed class BundlePartInput
 /// </summary>
 internal sealed class ServiceRequestCreator(
     ZelvoDbContext db, CurrentUser user, ITenantContext tenant, TenantSettingsStore settings, IAuditLog audit,
-    ApprovalService approvals, SlaTracker sla, Zelvo.Search.ISearchIndexer indexer)
+    ApprovalService approvals, SlaTracker sla, Zelvo.Search.ISearchIndexer indexer, Payments.PaymentService payments)
 {
     /// <summary>A checked request, ready to save.</summary>
     internal sealed class Prepared
@@ -323,6 +323,12 @@ internal sealed class ServiceRequestCreator(
     /// </summary>
     public async Task StartAsync(Ticket ticket, ServiceCard card, DateTimeOffset now, CancellationToken cancellationToken)
     {
+        // Task E8: a fee due on submission (or after approval, when there is none) is paid first.
+        if (await payments.HoldIfDueAsync(ticket, card, Data.Payments.PaymentTiming.OnSubmission, cancellationToken))
+        {
+            return;
+        }
+
         var facts = await RuleFacts.LoadAsync(db, ticket, cancellationToken);
         var levels = await ApprovalPlanner.PlanAsync(db, ticket, ApprovalStage.BeforeAssignment, card.Approvals.BeforeAssignment, facts, cancellationToken);
         if (levels.Count > 0)
@@ -332,6 +338,21 @@ internal sealed class ServiceRequestCreator(
         else
         {
             await ServiceRequestRouting.ReleaseAsync(db, settings, ticket, card, now, cancellationToken);
+        }
+    }
+
+    /// <summary>A request whose fee was just paid moves on (task E8): after approval, to the service desk; otherwise its approvals, or the service desk.</summary>
+    public async Task AfterPaymentAsync(Ticket ticket, DateTimeOffset now, CancellationToken cancellationToken)
+    {
+        var card = await ServiceRequestEndpoints.CardOfAsync(db, ticket.Id, cancellationToken);
+        if (card.Fee.Timing == Data.Payments.PaymentTiming.AfterApproval
+            && await db.ApprovalProcesses.AnyAsync(p => p.TicketId == ticket.Id && p.Stage == ApprovalStage.BeforeAssignment && p.State == ApprovalProcessState.Approved, cancellationToken))
+        {
+            await ServiceRequestRouting.ReleaseAsync(db, settings, ticket, card, now, cancellationToken);
+        }
+        else
+        {
+            await StartAsync(ticket, card, now, cancellationToken);
         }
     }
 

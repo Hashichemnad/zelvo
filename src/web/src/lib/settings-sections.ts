@@ -35,6 +35,7 @@ export interface SettingsSection {
     | "ai"
     | "importExport"
     | "workflows"
+    | "payments"
     | "translations";
   /** Path below /[locale]. */
   href: string;
@@ -69,6 +70,8 @@ export const settingsSections: readonly SettingsSection[] = [
   { key: "customerVoice", href: "/settings/customer-voice", permission: "voice.manage" },
   // Task C3: the no-code builder for assignment, approval and notification rules.
   { key: "workflows", href: "/settings/workflows", permission: "workflows.manage" },
+  // Task E8: online payments and gateways.
+  { key: "payments", href: "/settings/payments", permission: "payments.manage" },
   { key: "knowledge", href: "/settings/knowledge", permission: "settings.manage" },
   { key: "notifications", href: "/settings/notifications", permission: "notifications.manage" },
   // Task B4: everyone who works on incidents keeps their own; leads and administrators share them.

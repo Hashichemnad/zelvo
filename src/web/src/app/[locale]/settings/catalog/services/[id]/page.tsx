@@ -26,7 +26,7 @@ export default async function ServiceEditorPage({ params }: PageProps<"/[locale]
   const token = session.data.accessToken;
   const permissions = user?.permissions ?? [];
   const get = <T,>(path: string) => getJsonAs<T>(path, token, tenant);
-  const [detail, services, catalogs, categories, locations, departments, groups, roles, forms, format] = await Promise.all([
+  const [detail, services, catalogs, categories, locations, departments, groups, roles, forms, format, gateways] = await Promise.all([
     get<ServiceDetail>(`/api/v1/catalog/services/${id}`),
     get<ServiceSummary[]>("/api/v1/catalog/services"),
     get<Catalog[]>("/api/v1/catalog/catalogs"),
@@ -37,6 +37,7 @@ export default async function ServiceEditorPage({ params }: PageProps<"/[locale]
     get<Role[]>("/api/v1/roles"),
     permissions.includes("forms.manage") ? get<FormSummary[]>("/api/v1/forms") : Promise.resolve(null),
     getDisplayFormat(),
+    permissions.includes("payments.manage") ? get<{ id: string; name: string }[]>("/api/v1/payments/gateways") : Promise.resolve(null),
   ]);
   return (
     <div className="space-y-4">
@@ -45,7 +46,7 @@ export default async function ServiceEditorPage({ params }: PageProps<"/[locale]
         <p role="alert">{t("notFound")}</p>
       ) : (
         <ServiceEditor initial={detail} csrfToken={session.data.csrfToken} display={{ locale, ...format }}
-          choices={{ services: services ?? [], catalogs: catalogs ?? [], categories: categories ?? [], locations: locations ?? [], departments: departments ?? [], groups: groups ?? [], roles: roles ?? [], forms }} />
+          choices={{ services: services ?? [], catalogs: catalogs ?? [], categories: categories ?? [], locations: locations ?? [], departments: departments ?? [], groups: groups ?? [], roles: roles ?? [], forms, gateways: gateways?.map((g) => ({ id: g.id, name: g.name })) ?? null }} />
       )}
     </div>
   );

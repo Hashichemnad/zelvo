@@ -345,6 +345,28 @@ public sealed record ServiceFee
 
     /// <summary>Notes, for example "urgent delivery costs extra".</summary>
     public LocalizedText Notes { get; init; } = new(null, null);
+
+    /// <summary>When it is paid online (task E8): on submission, after approval or on completion.</summary>
+    public Data.Payments.PaymentTiming Timing { get; init; } = Data.Payments.PaymentTiming.OnSubmission;
+
+    /// <summary>The gateway (task E8); none: the tenant's default gateway.</summary>
+    public Guid? GatewayId { get; init; }
+
+    /// <summary>Amounts added when the form answers say so (task E8), for example urgent delivery.</summary>
+    public IReadOnlyList<FeeRule> Rules { get; init; } = [];
+}
+
+/// <summary>An amount added to a service's fee when the answers match (task E8).</summary>
+public sealed record FeeRule
+{
+    /// <summary>What it is, for the receipt.</summary>
+    public LocalizedText Name { get; init; } = new(null, null);
+
+    /// <summary>When all hold (C3 conditions, usually on answers).</summary>
+    public IReadOnlyList<Zelvo.Workflows.Rules.WorkflowCondition> Conditions { get; init; } = [];
+
+    /// <summary>Amount in AED added.</summary>
+    public decimal AmountAed { get; init; }
 }
 
 /// <summary>Another department, entity or vendor involved in delivering the service.</summary>
@@ -571,7 +593,12 @@ public static partial class ServiceCards
             FileTypes = [.. (d.FileTypes ?? []).Select(t => t.Trim().TrimStart('.').ToLowerInvariant()).Where(t => t.Length > 0).Distinct()],
         })],
         Steps = [.. (card.Steps ?? []).Select(s => s with { Name = Clean(s.Name), Description = Clean(s.Description), TaskKey = string.IsNullOrWhiteSpace(s.TaskKey) ? null : s.TaskKey.Trim() })],
-        Fee = (card.Fee ?? new ServiceFee()) with { Notes = Clean(card.Fee?.Notes), AmountAed = card.Fee?.Paid == true ? card.Fee.AmountAed : null },
+        Fee = (card.Fee ?? new ServiceFee()) with
+        {
+            Notes = Clean(card.Fee?.Notes),
+            AmountAed = card.Fee?.Paid == true ? card.Fee.AmountAed : null,
+            Rules = card.Fee?.Paid == true ? [.. (card.Fee.Rules ?? []).Select(r => r with { Name = Clean(r.Name), Conditions = r.Conditions ?? [] })] : [],
+        },
         Channels = [.. (card.Channels ?? []).Distinct()],
         Audiences = [.. (card.Audiences ?? []).Distinct()],
         Partners = [.. (card.Partners ?? []).Select(p => p with { Name = Clean(p.Name) })],
@@ -663,6 +690,33 @@ public static partial class ServiceCards
         }
 
         Length(card.Fee.Notes, "fee.notes", MaxShortText);
+        // Task E8: amounts added by answers.
+        if (card.Fee.Rules.Count > MaxFulfilmentItems)
+        {
+            Add("fee.rules", "too-many", $"At most {MaxFulfilmentItems} fee rules.");
+        }
+
+        for (var i = 0; i < card.Fee.Rules.Count; i++)
+        {
+            var rule = card.Fee.Rules[i];
+            if (rule.AmountAed <= 0 || rule.AmountAed > MaxFee || decimal.Round(rule.AmountAed, 2) != rule.AmountAed)
+            {
+                Add($"fee.rules.{i}.amountAed", "fee-invalid", "Add an amount in AED above zero, with at most two decimals.");
+            }
+
+            if (!rule.Name.HasAnyValue)
+            {
+                Add($"fee.rules.{i}.name", "fee-rule-name-required", "Name the addition in English or Arabic, for the receipt.");
+            }
+
+            if (rule.Conditions.Count == 0)
+            {
+                Add($"fee.rules.{i}.conditions", "conditions-required", "Say which answers add this amount.");
+            }
+
+            Length(rule.Name, $"fee.rules.{i}.name", MaxShortText);
+            Zelvo.Workflows.Rules.RuleDocuments.CheckConditions(rule.Conditions, $"fee.rules.{i}.conditions", problems);
+        }
         if (card.Days is { } days && (days < 1 || days > MaxDays))
         {
             Add("days", "days-invalid", $"Use 1 to {MaxDays} working days.");

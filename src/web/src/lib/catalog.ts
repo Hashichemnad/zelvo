@@ -175,6 +175,16 @@ export function bundleStages(items: readonly { parallelWithPrevious: boolean }[]
   return items.map((item) => (stage = item.parallelWithPrevious && stage >= 0 ? stage : stage + 1));
 }
 
+/** A service's fee; online payment of it came with task E8. */
+export interface ServiceFee {
+  paid: boolean;
+  amountAed: number | null;
+  notes: Text;
+  timing: import("./payments").PaymentTiming;
+  gatewayId: string | null;
+  rules: { name: Text; amountAed: number; conditions: WorkflowCondition[] }[];
+}
+
 export interface ServiceCard {
   name: Text;
   summary: Text;
@@ -189,7 +199,7 @@ export interface ServiceCard {
   formId: string | null;
   documents: ServiceDocument[];
   steps: ServiceStep[];
-  fee: { paid: boolean; amountAed: number | null; notes: Text };
+  fee: ServiceFee;
   days: number | null;
   channels: DeliveryChannel[];
   audiences: TargetAudience[];
@@ -225,7 +235,11 @@ export function completeCard(card: Partial<ServiceCard> | null | undefined): Ser
     formId: c.formId ?? null,
     documents: (c.documents ?? []).map((d) => ({ key: d.key ?? "", name: text(d.name), description: text(d.description), required: !!d.required, fileTypes: d.fileTypes ?? [], maxSizeMb: d.maxSizeMb ?? null, templateFileId: d.templateFileId ?? null })),
     steps: (c.steps ?? []).map((s) => ({ name: text(s.name), description: text(s.description), stage: s.stage ?? "InProgress", taskKey: s.taskKey ?? null })),
-    fee: { paid: !!c.fee?.paid, amountAed: c.fee?.amountAed ?? null, notes: text(c.fee?.notes) },
+    fee: {
+      paid: !!c.fee?.paid, amountAed: c.fee?.amountAed ?? null, notes: text(c.fee?.notes),
+      timing: c.fee?.timing ?? "OnSubmission", gatewayId: c.fee?.gatewayId ?? null,
+      rules: (c.fee?.rules ?? []).map((r) => ({ name: text(r.name), amountAed: r.amountAed ?? 0, conditions: r.conditions ?? [] })),
+    },
     days: c.days ?? null, channels: c.channels ?? ["Portal"], audiences: c.audiences ?? [],
     partners: (c.partners ?? []).map((p) => ({ kind: p.kind ?? "Entity", departmentId: p.departmentId ?? null, name: text(p.name) })),
     relatedServiceIds: c.relatedServiceIds ?? [], prerequisiteServiceIds: c.prerequisiteServiceIds ?? [], keywords: c.keywords ?? [],
@@ -556,7 +570,10 @@ export function cardForApi(card: ServiceCard): ServiceCard {
     name: cleanText(card.name), summary: cleanText(card.summary), description: cleanText(card.description),
     externalUrl: card.externalUrl?.trim() || null,
     documents: card.documents.map((d) => ({ ...d, key: d.key.trim(), name: cleanText(d.name), description: cleanText(d.description) })),
-    fee: { ...card.fee, notes: cleanText(card.fee.notes), amountAed: card.fee.paid ? card.fee.amountAed : null },
+    fee: {
+      ...card.fee, notes: cleanText(card.fee.notes), amountAed: card.fee.paid ? card.fee.amountAed : null,
+      rules: card.fee.paid ? card.fee.rules.map((r) => ({ ...r, name: cleanText(r.name) })) : [],
+    },
     partners: card.partners.map((p) => ({ ...p, name: cleanText(p.name) })),
     faq: card.faq.map((f) => ({ question: cleanText(f.question), answer: cleanText(f.answer) })),
     keywords: card.keywords.map((k) => k.trim()).filter(Boolean),

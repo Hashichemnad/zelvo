@@ -19,6 +19,7 @@ import { PeopleList } from "./PeopleList";
 import { ApprovalLevelsEditor } from "@/components/workflows/WorkflowEditors";
 import { FulfilmentEditor } from "./FulfilmentEditor";
 import { BundleEditor, ProactiveEditor } from "./BundleProactiveEditor";
+import { FeePaymentEditor } from "@/components/payments/FeePaymentEditor";
 import type { DateDisplayOptions } from "@/lib/format";
 
 export interface ServiceEditorChoices {
@@ -31,6 +32,8 @@ export interface ServiceEditorChoices {
   roles: Role[];
   /** Published forms to choose from; null without forms.manage. */
   forms: FormSummary[] | null;
+  /** Payment gateways (task E8); null without payments.manage. */
+  gateways?: { id: string; name: string }[] | null;
 }
 
 export interface ServiceEditorProps {
@@ -311,6 +314,9 @@ export function ServiceEditor({ initial, choices, csrfToken, display }: ServiceE
               <p id={`${id}-days-hint`} className="text-sm text-ink-muted">{t("daysHint")}</p>
             </div>
           </div>
+          {card.fee.paid && card.kind !== "Bundle" && (
+            <FeePaymentEditor fee={card.fee} gateways={choices.gateways ?? null} choices={choices} onChange={(fee) => update({ fee })} />
+          )}
           <TextPair id={`${id}-fee-notes`} label={t("feeNotes")} value={card.fee.notes} max={500} onChange={(notes) => update({ fee: { ...card.fee, notes } })} />
           <CheckList legend={t("channels")} items={deliveryChannels.map((c) => ({ value: c, label: t(`channelNames.${c}`) }))} selected={card.channels}
             onChange={(channels) => update({ channels: channels as ServiceCard["channels"] })} />

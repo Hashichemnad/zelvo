@@ -5428,6 +5428,440 @@ namespace Zelvo.Data.Migrations
                     b.ToTable("notification_templates", (string)null);
                 });
 
+            modelBuilder.Entity("Zelvo.Data.Payments.Payment", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<decimal>("AmountAed")
+                        .HasPrecision(12, 2)
+                        .HasColumnType("numeric(12,2)")
+                        .HasColumnName("amount_aed");
+
+                    b.Property<string>("Breakdown")
+                        .IsRequired()
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("jsonb")
+                        .HasColumnName("breakdown")
+                        .HasDefaultValueSql("'[]'::jsonb");
+
+                    b.Property<DateTimeOffset>("CreatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("created_at");
+
+                    b.Property<DateTimeOffset?>("ExpiresAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("expires_at");
+
+                    b.Property<Guid>("GatewayId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("gateway_id");
+
+                    b.Property<bool>("IsTest")
+                        .HasColumnType("boolean")
+                        .HasColumnName("is_test");
+
+                    b.Property<DateTimeOffset?>("PaidAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("paid_at");
+
+                    b.Property<Guid?>("PaidAttemptId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("paid_attempt_id");
+
+                    b.Property<string>("ReceiptNumber")
+                        .HasMaxLength(30)
+                        .HasColumnType("character varying(30)")
+                        .HasColumnName("receipt_number");
+
+                    b.Property<long?>("ReceiptSequence")
+                        .HasColumnType("bigint")
+                        .HasColumnName("receipt_sequence");
+
+                    b.Property<decimal>("RefundedAed")
+                        .HasPrecision(12, 2)
+                        .HasColumnType("numeric(12,2)")
+                        .HasColumnName("refunded_aed");
+
+                    b.Property<string>("State")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("character varying(20)")
+                        .HasColumnName("state");
+
+                    b.Property<Guid>("TenantId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("tenant_id");
+
+                    b.Property<Guid?>("TicketId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("ticket_id");
+
+                    b.Property<string>("Timing")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("character varying(20)")
+                        .HasColumnName("timing");
+
+                    b.Property<string>("TransactionId")
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)")
+                        .HasColumnName("transaction_id");
+
+                    b.Property<DateTimeOffset>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("updated_at");
+
+                    b.Property<uint>("Version")
+                        .IsConcurrencyToken()
+                        .ValueGeneratedOnAddOrUpdate()
+                        .HasColumnType("xid")
+                        .HasColumnName("xmin");
+
+                    b.HasKey("Id")
+                        .HasName("pk_payments");
+
+                    b.HasIndex("GatewayId")
+                        .HasDatabaseName("ix_payments_gateway_id");
+
+                    b.HasIndex("TicketId")
+                        .HasDatabaseName("ix_payments_ticket_id");
+
+                    b.HasIndex("TenantId", "PaidAt")
+                        .HasDatabaseName("ix_payments_tenant_id_paid_at");
+
+                    b.HasIndex("TenantId", "ReceiptSequence")
+                        .IsUnique()
+                        .HasDatabaseName("ix_payments_tenant_id_receipt_sequence");
+
+                    b.HasIndex("TenantId", "State", "ExpiresAt")
+                        .HasDatabaseName("ix_payments_tenant_id_state_expires_at");
+
+                    b.ToTable("payments", null, t =>
+                        {
+                            t.HasCheckConstraint("ck_payments_amount", "amount_aed > 0 AND refunded_aed >= 0 AND refunded_aed <= amount_aed");
+
+                            t.HasCheckConstraint("ck_payments_state", "state IN ('AwaitingPayment', 'Paid', 'Expired', 'Cancelled', 'PartlyRefunded', 'Refunded')");
+
+                            t.HasCheckConstraint("ck_payments_ticket", "is_test OR ticket_id IS NOT NULL");
+
+                            t.HasCheckConstraint("ck_payments_timing", "timing IN ('OnSubmission', 'AfterApproval', 'OnCompletion')");
+                        });
+                });
+
+            modelBuilder.Entity("Zelvo.Data.Payments.PaymentAttempt", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<DateTimeOffset?>("CheckedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("checked_at");
+
+                    b.Property<DateTimeOffset>("CreatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("created_at");
+
+                    b.Property<DateTimeOffset?>("EndedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("ended_at");
+
+                    b.Property<Guid>("GatewayId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("gateway_id");
+
+                    b.Property<string>("GatewayStatus")
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)")
+                        .HasColumnName("gateway_status");
+
+                    b.Property<Guid>("PaymentId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("payment_id");
+
+                    b.Property<string>("Reference")
+                        .IsRequired()
+                        .HasMaxLength(40)
+                        .HasColumnType("character varying(40)")
+                        .HasColumnName("reference");
+
+                    b.Property<Guid?>("StartedById")
+                        .HasColumnType("uuid")
+                        .HasColumnName("started_by_id");
+
+                    b.Property<string>("State")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("character varying(20)")
+                        .HasColumnName("state");
+
+                    b.Property<Guid>("TenantId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("tenant_id");
+
+                    b.Property<string>("TransactionId")
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)")
+                        .HasColumnName("transaction_id");
+
+                    b.Property<uint>("Version")
+                        .IsConcurrencyToken()
+                        .ValueGeneratedOnAddOrUpdate()
+                        .HasColumnType("xid")
+                        .HasColumnName("xmin");
+
+                    b.HasKey("Id")
+                        .HasName("pk_payment_attempts");
+
+                    b.HasIndex("GatewayId")
+                        .HasDatabaseName("ix_payment_attempts_gateway_id");
+
+                    b.HasIndex("PaymentId")
+                        .HasDatabaseName("ix_payment_attempts_payment_id");
+
+                    b.HasIndex("Reference")
+                        .IsUnique()
+                        .HasDatabaseName("ix_payment_attempts_reference");
+
+                    b.HasIndex("StartedById")
+                        .HasDatabaseName("ix_payment_attempts_started_by_id");
+
+                    b.HasIndex("TenantId")
+                        .HasDatabaseName("ix_payment_attempts_tenant_id");
+
+                    b.HasIndex("GatewayId", "TransactionId")
+                        .IsUnique()
+                        .HasDatabaseName("ix_payment_attempts_gateway_id_transaction_id")
+                        .HasFilter("transaction_id IS NOT NULL");
+
+                    b.ToTable("payment_attempts", null, t =>
+                        {
+                            t.HasCheckConstraint("ck_payment_attempts_state", "state IN ('Redirected', 'Paid', 'Failed', 'Cancelled', 'Error')");
+                        });
+                });
+
+            modelBuilder.Entity("Zelvo.Data.Payments.PaymentGateway", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<string>("Connector")
+                        .IsRequired()
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("jsonb")
+                        .HasColumnName("connector")
+                        .HasDefaultValueSql("'{}'::jsonb");
+
+                    b.Property<DateTimeOffset>("CreatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("created_at");
+
+                    b.PrimitiveCollection<List<string>>("CredentialNames")
+                        .IsRequired()
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("text[]")
+                        .HasColumnName("credential_names")
+                        .HasDefaultValueSql("'{}'");
+
+                    b.Property<bool>("Enabled")
+                        .HasColumnType("boolean")
+                        .HasColumnName("enabled");
+
+                    b.Property<string>("EncryptedCredentials")
+                        .HasColumnType("text")
+                        .HasColumnName("encrypted_credentials");
+
+                    b.Property<bool>("IsDefault")
+                        .HasColumnType("boolean")
+                        .HasColumnName("is_default");
+
+                    b.Property<string>("MerchantId")
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)")
+                        .HasColumnName("merchant_id");
+
+                    b.Property<string>("Mode")
+                        .IsRequired()
+                        .HasMaxLength(10)
+                        .HasColumnType("character varying(10)")
+                        .HasColumnName("mode");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)")
+                        .HasColumnName("name");
+
+                    b.Property<Guid>("TenantId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("tenant_id");
+
+                    b.Property<DateTimeOffset?>("TestPaymentSucceededAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("test_payment_succeeded_at");
+
+                    b.Property<DateTimeOffset>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("updated_at");
+
+                    b.Property<uint>("Version")
+                        .IsConcurrencyToken()
+                        .ValueGeneratedOnAddOrUpdate()
+                        .HasColumnType("xid")
+                        .HasColumnName("xmin");
+
+                    b.HasKey("Id")
+                        .HasName("pk_payment_gateways");
+
+                    b.HasIndex("TenantId")
+                        .IsUnique()
+                        .HasDatabaseName("ix_payment_gateways_default")
+                        .HasFilter("is_default");
+
+                    b.HasIndex("TenantId", "Name")
+                        .IsUnique()
+                        .HasDatabaseName("ix_payment_gateways_tenant_id_name");
+
+                    b.ToTable("payment_gateways", null, t =>
+                        {
+                            t.HasCheckConstraint("ck_payment_gateways_mode", "mode IN ('Test', 'Live')");
+                        });
+                });
+
+            modelBuilder.Entity("Zelvo.Data.Payments.PaymentReconciliation", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<DateTimeOffset>("CreatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("created_at");
+
+                    b.Property<DateOnly>("Day")
+                        .HasColumnType("date")
+                        .HasColumnName("day");
+
+                    b.Property<DateTimeOffset?>("FileImportedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("file_imported_at");
+
+                    b.Property<Guid>("GatewayId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("gateway_id");
+
+                    b.Property<string>("Lines")
+                        .IsRequired()
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("jsonb")
+                        .HasColumnName("lines")
+                        .HasDefaultValueSql("'[]'::jsonb");
+
+                    b.Property<int>("Matched")
+                        .HasColumnType("integer")
+                        .HasColumnName("matched");
+
+                    b.Property<int>("Mismatched")
+                        .HasColumnType("integer")
+                        .HasColumnName("mismatched");
+
+                    b.Property<Guid>("TenantId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("tenant_id");
+
+                    b.Property<decimal>("TotalAed")
+                        .HasPrecision(14, 2)
+                        .HasColumnType("numeric(14,2)")
+                        .HasColumnName("total_aed");
+
+                    b.Property<int>("UnknownToZelvo")
+                        .HasColumnType("integer")
+                        .HasColumnName("unknown_to_zelvo");
+
+                    b.Property<DateTimeOffset>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("updated_at");
+
+                    b.HasKey("Id")
+                        .HasName("pk_payment_reconciliations");
+
+                    b.HasIndex("GatewayId")
+                        .HasDatabaseName("ix_payment_reconciliations_gateway_id");
+
+                    b.HasIndex("TenantId", "GatewayId", "Day")
+                        .IsUnique()
+                        .HasDatabaseName("ix_payment_reconciliations_tenant_id_gateway_id_day");
+
+                    b.ToTable("payment_reconciliations", (string)null);
+                });
+
+            modelBuilder.Entity("Zelvo.Data.Payments.PaymentRefund", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<decimal>("AmountAed")
+                        .HasPrecision(12, 2)
+                        .HasColumnType("numeric(12,2)")
+                        .HasColumnName("amount_aed");
+
+                    b.Property<DateTimeOffset>("CreatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("created_at");
+
+                    b.Property<Guid?>("CreatedById")
+                        .HasColumnType("uuid")
+                        .HasColumnName("created_by_id");
+
+                    b.Property<string>("GatewayRefundId")
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)")
+                        .HasColumnName("gateway_refund_id");
+
+                    b.Property<Guid>("PaymentId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("payment_id");
+
+                    b.Property<string>("Reason")
+                        .IsRequired()
+                        .HasMaxLength(1000)
+                        .HasColumnType("character varying(1000)")
+                        .HasColumnName("reason");
+
+                    b.Property<string>("State")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("character varying(20)")
+                        .HasColumnName("state");
+
+                    b.Property<Guid>("TenantId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("tenant_id");
+
+                    b.HasKey("Id")
+                        .HasName("pk_payment_refunds");
+
+                    b.HasIndex("CreatedById")
+                        .HasDatabaseName("ix_payment_refunds_created_by_id");
+
+                    b.HasIndex("PaymentId")
+                        .HasDatabaseName("ix_payment_refunds_payment_id");
+
+                    b.HasIndex("TenantId")
+                        .HasDatabaseName("ix_payment_refunds_tenant_id");
+
+                    b.ToTable("payment_refunds", null, t =>
+                        {
+                            t.HasCheckConstraint("ck_payment_refunds_amount", "amount_aed > 0");
+
+                            t.HasCheckConstraint("ck_payment_refunds_state", "state IN ('Completed', 'Failed', 'Manual')");
+                        });
+                });
+
             modelBuilder.Entity("Zelvo.Data.Search.SearchIndexState", b =>
                 {
                     b.Property<Guid>("TenantId")
@@ -8936,6 +9370,109 @@ namespace Zelvo.Data.Migrations
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired()
                         .HasConstraintName("fk_notification_templates_tenants_tenant_id");
+                });
+
+            modelBuilder.Entity("Zelvo.Data.Payments.Payment", b =>
+                {
+                    b.HasOne("Zelvo.Data.Payments.PaymentGateway", null)
+                        .WithMany()
+                        .HasForeignKey("GatewayId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired()
+                        .HasConstraintName("fk_payments_payment_gateways_gateway_id");
+
+                    b.HasOne("Zelvo.Data.Tenancy.Tenant", null)
+                        .WithMany()
+                        .HasForeignKey("TenantId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired()
+                        .HasConstraintName("fk_payments_tenants_tenant_id");
+
+                    b.HasOne("Zelvo.Data.Tickets.Ticket", null)
+                        .WithMany()
+                        .HasForeignKey("TicketId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .HasConstraintName("fk_payments_tickets_ticket_id");
+                });
+
+            modelBuilder.Entity("Zelvo.Data.Payments.PaymentAttempt", b =>
+                {
+                    b.HasOne("Zelvo.Data.Payments.PaymentGateway", null)
+                        .WithMany()
+                        .HasForeignKey("GatewayId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired()
+                        .HasConstraintName("fk_payment_attempts_payment_gateways_gateway_id");
+
+                    b.HasOne("Zelvo.Data.Payments.Payment", null)
+                        .WithMany()
+                        .HasForeignKey("PaymentId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired()
+                        .HasConstraintName("fk_payment_attempts_payments_payment_id");
+
+                    b.HasOne("Zelvo.Data.Identity.UserAccount", null)
+                        .WithMany()
+                        .HasForeignKey("StartedById")
+                        .OnDelete(DeleteBehavior.SetNull)
+                        .HasConstraintName("fk_payment_attempts_users_started_by_id");
+
+                    b.HasOne("Zelvo.Data.Tenancy.Tenant", null)
+                        .WithMany()
+                        .HasForeignKey("TenantId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired()
+                        .HasConstraintName("fk_payment_attempts_tenants_tenant_id");
+                });
+
+            modelBuilder.Entity("Zelvo.Data.Payments.PaymentGateway", b =>
+                {
+                    b.HasOne("Zelvo.Data.Tenancy.Tenant", null)
+                        .WithMany()
+                        .HasForeignKey("TenantId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired()
+                        .HasConstraintName("fk_payment_gateways_tenants_tenant_id");
+                });
+
+            modelBuilder.Entity("Zelvo.Data.Payments.PaymentReconciliation", b =>
+                {
+                    b.HasOne("Zelvo.Data.Payments.PaymentGateway", null)
+                        .WithMany()
+                        .HasForeignKey("GatewayId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired()
+                        .HasConstraintName("fk_payment_reconciliations_payment_gateways_gateway_id");
+
+                    b.HasOne("Zelvo.Data.Tenancy.Tenant", null)
+                        .WithMany()
+                        .HasForeignKey("TenantId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired()
+                        .HasConstraintName("fk_payment_reconciliations_tenants_tenant_id");
+                });
+
+            modelBuilder.Entity("Zelvo.Data.Payments.PaymentRefund", b =>
+                {
+                    b.HasOne("Zelvo.Data.Identity.UserAccount", null)
+                        .WithMany()
+                        .HasForeignKey("CreatedById")
+                        .OnDelete(DeleteBehavior.SetNull)
+                        .HasConstraintName("fk_payment_refunds_users_created_by_id");
+
+                    b.HasOne("Zelvo.Data.Payments.Payment", null)
+                        .WithMany()
+                        .HasForeignKey("PaymentId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired()
+                        .HasConstraintName("fk_payment_refunds_payments_payment_id");
+
+                    b.HasOne("Zelvo.Data.Tenancy.Tenant", null)
+                        .WithMany()
+                        .HasForeignKey("TenantId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired()
+                        .HasConstraintName("fk_payment_refunds_tenants_tenant_id");
                 });
 
             modelBuilder.Entity("Zelvo.Data.Search.SearchIndexState", b =>
