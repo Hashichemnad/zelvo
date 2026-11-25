@@ -204,6 +204,21 @@ internal static class Permissions
 
     /// <summary>See every approval process and decision (task C3). Approvers always see their own.</summary>
     public const string ApprovalsRead = "approvals.read";
+
+    /// <summary>
+    /// Settings → Privacy (GOV-5, task F5): the privacy notice and its versions, optional consent
+    /// purposes, retention periods and the time to answer data subject requests.
+    /// </summary>
+    public const string PrivacyManage = "privacy.manage";
+
+    /// <summary>
+    /// Handle data subject requests (task F5): log them for people, download a copy of a person's
+    /// data, complete, refuse, and erase a person.
+    /// </summary>
+    public const string PrivacyRequests = "privacy.requests";
+
+    /// <summary>Read people's consent to the optional purposes and the notice they accepted (task F5), for example for a survey tool.</summary>
+    public const string PrivacyConsentsRead = "privacy.consents.read";
 }
 
 /// <summary>A field of a resource that field rules can hide or make read-only.</summary>
@@ -290,6 +305,9 @@ internal static class PermissionCatalog
         Permissions.ReportsAll,
         Permissions.ReportsManage,
         Permissions.SetupManage,
+        Permissions.PrivacyManage,
+        Permissions.PrivacyRequests,
+        Permissions.PrivacyConsentsRead,
     ];
 
     /// <summary>
@@ -322,6 +340,10 @@ internal static class PermissionCatalog
         // Task E8, for the product owner's approval: gateways hold credentials, and an integration
         // could point a gateway at an address of its own.
         Permissions.PaymentsManage,
+        // Task F5, for the product owner's approval: the privacy notice reaches everyone, and a
+        // leaked key must never be able to download or erase people's data.
+        Permissions.PrivacyManage,
+        Permissions.PrivacyRequests,
     };
 
     /// <summary>Permissions an integration may be given as scopes.</summary>

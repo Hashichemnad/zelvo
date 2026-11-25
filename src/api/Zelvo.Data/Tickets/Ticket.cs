@@ -148,6 +148,13 @@ public sealed class Ticket : ITenantOwned, IAuditedEntity
     /// <summary>When it was closed.</summary>
     public DateTimeOffset? ClosedAt { get; set; }
 
+    /// <summary>
+    /// Task F5: when its personal data was removed (by the retention period of its record type or
+    /// because its requester was erased): title, description, form answers, attachments and the
+    /// requester's messages are gone; numbers, dates, states and SLA clocks stay for reports.
+    /// </summary>
+    public DateTimeOffset? AnonymisedAt { get; set; }
+
     /// <summary>Incident details when <see cref="Type"/> is <see cref="TicketType.Incident"/>.</summary>
     public Incident? Incident { get; set; }
 

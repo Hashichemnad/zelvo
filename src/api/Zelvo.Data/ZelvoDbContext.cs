@@ -1,4 +1,5 @@
 using Zelvo.Data.Payments;
+using Zelvo.Data.Privacy;
 using Microsoft.EntityFrameworkCore;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 using Zelvo.Data.Ai;
@@ -338,6 +339,18 @@ public sealed partial class ZelvoDbContext(DbContextOptions<ZelvoDbContext> opti
 
     /// <summary>Form answers of tickets.</summary>
     public DbSet<TicketFormResponse> TicketFormResponses => Set<TicketFormResponse>();
+
+    /// <summary>Versions of the privacy notice (GOV-5, task F5).</summary>
+    public DbSet<PrivacyNotice> PrivacyNotices => Set<PrivacyNotice>();
+
+    /// <summary>Optional purposes people agree to or not (task F5).</summary>
+    public DbSet<ConsentPurpose> ConsentPurposes => Set<ConsentPurpose>();
+
+    /// <summary>The consent history, never changed (task F5).</summary>
+    public DbSet<ConsentRecord> ConsentRecords => Set<ConsentRecord>();
+
+    /// <summary>Data subject requests (task F5).</summary>
+    public DbSet<DataSubjectRequest> DataSubjectRequests => Set<DataSubjectRequest>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -2428,6 +2441,94 @@ public sealed partial class ZelvoDbContext(DbContextOptions<ZelvoDbContext> opti
             message.Property(m => m.Event).HasMaxLength(ChatMessage.EventMaxLength);
             message.Property(m => m.Citations).HasColumnType("uuid[]");
             message.HasIndex(m => new { m.TenantId, m.SessionId, m.Sequence });
+        });
+
+        modelBuilder.Entity<PrivacyNotice>(notice =>
+        {
+            notice.ToTable("privacy_notices", t => t.HasCheckConstraint("ck_privacy_notices_state", EnumCheck("state", Enum.GetNames<PrivacyNoticeState>())));
+            notice.HasKey(n => n.Id);
+            notice.Property(n => n.Id).ValueGeneratedNever();
+            notice.HasOne<Tenant>().WithMany().HasForeignKey(n => n.TenantId).OnDelete(DeleteBehavior.Restrict);
+            notice.HasOne<UserAccount>().WithMany().HasForeignKey(n => n.CreatedById).OnDelete(DeleteBehavior.SetNull);
+            notice.HasOne<UserAccount>().WithMany().HasForeignKey(n => n.PublishedById).OnDelete(DeleteBehavior.SetNull);
+            notice.ConfigureLocalizedText(n => n.Title, "title", PrivacyNotice.TitleMaxLength);
+            notice.ConfigureLocalizedText(n => n.Body, "body", PrivacyNotice.BodyMaxLength);
+            notice.Property(n => n.State).HasConversion<string>().HasMaxLength(20);
+            notice.Property(n => n.RowVersion).IsRowVersion();
+            notice.HasIndex(n => new { n.TenantId, n.Version }).IsUnique();
+            // One draft and one published version per tenant.
+            notice.HasIndex(n => n.TenantId, "ix_privacy_notices_draft").IsUnique().HasFilter("state = 'Draft'");
+            notice.HasIndex(n => n.TenantId, "ix_privacy_notices_published").IsUnique().HasFilter("state = 'Published'");
+            notice.HasIndex(n => n.CreatedById);
+            notice.HasIndex(n => n.PublishedById);
+        });
+
+        modelBuilder.Entity<ConsentPurpose>(purpose =>
+        {
+            purpose.ToTable("consent_purposes");
+            purpose.HasKey(p => p.Id);
+            purpose.Property(p => p.Id).ValueGeneratedNever();
+            purpose.HasOne<Tenant>().WithMany().HasForeignKey(p => p.TenantId).OnDelete(DeleteBehavior.Restrict);
+            purpose.Property(p => p.Key).HasMaxLength(ConsentPurpose.KeyMaxLength);
+            purpose.ConfigureLocalizedText(p => p.Name, "name", ConsentPurpose.NameMaxLength);
+            purpose.ConfigureLocalizedText(p => p.Description, "description", ConsentPurpose.DescriptionMaxLength);
+            purpose.Property(p => p.Version).IsRowVersion();
+            purpose.HasIndex(p => new { p.TenantId, p.Key }).IsUnique();
+        });
+
+        modelBuilder.Entity<ConsentRecord>(record =>
+        {
+            record.ToTable("consent_records", t =>
+            {
+                t.HasCheckConstraint("ck_consent_records_action", EnumCheck("action", Enum.GetNames<ConsentAction>()));
+                t.HasCheckConstraint("ck_consent_records_channel", EnumCheck("channel", Enum.GetNames<ConsentChannel>()));
+                t.HasCheckConstraint("ck_consent_records_who", "user_id IS NOT NULL OR visitor_reference IS NOT NULL");
+                t.HasCheckConstraint("ck_consent_records_what", "(action = 'NoticeAccepted' AND notice_id IS NOT NULL) OR (action <> 'NoticeAccepted' AND purpose_id IS NOT NULL)");
+            });
+            record.HasKey(r => r.Id);
+            record.Property(r => r.Id).ValueGeneratedNever();
+            record.HasOne<Tenant>().WithMany().HasForeignKey(r => r.TenantId).OnDelete(DeleteBehavior.Restrict);
+            record.HasOne<UserAccount>().WithMany().HasForeignKey(r => r.UserId).OnDelete(DeleteBehavior.Restrict);
+            record.HasOne<UserAccount>().WithMany().HasForeignKey(r => r.RecordedById).OnDelete(DeleteBehavior.Restrict);
+            record.HasOne<PrivacyNotice>().WithMany().HasForeignKey(r => r.NoticeId).OnDelete(DeleteBehavior.Restrict);
+            record.HasOne<ConsentPurpose>().WithMany().HasForeignKey(r => r.PurposeId).OnDelete(DeleteBehavior.Restrict);
+            record.Property(r => r.Action).HasConversion<string>().HasMaxLength(20);
+            record.Property(r => r.Channel).HasConversion<string>().HasMaxLength(20);
+            record.Property(r => r.VisitorReference).HasMaxLength(ConsentRecord.VisitorReferenceMaxLength);
+            record.HasIndex(r => new { r.TenantId, r.UserId, r.CreatedAt });
+            record.HasIndex(r => r.UserId);
+            record.HasIndex(r => r.RecordedById);
+            record.HasIndex(r => r.NoticeId);
+            record.HasIndex(r => r.PurposeId);
+        });
+
+        modelBuilder.Entity<DataSubjectRequest>(request =>
+        {
+            request.ToTable("data_subject_requests", t =>
+            {
+                t.HasCheckConstraint("ck_data_subject_requests_type", EnumCheck("type", Enum.GetNames<DataSubjectRequestType>()));
+                t.HasCheckConstraint("ck_data_subject_requests_state", EnumCheck("state", Enum.GetNames<DataSubjectRequestState>()));
+                t.HasCheckConstraint("ck_data_subject_requests_channel", EnumCheck("channel", Enum.GetNames<DataSubjectRequestChannel>()));
+            });
+            request.HasKey(r => r.Id);
+            request.Property(r => r.Id).ValueGeneratedNever();
+            request.HasOne<Tenant>().WithMany().HasForeignKey(r => r.TenantId).OnDelete(DeleteBehavior.Restrict);
+            request.HasOne<UserAccount>().WithMany().HasForeignKey(r => r.SubjectId).OnDelete(DeleteBehavior.Restrict);
+            request.HasOne<UserAccount>().WithMany().HasForeignKey(r => r.SubmittedById).OnDelete(DeleteBehavior.SetNull);
+            request.HasOne<UserAccount>().WithMany().HasForeignKey(r => r.HandlerId).OnDelete(DeleteBehavior.SetNull);
+            request.Property(r => r.Number).HasMaxLength(30);
+            request.Property(r => r.Type).HasConversion<string>().HasMaxLength(20);
+            request.Property(r => r.State).HasConversion<string>().HasMaxLength(20);
+            request.Property(r => r.Channel).HasConversion<string>().HasMaxLength(20);
+            request.Property(r => r.Details).HasMaxLength(DataSubjectRequest.TextMaxLength);
+            request.Property(r => r.IdentityCheck).HasMaxLength(DataSubjectRequest.TextMaxLength);
+            request.Property(r => r.Resolution).HasMaxLength(DataSubjectRequest.TextMaxLength);
+            request.Property(r => r.Version).IsRowVersion();
+            request.HasIndex(r => new { r.TenantId, r.Sequence }).IsUnique();
+            request.HasIndex(r => new { r.TenantId, r.State, r.DueAt });
+            request.HasIndex(r => r.SubjectId);
+            request.HasIndex(r => r.SubmittedById);
+            request.HasIndex(r => r.HandlerId);
         });
     }
 

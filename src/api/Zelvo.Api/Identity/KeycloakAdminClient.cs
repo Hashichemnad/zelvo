@@ -64,6 +64,12 @@ internal interface IKeycloakAdmin
     /// federation); <paramref name="signIn"/> null removes it.
     /// </summary>
     Task ApplyDirectorySignInAsync(string realm, DirectorySignInKind kind, DirectorySignIn? signIn, CancellationToken cancellationToken);
+
+    /// <summary>
+    /// Task F5: removes a person's Keycloak user (sign-in details, linked UAE PASS identity and
+    /// sessions) when their personal data is erased. A user that does not exist is not an error.
+    /// </summary>
+    Task DeleteUserAsync(string realm, string subject, CancellationToken cancellationToken);
 }
 
 /// <summary>Which directory sign-in (task E7).</summary>
@@ -403,6 +409,11 @@ internal sealed class KeycloakAdminClient : IKeycloakAdmin
         ["id.token.claim"] = "false",
         ["userinfo.token.claim"] = "false",
     });
+
+    public async Task DeleteUserAsync(string realm, string subject, CancellationToken cancellationToken)
+    {
+        using var _ = await SendAsync(HttpMethod.Delete, $"realms/{E(realm)}/users/{E(subject)}", null, cancellationToken, allowNotFound: true).ConfigureAwait(false);
+    }
 
     public async Task<int> DeleteUsersExceptAsync(string realm, IReadOnlySet<string> keep, CancellationToken cancellationToken)
     {

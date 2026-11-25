@@ -130,6 +130,10 @@ public static class NotificationSamples
             [Placeholders.PaymentDueBy] = PlaceholderValue.OfDate(now.AddDays(3)),
             [Placeholders.RefundAmount] = PlaceholderValue.OfText("50.00"),
             [Placeholders.RefundReason] = Both(Placeholders.RefundReason),
+            [Placeholders.PrivacyRequestNumber] = PlaceholderValue.OfText("DSR-000123"),
+            [Placeholders.PrivacyRequestType] = PlaceholderValue.OfTerm("privacy.type.Access"),
+            [Placeholders.PrivacyRequestDueAt] = PlaceholderValue.OfDate(now.AddDays(30)),
+            [Placeholders.PrivacyRequestResolution] = Both(Placeholders.PrivacyRequestResolution),
         };
     }
 }

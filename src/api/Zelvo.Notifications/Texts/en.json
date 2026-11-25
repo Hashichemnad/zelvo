@@ -75,7 +75,12 @@
     "teams.app.short": "Raise tickets, follow them and decide approvals.",
     "teams.app.full": "Raise tickets by sending a message, receive updates on your tickets and decide the approvals you are asked for, all in Microsoft Teams.",
     "monitoring.resolved": "The alert cleared",
-    "monitoring.fired-again": "The alert fired again ({count} times)"
+    "monitoring.fired-again": "The alert fired again ({count} times)",
+    "privacy.type.Access": "a copy of your personal data",
+    "privacy.type.Correction": "correction of your personal data",
+    "privacy.type.Erasure": "erasure of your personal data",
+    "privacy.type.Restriction": "restriction of the processing of your personal data",
+    "privacy.type.Objection": "an objection to the processing of your personal data"
   },
   "templates": {
     "incident.received": {
@@ -305,6 +310,30 @@
       "inApp": "Your request “{{ticket.title}}” was closed because its fee was not paid in time.",
       "body": "Dear {{recipient.name}},\n\nYour request {{ticket.number}} for “{{service.name}}” was closed because its fee of {{payment.amount}} AED was not paid in time. You are welcome to request the service again.\n\nKind regards,\n{{tenant.name}}",
       "action": "View the request"
+    },
+    "privacy.request.received": {
+      "subject": "{{privacyRequest.number}}: your privacy request was received",
+      "inApp": "We received your request for {{privacyRequest.type}} ({{privacyRequest.number}}).",
+      "body": "Dear {{recipient.name}},\n\nWe received your request {{privacyRequest.number}} for {{privacyRequest.type}}. We will reply by {{privacyRequest.dueAt}} at the latest.\n\nYou can follow the request under Account → Privacy in the portal.\n\nKind regards,\n{{tenant.name}}",
+      "action": "View your privacy requests"
+    },
+    "privacy.request.completed": {
+      "subject": "{{privacyRequest.number}}: your privacy request was completed",
+      "inApp": "Your request for {{privacyRequest.type}} ({{privacyRequest.number}}) was completed.",
+      "body": "Dear {{recipient.name}},\n\nYour request {{privacyRequest.number}} for {{privacyRequest.type}} was completed.\n\n{{privacyRequest.resolution}}\n\nKind regards,\n{{tenant.name}}",
+      "action": "View your privacy requests"
+    },
+    "privacy.request.rejected": {
+      "subject": "{{privacyRequest.number}}: your privacy request could not be carried out",
+      "inApp": "Your request for {{privacyRequest.type}} ({{privacyRequest.number}}) could not be carried out.",
+      "body": "Dear {{recipient.name}},\n\nWe could not carry out your request {{privacyRequest.number}} for {{privacyRequest.type}}, for the following reason:\n\n{{privacyRequest.resolution}}\n\nIf you have questions, please contact us.\n\nKind regards,\n{{tenant.name}}",
+      "action": "View your privacy requests"
+    },
+    "privacy.request.new": {
+      "subject": "{{privacyRequest.number}}: new privacy request",
+      "inApp": "A new request for {{privacyRequest.type}} ({{privacyRequest.number}}) is due by {{privacyRequest.dueAt}}.",
+      "body": "Dear {{recipient.name}},\n\nA new data subject request {{privacyRequest.number}} for {{privacyRequest.type}} was received. It is due by {{privacyRequest.dueAt}}.\n\nKind regards,\n{{tenant.name}}",
+      "action": "Open the request"
     }
   },
   "samples": {
@@ -322,6 +351,7 @@
     "service.name": "New laptop",
     "approval.level": "Manager approval",
     "approval.reason": "The budget for this quarter has been used.",
-    "task.name": "Prepare the laptop"
+    "task.name": "Prepare the laptop",
+    "privacyRequest.resolution": "Your data was sent to you as a file you can download under Account → Privacy."
   }
 }

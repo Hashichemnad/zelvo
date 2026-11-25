@@ -921,7 +921,8 @@ internal static partial class IncidentEndpoints
     internal static async Task<Results<Ok<List<HistoryEntryResponse>>, ProblemHttpResult>> HistoryAsync(
         Guid id, ZelvoDbContext db, CurrentUser user, CancellationToken cancellationToken)
     {
-        if (!await Incidents(db).AnyAsync(t => t.Id == id, cancellationToken))
+        var anonymised = await db.Tickets.AsNoTracking().Where(t => t.Id == id && t.Type == TicketType.Incident).Select(t => (bool?)(t.AnonymisedAt != null)).SingleOrDefaultAsync(cancellationToken);
+        if (anonymised is null)
         {
             return NotFound();
         }
@@ -934,7 +935,17 @@ internal static partial class IncidentEndpoints
         events.Reverse();
 
         // People and incidents are shown by name and number rather than by id.
-        var entries = events.Select(e => HistoryEntryResponse.From(e, user)).ToList();
+        // Task F5: erased people are not named, and an anonymised incident's removed texts are not shown.
+        var erased = await Privacy.ErasedPeople.AmongAsync(db, events.Select(e => e.ActorId), cancellationToken);
+        var entries = events.Select(e => HistoryEntryResponse.From(e, user) is var entry && Privacy.ErasedPeople.IsErased(e, erased) ? entry with { ActorName = null } : entry).ToList();
+        if (anonymised == true)
+        {
+            foreach (var entry in entries)
+            {
+                Privacy.ErasedPeople.MaskTicketTexts(entry.Changes);
+            }
+        }
+
         var ids = entries.SelectMany(e => e.Changes ?? [])
             .Where(c => HistoryEntryResponse.ReferenceFields.Contains(c.Key))
             .SelectMany(c => new[] { c.Value?["old"], c.Value?["new"] })
@@ -1129,7 +1140,8 @@ internal sealed record IncidentResponse(
     TicketLinkResponse? Parent, TicketLinkResponse? FollowUpOf, IReadOnlyList<TicketLinkResponse> Children,
     IReadOnlyList<TicketState> NextStates, bool CanReopen,
     DateTimeOffset CreatedAt, DateTimeOffset UpdatedAt, DateTimeOffset? ResolvedAt, DateTimeOffset? ClosedAt, uint Version,
-    NodeRef? Category, NodeRef? Location, NamedRef? Group, NamedRef? RoutingRule, DateTimeOffset? RespondedAt, IReadOnlyList<SlaClockResponse> Sla)
+    NodeRef? Category, NodeRef? Location, NamedRef? Group, NamedRef? RoutingRule, DateTimeOffset? RespondedAt, IReadOnlyList<SlaClockResponse> Sla,
+    DateTimeOffset? AnonymisedAt = null)
 {
     public static IncidentResponse From(
         Ticket t, CurrentUser user, TicketLinkResponse? parent, TicketLinkResponse? followUpOf, IReadOnlyList<TicketLinkResponse> children, DirectoryRefs refs,
@@ -1146,7 +1158,8 @@ internal sealed record IncidentResponse(
             mayEdit ? TicketWorkflow.NextStates(t.State) : [],
             t.State == TicketState.Resolved && (mayEdit || t.RequesterId == user.Account?.Id),
             t.CreatedAt, t.UpdatedAt, t.ResolvedAt, t.ClosedAt, t.Version,
-            refs.Categories.RefOf(t.CategoryId), refs.Locations.RefOf(t.LocationId), refs.Group(t.GroupId), refs.Rule(t.RoutingRuleId), t.RespondedAt, sla);
+            refs.Categories.RefOf(t.CategoryId), refs.Locations.RefOf(t.LocationId), refs.Group(t.GroupId), refs.Rule(t.RoutingRuleId), t.RespondedAt, sla,
+            t.AnonymisedAt);
     }
 }
 

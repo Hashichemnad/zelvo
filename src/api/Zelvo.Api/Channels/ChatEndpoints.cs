@@ -388,6 +388,13 @@ internal static partial class ChatEndpoints
             return UserEndpoints.Validation("email", "Enter your email address.");
         }
 
+        // Task F5: visitors see the privacy notice (when one is published) before they chat.
+        var (noticeProblem, notice) = person is null ? await Privacy.PrivacyConsents.VisitorCheckAsync(db, request.PrivacyNoticeAccepted, cancellationToken) : (null, null);
+        if (noticeProblem is not null)
+        {
+            return noticeProblem;
+        }
+
         var withAssistant = await VirtualAgentOnAsync(http.RequestServices, widget, cancellationToken);
         if (!withAssistant && !await OnlineAsync(db, widget.GroupId, cancellationToken))
         {
@@ -411,6 +418,7 @@ internal static partial class ChatEndpoints
             LastVisitorActivityAt = now,
         };
         db.ChatSessions.Add(session);
+        Privacy.PrivacyConsents.RecordVisitor(db, notice, $"chat:{session.Id}", Data.Privacy.ConsentChannel.Chat);
         var asked = false;
         if (request.Message is { } first && IncidentIntake.Clean(first, ChatMessage.BodyMaxLength) is { Length: > 0 } body)
         {
@@ -459,6 +467,12 @@ internal static partial class ChatEndpoints
             return UserEndpoints.Validation(string.IsNullOrWhiteSpace(request.Name) ? "name" : "email", "Enter your name and email address.");
         }
 
+        var (noticeProblem, notice) = person is null ? await Privacy.PrivacyConsents.VisitorCheckAsync(db, request.PrivacyNoticeAccepted, cancellationToken) : (null, null);
+        if (noticeProblem is not null)
+        {
+            return noticeProblem;
+        }
+
         await using var transaction = await db.Database.BeginTransactionAsync(cancellationToken);
         var requester = person ?? await RequesterAsync(db, audit, request.Email!, request.Name, request.Language, cancellationToken);
         if (requester.Status != UserStatus.Active)
@@ -470,6 +484,7 @@ internal static partial class ChatEndpoints
         var ticket = await intake.CreateAsync(tenant.TenantId!.Value, new IncidentIntakeRequest(
             firstLine.Length <= 120 ? firstLine : $"{firstLine[..119]}…", text, TicketChannel.Chat, requester.Id, CategoryId: widget.CategoryId, GroupId: widget.GroupId),
             DateTimeOffset.UtcNow, cancellationToken);
+        Privacy.PrivacyConsents.RecordVisitor(db, notice, $"ticket:{ticket.Id}", Data.Privacy.ConsentChannel.Chat);
         await db.SaveChangesAsync(cancellationToken);
         await transaction.CommitAsync(cancellationToken);
         return TypedResults.Created($"/api/v1/incidents/{ticket.Id}", new LeftMessageResponse(ticket.Number));
@@ -1208,6 +1223,9 @@ public sealed class ChatWidgetRequest
 /// <summary>A visitor starting a chat.</summary>
 public sealed class StartChatRequest
 {
+    /// <summary>Visitors: they read the privacy notice (needed when the organisation published one; task F5).</summary>
+    public bool? PrivacyNoticeAccepted { get; init; }
+
     /// <summary>Visitors: their name.</summary>
     [StringLength(ChatSession.NameMaxLength)]
     public string? Name { get; init; }
@@ -1232,6 +1250,9 @@ public sealed class StartChatRequest
 /// <summary>A message left while nobody is online.</summary>
 public sealed class LeaveChatMessageRequest
 {
+    /// <summary>Visitors: they read the privacy notice (needed when the organisation published one; task F5).</summary>
+    public bool? PrivacyNoticeAccepted { get; init; }
+
     /// <summary>Visitors: their name.</summary>
     [StringLength(ChatSession.NameMaxLength)]
     public string? Name { get; init; }
