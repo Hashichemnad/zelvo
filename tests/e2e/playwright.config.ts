@@ -26,8 +26,10 @@ export default defineConfig({
   projects: demoRun
     ? [{ name: "demo", use: { ...devices["Desktop Chrome"] }, testMatch: demo }]
     : [
-        { name: "desktop", use: { ...devices["Desktop Chrome"] }, testIgnore: [...tenantWide, demo] },
-        { name: "mobile", use: { ...devices["Pixel 7"] }, testIgnore: [...tenantWide, demo] },
+        // Sets up the staff users' authenticators once, before the parallel projects (see the setup file).
+        { name: "second-factor", use: { ...devices["Desktop Chrome"] }, testDir: "./setup", testMatch: /\.setup\.ts$/ },
+        { name: "desktop", use: { ...devices["Desktop Chrome"] }, testIgnore: [...tenantWide, demo], dependencies: ["second-factor"] },
+        { name: "mobile", use: { ...devices["Pixel 7"] }, testIgnore: [...tenantWide, demo], dependencies: ["second-factor"] },
         // Changes tenant-wide defaults, so it runs after every other test, on its own.
         {
           name: "tenant-settings",

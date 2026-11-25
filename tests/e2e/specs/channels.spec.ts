@@ -50,6 +50,13 @@ test.describe("live chat", () => {
       await page.goto(`/${locale}/settings/messaging`);
       await expect(page.getByTestId("messaging-panel")).toBeVisible();
       await expectAccessible(page);
+      // Task E7: connectors and monitoring sources.
+      await page.goto(`/${locale}/settings/connectors`);
+      await expect(page.getByTestId("connectors-panel")).toBeVisible();
+      await expectAccessible(page);
+      await page.goto(`/${locale}/settings/monitoring`);
+      await expect(page.getByTestId("monitoring-panel")).toBeVisible();
+      await expectAccessible(page);
     }
 
     await page.goto("/en/settings/chat");

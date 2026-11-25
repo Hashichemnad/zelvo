@@ -29,6 +29,7 @@ internal static class DemoServiceCollectionExtensions
         services.AddDemoSeeder<DemoBundlesSeeder>();
         services.AddDemoSeeder<DemoPaymentsSeeder>();
         services.AddDemoSeeder<DemoMessagingSeeder>();
+        services.AddDemoSeeder<DemoConnectorsSeeder>();
         return services;
     }
 

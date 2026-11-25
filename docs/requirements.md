@@ -394,6 +394,13 @@ Every feature in Zelvo is reachable through a documented API, so customers can c
 | Messaging | Email (Exchange, Microsoft 365, Gmail, SMTP/IMAP), WhatsApp Business, Microsoft Teams, SMS gateways | Messages in and out as ticket updates |
 | Monitoring | Generic alert webhook (works with Zabbix, Prometheus, Datadog and others) | Alerts become incidents automatically |
 
+**Connector settings** (product owner decisions 2026-11-25, task E7):
+
+1. **CRM:** each ticket of a synced contact becomes the CRM's case object (Dynamics Case, Salesforce Case, HubSpot Ticket, Zoho Case) on the contact, updated with its status and a note at every state change; contacts and their companies come into Zelvo as requesters and customer groups every 15 minutes.
+2. **Identity:** scheduled one-way sync of users, departments, managers and group membership into Zelvo (people gone from the source are disabled, never deleted), and sign-in through Keycloak: Entra ID as an OIDC identity provider, AD/LDAP as read-only user federation so passwords are checked by the directory.
+3. **Monitoring:** the same alert firing again adds to its open incident; when it clears, an internal note is added, and a per-source switch (off by default) also resolves the incident.
+4. **REST connector calls** from workflow rules are queued with the change and sent by the worker with retries (never inside the save); each call is in the integration log; the answer's mapped values are written as an internal note on the ticket and can store an external reference.
+
 **No-code connector builder**
 
 - Admins connect any other system with a REST API: set the URL, authentication and field mapping on screen, then call it from a workflow step (for example, "when a complaint is closed, update the case in our CRM").

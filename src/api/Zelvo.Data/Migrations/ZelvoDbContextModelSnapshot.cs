@@ -3109,6 +3109,442 @@ namespace Zelvo.Data.Migrations
                         });
                 });
 
+            modelBuilder.Entity("Zelvo.Data.Connectors.Connector", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<bool>("Active")
+                        .HasColumnType("boolean")
+                        .HasColumnName("active");
+
+                    b.Property<DateTimeOffset>("CreatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("created_at");
+
+                    b.Property<string>("CredentialCiphertext")
+                        .HasColumnType("text")
+                        .HasColumnName("credential_ciphertext");
+
+                    b.Property<DateTimeOffset?>("CredentialSetAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("credential_set_at");
+
+                    b.Property<string>("Kind")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("character varying(20)")
+                        .HasColumnName("kind");
+
+                    b.Property<string>("LastError")
+                        .HasMaxLength(1000)
+                        .HasColumnType("character varying(1000)")
+                        .HasColumnName("last_error");
+
+                    b.Property<DateTimeOffset?>("LastSyncAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("last_sync_at");
+
+                    b.Property<string>("LastSyncStats")
+                        .HasColumnType("jsonb")
+                        .HasColumnName("last_sync_stats");
+
+                    b.Property<bool?>("LastSyncSucceeded")
+                        .HasColumnType("boolean")
+                        .HasColumnName("last_sync_succeeded");
+
+                    b.Property<DateTimeOffset?>("LeaseUntil")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("lease_until");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)")
+                        .HasColumnName("name");
+
+                    b.Property<DateTimeOffset?>("NextSyncAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("next_sync_at");
+
+                    b.Property<string>("Settings")
+                        .IsRequired()
+                        .HasColumnType("jsonb")
+                        .HasColumnName("settings");
+
+                    b.Property<string>("SyncCursor")
+                        .HasMaxLength(4000)
+                        .HasColumnType("character varying(4000)")
+                        .HasColumnName("sync_cursor");
+
+                    b.Property<int>("SyncMinutes")
+                        .HasColumnType("integer")
+                        .HasColumnName("sync_minutes");
+
+                    b.Property<Guid?>("SystemUserId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("system_user_id");
+
+                    b.Property<Guid>("TenantId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("tenant_id");
+
+                    b.Property<DateTimeOffset>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("updated_at");
+
+                    b.Property<uint>("Version")
+                        .IsConcurrencyToken()
+                        .ValueGeneratedOnAddOrUpdate()
+                        .HasColumnType("xid")
+                        .HasColumnName("xmin");
+
+                    b.HasKey("Id")
+                        .HasName("pk_connectors");
+
+                    b.HasIndex("SystemUserId")
+                        .HasDatabaseName("ix_connectors_system_user_id");
+
+                    b.HasIndex("Active", "NextSyncAt")
+                        .HasDatabaseName("ix_connectors_active_next_sync_at");
+
+                    b.HasIndex("TenantId", "Kind")
+                        .HasDatabaseName("ix_connectors_tenant_id_kind");
+
+                    b.ToTable("connectors", null, t =>
+                        {
+                            t.HasCheckConstraint("ck_connectors_kind", "kind IN ('EntraId', 'Ldap', 'Dynamics365', 'Salesforce', 'HubSpot', 'Zoho', 'Rest')");
+
+                            t.HasCheckConstraint("ck_connectors_sync_minutes", "sync_minutes BETWEEN 5 AND 10080");
+                        });
+                });
+
+            modelBuilder.Entity("Zelvo.Data.Connectors.ConnectorCall", b =>
+                {
+                    b.Property<long>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bigint")
+                        .HasColumnName("id");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityAlwaysColumn(b.Property<long>("Id"));
+
+                    b.Property<int>("Attempts")
+                        .HasColumnType("integer")
+                        .HasColumnName("attempts");
+
+                    b.Property<Guid>("ConnectorId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("connector_id");
+
+                    b.Property<DateTimeOffset>("CreatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("created_at");
+
+                    b.Property<int?>("DurationMs")
+                        .HasColumnType("integer")
+                        .HasColumnName("duration_ms");
+
+                    b.Property<string>("Error")
+                        .HasMaxLength(1000)
+                        .HasColumnType("character varying(1000)")
+                        .HasColumnName("error");
+
+                    b.Property<DateTimeOffset?>("FinishedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("finished_at");
+
+                    b.Property<string>("Kind")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("character varying(20)")
+                        .HasColumnName("kind");
+
+                    b.Property<DateTimeOffset?>("LeaseUntil")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("lease_until");
+
+                    b.Property<DateTimeOffset?>("NextAttemptAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("next_attempt_at");
+
+                    b.Property<string>("Operation")
+                        .IsRequired()
+                        .HasMaxLength(60)
+                        .HasColumnType("character varying(60)")
+                        .HasColumnName("operation");
+
+                    b.Property<Guid?>("RuleId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("rule_id");
+
+                    b.Property<string>("Status")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("character varying(20)")
+                        .HasColumnName("status");
+
+                    b.Property<int?>("StatusCode")
+                        .HasColumnType("integer")
+                        .HasColumnName("status_code");
+
+                    b.Property<Guid>("TenantId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("tenant_id");
+
+                    b.Property<Guid?>("TicketId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("ticket_id");
+
+                    b.HasKey("Id")
+                        .HasName("pk_connector_calls");
+
+                    b.HasIndex("ConnectorId")
+                        .HasDatabaseName("ix_connector_calls_connector_id");
+
+                    b.HasIndex("TicketId")
+                        .HasDatabaseName("ix_connector_calls_ticket_id");
+
+                    b.HasIndex("TenantId", "ConnectorId", "CreatedAt")
+                        .HasDatabaseName("ix_connector_calls_tenant_id_connector_id_created_at");
+
+                    b.HasIndex("TenantId", "Status", "NextAttemptAt")
+                        .HasDatabaseName("ix_connector_calls_tenant_id_status_next_attempt_at");
+
+                    b.ToTable("connector_calls", null, t =>
+                        {
+                            t.HasCheckConstraint("ck_connector_calls_kind", "kind IN ('CrmCase', 'Rest')");
+
+                            t.HasCheckConstraint("ck_connector_calls_status", "status IN ('Pending', 'Succeeded', 'Failed')");
+                        });
+                });
+
+            modelBuilder.Entity("Zelvo.Data.Connectors.ConnectorLink", b =>
+                {
+                    b.Property<long>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bigint")
+                        .HasColumnName("id");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityAlwaysColumn(b.Property<long>("Id"));
+
+                    b.Property<Guid>("ConnectorId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("connector_id");
+
+                    b.Property<string>("Entity")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("character varying(20)")
+                        .HasColumnName("entity");
+
+                    b.Property<string>("ExternalId")
+                        .IsRequired()
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)")
+                        .HasColumnName("external_id");
+
+                    b.Property<bool>("Gone")
+                        .HasColumnType("boolean")
+                        .HasColumnName("gone");
+
+                    b.Property<DateTimeOffset>("SeenAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("seen_at");
+
+                    b.Property<Guid>("TenantId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("tenant_id");
+
+                    b.Property<Guid>("ZelvoId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("zelvo_id");
+
+                    b.HasKey("Id")
+                        .HasName("pk_connector_links");
+
+                    b.HasIndex("ConnectorId", "Entity", "ExternalId")
+                        .IsUnique()
+                        .HasDatabaseName("ix_connector_links_connector_id_entity_external_id");
+
+                    b.HasIndex("ConnectorId", "Entity", "ZelvoId")
+                        .IsUnique()
+                        .HasDatabaseName("ix_connector_links_connector_id_entity_zelvo_id");
+
+                    b.HasIndex("TenantId", "Entity", "ZelvoId")
+                        .HasDatabaseName("ix_connector_links_tenant_id_entity_zelvo_id");
+
+                    b.ToTable("connector_links", null, t =>
+                        {
+                            t.HasCheckConstraint("ck_connector_links_entity", "entity IN ('User', 'Department', 'CustomerGroup', 'Ticket')");
+                        });
+                });
+
+            modelBuilder.Entity("Zelvo.Data.Connectors.MonitoringAlert", b =>
+                {
+                    b.Property<long>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bigint")
+                        .HasColumnName("id");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityAlwaysColumn(b.Property<long>("Id"));
+
+                    b.Property<int>("Count")
+                        .HasColumnType("integer")
+                        .HasColumnName("count");
+
+                    b.Property<DateTimeOffset>("FirstSeenAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("first_seen_at");
+
+                    b.Property<string>("Key")
+                        .IsRequired()
+                        .HasMaxLength(300)
+                        .HasColumnType("character varying(300)")
+                        .HasColumnName("key");
+
+                    b.Property<DateTimeOffset>("LastSeenAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("last_seen_at");
+
+                    b.Property<Guid>("SourceId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("source_id");
+
+                    b.Property<string>("State")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("character varying(20)")
+                        .HasColumnName("state");
+
+                    b.Property<Guid>("TenantId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("tenant_id");
+
+                    b.Property<Guid>("TicketId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("ticket_id");
+
+                    b.HasKey("Id")
+                        .HasName("pk_monitoring_alerts");
+
+                    b.HasIndex("TicketId")
+                        .HasDatabaseName("ix_monitoring_alerts_ticket_id");
+
+                    b.HasIndex("SourceId", "Key")
+                        .IsUnique()
+                        .HasDatabaseName("ix_monitoring_alerts_source_id_key")
+                        .HasFilter("state = 'Firing'");
+
+                    b.HasIndex("TenantId", "TicketId")
+                        .HasDatabaseName("ix_monitoring_alerts_tenant_id_ticket_id");
+
+                    b.ToTable("monitoring_alerts", null, t =>
+                        {
+                            t.HasCheckConstraint("ck_monitoring_alerts_state", "state IN ('Firing', 'Resolved')");
+                        });
+                });
+
+            modelBuilder.Entity("Zelvo.Data.Connectors.MonitoringSource", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<bool>("Active")
+                        .HasColumnType("boolean")
+                        .HasColumnName("active");
+
+                    b.Property<Guid?>("CategoryId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("category_id");
+
+                    b.Property<DateTimeOffset>("CreatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("created_at");
+
+                    b.Property<string>("Format")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("character varying(20)")
+                        .HasColumnName("format");
+
+                    b.Property<Guid?>("GroupId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("group_id");
+
+                    b.Property<DateTimeOffset?>("LastAlertAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("last_alert_at");
+
+                    b.Property<Guid?>("LocationId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("location_id");
+
+                    b.Property<string>("Mapping")
+                        .IsRequired()
+                        .HasColumnType("jsonb")
+                        .HasColumnName("mapping");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)")
+                        .HasColumnName("name");
+
+                    b.Property<bool>("ResolveOnClear")
+                        .HasColumnType("boolean")
+                        .HasColumnName("resolve_on_clear");
+
+                    b.Property<Guid>("SystemUserId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("system_user_id");
+
+                    b.Property<Guid>("TenantId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("tenant_id");
+
+                    b.Property<string>("TokenHash")
+                        .IsRequired()
+                        .HasMaxLength(64)
+                        .HasColumnType("character(64)")
+                        .HasColumnName("token_hash")
+                        .IsFixedLength();
+
+                    b.Property<DateTimeOffset>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("updated_at");
+
+                    b.Property<uint>("Version")
+                        .IsConcurrencyToken()
+                        .ValueGeneratedOnAddOrUpdate()
+                        .HasColumnType("xid")
+                        .HasColumnName("xmin");
+
+                    b.HasKey("Id")
+                        .HasName("pk_monitoring_sources");
+
+                    b.HasIndex("CategoryId")
+                        .HasDatabaseName("ix_monitoring_sources_category_id");
+
+                    b.HasIndex("GroupId")
+                        .HasDatabaseName("ix_monitoring_sources_group_id");
+
+                    b.HasIndex("LocationId")
+                        .HasDatabaseName("ix_monitoring_sources_location_id");
+
+                    b.HasIndex("SystemUserId")
+                        .HasDatabaseName("ix_monitoring_sources_system_user_id");
+
+                    b.HasIndex("TenantId")
+                        .HasDatabaseName("ix_monitoring_sources_tenant_id");
+
+                    b.ToTable("monitoring_sources", null, t =>
+                        {
+                            t.HasCheckConstraint("ck_monitoring_sources_format", "format IN ('Alertmanager', 'Generic')");
+                        });
+                });
+
             modelBuilder.Entity("Zelvo.Data.Directory.AssignmentRule", b =>
                 {
                     b.Property<Guid>("Id")
@@ -7676,7 +8112,7 @@ namespace Zelvo.Data.Migrations
 
                     b.ToTable("tickets", null, t =>
                         {
-                            t.HasCheckConstraint("ck_tickets_channel", "channel IN ('Portal', 'Email', 'Chat', 'WhatsApp', 'Phone', 'Sms', 'Teams', 'Api', 'AiAgent', 'Proactive')");
+                            t.HasCheckConstraint("ck_tickets_channel", "channel IN ('Portal', 'Email', 'Chat', 'WhatsApp', 'Phone', 'Sms', 'Teams', 'Monitoring', 'Api', 'AiAgent', 'Proactive')");
 
                             t.HasCheckConstraint("ck_tickets_not_own_parent", "parent_id IS NULL OR parent_id <> id");
 
@@ -8183,7 +8619,7 @@ namespace Zelvo.Data.Migrations
 
                     b.ToTable("happiness_ratings", null, t =>
                         {
-                            t.HasCheckConstraint("ck_happiness_ratings_channel", "channel IN ('Portal', 'Email', 'Chat', 'WhatsApp', 'Phone', 'Sms', 'Teams', 'Api', 'AiAgent', 'Proactive')");
+                            t.HasCheckConstraint("ck_happiness_ratings_channel", "channel IN ('Portal', 'Email', 'Chat', 'WhatsApp', 'Phone', 'Sms', 'Teams', 'Monitoring', 'Api', 'AiAgent', 'Proactive')");
 
                             t.HasCheckConstraint("ck_happiness_ratings_device_hash", "device_hash IS NULL OR device_hash ~ '^[0-9a-f]{64}$'");
 
@@ -9446,6 +9882,121 @@ namespace Zelvo.Data.Migrations
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired()
                         .HasConstraintName("fk_voice_notes_tickets_ticket_id");
+                });
+
+            modelBuilder.Entity("Zelvo.Data.Connectors.Connector", b =>
+                {
+                    b.HasOne("Zelvo.Data.Identity.UserAccount", null)
+                        .WithMany()
+                        .HasForeignKey("SystemUserId")
+                        .OnDelete(DeleteBehavior.SetNull)
+                        .HasConstraintName("fk_connectors_users_system_user_id");
+
+                    b.HasOne("Zelvo.Data.Tenancy.Tenant", null)
+                        .WithMany()
+                        .HasForeignKey("TenantId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired()
+                        .HasConstraintName("fk_connectors_tenants_tenant_id");
+                });
+
+            modelBuilder.Entity("Zelvo.Data.Connectors.ConnectorCall", b =>
+                {
+                    b.HasOne("Zelvo.Data.Connectors.Connector", null)
+                        .WithMany()
+                        .HasForeignKey("ConnectorId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired()
+                        .HasConstraintName("fk_connector_calls_connectors_connector_id");
+
+                    b.HasOne("Zelvo.Data.Tenancy.Tenant", null)
+                        .WithMany()
+                        .HasForeignKey("TenantId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired()
+                        .HasConstraintName("fk_connector_calls_tenants_tenant_id");
+
+                    b.HasOne("Zelvo.Data.Tickets.Ticket", null)
+                        .WithMany()
+                        .HasForeignKey("TicketId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .HasConstraintName("fk_connector_calls_tickets_ticket_id");
+                });
+
+            modelBuilder.Entity("Zelvo.Data.Connectors.ConnectorLink", b =>
+                {
+                    b.HasOne("Zelvo.Data.Connectors.Connector", null)
+                        .WithMany()
+                        .HasForeignKey("ConnectorId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired()
+                        .HasConstraintName("fk_connector_links_connectors_connector_id");
+
+                    b.HasOne("Zelvo.Data.Tenancy.Tenant", null)
+                        .WithMany()
+                        .HasForeignKey("TenantId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired()
+                        .HasConstraintName("fk_connector_links_tenants_tenant_id");
+                });
+
+            modelBuilder.Entity("Zelvo.Data.Connectors.MonitoringAlert", b =>
+                {
+                    b.HasOne("Zelvo.Data.Connectors.MonitoringSource", null)
+                        .WithMany()
+                        .HasForeignKey("SourceId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired()
+                        .HasConstraintName("fk_monitoring_alerts_monitoring_sources_source_id");
+
+                    b.HasOne("Zelvo.Data.Tenancy.Tenant", null)
+                        .WithMany()
+                        .HasForeignKey("TenantId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired()
+                        .HasConstraintName("fk_monitoring_alerts_tenants_tenant_id");
+
+                    b.HasOne("Zelvo.Data.Tickets.Ticket", null)
+                        .WithMany()
+                        .HasForeignKey("TicketId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired()
+                        .HasConstraintName("fk_monitoring_alerts_tickets_ticket_id");
+                });
+
+            modelBuilder.Entity("Zelvo.Data.Connectors.MonitoringSource", b =>
+                {
+                    b.HasOne("Zelvo.Data.Directory.Category", null)
+                        .WithMany()
+                        .HasForeignKey("CategoryId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .HasConstraintName("fk_monitoring_sources_categories_category_id");
+
+                    b.HasOne("Zelvo.Data.Directory.SupportGroup", null)
+                        .WithMany()
+                        .HasForeignKey("GroupId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .HasConstraintName("fk_monitoring_sources_support_groups_group_id");
+
+                    b.HasOne("Zelvo.Data.Directory.Location", null)
+                        .WithMany()
+                        .HasForeignKey("LocationId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .HasConstraintName("fk_monitoring_sources_locations_location_id");
+
+                    b.HasOne("Zelvo.Data.Identity.UserAccount", null)
+                        .WithMany()
+                        .HasForeignKey("SystemUserId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired()
+                        .HasConstraintName("fk_monitoring_sources_users_system_user_id");
+
+                    b.HasOne("Zelvo.Data.Tenancy.Tenant", null)
+                        .WithMany()
+                        .HasForeignKey("TenantId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired()
+                        .HasConstraintName("fk_monitoring_sources_tenants_tenant_id");
                 });
 
             modelBuilder.Entity("Zelvo.Data.Directory.AssignmentRule", b =>

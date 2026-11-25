@@ -101,6 +101,15 @@ public sealed class WorkflowRuleInterceptor(ITenantContext tenantContext, Pendin
                                 await NotifyAsync(db, ticket, facts, notify, cancellationToken).ConfigureAwait(false);
                                 applied.Add("notify");
                                 break;
+                            case ConnectorAction { ConnectorId: { } connectorId, Operation: { Length: > 0 } operation }:
+                                // Task E7: the call goes out from the worker after the save, with retries.
+                                db.ConnectorCalls.Add(new Data.Connectors.ConnectorCall
+                                {
+                                    TenantId = ticket.TenantId, ConnectorId = connectorId, Kind = Data.Connectors.ConnectorCallKind.Rest, Operation = operation,
+                                    TicketId = ticket.Id, RuleId = rule.Id, CreatedAt = now, NextAttemptAt = now,
+                                });
+                                applied.Add("connector");
+                                break;
                         }
                     }
 

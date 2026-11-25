@@ -101,6 +101,19 @@ internal sealed class FakeKeycloakAdmin : IKeycloakAdmin
         return Task.CompletedTask;
     }
 
+    public List<(string Realm, DirectorySignInKind Kind, DirectorySignIn? SignIn)> DirectorySignInCalls { get; } = [];
+
+    public Task ApplyDirectorySignInAsync(string realm, DirectorySignInKind kind, DirectorySignIn? signIn, CancellationToken cancellationToken)
+    {
+        if (Fail)
+        {
+            throw new KeycloakAdminException("Keycloak is down (test).");
+        }
+
+        DirectorySignInCalls.Add((realm, kind, signIn));
+        return Task.CompletedTask;
+    }
+
     public List<(string Realm, UaePassProvider Provider)> UaePassCalls { get; } = [];
 
     public Task ApplyUaePassAsync(string realm, UaePassProvider provider, CancellationToken cancellationToken)

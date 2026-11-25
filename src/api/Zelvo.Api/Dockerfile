@@ -12,6 +12,7 @@ COPY src/api/Zelvo.Workflows/Zelvo.Workflows.csproj src/api/Zelvo.Workflows/
 COPY src/api/Zelvo.Integrations/Zelvo.Integrations.csproj src/api/Zelvo.Integrations/
 COPY src/api/Zelvo.Notifications/Zelvo.Notifications.csproj src/api/Zelvo.Notifications/
 COPY src/api/Zelvo.Channels/Zelvo.Channels.csproj src/api/Zelvo.Channels/
+COPY src/api/Zelvo.Connectors/Zelvo.Connectors.csproj src/api/Zelvo.Connectors/
 COPY src/api/Zelvo.Ai/Zelvo.Ai.csproj src/api/Zelvo.Ai/
 COPY src/api/Zelvo.Secrets/Zelvo.Secrets.csproj src/api/Zelvo.Secrets/
 COPY src/api/Zelvo.Observability/Zelvo.Observability.csproj src/api/Zelvo.Observability/
@@ -26,6 +27,7 @@ COPY src/api/Zelvo.Workflows/ src/api/Zelvo.Workflows/
 COPY src/api/Zelvo.Integrations/ src/api/Zelvo.Integrations/
 COPY src/api/Zelvo.Notifications/ src/api/Zelvo.Notifications/
 COPY src/api/Zelvo.Channels/ src/api/Zelvo.Channels/
+COPY src/api/Zelvo.Connectors/ src/api/Zelvo.Connectors/
 COPY src/api/Zelvo.Ai/ src/api/Zelvo.Ai/
 COPY src/api/Zelvo.Secrets/ src/api/Zelvo.Secrets/
 COPY src/api/Zelvo.Observability/ src/api/Zelvo.Observability/

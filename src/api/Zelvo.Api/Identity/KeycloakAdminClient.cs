@@ -57,7 +57,29 @@ internal interface IKeycloakAdmin
     /// addresses: the installation's own plus the tenant's verified custom domains.
     /// </summary>
     Task ApplyBrandingAsync(string realm, RealmBranding branding, CancellationToken cancellationToken);
+
+    /// <summary>
+    /// Task E7: "Sign in with Microsoft" (an OIDC identity provider for the tenant's Entra
+    /// directory, emails trusted) or sign-in with the directory password (read-only LDAP
+    /// federation); <paramref name="signIn"/> null removes it.
+    /// </summary>
+    Task ApplyDirectorySignInAsync(string realm, DirectorySignInKind kind, DirectorySignIn? signIn, CancellationToken cancellationToken);
 }
+
+/// <summary>Which directory sign-in (task E7).</summary>
+internal enum DirectorySignInKind
+{
+    /// <summary>Microsoft Entra ID (identity provider alias <c>entra</c>).</summary>
+    Entra,
+
+    /// <summary>LDAP / Active Directory (user federation <c>zelvo-ldap</c>).</summary>
+    Ldap,
+}
+
+/// <summary>A directory's sign-in settings; the secret is the connector's credential (Entra client secret, LDAP bind password).</summary>
+internal sealed record DirectorySignIn(
+    string? DirectoryId, string? ClientId, string? Secret, string? Host, int Port, bool Ldaps, bool StartTls, string? BindDn, string? BaseDn, string? UserFilter, bool ActiveDirectory,
+    string DisplayName);
 
 /// <summary>What the sign-in pages of a realm show, and where the web app runs (task F1).</summary>
 /// <param name="DisplayName">Product name (plain text).</param>
@@ -509,6 +531,154 @@ internal sealed class KeycloakAdminClient : IKeycloakAdmin
         client["attributes"] = attributes;
         using (await SendAsync(HttpMethod.Put, $"realms/{E(realm)}/clients/{E(id)}", client.DeepClone(), cancellationToken).ConfigureAwait(false))
         {
+        }
+    }
+
+    /// <summary>Alias of the Entra identity provider in every realm.</summary>
+    internal const string EntraAlias = "entra";
+
+    /// <summary>Name of the LDAP user federation in every realm.</summary>
+    internal const string LdapComponent = "zelvo-ldap";
+
+    public async Task ApplyDirectorySignInAsync(string realm, DirectorySignInKind kind, DirectorySignIn? signIn, CancellationToken cancellationToken)
+    {
+        if (kind == DirectorySignInKind.Entra)
+        {
+            var path = $"realms/{E(realm)}/identity-provider/instances";
+            var existing = await GetAsync($"{path}/{EntraAlias}", cancellationToken).ConfigureAwait(false);
+            if (signIn is null)
+            {
+                if (existing is not null)
+                {
+                    using var _ = await SendAsync(HttpMethod.Delete, $"{path}/{EntraAlias}", null, cancellationToken, allowNotFound: true).ConfigureAwait(false);
+                }
+
+                return;
+            }
+
+            var login = $"https://login.microsoftonline.com/{E(signIn.DirectoryId!)}";
+            var config = new JsonObject
+            {
+                ["clientId"] = signIn.ClientId,
+                ["authorizationUrl"] = $"{login}/oauth2/v2.0/authorize",
+                ["tokenUrl"] = $"{login}/oauth2/v2.0/token",
+                ["jwksUrl"] = $"{login}/discovery/v2.0/keys",
+                ["issuer"] = $"{login}/v2.0",
+                ["logoutUrl"] = $"{login}/oauth2/v2.0/logout",
+                ["useJwksUrl"] = "true",
+                ["validateSignature"] = "true",
+                ["defaultScope"] = "openid profile email",
+                ["clientAuthMethod"] = "client_secret_post",
+                ["pkceEnabled"] = "true",
+                ["pkceMethod"] = "S256",
+                ["syncMode"] = "IMPORT",
+            };
+            if (signIn.Secret is { Length: > 0 } secret)
+            {
+                config["clientSecret"] = secret;
+            }
+            else if (existing is null)
+            {
+                throw new KeycloakAdminException($"Realm {realm} has no Microsoft sign-in yet, so the client secret is needed.");
+            }
+
+            var representation = new JsonObject
+            {
+                ["alias"] = EntraAlias,
+                ["displayName"] = signIn.DisplayName,
+                ["providerId"] = "oidc",
+                ["enabled"] = true,
+                // Entra's own directory vouches for its emails, so the synced account is taken over.
+                ["trustEmail"] = true,
+                ["firstBrokerLoginFlowAlias"] = "first broker login",
+                ["config"] = config,
+            };
+            if (existing is null)
+            {
+                using var _ = await SendAsync(HttpMethod.Post, path, representation, cancellationToken).ConfigureAwait(false);
+            }
+            else
+            {
+                representation["internalId"] = existing["internalId"]?.DeepClone();
+                if (signIn.Secret is null)
+                {
+                    config["clientSecret"] = existing["config"]?["clientSecret"]?.DeepClone();
+                }
+
+                using var _ = await SendAsync(HttpMethod.Put, $"{path}/{EntraAlias}", representation, cancellationToken).ConfigureAwait(false);
+            }
+
+            return;
+        }
+
+        var components = await GetArrayAsync($"realms/{E(realm)}/components?type=org.keycloak.storage.UserStorageProvider&name={LdapComponent}", cancellationToken).ConfigureAwait(false);
+        var current = (components.Count > 0 ? components[0] : null) as JsonObject;
+        if (signIn is null)
+        {
+            if ((string?)current?["id"] is { } id)
+            {
+                using var _ = await SendAsync(HttpMethod.Delete, $"realms/{E(realm)}/components/{E(id)}", null, cancellationToken, allowNotFound: true).ConfigureAwait(false);
+            }
+
+            return;
+        }
+
+        var realmId = (string?)(await GetAsync($"realms/{E(realm)}", cancellationToken).ConfigureAwait(false))?["id"]
+            ?? throw new KeycloakAdminException($"Realm {realm} does not exist.");
+        JsonArray One(string value) => [value];
+        var ldapConfig = new JsonObject
+        {
+            ["enabled"] = One("true"),
+            ["vendor"] = One(signIn.ActiveDirectory ? "ad" : "other"),
+            ["connectionUrl"] = One($"{(signIn.Ldaps ? "ldaps" : "ldap")}://{signIn.Host}:{signIn.Port}"),
+            ["startTls"] = One(signIn.StartTls ? "true" : "false"),
+            ["bindDn"] = One(signIn.BindDn!),
+            ["usersDn"] = One(signIn.BaseDn!),
+            ["customUserSearchFilter"] = One(signIn.UserFilter ?? string.Empty),
+            ["searchScope"] = One("2"),
+            ["usernameLDAPAttribute"] = One(signIn.ActiveDirectory ? "sAMAccountName" : "uid"),
+            ["rdnLDAPAttribute"] = One("cn"),
+            ["uuidLDAPAttribute"] = One(signIn.ActiveDirectory ? "objectGUID" : "entryUUID"),
+            ["userObjectClasses"] = One(signIn.ActiveDirectory ? "person, organizationalPerson, user" : "inetOrgPerson, organizationalPerson"),
+            // Passwords are checked by the directory; Keycloak never writes to it.
+            ["editMode"] = One("READ_ONLY"),
+            ["importEnabled"] = One("true"),
+            ["syncRegistrations"] = One("false"),
+            ["authType"] = One("simple"),
+            ["trustEmail"] = One("true"),
+            ["pagination"] = One("true"),
+            ["useTruststoreSpi"] = One("always"),
+        };
+        if (signIn.Secret is { Length: > 0 } password)
+        {
+            ldapConfig["bindCredential"] = One(password);
+        }
+        else if (current is null)
+        {
+            throw new KeycloakAdminException($"Realm {realm} has no directory sign-in yet, so the bind password is needed.");
+        }
+
+        var component = new JsonObject
+        {
+            ["name"] = LdapComponent,
+            ["providerId"] = "ldap",
+            ["providerType"] = "org.keycloak.storage.UserStorageProvider",
+            ["parentId"] = realmId,
+            ["config"] = ldapConfig,
+        };
+        if (current is null)
+        {
+            using var _ = await SendAsync(HttpMethod.Post, $"realms/{E(realm)}/components", component, cancellationToken).ConfigureAwait(false);
+        }
+        else
+        {
+            component["id"] = current["id"]?.DeepClone();
+            if (signIn.Secret is null)
+            {
+                ldapConfig["bindCredential"] = current["config"]?["bindCredential"]?.DeepClone();
+            }
+
+            using var _ = await SendAsync(HttpMethod.Put, $"realms/{E(realm)}/components/{E((string)current["id"]!)}", component, cancellationToken).ConfigureAwait(false);
         }
     }
 

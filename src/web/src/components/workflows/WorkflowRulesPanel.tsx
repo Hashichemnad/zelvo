@@ -90,6 +90,7 @@ function ActionEditor({ action, index, rule, choices, onChange, onRemove }: {
             <option value="assign">{t("actionTypes.assign")}</option>
             <option value="notify">{t("actionTypes.notify")}</option>
             {(approvalAllowed(rule.trigger, rule.recordType) || action.type === "approval") && <option value="approval">{t("actionTypes.approval")}</option>}
+            {((choices.connectors?.length ?? 0) > 0 || action.type === "connector") && <option value="connector">{t("actionTypes.connector")}</option>}
           </select>
         </div>
         <button type="button" className={smallButton} onClick={onRemove} aria-label={t("removeAction", { number: index + 1 })}>{t("remove")}</button>
@@ -110,6 +111,30 @@ function ActionEditor({ action, index, rule, choices, onChange, onRemove }: {
               <option value="RoundRobin">{t("methods.RoundRobin")}</option>
             </select>
           </div>
+        </div>
+      )}
+      {action.type === "connector" && (
+        <div className="space-y-2">
+          <div className="grid gap-2 sm:grid-cols-2">
+            <div className="space-y-1">
+              <label htmlFor={`${id}-connector`} className="block text-sm">{t("connector")}</label>
+              <select id={`${id}-connector`} required className={inputClass} value={action.connectorId ?? ""}
+                onChange={(e) => onChange({ ...action, connectorId: e.target.value || null, operation: null })}>
+                <option value="">{t("chooseConnector")}</option>
+                {(choices.connectors ?? []).filter((c) => c.active || c.id === action.connectorId).map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}
+              </select>
+            </div>
+            <div className="space-y-1">
+              <label htmlFor={`${id}-operation`} className="block text-sm">{t("operation")}</label>
+              <select id={`${id}-operation`} required className={inputClass} value={action.operation ?? ""} onChange={(e) => onChange({ ...action, operation: e.target.value || null })}>
+                <option value="">{t("chooseOperation")}</option>
+                {(choices.connectors ?? []).find((c) => c.id === action.connectorId)?.operations.map((o) => (
+                  <option key={o.key} value={o.key}>{textOf(o.name, locale)}</option>
+                ))}
+              </select>
+            </div>
+          </div>
+          <p className="text-sm text-ink-muted">{t("connectorHint")}</p>
         </div>
       )}
       {action.type === "notify" && (

@@ -418,6 +418,7 @@ public sealed partial class ZelvoDbContext(DbContextOptions<ZelvoDbContext> opti
         ConfigureCatalog(modelBuilder);
         ConfigureVoice(modelBuilder);
         ConfigureMessaging(modelBuilder);
+        ConfigureConnectors(modelBuilder);
 
         modelBuilder.Entity<TenantDataKey>(key =>
         {

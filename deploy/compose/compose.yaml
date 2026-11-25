@@ -83,6 +83,10 @@ x-channels-env: &channels-env
   Channels__Network__AllowedPrivateNetworks__0: 172.16.0.0/12
   Channels__Network__AllowedPrivateNetworks__1: 192.168.0.0/16
   Channels__Network__AllowedPrivateNetworks__2: 10.0.0.0/8
+  # Task E7: directories, CRMs and REST APIs a development installation may reach on internal networks.
+  Connectors__Network__AllowedPrivateNetworks__0: 172.16.0.0/12
+  Connectors__Network__AllowedPrivateNetworks__1: 192.168.0.0/16
+  Connectors__Network__AllowedPrivateNetworks__2: 10.0.0.0/8
 
 x-secrets-env: &secrets-env
   Secrets__Provider: File

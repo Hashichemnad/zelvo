@@ -226,6 +226,9 @@ public enum TicketChannel
     /// <summary>Microsoft Teams (task E3).</summary>
     Teams,
 
+    /// <summary>An alert of a monitoring tool (task E7).</summary>
+    Monitoring,
+
     /// <summary>An integration, through the API.</summary>
     Api,
 

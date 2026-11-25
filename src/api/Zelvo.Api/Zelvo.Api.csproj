@@ -28,6 +28,7 @@
     <ProjectReference Include="..\Zelvo.Notifications\Zelvo.Notifications.csproj" />
     <ProjectReference Include="..\Zelvo.Workflows\Zelvo.Workflows.csproj" />
     <ProjectReference Include="..\Zelvo.Channels\Zelvo.Channels.csproj" />
+    <ProjectReference Include="..\Zelvo.Connectors\Zelvo.Connectors.csproj" />
     <ProjectReference Include="..\Zelvo.Ai\Zelvo.Ai.csproj" />
     <ProjectReference Include="..\Zelvo.Secrets\Zelvo.Secrets.csproj" />
     <ProjectReference Include="..\Zelvo.Observability\Zelvo.Observability.csproj" />

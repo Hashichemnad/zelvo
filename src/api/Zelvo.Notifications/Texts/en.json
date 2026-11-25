@@ -73,7 +73,9 @@
     "teams.not-linked": "Your Teams account is not linked to an account of {tenant}. Please contact your administrator.",
     "messaging.test": "This is a test message from your service desk.",
     "teams.app.short": "Raise tickets, follow them and decide approvals.",
-    "teams.app.full": "Raise tickets by sending a message, receive updates on your tickets and decide the approvals you are asked for, all in Microsoft Teams."
+    "teams.app.full": "Raise tickets by sending a message, receive updates on your tickets and decide the approvals you are asked for, all in Microsoft Teams.",
+    "monitoring.resolved": "The alert cleared",
+    "monitoring.fired-again": "The alert fired again ({count} times)"
   },
   "templates": {
     "incident.received": {

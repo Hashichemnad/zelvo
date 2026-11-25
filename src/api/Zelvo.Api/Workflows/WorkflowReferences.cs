@@ -107,6 +107,18 @@ internal static class WorkflowReferences
                 case ApprovalAction approval:
                     await CheckLevelsAsync(db, approval.Levels, $"{at}.{i}.levels", problems, cancellationToken);
                     break;
+                case ConnectorAction { ConnectorId: { } connectorId } connector:
+                    var target = await db.Connectors.AsNoTracking().FirstOrDefaultAsync(c => c.Id == connectorId && c.Kind == Data.Connectors.ConnectorKind.Rest, cancellationToken);
+                    if (target is null)
+                    {
+                        problems.Add(new($"{at}.{i}.connectorId", "connector-unknown", "Choose one of the REST connectors."));
+                    }
+                    else if (Zelvo.Connectors.ConnectorSettings.Read(target.Settings).Rest?.Operations.Any(o => o.Key == connector.Operation) != true)
+                    {
+                        problems.Add(new($"{at}.{i}.operation", "operation-unknown", "Choose one of the connector's operations."));
+                    }
+
+                    break;
             }
         }
     }

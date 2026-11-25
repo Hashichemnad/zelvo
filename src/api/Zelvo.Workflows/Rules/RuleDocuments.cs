@@ -149,7 +149,22 @@ public sealed record RuleSubject(
 [JsonDerivedType(typeof(AssignAction), "assign")]
 [JsonDerivedType(typeof(NotifyAction), "notify")]
 [JsonDerivedType(typeof(ApprovalAction), "approval")]
+[JsonDerivedType(typeof(ConnectorAction), "connector")]
 public abstract record WorkflowAction;
+
+/// <summary>
+/// Task E7: call an operation of a REST connector (the no-code connector builder) for the ticket,
+/// for example "update the case in our CRM". Queued with the change and sent by the worker with
+/// retries, never inside the save; the answer's values become an internal note.
+/// </summary>
+public sealed record ConnectorAction : WorkflowAction
+{
+    /// <summary>The REST connector.</summary>
+    public Guid? ConnectorId { get; init; }
+
+    /// <summary>The operation's key.</summary>
+    public string? Operation { get; init; }
+}
 
 /// <summary>Assign the ticket: to a group's queue, by round-robin among its members, or to a member.</summary>
 public sealed record AssignAction : WorkflowAction

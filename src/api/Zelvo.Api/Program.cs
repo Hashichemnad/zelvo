@@ -38,6 +38,8 @@ using Zelvo.Api.Workflows;
 using Zelvo.Data;
 using Zelvo.Data.Localization;
 using Zelvo.Data.Tenancy;
+using Zelvo.Connectors;
+using Zelvo.Api.Connectors;
 using Zelvo.Licensing;
 using OpenTelemetry.Trace;
 using Zelvo.Observability;
@@ -111,6 +113,7 @@ builder.Services.AddZelvoApiNotifications(builder.Configuration);
 // Agent workspace (task B4): live updates over SignalR.
 builder.Services.AddZelvoLiveUpdates();
 builder.Services.AddZelvoApiChannels(builder.Configuration);
+builder.Services.AddZelvoConnectors(builder.Configuration);
 builder.Services.AddZelvoBranding(builder.Configuration);
 builder.Services.AddZelvoReports();
 
@@ -179,6 +182,7 @@ v1.MapZelvoReportEndpoints();
 v1.MapSetupEndpoints();
 app.MapZelvoLiveUpdates();
 v1.MapZelvoChannels();
+v1.MapConnectorEndpoints();
 app.MapBrandingEndpoints(v1);
 
 await app.RunAsync();
