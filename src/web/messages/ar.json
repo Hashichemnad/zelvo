@@ -2589,7 +2589,14 @@
       "add": "استخدام هذا النموذج",
       "category": "الفئة",
       "chooseForm": "اختر نموذجاً",
-      "recordType": "نوع السجل"
+      "recordType": "نوع السجل",
+      "recordTypeNames": {
+        "Incident": "البلاغات",
+        "ServiceRequest": "طلبات الخدمة",
+        "Complaint": "الشكاوى",
+        "Inquiry": "الاستفسارات",
+        "Suggestion": "الاقتراحات"
+      }
     },
     "details": {
       "title": "المفتاح والاسم والوصف",

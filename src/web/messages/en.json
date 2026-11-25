@@ -2589,7 +2589,14 @@
       "add": "Use this form",
       "category": "Category",
       "chooseForm": "Choose a form",
-      "recordType": "Record type"
+      "recordType": "Record type",
+      "recordTypeNames": {
+        "Incident": "Incidents",
+        "ServiceRequest": "Service requests",
+        "Complaint": "Complaints",
+        "Inquiry": "Inquiries",
+        "Suggestion": "Suggestions"
+      }
     },
     "details": {
       "title": "Key, name and description",

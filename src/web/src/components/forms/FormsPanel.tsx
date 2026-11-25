@@ -118,6 +118,7 @@ export function FormBindingsPanel({ initial, forms, categories, csrfToken }: { i
           <caption className="sr-only">{t("caption")}</caption>
           <thead>
             <tr>
+              <th scope="col" className={cellClass}>{t("recordType")}</th>
               <th scope="col" className={cellClass}>{t("where")}</th>
               <th scope="col" className={cellClass}>{t("form")}</th>
               <th scope="col" className={cellClass}>{t("actions")}</th>
@@ -125,11 +126,10 @@ export function FormBindingsPanel({ initial, forms, categories, csrfToken }: { i
           </thead>
           <tbody>
             {bindings.map((b) => {
-              const where = b.category
-                ? `${tList(`recordTypes.${b.recordType}`)}: ${textOf(b.category.path, locale)}`
-                : tList("defaultFor", { type: tList(`recordTypes.${b.recordType}`) });
+              const where = b.category ? textOf(b.category.path, locale) : tList("defaultFor", { type: tList(`recordTypes.${b.recordType}`) });
               return (
                 <tr key={b.id}>
+                  <td className={cellClass}>{t(`recordTypeNames.${b.recordType}`)}</td>
                   <td className={cellClass}>{where}</td>
                   <td className={cellClass}>
                     <Localized text={b.form.name} locale={locale} />
