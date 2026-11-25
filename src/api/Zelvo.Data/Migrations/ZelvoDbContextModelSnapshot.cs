@@ -2464,7 +2464,7 @@ namespace Zelvo.Data.Migrations
 
                     b.ToTable("form_bindings", null, t =>
                         {
-                            t.HasCheckConstraint("ck_form_bindings_record_type", "record_type IN ('Incident', 'ServiceRequest')");
+                            t.HasCheckConstraint("ck_form_bindings_record_type", "record_type IN ('Incident', 'ServiceRequest', 'Complaint', 'Inquiry', 'Suggestion')");
                         });
                 });
 
@@ -5017,7 +5017,7 @@ namespace Zelvo.Data.Migrations
 
                     b.ToTable("sla_policies", null, t =>
                         {
-                            t.HasCheckConstraint("ck_sla_policies_record_type", "record_type IN ('Incident', 'ServiceRequest')");
+                            t.HasCheckConstraint("ck_sla_policies_record_type", "record_type IN ('Incident', 'ServiceRequest', 'Complaint', 'Inquiry', 'Suggestion')");
                         });
                 });
 
@@ -5541,7 +5541,7 @@ namespace Zelvo.Data.Migrations
 
                             t.HasCheckConstraint("ck_tickets_state", "state IN ('New', 'Assigned', 'InProgress', 'OnHold', 'Resolved', 'Closed', 'Reopened')");
 
-                            t.HasCheckConstraint("ck_tickets_type", "type IN ('Incident', 'ServiceRequest')");
+                            t.HasCheckConstraint("ck_tickets_type", "type IN ('Incident', 'ServiceRequest', 'Complaint', 'Inquiry', 'Suggestion')");
                         });
                 });
 
@@ -5860,7 +5860,184 @@ namespace Zelvo.Data.Migrations
 
                     b.ToTable("ticket_number_sequences", null, t =>
                         {
-                            t.HasCheckConstraint("ck_ticket_number_sequences_type", "type IN ('Incident', 'ServiceRequest')");
+                            t.HasCheckConstraint("ck_ticket_number_sequences_type", "type IN ('Incident', 'ServiceRequest', 'Complaint', 'Inquiry', 'Suggestion')");
+                        });
+                });
+
+            modelBuilder.Entity("Zelvo.Data.Voice.CustomerVoiceRecord", b =>
+                {
+                    b.Property<Guid>("TicketId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("ticket_id");
+
+                    b.Property<bool>("Anonymous")
+                        .HasColumnType("boolean")
+                        .HasColumnName("anonymous");
+
+                    b.Property<string>("Confirmation")
+                        .HasMaxLength(20)
+                        .HasColumnType("character varying(20)")
+                        .HasColumnName("confirmation");
+
+                    b.Property<DateTimeOffset?>("ConfirmationAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("confirmation_at");
+
+                    b.Property<string>("ConfirmationComment")
+                        .HasMaxLength(4000)
+                        .HasColumnType("character varying(4000)")
+                        .HasColumnName("confirmation_comment");
+
+                    b.Property<Guid?>("ConvertedToId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("converted_to_id");
+
+                    b.Property<int>("Priority")
+                        .HasColumnType("integer")
+                        .HasColumnName("priority");
+
+                    b.Property<string>("Review")
+                        .HasMaxLength(20)
+                        .HasColumnType("character varying(20)")
+                        .HasColumnName("review");
+
+                    b.Property<string>("ReviewFeedback")
+                        .HasMaxLength(4000)
+                        .HasColumnType("character varying(4000)")
+                        .HasColumnName("review_feedback");
+
+                    b.Property<string>("RootCauseKey")
+                        .HasMaxLength(50)
+                        .HasColumnType("character varying(50)")
+                        .HasColumnName("root_cause_key");
+
+                    b.Property<Guid?>("ServiceId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("service_id");
+
+                    b.Property<int?>("Severity")
+                        .HasColumnType("integer")
+                        .HasColumnName("severity");
+
+                    b.Property<Guid>("TenantId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("tenant_id");
+
+                    b.Property<string>("TrackingCodeHash")
+                        .HasMaxLength(64)
+                        .HasColumnType("character varying(64)")
+                        .HasColumnName("tracking_code_hash");
+
+                    b.HasKey("TicketId")
+                        .HasName("pk_customer_voice_records");
+
+                    b.HasIndex("ConvertedToId")
+                        .HasDatabaseName("ix_customer_voice_records_converted_to_id");
+
+                    b.HasIndex("ServiceId")
+                        .HasDatabaseName("ix_customer_voice_records_service_id");
+
+                    b.HasIndex("TenantId", "ServiceId")
+                        .HasDatabaseName("ix_customer_voice_records_tenant_id_service_id");
+
+                    b.ToTable("customer_voice_records", null, t =>
+                        {
+                            t.HasCheckConstraint("ck_customer_voice_records_confirmation", "confirmation IN ('Pending', 'Confirmed', 'Rejected', 'NotConfirmed')");
+
+                            t.HasCheckConstraint("ck_customer_voice_records_priority", "priority BETWEEN 1 AND 5");
+
+                            t.HasCheckConstraint("ck_customer_voice_records_review", "review IN ('UnderReview', 'Accepted', 'Implemented', 'Declined')");
+
+                            t.HasCheckConstraint("ck_customer_voice_records_severity", "severity IS NULL OR severity BETWEEN 1 AND 3");
+
+                            t.HasCheckConstraint("ck_customer_voice_records_tracking", "anonymous = (tracking_code_hash IS NOT NULL)");
+
+                            t.HasCheckConstraint("ck_customer_voice_records_tracking_hash", "tracking_code_hash IS NULL OR tracking_code_hash ~ '^[0-9a-f]{64}$'");
+                        });
+                });
+
+            modelBuilder.Entity("Zelvo.Data.Voice.HappinessRating", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<string>("Channel")
+                        .HasMaxLength(20)
+                        .HasColumnType("character varying(20)")
+                        .HasColumnName("channel");
+
+                    b.Property<string>("Comment")
+                        .HasMaxLength(2000)
+                        .HasColumnType("character varying(2000)")
+                        .HasColumnName("comment");
+
+                    b.Property<DateTimeOffset>("CreatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("created_at");
+
+                    b.Property<string>("DeviceHash")
+                        .HasMaxLength(64)
+                        .HasColumnType("character varying(64)")
+                        .HasColumnName("device_hash");
+
+                    b.Property<int>("Points")
+                        .HasColumnType("integer")
+                        .HasColumnName("points");
+
+                    b.Property<string>("RecordType")
+                        .HasMaxLength(30)
+                        .HasColumnType("character varying(30)")
+                        .HasColumnName("record_type");
+
+                    b.Property<int>("Score")
+                        .HasColumnType("integer")
+                        .HasColumnName("score");
+
+                    b.Property<Guid?>("ServiceId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("service_id");
+
+                    b.Property<Guid>("TenantId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("tenant_id");
+
+                    b.Property<Guid?>("TicketId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("ticket_id");
+
+                    b.Property<Guid?>("UserId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("user_id");
+
+                    b.HasKey("Id")
+                        .HasName("pk_happiness_ratings");
+
+                    b.HasIndex("ServiceId")
+                        .HasDatabaseName("ix_happiness_ratings_service_id");
+
+                    b.HasIndex("TicketId")
+                        .IsUnique()
+                        .HasDatabaseName("ix_happiness_ratings_ticket_id")
+                        .HasFilter("ticket_id IS NOT NULL");
+
+                    b.HasIndex("UserId")
+                        .HasDatabaseName("ix_happiness_ratings_user_id");
+
+                    b.HasIndex("TenantId", "CreatedAt")
+                        .HasDatabaseName("ix_happiness_ratings_tenant_id_created_at");
+
+                    b.ToTable("happiness_ratings", null, t =>
+                        {
+                            t.HasCheckConstraint("ck_happiness_ratings_channel", "channel IN ('Portal', 'Email', 'Chat', 'WhatsApp', 'Phone', 'Api', 'AiAgent')");
+
+                            t.HasCheckConstraint("ck_happiness_ratings_device_hash", "device_hash IS NULL OR device_hash ~ '^[0-9a-f]{64}$'");
+
+                            t.HasCheckConstraint("ck_happiness_ratings_points", "points IN (3, 5)");
+
+                            t.HasCheckConstraint("ck_happiness_ratings_record_type", "record_type IN ('Incident', 'ServiceRequest', 'Complaint', 'Inquiry', 'Suggestion')");
+
+                            t.HasCheckConstraint("ck_happiness_ratings_score", "score BETWEEN 1 AND points");
                         });
                 });
 
@@ -7537,6 +7714,63 @@ namespace Zelvo.Data.Migrations
                         .HasConstraintName("fk_ticket_number_sequences_tenants_tenant_id");
                 });
 
+            modelBuilder.Entity("Zelvo.Data.Voice.CustomerVoiceRecord", b =>
+                {
+                    b.HasOne("Zelvo.Data.Tickets.Ticket", null)
+                        .WithMany()
+                        .HasForeignKey("ConvertedToId")
+                        .OnDelete(DeleteBehavior.NoAction)
+                        .HasConstraintName("fk_customer_voice_records_tickets_converted_to_id");
+
+                    b.HasOne("Zelvo.Data.Catalog.CatalogService", null)
+                        .WithMany()
+                        .HasForeignKey("ServiceId")
+                        .OnDelete(DeleteBehavior.SetNull)
+                        .HasConstraintName("fk_customer_voice_records_catalog_services_service_id");
+
+                    b.HasOne("Zelvo.Data.Tenancy.Tenant", null)
+                        .WithMany()
+                        .HasForeignKey("TenantId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired()
+                        .HasConstraintName("fk_customer_voice_records_tenants_tenant_id");
+
+                    b.HasOne("Zelvo.Data.Tickets.Ticket", null)
+                        .WithOne("Voice")
+                        .HasForeignKey("Zelvo.Data.Voice.CustomerVoiceRecord", "TicketId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired()
+                        .HasConstraintName("fk_customer_voice_records_tickets_ticket_id");
+                });
+
+            modelBuilder.Entity("Zelvo.Data.Voice.HappinessRating", b =>
+                {
+                    b.HasOne("Zelvo.Data.Catalog.CatalogService", null)
+                        .WithMany()
+                        .HasForeignKey("ServiceId")
+                        .OnDelete(DeleteBehavior.SetNull)
+                        .HasConstraintName("fk_happiness_ratings_catalog_services_service_id");
+
+                    b.HasOne("Zelvo.Data.Tenancy.Tenant", null)
+                        .WithMany()
+                        .HasForeignKey("TenantId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired()
+                        .HasConstraintName("fk_happiness_ratings_tenants_tenant_id");
+
+                    b.HasOne("Zelvo.Data.Tickets.Ticket", null)
+                        .WithMany()
+                        .HasForeignKey("TicketId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .HasConstraintName("fk_happiness_ratings_tickets_ticket_id");
+
+                    b.HasOne("Zelvo.Data.Identity.UserAccount", null)
+                        .WithMany()
+                        .HasForeignKey("UserId")
+                        .OnDelete(DeleteBehavior.SetNull)
+                        .HasConstraintName("fk_happiness_ratings_users_user_id");
+                });
+
             modelBuilder.Entity("Zelvo.Data.Workspace.CannedResponse", b =>
                 {
                     b.HasOne("Zelvo.Data.Identity.UserAccount", null)
@@ -7635,6 +7869,8 @@ namespace Zelvo.Data.Migrations
             modelBuilder.Entity("Zelvo.Data.Tickets.Ticket", b =>
                 {
                     b.Navigation("Incident");
+
+                    b.Navigation("Voice");
                 });
 #pragma warning restore 612, 618
         }

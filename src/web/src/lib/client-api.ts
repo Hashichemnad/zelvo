@@ -69,10 +69,10 @@ export async function postJson<T>(path: string, body: unknown, csrfToken: string
 }
 
 /** PATCH through the proxy, with the CSRF token. */
-export async function patchJson<T>(path: string, body: unknown, csrfToken: string): Promise<T> {
+export async function patchJson<T>(path: string, body: unknown, csrfToken: string, extraHeaders: Record<string, string> = {}): Promise<T> {
   const response = await fetch(`/bff/api${path}`, {
     method: "PATCH",
-    headers: { "Content-Type": "application/json", Accept: "application/json", "X-CSRF-Token": csrfToken },
+    headers: { "Content-Type": "application/json", Accept: "application/json", "X-CSRF-Token": csrfToken, ...extraHeaders },
     body: JSON.stringify(body),
   });
   if (!response.ok) {

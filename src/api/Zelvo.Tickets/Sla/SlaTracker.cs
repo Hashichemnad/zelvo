@@ -220,7 +220,7 @@ public sealed class SlaTracker(ZelvoDbContext db, IAuditLog audit)
 
         foreach (var ticket in tickets.DistinctBy(t => t.Id))
         {
-            var subject = new SlaSubject(ticket.Type, ticket.Incident?.Priority, setup.CategoryAncestry(ticket.CategoryId),
+            var subject = new SlaSubject(ticket.Type, ticket.Incident?.Priority ?? ticket.Voice?.Priority, setup.CategoryAncestry(ticket.CategoryId),
                 setup.CustomerGroupsOf(ticket.RequesterId, emails.GetValueOrDefault(ticket.RequesterId)));
             var policy = SlaMatcher.FirstMatch(setup.Policies, subject);
             var calendarId = setup.CalendarIdFor(ticket.GroupId, policy);
@@ -287,7 +287,7 @@ public sealed class SlaTracker(ZelvoDbContext db, IAuditLog audit)
 
         // 2. The policy, target and calendar that apply now; the elapsed time is kept.
         clock.PolicyId = policy?.Id;
-        clock.TargetMinutes = SlaMatcher.TargetOf(policy, clock.Metric, ticket.Incident?.Priority);
+        clock.TargetMinutes = SlaMatcher.TargetOf(policy, clock.Metric, ticket.Incident?.Priority ?? ticket.Voice?.Priority);
         clock.CalendarId = calendarId;
         var calendar = setup.Calendar(calendarId);
 

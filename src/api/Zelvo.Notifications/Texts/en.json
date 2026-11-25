@@ -42,7 +42,14 @@
   },
   "terms": {
     "sla.target.response": "response",
-    "sla.target.resolution": "resolution"
+    "sla.target.resolution": "resolution",
+    "ticket.type.Complaint": "complaint",
+    "ticket.type.Inquiry": "inquiry",
+    "ticket.type.Suggestion": "suggestion",
+    "review.UnderReview": "under review",
+    "review.Accepted": "accepted",
+    "review.Implemented": "implemented",
+    "review.Declined": "declined"
   },
   "templates": {
     "incident.received": {
@@ -122,6 +129,48 @@
       "inApp": "{{comment.author}} mentioned you on “{{ticket.title}}”.",
       "body": "Hello {{recipient.name}},\n\n{{comment.author}} mentioned you on incident {{ticket.number}}, “{{ticket.title}}”:\n\n{{comment.text}}\n\n{{tenant.name}}",
       "action": "Open the incident"
+    },
+    "voice.received": {
+      "subject": "{{ticket.number}}: we have received your {{ticket.type}}",
+      "inApp": "We have received your {{ticket.type}} “{{ticket.title}}”.",
+      "body": "Dear {{recipient.name}},\n\nThank you for contacting us. We have received your {{ticket.type}} {{ticket.number}}, “{{ticket.title}}”, on {{ticket.createdAt}}. Our team will look into it and keep you informed.\n\nYou can follow its progress and add information at any time.\n\nKind regards,\n{{tenant.name}}",
+      "action": "View your {{ticket.type}}"
+    },
+    "voice.replied": {
+      "subject": "{{ticket.number}}: new reply on your {{ticket.type}}",
+      "inApp": "{{comment.author}} replied on “{{ticket.title}}”.",
+      "body": "Dear {{recipient.name}},\n\n{{comment.author}} replied on your {{ticket.type}} {{ticket.number}}, “{{ticket.title}}”:\n\n{{comment.text}}\n\nYou can answer from its page.\n\nKind regards,\n{{tenant.name}}",
+      "action": "View and answer"
+    },
+    "complaint.resolved": {
+      "subject": "{{ticket.number}}: please confirm the resolution of your complaint",
+      "inApp": "Your complaint “{{ticket.title}}” is resolved. Please confirm.",
+      "body": "Dear {{recipient.name}},\n\nYour complaint {{ticket.number}}, “{{ticket.title}}”, is resolved.\n\nHow it was resolved: {{ticket.resolutionNotes}}\n\nPlease tell us whether this settles your complaint. If it does not, you can reject the resolution and we will look into it again. Without an answer, the complaint closes after a few days.\n\nKind regards,\n{{tenant.name}}",
+      "action": "Confirm or reject the resolution"
+    },
+    "inquiry.answered": {
+      "subject": "{{ticket.number}}: your inquiry is answered",
+      "inApp": "Your inquiry “{{ticket.title}}” is answered.",
+      "body": "Dear {{recipient.name}},\n\nYour inquiry {{ticket.number}}, “{{ticket.title}}”, is answered:\n\n{{ticket.resolutionNotes}}\n\nIf you need more information, you can reopen the inquiry until it closes.\n\nKind regards,\n{{tenant.name}}",
+      "action": "View the answer"
+    },
+    "suggestion.reviewed": {
+      "subject": "{{ticket.number}}: your suggestion is {{review.state}}",
+      "inApp": "Your suggestion “{{ticket.title}}” is {{review.state}}.",
+      "body": "Dear {{recipient.name}},\n\nThank you for your suggestion {{ticket.number}}, “{{ticket.title}}”. It is now {{review.state}}.\n\n{{review.feedback}}\n\nKind regards,\n{{tenant.name}}",
+      "action": "View your suggestion"
+    },
+    "voice.assigned": {
+      "subject": "{{ticket.number}} is assigned to you",
+      "inApp": "{{ticket.type}}: “{{ticket.title}}” from {{requester.name}}.",
+      "body": "Hello {{recipient.name}},\n\nThe {{ticket.type}} {{ticket.number}}, “{{ticket.title}}”, is assigned to you.\n\nGroup: {{ticket.group}}\nFrom: {{requester.name}}\n\n{{tenant.name}}",
+      "action": "Open it"
+    },
+    "voice.queued": {
+      "subject": "New {{ticket.type}} in {{ticket.group}}: {{ticket.number}}",
+      "inApp": "New {{ticket.type}} in {{ticket.group}}: “{{ticket.title}}”.",
+      "body": "Hello {{recipient.name}},\n\nA new {{ticket.type}}, {{ticket.number}} “{{ticket.title}}”, is waiting in the queue of {{ticket.group}}.\n\nFrom: {{requester.name}}\n\n{{tenant.name}}",
+      "action": "Open it"
     }
   },
   "samples": {
@@ -134,6 +183,7 @@
     "author.name": "Omar Al Hashimi",
     "recipient.name": "Mariam Al Ketbi",
     "comment.text": "Could you restart the printer and tell us whether the error light is still on?",
-    "comment.author": "Omar Al Hashimi"
+    "comment.author": "Omar Al Hashimi",
+    "review.feedback": "Thank you. We will add evening hours at the service centre from next month."
   }
 }

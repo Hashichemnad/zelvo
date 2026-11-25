@@ -30,7 +30,13 @@ export function IncidentFacts({ incident, settings, display, basePath }: {
     const shown = inLanguage(text, locale);
     return <span lang={shown.lang} dir={shown.dir}>{shown.value}</span>;
   };
-  if (incident.group !== undefined) facts.push({ label: t("fields.group"), value: incident.group ? named(incident.group.name) : t("fields.noGroup") });
+  // Requesters see the team that has their incident, never the person (decision 2026-11-24).
+  const requesterView = incident.assignee === undefined;
+  if (incident.group !== undefined) {
+    facts.push(requesterView
+      ? { label: t("fields.team"), value: incident.group ? named(incident.group.name) : t("fields.noTeamYet") }
+      : { label: t("fields.group"), value: incident.group ? named(incident.group.name) : t("fields.noGroup") });
+  }
   if (incident.category !== undefined) facts.push({ label: t("fields.category"), value: incident.category ? named(incident.category.path) : t("fields.notSet") });
   if (incident.location !== undefined) facts.push({ label: t("fields.location"), value: incident.location ? named(incident.location.path) : t("fields.notSet") });
   if (incident.routingRule) facts.push({ label: t("fields.routingRule"), value: named(incident.routingRule.name) });

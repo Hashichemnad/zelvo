@@ -132,6 +132,9 @@ public sealed class Ticket : ITenantOwned, IAuditedEntity
     /// <summary>Incident details when <see cref="Type"/> is <see cref="TicketType.Incident"/>.</summary>
     public Incident? Incident { get; set; }
 
+    /// <summary>Customer voice details of complaints, inquiries and suggestions (task C6).</summary>
+    public Voice.CustomerVoiceRecord? Voice { get; set; }
+
     /// <summary>Optimistic concurrency token (PostgreSQL <c>xmin</c>).</summary>
     public uint Version { get; init; }
 }
@@ -144,6 +147,15 @@ public enum TicketType
 
     /// <summary>A request for a service of the catalog (module 2, task C2).</summary>
     ServiceRequest,
+
+    /// <summary>A complaint (module 3, task C6).</summary>
+    Complaint,
+
+    /// <summary>An inquiry: a question to answer (module 3, task C6).</summary>
+    Inquiry,
+
+    /// <summary>A suggestion, reviewed with feedback to its submitter (module 3, task C6).</summary>
+    Suggestion,
 }
 
 /// <summary>Ticket states (module 1).</summary>

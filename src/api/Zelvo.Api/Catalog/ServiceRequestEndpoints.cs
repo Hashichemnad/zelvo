@@ -183,6 +183,8 @@ internal static class ServiceRequestEndpoints
         }
 
         await http.RequestServices.GetRequiredService<SlaTracker>().UpdateAsync([ticket], now, cancellationToken);
+        // Task D2: found from the portal's search.
+        await RequestSearch.IndexAsync(db, http.RequestServices.GetRequiredService<Zelvo.Search.ISearchIndexer>(), [ticket], cancellationToken);
         await db.SaveChangesAsync(cancellationToken);
         await transaction.CommitAsync(cancellationToken);
 
@@ -540,6 +542,7 @@ internal static class ServiceRequestEndpoints
         try
         {
             await http.RequestServices.GetRequiredService<SlaTracker>().UpdateAsync([ticket], DateTimeOffset.UtcNow, cancellationToken);
+            await RequestSearch.IndexAsync(db, http.RequestServices.GetRequiredService<Zelvo.Search.ISearchIndexer>(), [ticket], cancellationToken);
             await db.SaveChangesAsync(cancellationToken);
             if (transaction is not null)
             {
@@ -624,7 +627,8 @@ internal static class ServiceRequestEndpoints
                 new PersonResponse(t.RequesterId, _names.GetValueOrDefault(t.RequesterId)),
                 t.CreatedById is { } by && by != t.RequesterId ? new PersonResponse(by, _names.GetValueOrDefault(by)) : null,
                 _staff && t.AssigneeId is { } a ? new PersonResponse(a, _names.GetValueOrDefault(a)) : null,
-                _staff ? _refs.Group(t.GroupId) : null,
+                // The team that has it, also for requesters; never the person (decision 2026-11-24).
+                _refs.Group(t.GroupId),
                 service is null ? null : new ServiceRefResponse(service.Id, service.Code, LocalizedTextDto.From(card.Name.HasAnyValue ? card.Name : service.Name)),
                 steps, current, t.OnHoldReason, t.ResolutionNotes, next,
                 _staff ? _slas.For(t.Id, DateTimeOffset.UtcNow) : [],
@@ -706,7 +710,7 @@ internal sealed record ServiceRefResponse(Guid Id, string Code, LocalizedTextDto
 internal sealed record ServiceRequestAttachmentResponse(
     Guid Id, string FileName, string ContentType, long Size, AttachmentScanStatus ScanStatus, string? DocumentKey, string? FormFieldKey, DateTimeOffset UploadedAt);
 
-/// <summary>A service request. Requesters do not see the assignee, group, SLA clocks or staff states.</summary>
+/// <summary>A service request. Requesters see the team (group) but not the assignee, SLA clocks or staff states.</summary>
 internal sealed record ServiceRequestResponse(
     Guid Id, string Number, string Title, string? Description, TicketState State, TicketChannel Channel,
     PersonResponse Requester, PersonResponse? RequestedBy, PersonResponse? Assignee, NamedRef? Group, ServiceRefResponse? Service,

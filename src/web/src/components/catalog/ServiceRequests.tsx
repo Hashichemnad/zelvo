@@ -91,6 +91,9 @@ export function RequestFacts({ request, display, settings, basePath }: { request
       )}
       <div><dt className="font-semibold">{t("requester")}</dt><dd>{request.requester.displayName}</dd></div>
       {request.requestedBy && <div><dt className="font-semibold">{t("requestedBy")}</dt><dd>{request.requestedBy.displayName}</dd></div>}
+      {basePath !== "/requests" && (
+        <div><dt className="font-semibold">{t("team")}</dt><dd>{request.group ? <Localized text={request.group.name} locale={locale} /> : t("noTeamYet")}</dd></div>
+      )}
       {request.assignee !== undefined && request.group !== undefined && basePath === "/requests" && (
         <div><dt className="font-semibold">{t("assignee")}</dt><dd>{request.assignee?.displayName ?? t("nobody")}{request.group && <> · <Localized text={request.group.name} locale={locale} /></>}</dd></div>
       )}

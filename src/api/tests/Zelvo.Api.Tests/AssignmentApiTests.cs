@@ -43,7 +43,9 @@ public sealed class AssignmentApiTests(DatabaseFixture database) : IAsyncDisposa
 
         var routed = await asRequester.CreateAsync(new { title = "No Wi-Fi on floor 2", categoryId = wifi });
         Assert.Equal("Wi-Fi", (string)routed["category"]!["name"]!["en"]!);
-        Assert.Null(routed["group"]); // Requesters do not see the group.
+        // Requesters see the team that has it, never the person (decision 2026-11-24).
+        Assert.NotNull(routed["group"]);
+        Assert.Null(routed["assignee"]);
 
         var staffView = await admin.GetIncidentAsync(IncidentApi.IdOf(routed));
         Assert.Equal(networkTeam, GroupOf(staffView));

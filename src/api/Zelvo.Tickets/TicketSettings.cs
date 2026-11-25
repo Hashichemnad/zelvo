@@ -109,7 +109,11 @@ public static partial class TicketNumbers
 {
     /// <summary>Default prefixes.</summary>
     public static IReadOnlyDictionary<TicketType, string> DefaultPrefixes { get; } =
-        new Dictionary<TicketType, string> { [TicketType.Incident] = "INC", [TicketType.ServiceRequest] = "REQ" };
+        new Dictionary<TicketType, string>
+        {
+            [TicketType.Incident] = "INC", [TicketType.ServiceRequest] = "REQ",
+            [TicketType.Complaint] = "CMP", [TicketType.Inquiry] = "INQ", [TicketType.Suggestion] = "SUG",
+        };
 
     /// <summary>The number shown to people: prefix, a hyphen and at least six digits.</summary>
     public static string Format(string prefix, long sequence) =>

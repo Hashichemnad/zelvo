@@ -811,7 +811,7 @@ internal static partial class ChatEndpoints
         return IsAllowedOrigin(widget, origin) ? null : ApiProblem.Create(StatusCodes.Status403Forbidden, "origin-not-allowed", "This website may not use the chat widget.");
     }
 
-    private static async Task<IResult?> LimitedAsync(IRateLimitStore limits, HttpContext http, string kind, string? partition, int permits, TimeSpan window, CancellationToken cancellationToken)
+    internal static async Task<IResult?> LimitedAsync(IRateLimitStore limits, HttpContext http, string kind, string? partition, int permits, TimeSpan window, CancellationToken cancellationToken)
     {
         var key = $"zelvo:rl:{kind}:{Hash($"{http.Request.Headers["X-Zelvo-Tenant"]}|{partition ?? "unknown"}")[..32]}";
         if (await limits.HitAsync(key, window, cancellationToken) is { } count && count.Count > permits)

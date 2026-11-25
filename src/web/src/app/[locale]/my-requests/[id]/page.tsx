@@ -2,6 +2,7 @@ import { notFound } from "next/navigation";
 import { getTranslations, setRequestLocale } from "next-intl/server";
 import { FormAnswersView } from "@/components/forms/FormAnswersView";
 import { ReopenRequestButton, RequestAttachments, RequestFacts, RequestProgress } from "@/components/catalog/ServiceRequests";
+import { TicketRatingBlock } from "@/components/voice/TicketRatingBlock";
 import { Link } from "@/i18n/navigation";
 import { isId } from "@/lib/incident-pages";
 import { loadRequest } from "@/lib/request-pages";
@@ -40,6 +41,9 @@ export default async function MyRequestPage({ params }: PageProps<"/[locale]/my-
       <RequestFacts request={request} display={display} settings={settings} basePath="/my-requests" />
       {form && <FormAnswersView view={form} attachmentBase={`/bff/api/v1/service-requests/${request.id}/attachments`} />}
       <RequestAttachments requestId={request.id} attachments={attachments} documentNames={documentNames} />
+      {(request.state === "Resolved" || request.state === "Closed") && (
+        <TicketRatingBlock ticketId={request.id} accessToken={session.data.accessToken} tenant={tenant} csrfToken={session.data.csrfToken} />
+      )}
       {request.nextStates.includes("Reopened") && <ReopenRequestButton requestId={request.id} etag={request.etag} csrfToken={session.data.csrfToken} />}
     </article>
   );
