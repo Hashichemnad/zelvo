@@ -43,15 +43,28 @@ RUN npm pack --silent @fontsource/ibm-plex-sans-arabic@5 @fontsource/cairo@5 @fo
               if [ -n "$f" ]; then cp "$f" "out/$name-$subset-$weight.woff2"; fi; done; done; \
          rm -rf x; done
 
+# Chromium's headless shell for branded PDF exports (task F1, product owner decision 2026-11-24),
+# the build Playwright publishes, pinned to the version the end-to-end tests use. Ubuntu's own
+# `chromium` package is only a wrapper that installs the snap, which does not run in a container.
+FROM node:24-bookworm-slim AS chromium
+ENV PLAYWRIGHT_BROWSERS_PATH=/ms-playwright
+RUN npx --yes playwright-core@1.65.1 install chromium-headless-shell \
+    && mv /ms-playwright/chromium_headless_shell-*/chrome-headless-shell-* /chromium \
+    && test -x /chromium/chrome-headless-shell
+
 FROM mcr.microsoft.com/dotnet/runtime:10.0 AS runtime
-# Branded PDF exports (task F1, product owner decision 2026-11-24): headless Chromium and
-# fonts with Arabic letters as a fallback.
+# The libraries the headless shell needs on Ubuntu 24.04 (Playwright's list) and fonts with
+# Arabic letters as a fallback.
 RUN apt-get update \
-    && apt-get install -y --no-install-recommends chromium fonts-noto-core \
+    && apt-get install -y --no-install-recommends \
+       libasound2t64 libatk-bridge2.0-0t64 libatk1.0-0t64 libatspi2.0-0t64 libcairo2 libcups2t64 \
+       libdbus-1-3 libdrm2 libgbm1 libglib2.0-0t64 libnspr4 libnss3 libpango-1.0-0 libx11-6 libxcb1 \
+       libxcomposite1 libxdamage1 libxext6 libxfixes3 libxkbcommon0 libxrandr2 fontconfig fonts-noto-core \
     && rm -rf /var/lib/apt/lists/*
 WORKDIR /app
+COPY --from=chromium /chromium /opt/chromium
 COPY --from=fonts /fonts/out /usr/share/zelvo/fonts
 COPY --from=build /app .
-ENV Pdf__ChromiumPath=/usr/bin/chromium Pdf__FontsDirectory=/usr/share/zelvo/fonts
+ENV Pdf__ChromiumPath=/opt/chromium/chrome-headless-shell Pdf__FontsDirectory=/usr/share/zelvo/fonts
 USER $APP_UID
 ENTRYPOINT ["dotnet", "Zelvo.Worker.dll"]

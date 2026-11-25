@@ -152,6 +152,6 @@ export function brandingCss(look: { lightColour: string; darkColour: string; fon
 export function brandingImagePath(tenant: string, slot: BrandingSlot, apiUrl: string | null | undefined): string | null {
   if (!apiUrl) return null;
   const version = /[?&]v=([0-9a-f]+)/.exec(apiUrl)?.[1] ?? "0";
-  const draft = /[?&]draft=true/.test(apiUrl) ? "&draft=true" : "";
-  return `/branding/${encodeURIComponent(tenant)}/${slot}?v=${version}${draft}`;
+  const draft = /[?&]draft=true/.test(apiUrl) ? "/draft" : "";
+  return `/branding/${encodeURIComponent(tenant)}/${slot}${draft}?v=${version}`;
 }

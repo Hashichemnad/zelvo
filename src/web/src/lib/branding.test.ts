@@ -22,7 +22,7 @@ describe("branding", () => {
 
   it("serves images through the web app with the tenant in the path", () => {
     expect(brandingImagePath("demo-company", "LogoLight", "/api/v1/branding/images/LogoLight?v=abc123")).toBe("/branding/demo-company/LogoLight?v=abc123");
-    expect(brandingImagePath("t", "Favicon", "/api/v1/branding/images/Favicon?draft=true&v=ff")).toBe("/branding/t/Favicon?v=ff&draft=true");
+    expect(brandingImagePath("t", "Favicon", "/api/v1/branding/images/Favicon?draft=true&v=ff")).toBe("/branding/t/Favicon/draft?v=ff");
     expect(brandingImagePath("t", "Favicon", null)).toBeNull();
   });
 });
