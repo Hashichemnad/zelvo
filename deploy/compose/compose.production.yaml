@@ -478,7 +478,7 @@ services:
 
   clamav:
     <<: *hardened
-    image: clamav/clamav:1.5.4
+    image: clamav/clamav:1.5.5
     cap_add: [CHOWN, DAC_OVERRIDE, FOWNER, SETGID, SETUID]
     environment:
       # Offline installs: true, then import definitions (scripts/clamav-import-definitions.sh).

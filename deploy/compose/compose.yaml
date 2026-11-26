@@ -547,7 +547,7 @@ services:
   # of memory, briefly about twice that while it loads new definitions.
   clamav:
     <<: *restart
-    image: clamav/clamav:1.5.4
+    image: clamav/clamav:1.5.5
     environment:
       CLAMAV_NO_FRESHCLAMD: ${CLAMAV_NO_FRESHCLAMD:-false}
       # Room for the largest attachment a tenant can allow (100 MB).
