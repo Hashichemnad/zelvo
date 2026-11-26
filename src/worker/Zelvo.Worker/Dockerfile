@@ -33,7 +33,23 @@ COPY src/api/Zelvo.Connectors/ src/api/Zelvo.Connectors/
 COPY src/api/Zelvo.Ai/ src/api/Zelvo.Ai/
 COPY src/api/Zelvo.Secrets/ src/api/Zelvo.Secrets/
 COPY src/api/Zelvo.Observability/ src/api/Zelvo.Observability/
-RUN dotnet publish src/worker/Zelvo.Worker/Zelvo.Worker.csproj -c Release -o /app --no-restore -p:UseAppHost=false
+# Release builds (task F6; the release pipeline sets these): ZELVO_RELEASE=true is the release
+# licensing build, ZELVO_BUILD_WATERMARK the customer's watermark for a per-customer build, and
+# ZELVO_OBFUSCATE=true obfuscates Zelvo's assemblies (build/obfuscar) and removes their symbols.
+ARG ZELVO_RELEASE=false
+ARG ZELVO_BUILD_WATERMARK=
+ARG ZELVO_OBFUSCATE=false
+RUN dotnet publish src/worker/Zelvo.Worker/Zelvo.Worker.csproj -c Release -o /app --no-restore -p:UseAppHost=false \
+    -p:ZelvoRelease="$ZELVO_RELEASE" -p:ZelvoBuildWatermark="$ZELVO_BUILD_WATERMARK"
+COPY dotnet-tools.json ./
+COPY build/obfuscar/ build/obfuscar/
+RUN mkdir -p /obfuscation && if [ "$ZELVO_OBFUSCATE" = "true" ]; then \
+      build/obfuscar/obfuscate.sh /app /obfuscation/Mapping.txt; fi
+
+# The obfuscation mapping, for the release pipeline only (docker build --target obfuscation-map
+# --output ...); it is never part of the image.
+FROM scratch AS obfuscation-map
+COPY --from=build /obfuscation/ /
 
 # Fonts the branding can choose (task F1), from the same npm packages as the web app, for PDF exports.
 FROM node:24-alpine AS fonts

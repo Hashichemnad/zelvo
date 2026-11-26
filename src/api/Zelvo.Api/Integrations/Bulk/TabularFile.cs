@@ -3,6 +3,7 @@ using System.Text;
 using DocumentFormat.OpenXml;
 using DocumentFormat.OpenXml.Packaging;
 using DocumentFormat.OpenXml.Spreadsheet;
+using Zelvo.Licensing;
 
 namespace Zelvo.Api.Integrations.Bulk;
 
@@ -42,8 +43,12 @@ internal static class TabularFile
             _ => null,
         };
 
-    public static byte[] Write(TabularFormat format, IReadOnlyList<string> header, IEnumerable<IReadOnlyList<string?>> rows) =>
-        format == TabularFormat.Csv ? WriteCsv(header, rows) : WriteXlsx(header, rows);
+    /// <remarks>
+    /// Excel files carry the installation's hidden mark (module 12, task F6) when
+    /// <paramref name="watermark"/> is given; CSV files have no place for one.
+    /// </remarks>
+    public static byte[] Write(TabularFormat format, IReadOnlyList<string> header, IEnumerable<IReadOnlyList<string?>> rows, string? watermark = null) =>
+        format == TabularFormat.Csv ? WriteCsv(header, rows) : WriteXlsx(header, rows, watermark);
 
     /// <summary>Reads at most <paramref name="maxRows"/> rows after the header; blank rows are skipped.</summary>
     public static List<string[]> Read(TabularFormat format, Stream content, int maxRows)
@@ -156,7 +161,7 @@ internal static class TabularFile
         return rows;
     }
 
-    private static byte[] WriteXlsx(IReadOnlyList<string> header, IEnumerable<IReadOnlyList<string?>> rows)
+    private static byte[] WriteXlsx(IReadOnlyList<string> header, IEnumerable<IReadOnlyList<string?>> rows, string? watermark)
     {
         using var stream = new MemoryStream();
         using (var document = SpreadsheetDocument.Create(stream, SpreadsheetDocumentType.Workbook))
@@ -175,6 +180,18 @@ internal static class TabularFile
 
             workbook.Workbook.AppendChild(new Sheets(new Sheet { Id = workbook.GetIdOfPart(sheetPart), SheetId = 1, Name = "Zelvo" }));
             workbook.Workbook.Save();
+            if (InstallationMark.Encode(watermark) is { } mark)
+            {
+                var properties = document.AddCustomFilePropertiesPart();
+                properties.Properties = new DocumentFormat.OpenXml.CustomProperties.Properties(
+                    new DocumentFormat.OpenXml.CustomProperties.CustomDocumentProperty(new DocumentFormat.OpenXml.VariantTypes.VTLPWSTR(mark))
+                    {
+                        FormatId = "{D5CDD505-2E9C-101B-9397-08002B2CF9AE}",
+                        PropertyId = 2,
+                        Name = InstallationMark.SpreadsheetProperty,
+                    });
+                properties.Properties.Save();
+            }
         }
 
         return stream.ToArray();

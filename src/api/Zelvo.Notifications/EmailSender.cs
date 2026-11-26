@@ -3,6 +3,7 @@ using MailKit;
 using MailKit.Net.Smtp;
 using MailKit.Security;
 using MimeKit;
+using Zelvo.Licensing;
 
 namespace Zelvo.Notifications;
 
@@ -64,7 +65,7 @@ public interface IEmailSender
 /// (RFC 3834) so mail servers and later email-to-ticket (task E2) do not answer it, and carries
 /// its <c>Content-Language</c>.
 /// </summary>
-public sealed class SmtpEmailSender(NotificationOptions options) : IEmailSender
+public sealed class SmtpEmailSender(NotificationOptions options, IInstallationWatermark? watermark = null) : IEmailSender
 {
     /// <inheritdoc />
     public async Task<EmailResult> SendAsync(EmailMessage message, CancellationToken cancellationToken)
@@ -79,7 +80,7 @@ public sealed class SmtpEmailSender(NotificationOptions options) : IEmailSender
         MimeMessage mime;
         try
         {
-            mime = Build(message, smtp.From);
+            mime = Build(message, smtp.From, watermark?.Current);
         }
         catch (ParseException)
         {
@@ -123,8 +124,11 @@ public sealed class SmtpEmailSender(NotificationOptions options) : IEmailSender
         }
     }
 
-    /// <summary>The MIME message of <paramref name="message"/> from <paramref name="from"/>.</summary>
-    public static MimeMessage Build(EmailMessage message, string from)
+    /// <summary>
+    /// The MIME message of <paramref name="message"/> from <paramref name="from"/>, carrying the
+    /// installation's hidden mark when <paramref name="watermark"/> is given (module 12, task F6).
+    /// </summary>
+    public static MimeMessage Build(EmailMessage message, string from, string? watermark = null)
     {
         ArgumentNullException.ThrowIfNull(message);
         var mime = new MimeMessage();
@@ -135,6 +139,11 @@ public sealed class SmtpEmailSender(NotificationOptions options) : IEmailSender
         mime.Headers.Add("Auto-Submitted", "auto-generated");
         mime.Headers.Add("X-Auto-Response-Suppress", "All");
         mime.Headers.Add(HeaderId.ContentLanguage, message.Language);
+        if (InstallationMark.Encode(watermark) is { } mark)
+        {
+            mime.Headers.Add(InstallationMark.EmailHeader, mark);
+        }
+
         var body = new BodyBuilder { TextBody = message.Text, HtmlBody = message.Html };
         foreach (var image in message.Images)
         {

@@ -1,5 +1,6 @@
 using System.Globalization;
 using System.Security.Cryptography;
+using System.Text;
 using System.Text.Json;
 using Zelvo.Licensing;
 
@@ -32,6 +33,7 @@ internal static class SigningTool
                 ["upgrade", .. var rest] => await UpgradeAsync(Options.Parse(rest), output, passphrase).ConfigureAwait(false),
                 ["inspect", var file] => await InspectAsync(file, output).ConfigureAwait(false),
                 ["verify", var file, .. var rest] => await VerifyAsync(file, Options.Parse(rest), output).ConfigureAwait(false),
+                ["mark", var value] => Mark(value, output),
                 ["package", .. var rest] => await PackageCommand.RunAsync(Options.Parse(rest), output, passphrase, LoadKeyAsync).ConfigureAwait(false),
                 _ => Usage(error),
             };
@@ -270,6 +272,66 @@ internal static class SigningTool
         return false;
     }
 
+    /// <summary>
+    /// Prints the watermark a generated file carries (task F6): a PDF comment, an Excel custom
+    /// property or an email header, or a mark given directly.
+    /// </summary>
+    private static int Mark(string value, TextWriter output)
+    {
+        string? watermark;
+        if (File.Exists(value))
+        {
+            var bytes = File.ReadAllBytes(value);
+            watermark = bytes.AsSpan().StartsWith("%PDF"u8) ? InstallationMark.ReadPdf(bytes)
+                : bytes.AsSpan().StartsWith("PK"u8) ? SpreadsheetMark(bytes)
+                : EmailMark(Encoding.UTF8.GetString(bytes));
+        }
+        else
+        {
+            watermark = InstallationMark.Decode(value);
+        }
+
+        if (watermark is null)
+        {
+            throw new ToolException("No Zelvo watermark found.");
+        }
+
+        output.WriteLine(watermark);
+        return 0;
+    }
+
+    private static string? SpreadsheetMark(byte[] bytes)
+    {
+        using var zip = new System.IO.Compression.ZipArchive(new MemoryStream(bytes), System.IO.Compression.ZipArchiveMode.Read);
+        if (zip.GetEntry("docProps/custom.xml") is not { } entry)
+        {
+            return null;
+        }
+
+        using var stream = entry.Open();
+        var document = System.Xml.Linq.XDocument.Load(stream);
+        var property = document.Root?.Elements().FirstOrDefault(e => (string?)e.Attribute("name") == InstallationMark.SpreadsheetProperty);
+        return InstallationMark.Decode(property?.Value);
+    }
+
+    private static string? EmailMark(string text)
+    {
+        foreach (var line in text.Split('\n'))
+        {
+            if (line.StartsWith(InstallationMark.EmailHeader + ":", StringComparison.OrdinalIgnoreCase))
+            {
+                return InstallationMark.Decode(line[(InstallationMark.EmailHeader.Length + 1)..].Trim());
+            }
+
+            if (line.Trim().Length == 0)
+            {
+                break; // the end of the headers
+            }
+        }
+
+        return null;
+    }
+
     private static int Usage(TextWriter error)
     {
         error.WriteLine("""
@@ -286,6 +348,9 @@ internal static class SigningTool
                       [--upgrade-id <id>] --out <upgrade-license.json>
               verify  <signed-file> [--keys <vendor-keys.json>]
               package --manifest <manifest.json> --dir <content-dir> --key <key> --out <zelvo-x.y.z.zpkg>
+              mark    <mark-or-file>
+                      The watermark hidden in a leaked file: a PDF or Excel export, an email (.eml) or the
+                      mark itself (the X-Entity-Ref-ID header's value).
             """);
         return 1;
     }

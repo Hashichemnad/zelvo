@@ -25,4 +25,10 @@
   <PropertyGroup Condition="'$(ZelvoRelease)' == 'true'">
     <DefineConstants>$(DefineConstants);ZELVO_RELEASE</DefineConstants>
   </PropertyGroup>
+  <!-- A mistyped watermark would make a build that no license accepts (task F6). The check
+       character is verified by Watermark.IsValid when the license is imported. -->
+  <Target Name="ZelvoCheckBuildWatermark" BeforeTargets="CoreCompile" Condition="'$(ZelvoBuildWatermark)' != ''">
+    <Error Condition="!$([System.Text.RegularExpressions.Regex]::IsMatch('$(ZelvoBuildWatermark)', '^ZW-[0-9A-HJKMNP-TV-Z]{4}-[0-9A-HJKMNP-TV-Z]{4}-[0-9A-HJKMNP-TV-Z]{4}-[0-9A-HJKMNP-TV-Z]$'))"
+           Text="ZelvoBuildWatermark '$(ZelvoBuildWatermark)' is not a watermark (ZW-XXXX-XXXX-XXXX-C, made by zelvo-sign issue)." />
+  </Target>
 </Project>

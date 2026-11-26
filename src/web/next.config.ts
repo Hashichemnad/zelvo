@@ -12,6 +12,8 @@ const securityHeaders = [
 const nextConfig: NextConfig = {
   output: "standalone",
   poweredByHeader: false,
+  // Customers receive minified builds only, never source (module 12): no browser source maps.
+  productionBrowserSourceMaps: false,
   reactStrictMode: true,
   async headers() {
     return [

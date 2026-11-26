@@ -13,6 +13,7 @@
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\Zelvo.Data\Zelvo.Data.csproj" />
+    <ProjectReference Include="..\Zelvo.Licensing.Abstractions\Zelvo.Licensing.Abstractions.csproj" />
     <ProjectReference Include="..\Zelvo.Search\Zelvo.Search.csproj" />
     <ProjectReference Include="..\Zelvo.Integrations\Zelvo.Integrations.csproj" />
   </ItemGroup>
