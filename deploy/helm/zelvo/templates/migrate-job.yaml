@@ -39,7 +39,7 @@ spec:
             - { name: DOTNET_ENVIRONMENT, value: Production }
             {{- include "zelvo.secretEnv" (dict "root" . "env" "DB_OWNER_PASSWORD" "key" "postgresOwnerPassword") | nindent 12 }}
             - name: ConnectionStrings__PostgresOwner
-              value: "Host={{ .Values.postgres.host }};Port={{ .Values.postgres.port }};Database={{ .Values.postgres.database }};Username={{ .Values.postgres.owner }};Password=$(DB_OWNER_PASSWORD);SSL Mode={{ .Values.postgres.sslMode }}"
+              value: "Host={{ .Values.postgres.host }};Port={{ .Values.postgres.port }};Database={{ .Values.postgres.database }};Username={{ .Values.postgres.owner }};Password=$(DB_OWNER_PASSWORD);SSL Mode={{ .Values.postgres.sslMode }}{{ include "zelvo.pgRootCert" . }}"
             - { name: Tenancy__Bootstrap__Slug, value: {{ .Values.tenant.slug | quote }} }
             - { name: Tenancy__Bootstrap__NameEn, value: {{ .Values.tenant.nameEn | quote }} }
             - { name: Tenancy__Bootstrap__NameAr, value: {{ .Values.tenant.nameAr | quote }} }
@@ -60,7 +60,10 @@ spec:
             - { name: Licensing__ClusterId, value: {{ include "zelvo.clusterId" . | quote }} }
           volumeMounts:
             - { name: tmp, mountPath: /tmp }
+            - { name: ca, mountPath: /run/certs, readOnly: true }
           resources: {{- toYaml .Values.migrate.resources | nindent 12 }}
       volumes:
         - name: tmp
           emptyDir: {}
+        - name: ca
+          secret: { secretName: {{ .Values.caSecret }} }

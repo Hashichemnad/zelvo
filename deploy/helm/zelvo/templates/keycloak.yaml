@@ -39,7 +39,7 @@ spec:
             capabilities: { drop: [ALL] }
           env:
             - { name: KC_DB, value: postgres }
-            - { name: KC_DB_URL, value: "jdbc:postgresql://{{ .Values.postgres.host }}:{{ .Values.postgres.port }}/{{ .Values.postgres.keycloakDatabase }}?sslmode={{ include "zelvo.jdbcSslMode" . }}" }
+            - { name: KC_DB_URL, value: "jdbc:postgresql://{{ .Values.postgres.host }}:{{ .Values.postgres.port }}/{{ .Values.postgres.keycloakDatabase }}?sslmode={{ include "zelvo.jdbcSslMode" . }}{{ if hasPrefix "verify" (.Values.postgres.sslMode | lower) }}&sslrootcert=/run/certs/ca.crt{{ end }}" }
             - { name: KC_DB_USERNAME, value: {{ .Values.postgres.keycloakUser | quote }} }
             {{- include "zelvo.secretEnv" (dict "root" . "env" "KC_DB_PASSWORD" "key" "keycloakDbPassword") | nindent 12 }}
             - { name: KC_BOOTSTRAP_ADMIN_USERNAME, value: admin }
@@ -65,7 +65,12 @@ spec:
           startupProbe: { httpGet: { path: /health/started, port: management }, periodSeconds: 5, failureThreshold: 60 }
           readinessProbe: { httpGet: { path: /health/ready, port: management }, periodSeconds: 10 }
           livenessProbe: { httpGet: { path: /health/live, port: management }, periodSeconds: 20 }
+          volumeMounts:
+            - { name: ca, mountPath: /run/certs, readOnly: true }
           resources: {{- toYaml .Values.keycloak.resources | nindent 12 }}
+      volumes:
+        - name: ca
+          secret: { secretName: {{ .Values.caSecret }} }
 ---
 apiVersion: v1
 kind: Service

@@ -155,6 +155,19 @@ services:
       - archive_command=pgbackrest --stanza=zelvo archive-push %p
       - -c
       - archive_timeout=60
+      # TLS 1.3 only for network connections (pg_hba.conf refuses plain ones).
+      - -c
+      - ssl=on
+      - -c
+      - ssl_cert_file=/run/pgtls/server.crt
+      - -c
+      - ssl_key_file=/run/pgtls/server.key
+      - -c
+      - ssl_min_protocol_version=TLSv1.3
+      - -c
+      - hba_file=/etc/postgresql/pg_hba.conf
+      - -c
+      - password_encryption=scram-sha-256
     environment:
       POSTGRES_USER: ${POSTGRES_SUPERUSER:?set in .env}
       POSTGRES_PASSWORD: ${POSTGRES_SUPERUSER_PASSWORD:?set in .env}
@@ -178,6 +191,8 @@ services:
     volumes:
       - postgres-data:/var/lib/postgresql/data
       - ./postgres/init:/docker-entrypoint-initdb.d:ro
+      - ./postgres/pg_hba.conf:/etc/postgresql/pg_hba.conf:ro
+      - { type: volume, source: certs, target: /run/pgtls, read_only: true, volume: { subpath: postgres } }
       - backup-repo:/var/lib/pgbackrest
       - backup-spool:/var/spool/pgbackrest
       - backup-log:/var/log/pgbackrest
@@ -190,6 +205,8 @@ services:
       interval: 5s
       timeout: 5s
       retries: 30
+    depends_on:
+      certs: { condition: service_completed_successfully }
 
   # pgBackRest's schedule: a full backup on Sundays and a differential one on the other days at
   # ZELVO_BACKUP_TIME, kept 35 days; WAL is archived continuously by PostgreSQL itself.
@@ -224,17 +241,21 @@ services:
     image: valkey/valkey:9.2-alpine
     user: "999:1000"
     read_only: true
-    command: ["sh", "-c", "exec valkey-server --requirepass \"$${REDIS_PASSWORD}\" --appendonly yes --maxmemory 1gb --maxmemory-policy noeviction"]
+    # TLS 1.3 only (no plain port), with the installation's internal certificate.
+    command: ["sh", "-c", "exec valkey-server --requirepass \"$${REDIS_PASSWORD}\" --appendonly yes --maxmemory 1gb --maxmemory-policy noeviction --port 0 --tls-port 6379 --tls-cert-file /tls/server.crt --tls-key-file /tls/server.key --tls-ca-cert-file /tls/ca.crt --tls-auth-clients no --tls-protocols TLSv1.3"]
     environment:
       REDIS_PASSWORD: ${REDIS_PASSWORD:?set in .env}
       VALKEYCLI_AUTH: ${REDIS_PASSWORD}
     volumes:
       - redis-data:/data
+      - { type: volume, source: certs, target: /tls, read_only: true, volume: { subpath: valkey } }
     deploy:
       resources:
         limits: { cpus: "1", memory: 1536m }
+    depends_on:
+      certs: { condition: service_completed_successfully }
     healthcheck:
-      test: ["CMD", "valkey-cli", "ping"]
+      test: ["CMD", "valkey-cli", "--tls", "--cacert", "/tls/ca.crt", "--sni", "redis", "-h", "redis", "ping"]
       interval: 5s
       timeout: 5s
       retries: 20
@@ -312,7 +333,7 @@ services:
     command: ["start"]
     environment:
       KC_DB: postgres
-      KC_DB_URL: jdbc:postgresql://postgres:5432/keycloak
+      KC_DB_URL: jdbc:postgresql://postgres:5432/keycloak?sslmode=verify-full&sslrootcert=/run/certs/ca.crt
       KC_DB_USERNAME: ${KEYCLOAK_DB_USER}
       KC_DB_PASSWORD: ${KEYCLOAK_DB_PASSWORD}
       KC_BOOTSTRAP_ADMIN_USERNAME: ${KEYCLOAK_ADMIN_USER:?set in .env}
@@ -331,6 +352,7 @@ services:
       KC_TRACING_ENDPOINT: http://otel-collector:4317
       KC_TRACING_SERVICE_NAME: keycloak
       JAVA_OPTS_KC_HEAP: -XX:MaxRAMPercentage=70
+    volumes: [*ca-volume]
     ports:
       - "127.0.0.1:${KEYCLOAK_ADMIN_PORT:-8180}:8080"
     deploy:
@@ -361,7 +383,7 @@ services:
     tmpfs: [/tmp]
     environment:
       DOTNET_ENVIRONMENT: Production
-      ConnectionStrings__PostgresOwner: Host=postgres;Database=${POSTGRES_DB};Username=${POSTGRES_SUPERUSER};Password=${POSTGRES_SUPERUSER_PASSWORD}
+      ConnectionStrings__PostgresOwner: Host=postgres;Database=${POSTGRES_DB};Username=${POSTGRES_SUPERUSER};Password=${POSTGRES_SUPERUSER_PASSWORD};SSL Mode=VerifyFull;Root Certificate=/run/certs/ca.crt
       Tenancy__Bootstrap__Slug: ${ZELVO_DEFAULT_TENANT:-default}
       Tenancy__Bootstrap__NameEn: ${ZELVO_DEFAULT_TENANT_NAME_EN:?set in .env}
       Tenancy__Bootstrap__NameAr: ${ZELVO_DEFAULT_TENANT_NAME_AR:?set in .env}
@@ -376,7 +398,7 @@ services:
       Identity__Provisioning__Smtp__User: ${ZELVO_SMTP_USER:-}
       Identity__Provisioning__Smtp__Password: ${ZELVO_SMTP_PASSWORD:-}
       Identity__Provisioning__Smtp__StartTls: ${ZELVO_SMTP_STARTTLS:-true}
-    volumes: [*release]
+    volumes: [*release, *ca-volume]
     depends_on:
       postgres: { condition: service_healthy }
       keycloak: { condition: service_healthy }
@@ -388,9 +410,10 @@ services:
     tmpfs: [/tmp]
     environment:
       ASPNETCORE_ENVIRONMENT: Production
-      ConnectionStrings__Postgres: Host=postgres;Database=${POSTGRES_DB};Username=${ZELVO_APP_DB_USER};Password=${ZELVO_APP_DB_PASSWORD}
+      ConnectionStrings__Postgres: Host=postgres;Database=${POSTGRES_DB};Username=${ZELVO_APP_DB_USER};Password=${ZELVO_APP_DB_PASSWORD};SSL Mode=VerifyFull;Root Certificate=/run/certs/ca.crt
       Tenancy__DefaultTenant: ${ZELVO_DEFAULT_TENANT:-default}
-      ConnectionStrings__Redis: redis:6379,password=${REDIS_PASSWORD},abortConnect=false
+      ConnectionStrings__Redis: redis:6379,password=${REDIS_PASSWORD},ssl=true,sslHost=redis,abortConnect=false
+      Redis__CaFile: /run/certs/ca.crt
       ConnectionStrings__RabbitMq: amqps://zelvo-api:${RABBITMQ_API_PASSWORD:?set in .env}@rabbitmq:5671/zelvo
       RabbitMq__CaFile: /run/certs/ca.crt
       Services__OpenSearch: https://opensearch:9200/
@@ -425,7 +448,7 @@ services:
       DOTNET_ENVIRONMENT: Production
       HOME: /tmp
       Worker__HeartbeatFile: /tmp/zelvo-worker.heartbeat
-      ConnectionStrings__Postgres: Host=postgres;Database=${POSTGRES_DB};Username=${ZELVO_APP_DB_USER};Password=${ZELVO_APP_DB_PASSWORD}
+      ConnectionStrings__Postgres: Host=postgres;Database=${POSTGRES_DB};Username=${ZELVO_APP_DB_USER};Password=${ZELVO_APP_DB_PASSWORD};SSL Mode=VerifyFull;Root Certificate=/run/certs/ca.crt
       ConnectionStrings__RabbitMq: amqps://zelvo-worker:${RABBITMQ_WORKER_PASSWORD:?set in .env}@rabbitmq:5671/zelvo
       RabbitMq__CaFile: /run/certs/ca.crt
       Services__OpenSearch: https://opensearch:9200/
@@ -481,12 +504,13 @@ services:
       KEYCLOAK_PUBLIC_URL: https://${ZELVO_PUBLIC_HOST}/auth
       KEYCLOAK_INTERNAL_URL: http://keycloak:8080/auth
       ZELVO_WEB_CLIENT_SECRET: ${ZELVO_WEB_CLIENT_SECRET}
-      SESSION_STORE_URL: redis://:${REDIS_PASSWORD}@redis:6379/1
+      SESSION_STORE_URL: rediss://:${REDIS_PASSWORD}@redis:6379/1
+      NODE_EXTRA_CA_CERTS: /run/certs/ca.crt
       OTEL_EXPORTER_OTLP_ENDPOINT: ${ZELVO_OTLP_HTTP_ENDPOINT-http://otel-collector:4318}
       # One reverse proxy (Caddy) in front of the web app.
       TRUSTED_PROXY_HOPS: "1"
       RELEASE_MANIFEST_PATH: /etc/zelvo/release/release-manifest.json
-    volumes: [*release]
+    volumes: [*release, *ca-volume]
     deploy:
       resources:
         limits: { cpus: "2", memory: 1g, pids: 512 }
@@ -512,7 +536,7 @@ services:
     tmpfs: [/tmp]
     environment:
       DOTNET_ENVIRONMENT: Production
-      ConnectionStrings__Postgres: Host=postgres;Database=${POSTGRES_DB};Username=${ZELVO_APP_DB_USER};Password=${ZELVO_APP_DB_PASSWORD}
+      ConnectionStrings__Postgres: Host=postgres;Database=${POSTGRES_DB};Username=${ZELVO_APP_DB_USER};Password=${ZELVO_APP_DB_PASSWORD};SSL Mode=VerifyFull;Root Certificate=/run/certs/ca.crt
       Updater__ComposeDirectory: ${ZELVO_COMPOSE_DIR:?install.sh sets it in .env}
       Updater__ComposeProjectName: ${COMPOSE_PROJECT_NAME:-zelvo}
       Updater__ComposeFileList: ${COMPOSE_FILE:-compose.yaml}
@@ -522,6 +546,9 @@ services:
       Updater__Services__2: api
       Updater__Services__3: worker
       Updater__Services__4: web
+      # The backup service runs the zelvo/postgres image of the release; PostgreSQL itself keeps
+      # running during updates (its new image applies when the operator restarts it).
+      Updater__Services__5: backup
       Updater__HealthUrls__0: http://api:8080/health/ready
       Updater__HealthUrls__1: http://web:3000/healthz
       <<: [*telemetry-env, *licensing-env]
@@ -531,6 +558,7 @@ services:
       - *updates-volume
       - *machine-id
       - *release
+      - *ca-volume
     deploy:
       resources:
         limits: { cpus: "1", memory: 512m }

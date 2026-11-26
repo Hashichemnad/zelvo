@@ -39,13 +39,19 @@ for folder in caddy security postgres observability; do
 done
 cp "$repo/deploy/compose/backup/restore.sh" "$repo/scripts/clamav-import-definitions.sh" "$out/compose/"
 
-# Third-party images the Compose file uses, so air-gapped servers need no registry.
+# Third-party images the Compose file uses, so air-gapped servers need no registry. The image
+# list needs every required setting, so placeholder values stand in for them here.
 mkdir -p "$out/images/third-party"
-docker compose -f "$out/compose/compose.yaml" --env-file "$out/compose/.env.example" --profile observability config --images 2>/dev/null \
-  | grep -v '^zelvo/' | sort -u | while read -r image; do
-    docker pull --quiet "$image" > /dev/null
-    docker save "$image" | gzip -1 > "$out/images/third-party/$(echo "$image" | tr '/:' '__').tar.gz"
-  done
+placeholders=$(mktemp)
+sed -e 's#^ZELVO_COMPOSE_DIR=.*#ZELVO_COMPOSE_DIR=/opt/zelvo#' -e 's/=change-me$/=placeholder/' -e 's/^\([A-Z0-9_]*\)=$/\1=placeholder/' \
+  "$out/compose/.env.example" > "$placeholders"
+third_party=$(docker compose -f "$out/compose/compose.yaml" --env-file "$placeholders" --profile observability config --images \
+  | { grep -v '^zelvo/' || true; } | sort -u)
+rm -f "$placeholders"
+for image in $third_party; do
+  docker pull --quiet "$image" > /dev/null
+  docker save "$image" | gzip -1 > "$out/images/third-party/$(echo "$image" | tr '/:' '__').tar.gz"
+done
 cp "$repo/scripts/release/install.sh" "$out/install.sh"
 # Zelvo's image-signing public key; tests give a throwaway one in ZELVO_BUNDLE_PUBLIC_KEY.
 if [[ -n "${ZELVO_BUNDLE_PUBLIC_KEY:-}" ]]; then

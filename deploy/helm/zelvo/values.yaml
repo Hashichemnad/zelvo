@@ -26,6 +26,10 @@ tenant:
 # REQUIRED: a Secret the operator creates with the installation's passwords (keys in README.md).
 existingSecret: zelvo-secrets
 
+# A Secret with ca.crt: the CA of the internal TLS certificates of PostgreSQL, Valkey, RabbitMQ
+# and OpenSearch. Every Zelvo service checks those servers' certificates against it.
+caSecret: zelvo-ca
+
 postgres:
   host: ""
   port: 5432
@@ -34,19 +38,18 @@ postgres:
   appUser: zelvo_app
   keycloakDatabase: keycloak
   keycloakUser: keycloak
-  sslMode: Require
+  # VerifyFull checks the server's certificate against caSecret; Require only encrypts.
+  sslMode: VerifyFull
 
 redis:
-  # host:port of Valkey (Redis protocol).
+  # host:port of Valkey (Redis protocol), with TLS checked against caSecret.
   endpoint: ""
-  tls: false
+  tls: true
 
 rabbitmq:
   host: ""
   port: 5671
   vhost: zelvo
-  # A Secret with ca.crt for RabbitMQ's and OpenSearch's TLS.
-  caSecret: zelvo-ca
 
 opensearch:
   url: ""

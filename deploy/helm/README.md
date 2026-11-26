@@ -18,7 +18,8 @@ Small installs use Docker Compose instead (`deploy/compose/compose.production.ya
      users `zelvo-api` and `zelvo-worker` as in `deploy/compose/security/opensearch`.
    - RabbitMQ 4 with TLS, virtual host `zelvo`, users `zelvo-api` and `zelvo-worker` (see
      `deploy/compose/security/rabbitmq`), and Valkey or Redis with a password.
-   - The CA of OpenSearch and RabbitMQ in a Secret (`rabbitmq.caSecret`, key `ca.crt`).
+   - TLS on all four, and the CA of their certificates in a Secret (`caSecret`, key `ca.crt`):
+     Zelvo checks every server's certificate (PostgreSQL `VerifyFull` by default).
 3. **The Secret** `existingSecret` (default `zelvo-secrets`) with these keys:
 
    | Key | What |

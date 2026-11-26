@@ -67,7 +67,7 @@ capabilities: { drop: [ALL] }
 - name: DB_APP_PASSWORD
   valueFrom: { secretKeyRef: { name: {{ .Values.existingSecret }}, key: postgresAppPassword } }
 - name: ConnectionStrings__Postgres
-  value: "Host={{ .Values.postgres.host }};Port={{ .Values.postgres.port }};Database={{ .Values.postgres.database }};Username={{ .Values.postgres.appUser }};Password=$(DB_APP_PASSWORD);SSL Mode={{ .Values.postgres.sslMode }}"
+  value: "Host={{ .Values.postgres.host }};Port={{ .Values.postgres.port }};Database={{ .Values.postgres.database }};Username={{ .Values.postgres.appUser }};Password=$(DB_APP_PASSWORD);SSL Mode={{ .Values.postgres.sslMode }}{{ include "zelvo.pgRootCert" . }}"
 {{- end }}
 
 {{- define "zelvo.commonVolumes" -}}
@@ -76,7 +76,7 @@ capabilities: { drop: [ALL] }
 - name: release
   configMap: { name: {{ include "zelvo.fullname" . }}-release }
 - name: ca
-  secret: { secretName: {{ .Values.rabbitmq.caSecret }}, optional: true }
+  secret: { secretName: {{ .Values.caSecret }} }
 {{- if eq .Values.secrets.provider "File" }}
 - name: master-key
   secret: { secretName: {{ .Values.existingSecret }}, items: [{ key: masterKey, path: master.key }], defaultMode: 0400 }
@@ -90,6 +90,11 @@ capabilities: { drop: [ALL] }
 {{- if eq .Values.secrets.provider "File" }}
 - { name: master-key, mountPath: /run/secrets, readOnly: true }
 {{- end }}
+{{- end }}
+
+{{/* The CA for Npgsql when the server's certificate is checked. */}}
+{{- define "zelvo.pgRootCert" -}}
+{{- if hasPrefix "verify" (.Values.postgres.sslMode | lower) }};Root Certificate=/run/certs/ca.crt{{ end -}}
 {{- end }}
 
 {{/* Npgsql's SSL Mode as the PostgreSQL JDBC driver's sslmode (Keycloak). */}}

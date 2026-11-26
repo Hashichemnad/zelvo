@@ -177,7 +177,8 @@ jobs:
           helm template zelvo deploy/helm/zelvo -f deploy/helm/zelvo/ci/test-values.yaml > /tmp/zelvo-chart.yaml
           deploy/helm/zelvo/ci/check-rendered.sh /tmp/zelvo-chart.yaml
       - name: Shell scripts
-        run: shellcheck --severity=warning scripts/*.sh scripts/*/*.sh build/obfuscar/*.sh deploy/postgres/*.sh deploy/compose/backup/*.sh
+        # SC1090/SC1091: the scripts source the installation's own .env on purpose.
+        run: shellcheck --severity=warning --exclude=SC1090,SC1091 scripts/*.sh scripts/*/*.sh build/obfuscar/*.sh deploy/postgres/*.sh deploy/compose/backup/*.sh deploy/helm/zelvo/ci/*.sh deploy/helm/zelvo/examples/*.sh
 
   production-install:
     name: Hardened install from a bundle, backup and restore drill

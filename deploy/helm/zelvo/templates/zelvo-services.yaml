@@ -62,6 +62,7 @@ spec:
             - { name: KEYCLOAK_PUBLIC_URL, value: "https://{{ $root.Values.publicHost }}/auth" }
             - { name: KEYCLOAK_INTERNAL_URL, value: "http://{{ $fullname }}-keycloak:8080/auth" }
             - { name: TRUSTED_PROXY_HOPS, value: "1" }
+            - { name: NODE_EXTRA_CA_CERTS, value: /run/certs/ca.crt }
             - { name: RELEASE_MANIFEST_PATH, value: /etc/zelvo/release/release-manifest.json }
             - { name: OTEL_EXPORTER_OTLP_ENDPOINT, value: {{ $root.Values.telemetry.otlpHttpEndpoint | quote }} }
             {{- include "zelvo.secretEnv" (dict "root" $root "env" "ZELVO_WEB_CLIENT_SECRET" "key" "webClientSecret") | nindent 12 }}
@@ -75,6 +76,7 @@ spec:
             - { name: tmp, mountPath: /tmp }
             - { name: next-cache, mountPath: /app/.next/cache }
             - { name: release, mountPath: /etc/zelvo/release, readOnly: true }
+            - { name: ca, mountPath: /run/certs, readOnly: true }
           {{- else }}
           envFrom: [{ configMapRef: { name: {{ $fullname }}-settings } }]
           env:
@@ -93,6 +95,7 @@ spec:
             {{- include "zelvo.secretEnv" (dict "root" $root "env" "REDIS_PASSWORD" "key" "redisPassword") | nindent 12 }}
             - name: ConnectionStrings__Redis
               value: "{{ $root.Values.redis.endpoint }},password=$(REDIS_PASSWORD),ssl={{ $root.Values.redis.tls }},abortConnect=false"
+            - { name: Redis__CaFile, value: /run/certs/ca.crt }
             {{- include "zelvo.secretEnv" (dict "root" $root "env" "Identity__ProvisionerClientSecret" "key" "keycloakProvisionerSecret") | nindent 12 }}
             {{- include "zelvo.secretEnv" (dict "root" $root "env" "Branding__TlsToken" "key" "tlsToken") | nindent 12 }}
             {{- else }}
