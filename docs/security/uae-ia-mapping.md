@@ -39,5 +39,5 @@ Evidence for customers' security reviews: how Zelvo supports the control familie
 
 ## Open points
 
-- Penetration test (Phase 1 release blocker) and the ASVS L2 review with task F7 add their reports as evidence.
+- Penetration test (release blocker, once after all four phases, decided 2026-11-26) and the ASVS L2 review with task F7 add their reports as evidence.
 - Customers that must follow the Abu Dhabi or Dubai information security standards can reuse this mapping; their control numbers are not listed here.

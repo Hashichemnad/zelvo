@@ -24,7 +24,7 @@ Zelvo is a bilingual (English/Arabic) ITSM platform for the UAE market. It launc
 
 ## Goals, non-goals and success metrics
 
-The full system — all four phases — is in scope and is built in order; each phase is reviewed and approved by the product owner before the next one starts. Development is done in Claude Code.
+The full system — all four phases — is in scope and is built in order; each phase is reviewed and approved by the product owner before the next one starts. A phase's verification (load test, tests against real integrations, the product owner's walkthrough) runs alongside the next phase, and one external penetration test covers all four phases before go-live (product owner decision 2026-11-26). Development is done in Claude Code.
 
 **Goals**
 
@@ -474,7 +474,7 @@ A demo installation with realistic sample data lets the product owner show Zelvo
 
 ## Phase 2 functional requirements — Control
 
-Phase 2 adds the ITIL control practices: problem, change, configuration and assets, plus mobile apps and smarter automation.
+Phase 2 adds the ITIL control practices: problem, change, configuration and assets, plus an installable web app for phones and smarter automation. Build plan: [phase2-build-plan.md](phase2-build-plan.md).
 
 ### 16. Problem management
 
@@ -503,15 +503,19 @@ Phase 2 adds the ITIL control practices: problem, change, configuration and asse
 - Import and sync from Excel, the API and discovery tools; duplicate detection and reconciliation.
 - Asset lifecycle: requested, ordered, received, in stock, assigned, in repair, retired, disposed.
 - Contracts, warranties and software licenses with expiry alerts; software license compliance (installed vs owned).
-- Barcode and QR labels, scanned from the mobile app.
+- Barcode and QR labels, scanned with the phone's camera in the installable web app (module 19).
 - Assets assigned to users and shown on their tickets.
 - *Story:* As an agent, I want to see the user's laptop, its warranty and its past incidents on the ticket, so that I decide repair or replace quickly.
 
-### 19. Mobile apps and Microsoft Teams
+### 19. Installable web app and Microsoft Teams
 
-- Native iOS and Android apps for requesters and agents: raise and track requests, approve, chat, push notifications, camera attachments, barcode scanning, biometric login.
-- The app connects to the customer's own Zelvo server by entering its address or scanning a QR code; it shows the customer's branding after connecting.
-- Microsoft Teams app: raise and track tickets, approve requests and receive notifications inside Teams.
+Product owner decision 2026-11-26: an **installable web app** (progressive web app) instead of native iOS and Android apps. Native apps are deferred until customers ask for them.
+
+- Installable web app for requesters and agents, served by each customer's own Zelvo server: added to the phone's or computer's home screen with the customer's own name and icon (module 11 branding); raise and track requests, approve, chat, camera attachments, barcode scanning (module 18), biometric sign-in where the device supports it.
+- Web push notifications to the installed app and the browser, chosen per event like email (module 10).
+- Offline-friendly: the app opens without a connection, shows what it can and keeps unsent work on the device until the connection is back.
+- People reach the app at their organisation's own Zelvo address (or by scanning a QR code that opens it), so it always shows that organisation's branding.
+- Microsoft Teams app (stays in scope): raise and track tickets, approve requests and receive notifications inside Teams.
 - *Story:* As a manager, I want to approve requests from my phone, so that nothing waits for me to reach a computer.
 
 ### 20. Workflow automation
@@ -524,7 +528,9 @@ Phase 2 adds the ITIL control practices: problem, change, configuration and asse
 
 - Dashboard for team leads: workload per agent, overtime and after-hours work, share of angry or escalated tickets handled.
 - Alerts and suggested reassignment when an agent is overloaded.
-- Visible to team leads and above only.
+- Visible to team leads and above, and **each agent sees their own figures** (product owner decision 2026-11-26).
+- For **workload balancing, not for ranking**: no league tables or comparisons between agents, and the figures are not used for performance scoring.
+- Follows the UAE Personal Data Protection Law (GOV-5): staff are told what is recorded and why, only what workload balancing needs is kept, for a limited time, and every view of a person's figures is audited.
 - *Story:* As a team lead, I want to see who is overloaded this week, so that I rebalance work before people burn out.
 
 ## Phase 3 functional requirements — Scale
@@ -540,7 +546,7 @@ Phase 3 adds event handling, a full virtual agent, AI-driven improvement and an 
 
 ### 23. Virtual agent (full)
 
-- Conversational assistant in the portal, chat widget, WhatsApp, Teams and mobile app, in English and Arabic.
+- Conversational assistant in the portal, chat widget, WhatsApp, Teams and the installable web app, in English and Arabic.
 - Completes catalog requests by conversation, checks status, answers from knowledge and service FAQs, and performs approved actions (for example, a password reset through an integration).
 - Hands over to a human agent with the full conversation and collected details.
 
@@ -630,7 +636,7 @@ Open point: confirm with prospective government customers which reporting format
 
 ## Non-functional requirements
 
-Security and tenant isolation are release blockers: Phase 1 does not go live until they pass an external penetration test.
+Security and tenant isolation are release blockers: Zelvo does not go live until they pass an external penetration test, run once after all four phases are built (product owner decision 2026-11-26).
 
 | Area | Requirement |
 | --- | --- |
@@ -675,7 +681,7 @@ All four phases are in scope; the phases set the build order, with Phase 1 carry
 
 &#91;embedded content: product roadmap · 4 phases, 1 gate\]
 
-Each phase ends with a review and approval by the product owner; Phase 1 must also pass an external penetration test before Phase 2 starts.
+Each phase ends with a review and approval by the product owner, after which the next phase starts while the finished phase is verified; one external penetration test covers all four phases before go-live (product owner decision 2026-11-26).
 
 | Differentiator | Why it wins | Phase |
 | --- | --- | --- |
@@ -706,4 +712,4 @@ Decided: customer records, licenses and installed versions are kept in an Excel 
 
 - [ ] Product owner approves the full requirements (all four phases).
 - [ ] Start development in Claude Code, phase by phase, with a review and approval after each phase.
-- [ ] Book an external penetration test for the end of Phase 1.
+- [ ] Book an external penetration test for after Phase 4, before go-live (decided 2026-11-26).

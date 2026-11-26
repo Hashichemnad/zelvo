@@ -16,7 +16,7 @@ Versions as pinned on 2026-11-26 in `Directory.Packages.props`, `src/web/package
 
 - An advisory that does not affect Zelvo (the vulnerable code is not used or not in the image) may be accepted instead of fixed: for npm in `src/web/audit-exceptions.json` with a reason and a review date at most 30 days ahead (`src/web/scripts/audit.mjs` fails CI on expired or unused exceptions); for NuGet and image findings the same rule applies, recorded in the pull request that accepts them. Accepting needs the product owner's approval; none are accepted today.
 - General updates: Dependabot minor and patch updates are reviewed within 30 days; LTS runtimes (.NET, Node.js, PostgreSQL) are kept on a supported LTS line and their majors reviewed once a year. Major upgrades that Dependabot ignores (Node.js, OpenTelemetry) are done by hand (decisions log 2026-11-20).
-- Before the Phase 1 penetration test, open Dependabot pull requests are checked against these windows (several tasks deliberately left them unhandled).
+- Before the penetration test (after Phase 4, decided 2026-11-26), open Dependabot pull requests are checked against these windows (several tasks deliberately left them unhandled).
 
 ## How vulnerabilities are found
 
