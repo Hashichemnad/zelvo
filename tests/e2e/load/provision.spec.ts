@@ -9,11 +9,12 @@ import { completeSecondFactor, devUser, signInWithPassword } from "../support/id
  *
  * 1. The administrator creates LOAD_API_KEYS API keys that act as the agent role, with a rate
  *    limit of 100,000 a minute each (the most an administrator may set).
- * 2. LOAD_INCIDENTS sample incidents are raised with those keys for the development requester,
- *    so lists, searches and incident pages have data to read.
- * 3. The development agent signs in once with a second factor, and LOAD_SESSIONS more web
+ * 2. The development agent signs in once with a second factor, and LOAD_SESSIONS more web
  *    sessions are opened from Keycloak's single sign-on (no new codes), so load-test agents use
  *    the web app's backend-for-frontend exactly as browsers do.
+ * 3. The agent raises LOAD_INCIDENTS open sample incidents for the development requester, so
+ *    lists, searches, incident pages and changes have data (integrations may read incidents but
+ *    not change them, so changes in the load tests always go as people).
  *
  * Everything is written to tests/load/.credentials/load.json (git-ignored): keys and session
  * cookies are real credentials of that installation. Revoke the keys in Settings → Integrations
@@ -26,7 +27,8 @@ const keyCount = Number(process.env.LOAD_API_KEYS ?? "10");
 const incidentCount = Number(process.env.LOAD_INCIDENTS ?? "500");
 const sessionCount = Number(process.env.LOAD_SESSIONS ?? "50");
 const output = path.resolve(__dirname, "../../load/.credentials/load.json");
-const scopes = ["incidents.read", "incidents.create", "incidents.edit", "incidents.assign", "knowledge.read", "directory.read"];
+// Reading only: integrations may not change incidents or write comments (people only).
+const scopes = ["incidents.read", "knowledge.read"];
 
 /** Calls the API through the web app's proxy from the page, as the signed-in person. */
 async function bff<T>(page: Page, method: string, apiPath: string, body?: unknown): Promise<T> {
@@ -97,27 +99,7 @@ test.describe("load-test provisioning", () => {
     result.requesterId = requester!.id;
   });
 
-  test("sample incidents are raised with the keys", async ({ request }) => {
-    const words = ["printer", "VPN", "email", "laptop", "Wi-Fi", "password", "Teams", "badge", "monitor", "طابعة", "الشبكة", "البريد"];
-    for (let i = 0; i < incidentCount; i++) {
-      const key = result.apiKeys[i % result.apiKeys.length].key;
-      const word = words[i % words.length];
-      const response = await request.post(`${apiUrl}/api/v1/incidents`, {
-        headers: { "X-Api-Key": key, "X-Zelvo-Tenant": tenant },
-        data: {
-          title: `Load test: ${word} not working (${i + 1})`,
-          description: `Sample incident ${i + 1} for the load test. ${word} stopped working this morning.`,
-          requesterId: result.requesterId,
-          impact: (i % 3) + 1,
-          urgency: ((i + 1) % 3) + 1,
-        },
-      });
-      expect(response.status(), await response.text()).toBe(201);
-      result.incidentIds.push(((await response.json()) as { id: string }).id);
-    }
-  });
-
-  test("the agent opens web sessions for the load-test agents", async ({ page, context }) => {
+  test("the agent opens web sessions for the load-test agents and raises sample incidents", async ({ page, context }) => {
     await signInWithPassword(page, devUser("agent"));
     await completeSecondFactor(page, devUser("agent"));
     await expect(page).toHaveURL(/\/(en|ar)\/account$/);
@@ -132,6 +114,22 @@ test.describe("load-test provisioning", () => {
       await page.goto("/auth/login?mfa=1&locale=en&returnTo=%2Fen%2Faccount");
       await expect(page).toHaveURL(/\/en\/account$/);
       result.sessions.push(await sessionOf(context, page));
+    }
+
+    // Sample incidents, raised by the agent as people do ("Log an incident"): integrations may
+    // read incidents but not write them. The installation must not require a form for incidents
+    // without a category (a required field would refuse these).
+    const words = ["printer", "VPN", "email", "laptop", "Wi-Fi", "password", "Teams", "badge", "monitor", "طابعة", "الشبكة", "البريد"];
+    for (let i = 0; i < incidentCount; i++) {
+      const word = words[i % words.length];
+      const created = await bff<{ id: string }>(page, "POST", "incidents", {
+        title: `Load test: ${word} not working (${i + 1})`,
+        description: `Sample incident ${i + 1} for the load test. ${word} stopped working this morning.`,
+        requesterId: result.requesterId,
+        impact: (i % 3) + 1,
+        urgency: ((i + 1) % 3) + 1,
+      });
+      result.incidentIds.push(created.id);
     }
 
     mkdirSync(path.dirname(output), { recursive: true });

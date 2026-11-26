@@ -17,22 +17,24 @@ They are written now and run later on a server sized like the published minimum 
 2. one of the sample incidents with its conversation (`GET /incidents/{id}`, `/comments`), now and then its history and the customer;
 3. a search in English or Arabic (`GET /search`) in 40 % of rounds;
 4. an internal note in 25 % of rounds (`POST /incidents/{id}/comments`; internal, so no emails are sent);
-5. a new incident, then a change to it, in 5 % of rounds (`POST /incidents`, `PATCH /incidents/{id}`);
+5. a change of urgency in 5 % of rounds (`PATCH /incidents/{id}`; the priority and SLA clocks follow);
 6. the notification count again, as the header asks every 30 seconds (people only).
+
+Writing comments and changing incidents are for people only (integrations get 403 `people-only`), so these changes always go through a web session, also in the scripts that read with API keys.
 
 Every call is tagged with its endpoint, so the k6 summary has a p95 per endpoint, and each has its own threshold.
 
-- **`agents.js`** ramps up to `AGENTS` (1,000) virtual agents over `RAMP_UP` (10 minutes), holds them for `HOLD` (20 minutes) and ramps down. By default it goes **through the web app's backend-for-frontend** with real web sessions (`LOAD_VIA=web`), exactly the path of a browser: session cookie, CSRF token, the proxy, the API. `LOAD_VIA=api` sends the same rounds straight to the API with API keys.
-- **`api-latency.js`** sends rounds without pauses at a constant rate straight to the API with API keys: `RATE` rounds a second (50, about 300 requests a second) for `DURATION` (10 minutes). This isolates what the API adds; with 1,000 agents at a round a minute, 300 requests a second is well above their average load.
+- **`agents.js`** ramps up to `AGENTS` (1,000) virtual agents over `RAMP_UP` (10 minutes), holds them for `HOLD` (20 minutes) and ramps down. By default it goes **through the web app's backend-for-frontend** with real web sessions (`LOAD_VIA=web`), exactly the path of a browser: session cookie, CSRF token, the proxy, the API. `LOAD_VIA=api` reads straight from the API with API keys instead (the changes still go as people).
+- **`api-latency.js`** sends rounds without pauses at a constant rate, reading straight from the API with API keys (changes through web sessions, with their own thresholds): `RATE` rounds a second (50, about 300 requests a second) for `DURATION` (10 minutes). This isolates what the API adds; with 1,000 agents at a round a minute, 300 requests a second is well above their average load.
 - **`live/live-connections.mjs`** (Node.js 24, no dependencies) holds `CONNECTIONS` (1,000) live-update connections (SignalR over Server-Sent Events through the web proxy, task B4) for `DURATION_MINUTES` (30), opened over `RAMP_SECONDS` (300). k6 cannot hold event streams, so this runs next to `agents.js`; the notes and incidents the agents write are what the connections hear.
 
 ## Credentials and sample data
 
 `tests/e2e/load/provision.spec.ts` prepares the installation (run it once per test server; Node.js 24 and Playwright, as for the end-to-end tests):
 
-- the development administrator creates `LOAD_API_KEYS` (10) API keys acting as the **agent** role with the scopes the rounds need and 100,000 calls a minute each;
-- `LOAD_INCIDENTS` (500) sample incidents in English and Arabic are raised for the development requester;
-- the development agent signs in once with the second factor and `LOAD_SESSIONS` (50) web sessions are opened from Keycloak's single sign-on.
+- the development administrator creates `LOAD_API_KEYS` (10) API keys acting as the **agent** role, for reading only (`incidents.read`, `knowledge.read`), with 100,000 calls a minute each;
+- the development agent signs in once with the second factor and `LOAD_SESSIONS` (50) web sessions are opened from Keycloak's single sign-on;
+- the agent raises `LOAD_INCIDENTS` (500) open sample incidents in English and Arabic for the development requester. The installation must not require form answers for incidents without a category (otherwise provisioning stops with the form's validation error).
 
 It writes `tests/load/.credentials/load.json` (git-ignored, readable only by you). These are **real credentials** of the tested installation: revoke the keys in Settings → Integrations ("Load test …") and sign the agent out after the run.
 

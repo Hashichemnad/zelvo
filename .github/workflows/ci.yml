@@ -157,11 +157,11 @@ jobs:
         run: |
           npm ci --no-audit --no-fund
           npx playwright install --with-deps chromium
-      - name: Demo mode end-to-end tests
+      - name: Demo mode end-to-end tests, then the WCAG 2.2 AA audit of every page (task F7)
         working-directory: tests/e2e
         env:
           E2E_DEMO: "1"
-        run: npx playwright test --project=demo
+        run: npx playwright test
       - name: Service logs on failure
         if: failure()
         run: cd deploy/compose && COMPOSE_PROJECT_NAME=zelvo-demo COMPOSE_FILE=compose.yaml:compose.demo.yaml docker compose logs --tail 200
@@ -169,7 +169,9 @@ jobs:
         if: failure()
         with:
           name: playwright-report-demo
-          path: tests/e2e/playwright-report
+          path: |
+            tests/e2e/playwright-report
+            tests/e2e/accessibility-report
           retention-days: 7
       - name: Stop the demo
         if: always()
