@@ -2500,7 +2500,8 @@
       "privacy_request_received": "Your privacy request was received",
       "privacy_request_completed": "Your privacy request was completed",
       "privacy_request_rejected": "Your privacy request could not be carried out",
-      "privacy_request_new": "A new privacy request is waiting"
+      "privacy_request_new": "A new privacy request is waiting",
+      "workflow_rule": "A workflow rule's notification"
     },
     "audiences": {
       "Requester": "Your incidents",
@@ -5084,7 +5085,10 @@
     "anyRecordType": "Incidents and service requests",
     "recordTypes": {
       "Incident": "Incidents",
-      "ServiceRequest": "Service requests"
+      "ServiceRequest": "Service requests",
+      "Complaint": "Complaints",
+      "Inquiry": "Inquiries",
+      "Suggestion": "Suggestions"
     },
     "if": "If",
     "match": "Conditions",

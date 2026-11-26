@@ -34,31 +34,33 @@ export default async function RolesPage({ params }: PageProps<"/[locale]/setting
       ) : (
         <>
           <p className="max-w-2xl">{t("intro")}</p>
-          <table className="w-full border-collapse text-start text-sm">
-            <caption className="sr-only">{t("caption")}</caption>
-            <thead>
-              <tr>
-                <th scope="col" className={cellClass}>{t("name")}</th>
-                <th scope="col" className={cellClass}>{t("kind")}</th>
-                <th scope="col" className={cellClass}>{t("requiresMfa")}</th>
-                <th scope="col" className={cellClass}>{t("permissionCount")}</th>
-              </tr>
-            </thead>
-            <tbody>
-              {roles.map((role) => (
-                <tr key={role.key}>
-                  <td className={cellClass}>
-                    <Link href={`/settings/roles/${role.key}`} className="font-semibold text-brand underline-offset-4 hover:underline">
-                      <Localized text={role.name} locale={locale as "en" | "ar"} />
-                    </Link>
-                  </td>
-                  <td className={cellClass}>{role.isSystem ? t("builtIn") : t("custom")}</td>
-                  <td className={cellClass}>{role.requiresMfa ? t("yes") : t("no")}</td>
-                  <td className={cellClass}>{role.permissions.length}</td>
+          <div className="overflow-x-auto">
+            <table className="w-full border-collapse text-start text-sm">
+              <caption className="sr-only">{t("caption")}</caption>
+              <thead>
+                <tr>
+                  <th scope="col" className={cellClass}>{t("name")}</th>
+                  <th scope="col" className={cellClass}>{t("kind")}</th>
+                  <th scope="col" className={cellClass}>{t("requiresMfa")}</th>
+                  <th scope="col" className={cellClass}>{t("permissionCount")}</th>
                 </tr>
-              ))}
-            </tbody>
-          </table>
+              </thead>
+              <tbody>
+                {roles.map((role) => (
+                  <tr key={role.key}>
+                    <td className={cellClass}>
+                      <Link href={`/settings/roles/${role.key}`} className="font-semibold text-brand underline-offset-4 hover:underline">
+                        <Localized text={role.name} locale={locale as "en" | "ar"} />
+                      </Link>
+                    </td>
+                    <td className={cellClass}>{role.isSystem ? t("builtIn") : t("custom")}</td>
+                    <td className={cellClass}>{role.requiresMfa ? t("yes") : t("no")}</td>
+                    <td className={cellClass}>{role.permissions.length}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
           <AddRoleForm csrfToken={session.data.csrfToken} />
         </>
       )}

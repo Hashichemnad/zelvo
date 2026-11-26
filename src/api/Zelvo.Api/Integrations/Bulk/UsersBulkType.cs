@@ -302,6 +302,7 @@ internal sealed partial class UsersBulkType(
 
         var now = DateTimeOffset.UtcNow;
         var emiratesIdChanges = new List<(string Subject, string EmiratesId)>();
+        var statusChanges = new List<(string Subject, bool Enabled)>();
         foreach (var plan in plans)
         {
             var account = plan.Existing ?? (plan.Subject is { } s && bySubject.TryGetValue(s, out var known) ? known : null);
@@ -332,6 +333,12 @@ internal sealed partial class UsersBulkType(
 
             if (plan.Status is { } status)
             {
+                // Task F7 (ASVS V7.4.2): existing people turned off or on in Keycloak too.
+                if (status != account.Status && db.Entry(account).State != EntityState.Added && Identity.UserEndpoints.HasKeycloakUser(account))
+                {
+                    statusChanges.Add((account.Subject, status == UserStatus.Active));
+                }
+
                 account.Status = status;
             }
 
@@ -349,7 +356,7 @@ internal sealed partial class UsersBulkType(
             account.UpdatedAt = now;
         }
 
-        // Saved and copied to Keycloak together: if Keycloak refuses an Emirates ID, nothing changes.
+        // Saved and copied to Keycloak together: if Keycloak refuses an Emirates ID or a status, nothing changes.
         await using var transaction = await db.Database.BeginTransactionAsync(cancellationToken);
         await db.SaveChangesAsync(cancellationToken);
         foreach (var (subject, emiratesId) in emiratesIdChanges)
@@ -357,6 +364,15 @@ internal sealed partial class UsersBulkType(
             await CallKeycloakAsync(async () =>
             {
                 await keycloak.SetEmiratesIdAsync(realm, subject, emiratesId, cancellationToken);
+                return subject;
+            });
+        }
+
+        foreach (var (subject, enabled) in statusChanges)
+        {
+            await CallKeycloakAsync(async () =>
+            {
+                await keycloak.SetUserEnabledAsync(realm, subject, enabled, cancellationToken);
                 return subject;
             });
         }

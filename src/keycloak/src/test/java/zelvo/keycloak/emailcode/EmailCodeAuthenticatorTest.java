@@ -201,6 +201,33 @@ class EmailCodeAuthenticatorTest {
     }
 
     @Test
+    void a_new_code_does_not_give_more_guesses() throws Exception {
+        user("u1", "someone@ajman.ae", true);
+        submit("email", "someone@ajman.ae");
+        String wrong = sentCode.get().equals("000000") ? "111111" : "000000";
+        for (int i = 0; i < OneTimeCode.MAX_ATTEMPTS - 1; i++) {
+            submit("code", wrong);
+        }
+
+        now.addAndGet(OneTimeCode.RESEND_AFTER_SECONDS);
+        submit("resend", "");
+        String fresh = sentCode.get();
+        submit("code", fresh.equals("000000") ? "111111" : "000000");
+        submit("code", fresh);
+
+        verify(context, never()).success();
+    }
+
+    @Test
+    void codes_live_at_most_ten_minutes_whatever_the_setting() {
+        org.keycloak.models.AuthenticatorConfigModel config = new org.keycloak.models.AuthenticatorConfigModel();
+        config.setConfig(new java.util.HashMap<>(Map.of(EmailCodeAuthenticator.CONFIG_TTL, "3600")));
+        assertEquals(600, EmailCodeAuthenticator.ttlSeconds(config));
+        config.setConfig(new java.util.HashMap<>(Map.of(EmailCodeAuthenticator.CONFIG_TTL, "5")));
+        assertEquals(60, EmailCodeAuthenticator.ttlSeconds(config));
+    }
+
+    @Test
     void expired_codes_are_refused() throws Exception {
         user("u1", "someone@ajman.ae", true);
         submit("email", "someone@ajman.ae");

@@ -161,13 +161,15 @@ export default async function VoiceReportPage({ params, searchParams }: PageProp
             <h2 id="report-happiness-groups" className="text-xl font-semibold">{t("happinessBy")}</h2>
             <div className="grid gap-6 md:grid-cols-2">
               {[{ heading: t("byRecordType"), rows: report.happiness.byRecordType, name: recordTypeName }, { heading: t("byChannel"), rows: report.happiness.byChannel, name: (k: string) => tChannels(k) }].map((g) => (
-                <table key={g.heading} className="w-full border-collapse text-sm">
-                  <caption className="text-start font-semibold">{g.heading}</caption>
-                  <thead><tr><th scope="col" className={cell}>{t("group")}</th><th scope="col" className={cell}>{t("ratingsColumn")}</th><th scope="col" className={cell}>{t("happiness")}</th></tr></thead>
-                  <tbody>
-                    {g.rows.map((r) => <tr key={r.key}><th scope="row" className={cell}>{g.name(r.key)}</th><td className={cell}>{n(r.count)}</td><td className={cell}>{pct(r.happinessPercent)}</td></tr>)}
-                  </tbody>
-                </table>
+                <div key={g.heading} className="overflow-x-auto">
+                  <table className="w-full border-collapse text-sm">
+                    <caption className="text-start font-semibold">{g.heading}</caption>
+                    <thead><tr><th scope="col" className={cell}>{t("group")}</th><th scope="col" className={cell}>{t("ratingsColumn")}</th><th scope="col" className={cell}>{t("happiness")}</th></tr></thead>
+                    <tbody>
+                      {g.rows.map((r) => <tr key={r.key}><th scope="row" className={cell}>{g.name(r.key)}</th><td className={cell}>{n(r.count)}</td><td className={cell}>{pct(r.happinessPercent)}</td></tr>)}
+                    </tbody>
+                  </table>
+                </div>
               ))}
             </div>
           </section>

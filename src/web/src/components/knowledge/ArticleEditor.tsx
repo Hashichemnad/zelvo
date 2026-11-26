@@ -114,7 +114,7 @@ export function ArticleEditor({
   return (
     <form onSubmit={submit} className="space-y-4" aria-labelledby={`${id}-heading`} noValidate data-testid="article-editor">
       <h2 id={`${id}-heading`} className="sr-only">{t("heading")}</h2>
-      <div role="tablist" aria-label={t("languages")} className="flex gap-2 border-b border-line">
+      <div role="tablist" aria-label={t("languages")} className="flex flex-wrap gap-2 border-b border-line">
         {(["en", "ar"] as const).map((l) => (
           <button
             key={l}

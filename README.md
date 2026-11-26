@@ -82,5 +82,7 @@ use the Helm chart (`deploy/helm/README.md`). See `docs/architecture/release.md`
 | Keycloak extension | Java 21, Maven | in `src/keycloak`: `mvn verify` (or `make test-keycloak`) |
 | Frontend | Node.js 24 | in `src/web`: `npm ci`, `npm run dev`, `npm run lint`, `npm run typecheck`, `npm test` |
 | End-to-end | Node.js 24, running stack | `make up`, then `make e2e` |
+| Demo and accessibility audit | Node.js 24, the demo installation | `make demo`, then `make e2e-demo` (demo mode, then the WCAG 2.2 AA audit of every page in English and Arabic: `docs/accessibility/wcag-2.2-audit.md`) |
+| Load tests | k6, Node.js 24, a dedicated test server | see `tests/load/README.md` (API p95 under 200 ms, 1,000 concurrent agents) |
 
 CI (`.github/workflows`) runs the backend, Keycloak extension and frontend builds and tests, starts the stack and runs the end-to-end and accessibility tests, builds the images, scans them with Grype, produces a CycloneDX SBOM per image, scans for secrets with Gitleaks, and runs CodeQL. Dependabot keeps dependencies current.

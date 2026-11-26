@@ -19,30 +19,32 @@ export function RequestTable({ requests, basePath, staff, display }: { requests:
   const locale = useLocale() as Locale;
   const cell = "border-b border-line px-2 py-2 text-start align-top";
   return (
-    <table className="w-full border-collapse" data-testid="request-table">
-      <thead>
-        <tr>
-          <th scope="col" className={cell}>{t("number")}</th>
-          <th scope="col" className={cell}>{t("service")}</th>
-          <th scope="col" className={cell}>{t("state")}</th>
-          {staff && <th scope="col" className={cell}>{t("requester")}</th>}
-          {staff && <th scope="col" className={cell}>{t("assignee")}</th>}
-          <th scope="col" className={cell}>{t("created")}</th>
-        </tr>
-      </thead>
-      <tbody>
-        {requests.map((r) => (
-          <tr key={r.id}>
-            <td className={cell}><Link href={`${basePath}/${r.id}`} className="font-mono font-semibold text-brand underline" dir="ltr">{r.number}</Link></td>
-            <td className={cell}>{r.service ? <Localized text={r.service.name} locale={locale} /> : <span dir="auto">{r.title}</span>}</td>
-            <td className={cell}><StateBadge state={r.state} /></td>
-            {staff && <td className={cell}>{r.requester.displayName}</td>}
-            {staff && <td className={cell}>{r.assignee?.displayName ?? t("nobody")}</td>}
-            <td className={cell}>{formatDateTime(new Date(r.createdAt), display)}</td>
+    <div className="overflow-x-auto">
+      <table className="w-full border-collapse" data-testid="request-table">
+        <thead>
+          <tr>
+            <th scope="col" className={cell}>{t("number")}</th>
+            <th scope="col" className={cell}>{t("service")}</th>
+            <th scope="col" className={cell}>{t("state")}</th>
+            {staff && <th scope="col" className={cell}>{t("requester")}</th>}
+            {staff && <th scope="col" className={cell}>{t("assignee")}</th>}
+            <th scope="col" className={cell}>{t("created")}</th>
           </tr>
-        ))}
-      </tbody>
-    </table>
+        </thead>
+        <tbody>
+          {requests.map((r) => (
+            <tr key={r.id}>
+              <td className={cell}><Link href={`${basePath}/${r.id}`} className="font-mono font-semibold text-brand underline" dir="ltr">{r.number}</Link></td>
+              <td className={cell}>{r.service ? <Localized text={r.service.name} locale={locale} /> : <span dir="auto">{r.title}</span>}</td>
+              <td className={cell}><StateBadge state={r.state} /></td>
+              {staff && <td className={cell}>{r.requester.displayName}</td>}
+              {staff && <td className={cell}>{r.assignee?.displayName ?? t("nobody")}</td>}
+              <td className={cell}>{formatDateTime(new Date(r.createdAt), display)}</td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
   );
 }
 

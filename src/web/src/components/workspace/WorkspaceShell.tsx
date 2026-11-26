@@ -168,7 +168,7 @@ export function WorkspaceShell(props: WorkspaceShellProps) {
         </div>
       </div>
 
-      <div className="grid gap-4 lg:grid-cols-[20rem_minmax(0,1fr)] xl:grid-cols-[20rem_minmax(0,1fr)_18rem]">
+      <div className="grid grid-cols-1 gap-4 lg:grid-cols-[20rem_minmax(0,1fr)] xl:grid-cols-[20rem_minmax(0,1fr)_18rem]">
         <section aria-labelledby="workspace-list-heading" className={`space-y-3 ${selectedId ? "hidden lg:block" : ""}`}>
           <h2 id="workspace-list-heading" className="sr-only">{t("list.heading")}</h2>
           <ViewControls filters={filters} views={views} settings={settings} groups={groups} csrfToken={csrfToken}

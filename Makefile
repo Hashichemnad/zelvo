@@ -44,5 +44,5 @@ test-web: ## Frontend lint, type check and component tests
 e2e: ## End-to-end tests against the running stack (run make up first)
 	cd tests/e2e && npm ci && npx playwright test
 
-e2e-demo: ## End-to-end tests of demo mode against the running demo (run make demo first)
-	cd tests/e2e && npm ci && E2E_DEMO=1 npx playwright test --project=demo
+e2e-demo: ## End-to-end tests of demo mode, then the WCAG 2.2 AA audit of every page, against the running demo (run make demo first)
+	cd tests/e2e && npm ci && E2E_DEMO=1 npx playwright test

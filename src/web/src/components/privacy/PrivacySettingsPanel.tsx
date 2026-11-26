@@ -122,25 +122,27 @@ export function NoticeEditor({ initial, display, csrfToken }: { initial: Privacy
         <StatusLine status={status} />
       </form>
       {notices.length > 0 && (
-        <table className="w-full text-start text-sm">
-          <caption className="text-start font-semibold">{t("versions")}</caption>
-          <thead>
-            <tr>
-              <th scope="col" className="border-b border-line py-1 text-start">{t("version")}</th>
-              <th scope="col" className="border-b border-line py-1 text-start">{t("state")}</th>
-              <th scope="col" className="border-b border-line py-1 text-start">{t("publishedAt")}</th>
-            </tr>
-          </thead>
-          <tbody>
-            {notices.map((n) => (
-              <tr key={n.id}>
-                <td className="border-b border-line py-1">{n.version}</td>
-                <td className="border-b border-line py-1">{t(`states.${n.state}`)}</td>
-                <td className="border-b border-line py-1">{n.publishedAt ? formatDateTime(new Date(n.publishedAt), display) : "—"}</td>
+        <div className="overflow-x-auto">
+          <table className="w-full text-start text-sm">
+            <caption className="text-start font-semibold">{t("versions")}</caption>
+            <thead>
+              <tr>
+                <th scope="col" className="border-b border-line py-1 text-start">{t("version")}</th>
+                <th scope="col" className="border-b border-line py-1 text-start">{t("state")}</th>
+                <th scope="col" className="border-b border-line py-1 text-start">{t("publishedAt")}</th>
               </tr>
-            ))}
-          </tbody>
-        </table>
+            </thead>
+            <tbody>
+              {notices.map((n) => (
+                <tr key={n.id}>
+                  <td className="border-b border-line py-1">{n.version}</td>
+                  <td className="border-b border-line py-1">{t(`states.${n.state}`)}</td>
+                  <td className="border-b border-line py-1">{n.publishedAt ? formatDateTime(new Date(n.publishedAt), display) : "—"}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
       )}
     </section>
   );

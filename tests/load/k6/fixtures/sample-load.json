@@ -1,0 +1,10 @@
+{
+  "createdAt": "2026-11-26T00:00:00Z",
+  "apiUrl": "http://localhost:8080",
+  "webUrl": "http://localhost:3000",
+  "tenant": "default",
+  "requesterId": "00000000-0000-7000-8000-000000000001",
+  "apiKeys": [{ "id": "00000000-0000-7000-8000-000000000002", "key": "placeholder-not-a-key" }],
+  "incidentIds": ["00000000-0000-7000-8000-000000000003"],
+  "sessions": [{ "cookie": "zelvo-session=placeholder", "csrf": "placeholder" }]
+}

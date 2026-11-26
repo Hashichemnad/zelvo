@@ -79,6 +79,13 @@ First resource: `users` (`displayName`, `email` (sensitive), `emiratesId` (sensi
 
 `AllowAnonymousAccess()` opens an endpoint to visitors without sign-in for public forms (complaints, inquiries; modules 2 and 3). The request still needs a tenant, and audit entries record the actor as anonymous. `GET /api/v1/tenant` uses it.
 
+## Disabling people and ending sessions (task F7)
+
+- Disabling a person (Settings → Users, `PATCH /users/{id}` with `status: Disabled`, or a bulk import) also disables their Keycloak user and ends every Keycloak session, in the same transaction as the change: when Keycloak refuses, nothing changes (502 `identity-provider-unavailable`). The API refuses the person's tokens at once (403 `user-disabled`), and the web session ends at its next token refresh, because Keycloak no longer accepts the refresh token. Enabling turns the Keycloak user on again. People disabled by the E7 directory sync are refused by the API at once; their Keycloak sessions end at the realm's idle time-out.
+- Administrators end sessions: `POST /users/{id}/sign-out` (users.manage) for one person, `POST /identity/sign-out-everyone` (identity.manage) for everyone in the tenant, including themselves; people only, audited (`users.signed-out`, `identity.everyone-signed-out`).
+- Realm settings written down explicitly (so a Keycloak upgrade cannot change them unseen): `maxLength(128)` in the password policy, `otpPolicyCodeReusable=false`, `otpPolicyLookAheadWindow=1`, `actionTokenGeneratedByUserLifespan=300`, `accessCodeLifespan=60`, the brute-force quick-login values, and realm events for 90 days.
+- Email one-time codes live at most 10 minutes whatever the step's setting, and a new code does not reset the count of wrong codes for the sign-in.
+
 ## The web app (backend-for-frontend)
 
 - `/auth/login`: authorization code flow with PKCE, `state` and `nonce`, `ui_locales` = the page's language, `acr_values=mfa` when a second factor is needed. The pending sign-in is stored on the server for 10 minutes and used once; a short-lived cookie binds it to the browser.

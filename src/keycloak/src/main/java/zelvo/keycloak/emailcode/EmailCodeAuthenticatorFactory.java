@@ -73,7 +73,7 @@ public final class EmailCodeAuthenticatorFactory implements AuthenticatorFactory
             .property()
                 .name(EmailCodeAuthenticator.CONFIG_TTL)
                 .label("Code lifetime (seconds)")
-                .helpText("Between 60 and 3600.")
+                .helpText("Between 60 and 600 (10 minutes).")
                 .type(ProviderConfigProperty.STRING_TYPE)
                 .defaultValue(Long.toString(OneTimeCode.DEFAULT_TTL_SECONDS))
                 .add()

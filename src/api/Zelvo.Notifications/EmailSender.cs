@@ -91,14 +91,7 @@ public sealed class SmtpEmailSender(NotificationOptions options, IInstallationWa
         using var client = new SmtpClient { Timeout = (int)smtp.Timeout.TotalMilliseconds };
         try
         {
-            var security = smtp.Security switch
-            {
-                SmtpSecurity.None => SecureSocketOptions.None,
-                SmtpSecurity.StartTls => SecureSocketOptions.StartTls,
-                SmtpSecurity.SslOnConnect => SecureSocketOptions.SslOnConnect,
-                _ => SecureSocketOptions.Auto,
-            };
-            await client.ConnectAsync(smtp.Host!, smtp.Port, security, cancellationToken).ConfigureAwait(false);
+            await client.ConnectAsync(smtp.Host!, smtp.Port, SocketOptions(smtp.Security, smtp.Port), cancellationToken).ConfigureAwait(false);
             if (smtp.User is { } user)
             {
                 await client.AuthenticateAsync(user, smtp.Password ?? string.Empty, cancellationToken).ConfigureAwait(false);
@@ -171,6 +164,18 @@ public sealed class SmtpEmailSender(NotificationOptions options, IInstallationWa
 
         return mime;
     }
+
+    /// <summary>
+    /// The TLS the connection needs. Only <see cref="SmtpSecurity.None"/> sends in clear; the
+    /// default never falls back to plain text when a server does not offer STARTTLS (ASVS V12.1.1).
+    /// </summary>
+    internal static SecureSocketOptions SocketOptions(SmtpSecurity security, int port) => security switch
+    {
+        SmtpSecurity.None => SecureSocketOptions.None,
+        SmtpSecurity.StartTls => SecureSocketOptions.StartTls,
+        SmtpSecurity.SslOnConnect => SecureSocketOptions.SslOnConnect,
+        _ => port == 465 ? SecureSocketOptions.SslOnConnect : SecureSocketOptions.StartTls,
+    };
 
     private static string Short(string text) =>
         text.Length <= Data.Notifications.NotificationDelivery.ErrorMaxLength ? text : text[..Data.Notifications.NotificationDelivery.ErrorMaxLength];

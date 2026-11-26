@@ -4,6 +4,7 @@ import { routing } from "./i18n/routing";
 import { getLocalizationSettings, getWidgetOrigins } from "./lib/api";
 import { authConfigFor } from "./lib/auth/config";
 import { sessionCookieName } from "./lib/auth/session";
+import { addRequestHeaders, contentSecurityPolicy, newNonce } from "./lib/csp";
 import { hasLanguagePrefix, languageCookieName, resolveLanguage, withLanguage } from "./lib/localization";
 
 const intl = createMiddleware(routing);
@@ -14,20 +15,41 @@ const intl = createMiddleware(routing);
  * the device's language cookie.
  */
 export default async function proxy(request: NextRequest) {
+  // Task F7: a Content-Security-Policy with a fresh nonce on every page (lib/csp.ts). Next.js reads
+  // the nonce from the request's policy and puts it on its scripts; layouts read `x-nonce`.
+  const nonce = newNonce();
+  const config = await authConfigFor(request);
+  const policy = (frameAncestors?: string[]) =>
+    contentSecurityPolicy({
+      nonce,
+      frameAncestors,
+      development: process.env.NODE_ENV === "development",
+      upgradeInsecureRequests: config.appUrl.protocol === "https:",
+    });
+  const pageHeaders = (csp: string) => ({ "content-security-policy": csp, "x-nonce": nonce });
+
   const { pathname, search } = request.nextUrl;
   // The chat widget's frame (task E2): only the websites listed for the widget may frame it.
   const widget = /^\/chat-widget\/(en|ar)\/([0-9a-f-]{36})$/i.exec(pathname);
   if (widget) {
-    const origins = await getWidgetOrigins((await authConfigFor(request)).tenant, widget[2] ?? "");
-    const response = NextResponse.next();
-    response.headers.set("Content-Security-Policy", `frame-ancestors 'self' ${origins.join(" ")}`.trim());
+    const origins = await getWidgetOrigins(config.tenant, widget[2] ?? "");
+    const csp = policy(["'self'", ...origins]);
+    const headers = new Headers(request.headers);
+    for (const [name, value] of Object.entries(pageHeaders(csp))) {
+      headers.set(name, value);
+    }
+    const response = NextResponse.next({ request: { headers } });
+    response.headers.set("Content-Security-Policy", csp);
     return response;
   }
   if (hasLanguagePrefix(pathname)) {
-    return intl(request);
+    const csp = policy();
+    const response = intl(request);
+    addRequestHeaders(response, request, pageHeaders(csp));
+    response.headers.set("Content-Security-Policy", csp);
+    return response;
   }
 
-  const config = (await authConfigFor(request));
   const deviceLanguage = request.cookies.get(languageCookieName)?.value;
   const signedIn = request.cookies.has(sessionCookieName(config));
   // Only first visits (no language cookie yet) need the tenant default; ask the API directly.
@@ -41,7 +63,9 @@ export default async function proxy(request: NextRequest) {
     acceptLanguage: request.headers.get("accept-language"),
     tenantDefault,
   });
-  return NextResponse.redirect(new URL(`${withLanguage(pathname, language)}${search}`, request.url));
+  const response = NextResponse.redirect(new URL(`${withLanguage(pathname, language)}${search}`, request.url));
+  response.headers.set("Content-Security-Policy", policy());
+  return response;
 }
 
 export const config = {

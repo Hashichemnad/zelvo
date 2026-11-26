@@ -22,49 +22,51 @@ function WeekEditor({ periods, onChange, idPrefix }: { periods: Period[]; onChan
     <fieldset className="space-y-2">
       <legend className="font-semibold">{t("week")}</legend>
       <p className="text-sm text-ink-muted">{t("weekHint")}</p>
-      <table className="w-full border-collapse text-start text-sm">
-        <thead>
-          <tr>
-            <th scope="col" className="py-1 text-start">{t("day")}</th>
-            <th scope="col" className="py-1 text-start">{t("periods")}</th>
-          </tr>
-        </thead>
-        <tbody>
-          {weekdays.map((day: Weekday) => {
-            const own = periods.map((p, index) => ({ p, index })).filter(({ p }) => p.day === day);
-            return (
-              <tr key={day} className="border-t border-line align-top">
-                <th scope="row" className="py-2 pe-3 text-start font-semibold">{tDays(day)}</th>
-                <td className="space-y-2 py-2">
-                  {own.length === 0 && <p className="text-ink-muted">{t("dayOff")}</p>}
-                  {own.map(({ p, index }) => (
-                    <div key={index} className="flex flex-wrap items-end gap-2">
-                      <div>
-                        <label htmlFor={`${idPrefix}-${index}-start`} className="block text-xs">{t("start")}</label>
-                        <input id={`${idPrefix}-${index}-start`} dir="ltr" inputMode="numeric" pattern="\d{2}:\d{2}" placeholder="07:30" value={p.start} maxLength={5}
-                          aria-invalid={!isTime(p.start)} className={`${inputClass} w-24`}
-                          onChange={(e) => onChange(periods.map((x, i) => (i === index ? { ...x, start: e.target.value } : x)))} />
+      <div className="overflow-x-auto">
+        <table className="w-full border-collapse text-start text-sm">
+          <thead>
+            <tr>
+              <th scope="col" className="py-1 text-start">{t("day")}</th>
+              <th scope="col" className="py-1 text-start">{t("periods")}</th>
+            </tr>
+          </thead>
+          <tbody>
+            {weekdays.map((day: Weekday) => {
+              const own = periods.map((p, index) => ({ p, index })).filter(({ p }) => p.day === day);
+              return (
+                <tr key={day} className="border-t border-line align-top">
+                  <th scope="row" className="py-2 pe-3 text-start font-semibold">{tDays(day)}</th>
+                  <td className="space-y-2 py-2">
+                    {own.length === 0 && <p className="text-ink-muted">{t("dayOff")}</p>}
+                    {own.map(({ p, index }) => (
+                      <div key={index} className="flex flex-wrap items-end gap-2">
+                        <div>
+                          <label htmlFor={`${idPrefix}-${index}-start`} className="block text-xs">{t("start")}</label>
+                          <input id={`${idPrefix}-${index}-start`} dir="ltr" inputMode="numeric" pattern="\d{2}:\d{2}" placeholder="07:30" value={p.start} maxLength={5}
+                            aria-invalid={!isTime(p.start)} className={`${inputClass} w-24`}
+                            onChange={(e) => onChange(periods.map((x, i) => (i === index ? { ...x, start: e.target.value } : x)))} />
+                        </div>
+                        <div>
+                          <label htmlFor={`${idPrefix}-${index}-end`} className="block text-xs">{t("end")}</label>
+                          <input id={`${idPrefix}-${index}-end`} dir="ltr" inputMode="numeric" pattern="\d{2}:\d{2}" placeholder="15:30" value={p.end} maxLength={5}
+                            aria-invalid={!isTime(p.end)} className={`${inputClass} w-24`}
+                            onChange={(e) => onChange(periods.map((x, i) => (i === index ? { ...x, end: e.target.value } : x)))} />
+                        </div>
+                        <button type="button" className={smallButton} onClick={() => onChange(periods.filter((_, i) => i !== index))}>
+                          {t("removePeriod", { day: tDays(day) })}
+                        </button>
                       </div>
-                      <div>
-                        <label htmlFor={`${idPrefix}-${index}-end`} className="block text-xs">{t("end")}</label>
-                        <input id={`${idPrefix}-${index}-end`} dir="ltr" inputMode="numeric" pattern="\d{2}:\d{2}" placeholder="15:30" value={p.end} maxLength={5}
-                          aria-invalid={!isTime(p.end)} className={`${inputClass} w-24`}
-                          onChange={(e) => onChange(periods.map((x, i) => (i === index ? { ...x, end: e.target.value } : x)))} />
-                      </div>
-                      <button type="button" className={smallButton} onClick={() => onChange(periods.filter((_, i) => i !== index))}>
-                        {t("removePeriod", { day: tDays(day) })}
-                      </button>
-                    </div>
-                  ))}
-                  <button type="button" className={smallButton} onClick={() => onChange([...periods, { day, start: "08:00", end: "16:00" }])}>
-                    {t("addPeriod", { day: tDays(day) })}
-                  </button>
-                </td>
-              </tr>
-            );
-          })}
-        </tbody>
-      </table>
+                    ))}
+                    <button type="button" className={smallButton} onClick={() => onChange([...periods, { day, start: "08:00", end: "16:00" }])}>
+                      {t("addPeriod", { day: tDays(day) })}
+                    </button>
+                  </td>
+                </tr>
+              );
+            })}
+          </tbody>
+        </table>
+      </div>
     </fieldset>
   );
 }

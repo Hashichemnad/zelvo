@@ -141,24 +141,26 @@ export function LicensePanel({ initial, csrfToken, calendar, digits, timeZone = 
           <section aria-labelledby={`${id}-fingerprint`} className="space-y-2">
             <h3 id={`${id}-fingerprint`} className="text-xl font-bold">{t("fingerprintTitle")}</h3>
             <p className="max-w-2xl text-sm">{t("fingerprintIntro")}</p>
-            <table className="w-full max-w-3xl text-start text-sm">
-              <thead>
-                <tr className="border-b border-line">
-                  <th scope="col" className="py-2 text-start">{t("part")}</th>
-                  <th scope="col" className="py-2 text-start">{t("value")}</th>
-                  <th scope="col" className="py-2 text-start">{t("matches")}</th>
-                </tr>
-              </thead>
-              <tbody>
-                {state.fingerprint.map((p) => (
-                  <tr key={p.key} className="border-b border-line">
-                    <th scope="row" className="py-2 text-start font-semibold">{t(`parts.${p.key}`)}</th>
-                    <td className="py-2"><bdi dir="ltr" className="break-all">{p.value ?? "—"}</bdi></td>
-                    <td className="py-2">{p.matches === null ? "—" : t(p.matches ? "yes" : "no")}</td>
+            <div className="overflow-x-auto">
+              <table className="w-full max-w-3xl text-start text-sm">
+                <thead>
+                  <tr className="border-b border-line">
+                    <th scope="col" className="py-2 text-start">{t("part")}</th>
+                    <th scope="col" className="py-2 text-start">{t("value")}</th>
+                    <th scope="col" className="py-2 text-start">{t("matches")}</th>
                   </tr>
-                ))}
-              </tbody>
-            </table>
+                </thead>
+                <tbody>
+                  {state.fingerprint.map((p) => (
+                    <tr key={p.key} className="border-b border-line">
+                      <th scope="row" className="py-2 text-start font-semibold">{t(`parts.${p.key}`)}</th>
+                      <td className="py-2"><bdi dir="ltr" className="break-all">{p.value ?? "—"}</bdi></td>
+                      <td className="py-2">{p.matches === null ? "—" : t(p.matches ? "yes" : "no")}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
           </section>
 
           {state.files.length > 0 && (

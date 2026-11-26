@@ -22,7 +22,16 @@ const nextConfig: NextConfig = {
     return [
       { source: "/:path*", headers: securityHeaders },
       // Pages are never framed, except the chat widget, which the proxy limits to its websites (task E2).
-      { source: "/((?!chat-widget/).*)", headers: [{ key: "X-Frame-Options", value: "DENY" }] },
+      // Task F7: a baseline policy for responses the proxy does not see (route handlers under /auth
+      // and /bff, files); pages get the proxy's full policy with a nonce as well (lib/csp.ts), and
+      // browsers apply both, so this one only adds what both allow.
+      {
+        source: "/((?!chat-widget/).*)",
+        headers: [
+          { key: "X-Frame-Options", value: "DENY" },
+          { key: "Content-Security-Policy", value: "object-src 'none'; base-uri 'none'; frame-ancestors 'none'" },
+        ],
+      },
     ];
   },
 };

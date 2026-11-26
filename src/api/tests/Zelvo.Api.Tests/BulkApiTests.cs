@@ -122,6 +122,8 @@ public sealed class BulkApiTests(DatabaseFixture database) : IAsyncDisposable
         var (subject, firstName, lastName) = _factory.Keycloak.ImportedUsers[(realm, "sara@example.ae")];
         Assert.Equal(("Sara", "Al Mansoori"), (firstName, lastName));
         Assert.Contains(_factory.Keycloak.EmiratesIdCalls, c => c.Realm == realm && c.Subject == subject && c.EmiratesId == "784199012345671");
+        // Task F7: the existing person turned off by the import is turned off in Keycloak too.
+        Assert.Contains(_factory.Keycloak.EnabledCalls, c => c == (realm, existing.Subject, false));
 
         await using var db = TestData.AppContext(database, tenant);
         var sara = await db.Users.Include(u => u.Roles).ThenInclude(r => r.Role).SingleAsync(u => u.Subject == subject, Ct);

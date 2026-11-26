@@ -52,26 +52,28 @@ export default async function PrivacyRequestsPage({ params, searchParams }: Page
         </ul>
       </nav>
       {!list ? <p role="alert">{t("unavailable")}</p> : list.items.length === 0 ? <p>{t("none")}</p> : (
-        <table className="w-full text-start text-sm" data-testid="privacy-requests">
-          <thead>
-            <tr>
-              {["number", "type", "person", "state", "due"].map((c) => <th key={c} scope="col" className="border-b border-line py-2 text-start">{t(`columns.${c}`)}</th>)}
-            </tr>
-          </thead>
-          <tbody>
-            {list.items.map((r) => (
-              <tr key={r.id}>
-                <td className="border-b border-line py-2"><Link href={`/privacy-requests/${r.id}`} className="font-mono text-brand underline" dir="ltr">{r.number}</Link></td>
-                <td className="border-b border-line py-2">{tTypes(r.type)}</td>
-                <td className="border-b border-line py-2">{r.subject?.erased ? t("erasedPerson") : r.subject?.name ?? r.subject?.email ?? "—"}</td>
-                <td className="border-b border-line py-2">{tStates(r.state)}</td>
-                <td className={`border-b border-line py-2 ${r.overdue ? "font-semibold text-bad" : ""}`}>
-                  {when(r.dueAt)}{r.overdue && ` · ${t("overdue")}`}
-                </td>
+        <div className="overflow-x-auto">
+          <table className="w-full text-start text-sm" data-testid="privacy-requests">
+            <thead>
+              <tr>
+                {["number", "type", "person", "state", "due"].map((c) => <th key={c} scope="col" className="border-b border-line py-2 text-start">{t(`columns.${c}`)}</th>)}
               </tr>
-            ))}
-          </tbody>
-        </table>
+            </thead>
+            <tbody>
+              {list.items.map((r) => (
+                <tr key={r.id}>
+                  <td className="border-b border-line py-2"><Link href={`/privacy-requests/${r.id}`} className="font-mono text-brand underline" dir="ltr">{r.number}</Link></td>
+                  <td className="border-b border-line py-2">{tTypes(r.type)}</td>
+                  <td className="border-b border-line py-2">{r.subject?.erased ? t("erasedPerson") : r.subject?.name ?? r.subject?.email ?? "—"}</td>
+                  <td className="border-b border-line py-2">{tStates(r.state)}</td>
+                  <td className={`border-b border-line py-2 ${r.overdue ? "font-semibold text-bad" : ""}`}>
+                    {when(r.dueAt)}{r.overdue && ` · ${t("overdue")}`}
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
       )}
       <LogRequestForm csrfToken={session.data.csrfToken} />
     </section>

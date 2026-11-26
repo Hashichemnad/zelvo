@@ -5,7 +5,12 @@ const tenantWide = [/settings\.spec\.ts/, /uae-pass\.spec\.ts/, /integrations\.s
 
 /** Demo mode needs the demo installation (`make demo`); `make e2e-demo` runs it with E2E_DEMO=1. */
 const demo = /demo\.spec\.ts/;
+/** Task F7: the WCAG 2.2 AA audit of every page needs the demo's sample data; it runs after demo.spec.ts. */
+const accessibility = /accessibility\.spec\.ts/;
 const demoRun = process.env.E2E_DEMO === "1";
+
+/** Task F7: prepares an installation for the load tests (tests/load/README.md); only with E2E_LOAD=1. */
+const loadRun = process.env.E2E_LOAD === "1";
 
 /**
  * End-to-end tests against a running stack (`make up`). BASE_URL defaults to the local web port.
@@ -24,12 +29,17 @@ export default defineConfig({
     launchOptions: process.env.CHROMIUM_PATH ? { executablePath: process.env.CHROMIUM_PATH } : {},
   },
   projects: demoRun
-    ? [{ name: "demo", use: { ...devices["Desktop Chrome"] }, testMatch: demo }]
+    ? [
+        { name: "demo", use: { ...devices["Desktop Chrome"] }, testMatch: demo },
+        { name: "demo-accessibility", use: { ...devices["Desktop Chrome"] }, testMatch: accessibility, dependencies: ["demo"] },
+      ]
+    : loadRun
+    ? [{ name: "load-provision", use: { ...devices["Desktop Chrome"] }, testDir: "./load", testMatch: /provision\.spec\.ts$/ }]
     : [
         // Sets up the staff users' authenticators once, before the parallel projects (see the setup file).
         { name: "second-factor", use: { ...devices["Desktop Chrome"] }, testDir: "./setup", testMatch: /\.setup\.ts$/ },
-        { name: "desktop", use: { ...devices["Desktop Chrome"] }, testIgnore: [...tenantWide, demo], dependencies: ["second-factor"] },
-        { name: "mobile", use: { ...devices["Pixel 7"] }, testIgnore: [...tenantWide, demo], dependencies: ["second-factor"] },
+        { name: "desktop", use: { ...devices["Desktop Chrome"] }, testIgnore: [...tenantWide, demo, accessibility], dependencies: ["second-factor"] },
+        { name: "mobile", use: { ...devices["Pixel 7"] }, testIgnore: [...tenantWide, demo, accessibility], dependencies: ["second-factor"] },
         // Changes tenant-wide defaults, so it runs after every other test, on its own.
         {
           name: "tenant-settings",

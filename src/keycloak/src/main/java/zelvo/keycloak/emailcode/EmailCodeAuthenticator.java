@@ -44,6 +44,7 @@ public final class EmailCodeAuthenticator implements Authenticator {
     static final String CONFIG_POLICY = "signInPolicy";
     static final String CONFIG_DOMAINS = "allowedDomains";
     static final String CONFIG_TTL = "codeTtlSeconds";
+    static final long MAX_TTL_SECONDS = 600;
 
     private static final Logger LOG = Logger.getLogger(EmailCodeAuthenticator.class);
     private static final List<String> CODE_NOTES = List.of(
@@ -131,7 +132,13 @@ public final class EmailCodeAuthenticator implements Authenticator {
             context.challenge(codeForm(context, email, new FormMessage(null, "zelvoCodeResendWait"), null));
             return;
         }
+        // Task F7 (ASVS V6.5.5): wrong codes count for the whole sign-in, so asking for a new code
+        // does not give more guesses; after the limit the person starts again.
+        String attempts = auth.getAuthNote(OneTimeCode.NOTE_ATTEMPTS);
         sendNewCode(context, email, auth.getAuthNote(NOTE_TARGET));
+        if (attempts != null) {
+            auth.setAuthNote(OneTimeCode.NOTE_ATTEMPTS, attempts);
+        }
         context.challenge(codeForm(context, email, null, new FormMessage(null, "zelvoCodeResent")));
     }
 
@@ -255,7 +262,8 @@ public final class EmailCodeAuthenticator implements Authenticator {
         String value = config == null || config.getConfig() == null ? null : config.getConfig().get(CONFIG_TTL);
         try {
             long ttl = value == null ? OneTimeCode.DEFAULT_TTL_SECONDS : Long.parseLong(value);
-            return Math.min(Math.max(ttl, 60), 3600);
+            // Task F7 (ASVS V6.5.5): at most 10 minutes.
+            return Math.min(Math.max(ttl, 60), MAX_TTL_SECONDS);
         } catch (NumberFormatException e) {
             return OneTimeCode.DEFAULT_TTL_SECONDS;
         }

@@ -22,31 +22,33 @@ export function GroupsPanel({ groups, csrfToken, canManage }: { groups: GroupSum
       {groups.length === 0 ? (
         <p>{t("empty")}</p>
       ) : (
-        <table className={tableClass}>
-          <caption className="sr-only">{t("caption")}</caption>
-          <thead>
-            <tr>
-              <th scope="col" className={cellClass}>{t("name")}</th>
-              <th scope="col" className={cellClass}>{t("members")}</th>
-              <th scope="col" className={cellClass}>{t("leads")}</th>
-              <th scope="col" className={cellClass}>{t("state")}</th>
-            </tr>
-          </thead>
-          <tbody>
-            {groups.map((group) => (
-              <tr key={group.id}>
-                <td className={cellClass}>
-                  <Link href={`/settings/groups/${group.id}`} className="font-semibold text-brand underline-offset-4 hover:underline">
-                    <Localized text={group.name} locale={locale} />
-                  </Link>
-                </td>
-                <td className={cellClass}>{group.memberCount}</td>
-                <td className={cellClass}>{group.leadCount}</td>
-                <td className={cellClass}>{group.active ? t("active") : t("inactive")}</td>
+        <div className="overflow-x-auto">
+          <table className={tableClass}>
+            <caption className="sr-only">{t("caption")}</caption>
+            <thead>
+              <tr>
+                <th scope="col" className={cellClass}>{t("name")}</th>
+                <th scope="col" className={cellClass}>{t("members")}</th>
+                <th scope="col" className={cellClass}>{t("leads")}</th>
+                <th scope="col" className={cellClass}>{t("state")}</th>
               </tr>
-            ))}
-          </tbody>
-        </table>
+            </thead>
+            <tbody>
+              {groups.map((group) => (
+                <tr key={group.id}>
+                  <td className={cellClass}>
+                    <Link href={`/settings/groups/${group.id}`} className="font-semibold text-brand underline-offset-4 hover:underline">
+                      <Localized text={group.name} locale={locale} />
+                    </Link>
+                  </td>
+                  <td className={cellClass}>{group.memberCount}</td>
+                  <td className={cellClass}>{group.leadCount}</td>
+                  <td className={cellClass}>{group.active ? t("active") : t("inactive")}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
       )}
       {canManage && (
         <form

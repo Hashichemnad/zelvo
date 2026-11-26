@@ -35,6 +35,16 @@
 # Incoming messages (zelvo_hooks) then get 503 too, and their providers send them again later.
 (zelvo) {
 	encode zstd gzip
+	# Task F7 (ASVS V3.4.1): browsers keep to HTTPS for a year on the installation's address and
+	# custom domains. Not for localhost, where it would also force every other local port onto
+	# HTTPS. Without includeSubDomains: other hosts under a customer's domain are theirs to decide.
+	@hsts not host localhost 127.0.0.1
+	header @hsts Strict-Transport-Security "max-age=31536000"
+	# Task F7 (ASVS V13.4.4): no TRACE or TRACK, which only echo requests back.
+	@trace method TRACE TRACK
+	handle @trace {
+		respond 405
+	}
 	import zelvo_hooks
 	handle_path /_zelvo/maintenance/* {
 		root * /srv/maintenance

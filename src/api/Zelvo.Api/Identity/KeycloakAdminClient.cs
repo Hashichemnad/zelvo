@@ -70,6 +70,20 @@ internal interface IKeycloakAdmin
     /// sessions) when their personal data is erased. A user that does not exist is not an error.
     /// </summary>
     Task DeleteUserAsync(string realm, string subject, CancellationToken cancellationToken);
+
+    /// <summary>
+    /// Task F7 (ASVS V7.4.2): turns a Keycloak user on or off. Turning off also ends every
+    /// Keycloak session of the user, so the web app cannot refresh their tokens either. A user
+    /// that does not exist is not an error.
+    /// </summary>
+    Task SetUserEnabledAsync(string realm, string subject, bool enabled, CancellationToken cancellationToken);
+
+    /// <summary>
+    /// Task F7 (ASVS V7.4.5): ends every Keycloak session of one user, or with
+    /// <paramref name="subject"/> null of everyone in the realm. Web sessions end at their next
+    /// token refresh, within the access token's lifetime.
+    /// </summary>
+    Task SignOutAsync(string realm, string? subject, CancellationToken cancellationToken);
 }
 
 /// <summary>Which directory sign-in (task E7).</summary>
@@ -413,6 +427,25 @@ internal sealed class KeycloakAdminClient : IKeycloakAdmin
     public async Task DeleteUserAsync(string realm, string subject, CancellationToken cancellationToken)
     {
         using var _ = await SendAsync(HttpMethod.Delete, $"realms/{E(realm)}/users/{E(subject)}", null, cancellationToken, allowNotFound: true).ConfigureAwait(false);
+    }
+
+    public async Task SetUserEnabledAsync(string realm, string subject, bool enabled, CancellationToken cancellationToken)
+    {
+        using (await SendAsync(HttpMethod.Put, $"realms/{E(realm)}/users/{E(subject)}", new JsonObject { ["enabled"] = enabled },
+            cancellationToken, allowNotFound: true).ConfigureAwait(false))
+        {
+        }
+
+        if (!enabled)
+        {
+            await SignOutAsync(realm, subject, cancellationToken).ConfigureAwait(false);
+        }
+    }
+
+    public async Task SignOutAsync(string realm, string? subject, CancellationToken cancellationToken)
+    {
+        var path = subject is null ? $"realms/{E(realm)}/logout-all" : $"realms/{E(realm)}/users/{E(subject)}/logout";
+        using var _ = await SendAsync(HttpMethod.Post, path, null, cancellationToken, allowNotFound: true).ConfigureAwait(false);
     }
 
     public async Task<int> DeleteUsersExceptAsync(string realm, IReadOnlySet<string> keep, CancellationToken cancellationToken)

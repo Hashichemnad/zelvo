@@ -88,6 +88,12 @@ public sealed class FormEngineTests
         Assert.Equal(
             ["agree:required", "count:max", "eid:format-emirates-id", "extra:field-unknown", "name:max-length", "sizes:option-unknown", "when:min-date"],
             bad.Errors.Select(e => $"{e.Field}:{e.Code}").Order(StringComparer.Ordinal));
+
+        // Task F7: a number too large for decimal is refused like any wrong answer, never a crash.
+        var huge = FormAnswers.Check(fields, (JsonObject)JsonNode.Parse("""
+            {"name": "Sara", "count": 1e400, "agree": true}
+            """)!, []);
+        Assert.Equal(["count:type"], huge.Errors.Select(e => $"{e.Field}:{e.Code}"));
     }
 
     [Fact]

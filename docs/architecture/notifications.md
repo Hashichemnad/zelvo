@@ -107,7 +107,7 @@ All screens are in English and Arabic with logical CSS properties.
 | --- | --- | --- |
 | `Notifications:WebUrl` | `http://localhost:3000/` | Address of the web app in email links (custom domains per tenant: F1) |
 | `Notifications:Smtp:Host` | empty | Mail server; empty means no email (in-app still works; emails fail with a clear error in the log) |
-| `Notifications:Smtp:Port`, `Security` | 587, `Auto` | `Auto` (TLS on 465, else STARTTLS when offered), `StartTls`, `SslOnConnect`, `None` (local relays only) |
+| `Notifications:Smtp:Port`, `Security` | 587, `Auto` | `Auto` (TLS on 465, else STARTTLS, required: a server without STARTTLS is refused, task F7), `StartTls`, `SslOnConnect`, `None` (local relays only) |
 | `Notifications:Smtp:User`, `Password` | empty | From environment variables or secrets, never committed |
 | `Notifications:Smtp:From` | `no-reply@zelvo.test` | Sender address |
 | `Notifications:PollInterval`, `Concurrency`, `RetryDelays`, `DeliveryRetention`, `InAppRetention` | 2 s, 4, see above, 30 days, 90 days | Worker behaviour |

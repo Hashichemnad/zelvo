@@ -73,64 +73,66 @@ export function GroupDetailPanel({ initial, csrfToken, canManage, meId }: GroupD
         {group.members.length === 0 ? (
           <p>{t("noMembers")}</p>
         ) : (
-          <table className={tableClass} data-testid="group-members">
-            <caption className="sr-only">{t("membersCaption")}</caption>
-            <thead>
-              <tr>
-                <th scope="col" className={cellClass}>{t("member")}</th>
-                <th scope="col" className={cellClass}>{t("lead")}</th>
-                <th scope="col" className={cellClass}>{t("available")}</th>
-                <th scope="col" className={cellClass}>{t("memberLanguages")}</th>
-                <th scope="col" className={cellClass}>{t("memberSkills")}</th>
-                {canManageMembers && <th scope="col" className={cellClass}>{t("actions")}</th>}
-              </tr>
-            </thead>
-            <tbody>
-              {group.members.map((member) => {
-                const who = member.displayName ?? member.userId;
-                const mayChange = canManage || (isLead && !member.isLead);
-                return (
-                  <tr key={member.userId}>
-                    <td className={cellClass}>
-                      {who}
-                      {member.status === "Disabled" && <span className="ms-2 text-xs text-ink-muted">{t("disabled")}</span>}
-                    </td>
-                    <td className={cellClass}>
-                      {canManage ? (
-                        <input type="checkbox" aria-label={t("leadOf", { name: who })} checked={member.isLead} disabled={busy}
-                          onChange={(e) => void memberChange(() => putJson(`${base}/members/${member.userId}`, { isLead: e.target.checked }, csrfToken))} />
-                      ) : member.isLead ? t("yes") : t("no")}
-                    </td>
-                    <td className={cellClass}>
-                      {mayChange ? (
-                        <input type="checkbox" aria-label={t("availableFor", { name: who })} checked={member.availableForAssignment} disabled={busy}
-                          onChange={(e) => void memberChange(() => putJson(`/v1/users/${member.userId}/availability`, { available: e.target.checked }, csrfToken))} />
-                      ) : member.availableForAssignment ? t("yes") : t("no")}
-                    </td>
-                    <td className={cellClass}>{member.languages.map((l) => tLanguages(l)).join(locale === "ar" ? "، " : ", ") || "—"}</td>
-                    <td className={cellClass}>
-                      {member.skills.length === 0 ? "—" : member.skills.map((s, i) => (
-                        <span key={s.id}>
-                          {i > 0 && (locale === "ar" ? "، " : ", ")}
-                          <Localized text={s.name} locale={locale} />
-                        </span>
-                      ))}
-                    </td>
-                    {canManageMembers && (
+          <div className="overflow-x-auto">
+            <table className={tableClass} data-testid="group-members">
+              <caption className="sr-only">{t("membersCaption")}</caption>
+              <thead>
+                <tr>
+                  <th scope="col" className={cellClass}>{t("member")}</th>
+                  <th scope="col" className={cellClass}>{t("lead")}</th>
+                  <th scope="col" className={cellClass}>{t("available")}</th>
+                  <th scope="col" className={cellClass}>{t("memberLanguages")}</th>
+                  <th scope="col" className={cellClass}>{t("memberSkills")}</th>
+                  {canManageMembers && <th scope="col" className={cellClass}>{t("actions")}</th>}
+                </tr>
+              </thead>
+              <tbody>
+                {group.members.map((member) => {
+                  const who = member.displayName ?? member.userId;
+                  const mayChange = canManage || (isLead && !member.isLead);
+                  return (
+                    <tr key={member.userId}>
                       <td className={cellClass}>
-                        {mayChange && (
-                          <button type="button" className={smallButton} disabled={busy}
-                            onClick={() => void memberChange(() => deleteRequest(`${base}/members/${member.userId}`, csrfToken))}>
-                            {t("remove", { name: who })}
-                          </button>
-                        )}
+                        {who}
+                        {member.status === "Disabled" && <span className="ms-2 text-xs text-ink-muted">{t("disabled")}</span>}
                       </td>
-                    )}
-                  </tr>
-                );
-              })}
-            </tbody>
-          </table>
+                      <td className={cellClass}>
+                        {canManage ? (
+                          <input type="checkbox" aria-label={t("leadOf", { name: who })} checked={member.isLead} disabled={busy}
+                            onChange={(e) => void memberChange(() => putJson(`${base}/members/${member.userId}`, { isLead: e.target.checked }, csrfToken))} />
+                        ) : member.isLead ? t("yes") : t("no")}
+                      </td>
+                      <td className={cellClass}>
+                        {mayChange ? (
+                          <input type="checkbox" aria-label={t("availableFor", { name: who })} checked={member.availableForAssignment} disabled={busy}
+                            onChange={(e) => void memberChange(() => putJson(`/v1/users/${member.userId}/availability`, { available: e.target.checked }, csrfToken))} />
+                        ) : member.availableForAssignment ? t("yes") : t("no")}
+                      </td>
+                      <td className={cellClass}>{member.languages.map((l) => tLanguages(l)).join(locale === "ar" ? "، " : ", ") || "—"}</td>
+                      <td className={cellClass}>
+                        {member.skills.length === 0 ? "—" : member.skills.map((s, i) => (
+                          <span key={s.id}>
+                            {i > 0 && (locale === "ar" ? "، " : ", ")}
+                            <Localized text={s.name} locale={locale} />
+                          </span>
+                        ))}
+                      </td>
+                      {canManageMembers && (
+                        <td className={cellClass}>
+                          {mayChange && (
+                            <button type="button" className={smallButton} disabled={busy}
+                              onClick={() => void memberChange(() => deleteRequest(`${base}/members/${member.userId}`, csrfToken))}>
+                              {t("remove", { name: who })}
+                            </button>
+                          )}
+                        </td>
+                      )}
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
         )}
 
         {canManageMembers && (

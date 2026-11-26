@@ -30,6 +30,19 @@ internal sealed class SecurityHeadersMiddleware(RequestDelegate next)
             headers["Content-Security-Policy"] = "default-src 'none'; frame-ancestors 'none'";
         }
 
+        // Task F7 (ASVS V14.3.2): answers are not kept by browsers or shared caches unless an
+        // endpoint says otherwise (for example branding images).
+        context.Response.OnStarting(static state =>
+        {
+            var response = (HttpResponse)state;
+            if (!response.Headers.ContainsKey("Cache-Control"))
+            {
+                response.Headers.CacheControl = "no-store";
+            }
+
+            return Task.CompletedTask;
+        }, context.Response);
+
         return next(context);
     }
 }

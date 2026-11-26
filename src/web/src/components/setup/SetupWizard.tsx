@@ -77,7 +77,7 @@ export function SetupWizard({ initial, templates, tenantName, canRename, csrfTok
         {state.completedAt && <p className="text-ok" data-testid="setup-finished">{t("finished")}</p>}
       </div>
 
-      <div className="grid gap-6 md:grid-cols-[16rem_1fr]">
+      <div className="grid grid-cols-1 gap-6 md:grid-cols-[16rem_minmax(0,1fr)]">
         <nav aria-label={t("stepsLabel")}>
           <ol className="space-y-1">
             {state.steps.map((s, i) => (
