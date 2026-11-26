@@ -45,6 +45,24 @@ public sealed class RateLimitingTests(DatabaseFixture database)
     }
 
     [Fact]
+    public async Task Refused_requests_that_do_not_accept_json_still_get_429_not_500()
+    {
+        // The live-update stream asks for text/event-stream; writing its 429 used to throw
+        // ("Unable to find a registered IProblemDetailsWriter"), so it became a 500 (CI, 2026-11-26).
+        await using var factory = Limited(visitorPermits: 1);
+        using var client = factory.CreateClient();
+        Assert.Equal(HttpStatusCode.OK, (await client.GetAsync(Info, TestContext.Current.CancellationToken)).StatusCode);
+
+        using var request = new HttpRequestMessage(HttpMethod.Get, Info);
+        request.Headers.Accept.ParseAdd("text/event-stream");
+        using var refused = await client.SendAsync(request, TestContext.Current.CancellationToken);
+        Assert.Equal(HttpStatusCode.TooManyRequests, refused.StatusCode);
+        Assert.Equal("application/problem+json", refused.Content.Headers.ContentType?.MediaType);
+        var problem = await refused.Content.ReadFromJsonAsync<Problem>(TestContext.Current.CancellationToken);
+        Assert.Equal("rate-limited", problem!.Code);
+    }
+
+    [Fact]
     public async Task Behind_a_trusted_proxy_each_forwarded_client_address_has_its_own_limit()
     {
         await using var factory = Limited(visitorPermits: 1).WithSetting("Network:TrustedProxies:0", "10.0.0.0/8");

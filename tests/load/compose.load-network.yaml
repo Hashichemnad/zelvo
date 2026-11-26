@@ -1,0 +1,16 @@
+# Task F7: lets a separate load generator reach the test server's API and web app over a private
+# network, for load tests only (docs/release-readiness/load-test-guide.md). The development
+# Compose file binds them to 127.0.0.1, and an SSH tunnel would limit what 1,000 agents measure.
+#
+# ZELVO_LOAD_BIND is the test server's address on the private network shared with the load
+# generator, never a public address: ports Docker publishes are not filtered by ufw.
+#
+#   ZELVO_LOAD_BIND=10.0.0.5 docker compose -f deploy/compose/compose.yaml \
+#     -f tests/load/compose.load.yaml -f tests/load/compose.load-network.yaml up -d api web
+services:
+  api:
+    ports:
+      - "${ZELVO_LOAD_BIND:?set ZELVO_LOAD_BIND to the test server's private address}:${ZELVO_LOAD_API_PORT:-18080}:8080"
+  web:
+    ports:
+      - "${ZELVO_LOAD_BIND:?set ZELVO_LOAD_BIND to the test server's private address}:${ZELVO_LOAD_WEB_PORT:-13000}:3000"

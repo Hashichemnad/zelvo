@@ -14,7 +14,11 @@ export async function generateMetadata({ params }: PageProps<"/[locale]/settings
 }
 
 const selectClass =
-  "block rounded-md border border-line bg-surface px-3 py-2 text-ink focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand";
+  "block max-w-full rounded-md border border-line bg-surface px-3 py-2 text-ink focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand";
+// A text box without a width is as wide as 20 average characters of the font; with a wide brand
+// font (IBM Plex Sans Arabic) that is wider than a 320 px screen (WCAG 1.4.10 reflow).
+const textClass = `${selectClass} w-64`;
+const labelClass = "max-w-full space-y-1 text-sm";
 const cellClass = "border-b border-line px-2 py-2 text-start align-top";
 
 /** Settings → Users (task B2): search, filter by role and status, add a user. */
@@ -52,11 +56,11 @@ export default async function UsersPage({ params, searchParams }: PageProps<"/[l
       <h2 id="users-heading" className="text-2xl font-bold">{tSection("title")}</h2>
       <p className="max-w-2xl">{t("intro")}</p>
       <form method="get" role="search" aria-label={t("filters")} className="flex flex-wrap items-end gap-3 rounded-lg border border-line p-3">
-        <label className="space-y-1 text-sm">
+        <label className={labelClass}>
           <span className="block font-semibold">{t("search")}</span>
-          <input type="search" name="q" defaultValue={query.q ?? ""} dir="auto" maxLength={100} className={selectClass} />
+          <input type="search" name="q" defaultValue={query.q ?? ""} dir="auto" maxLength={100} className={textClass} />
         </label>
-        <label className="space-y-1 text-sm">
+        <label className={labelClass}>
           <span className="block font-semibold">{t("role")}</span>
           {roles ? (
             <select name="role" defaultValue={query.role ?? ""} className={selectClass}>
@@ -66,10 +70,10 @@ export default async function UsersPage({ params, searchParams }: PageProps<"/[l
               ))}
             </select>
           ) : (
-            <input name="role" defaultValue={query.role ?? ""} dir="ltr" maxLength={50} className={selectClass} />
+            <input name="role" defaultValue={query.role ?? ""} dir="ltr" maxLength={50} className={textClass} />
           )}
         </label>
-        <label className="space-y-1 text-sm">
+        <label className={labelClass}>
           <span className="block font-semibold">{t("status")}</span>
           <select name="status" defaultValue={query.status ?? ""} className={selectClass}>
             <option value="">{t("anyStatus")}</option>

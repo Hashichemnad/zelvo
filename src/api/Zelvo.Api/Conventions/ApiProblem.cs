@@ -1,4 +1,5 @@
 using System.Diagnostics;
+using System.Text.Json;
 
 namespace Zelvo.Api.Conventions;
 
@@ -21,12 +22,16 @@ internal static class ApiProblem
             type: TypeFor(code),
             extensions: new Dictionary<string, object?>(StringComparer.Ordinal) { ["code"] = code });
 
-    /// <summary>Writes a problem from middleware.</summary>
+    /// <summary>
+    /// Writes a problem from middleware. When no problem details writer accepts the request (its
+    /// <c>Accept</c> header rules out JSON, as the live-update stream's <c>text/event-stream</c>
+    /// does), the problem is still written as <c>application/problem+json</c>: the status code is
+    /// what matters, and throwing would turn a 429 or 401 into a 500.
+    /// </summary>
     public static async Task WriteAsync(HttpContext context, int statusCode, string code, string title)
     {
         context.Response.StatusCode = statusCode;
-        var service = context.RequestServices.GetRequiredService<IProblemDetailsService>();
-        await service.WriteAsync(new ProblemDetailsContext
+        var problemContext = new ProblemDetailsContext
         {
             HttpContext = context,
             ProblemDetails =
@@ -36,7 +41,15 @@ internal static class ApiProblem
                 Type = TypeFor(code),
                 Extensions = { ["code"] = code },
             },
-        }).ConfigureAwait(false);
+        };
+        var service = context.RequestServices.GetRequiredService<IProblemDetailsService>();
+        if (await service.TryWriteAsync(problemContext).ConfigureAwait(false))
+        {
+            return;
+        }
+
+        Customize(problemContext);
+        await context.Response.WriteAsJsonAsync(problemContext.ProblemDetails, (JsonSerializerOptions?)null, "application/problem+json", context.RequestAborted).ConfigureAwait(false);
     }
 
     /// <summary>Adds <c>traceId</c> to every problem and a <c>code</c> where the framework wrote one.</summary>

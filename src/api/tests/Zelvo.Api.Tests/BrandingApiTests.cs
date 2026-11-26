@@ -266,6 +266,34 @@ public sealed class BrandingApiTests(DatabaseFixture database) : IAsyncDisposabl
         Assert.Equal("noreply@entity.example", ((MailboxAddress)mime.From.Single()).Address);
         Assert.Contains("d=entity.example", mime.Headers[HeaderId.DkimSignature], StringComparison.Ordinal);
         Assert.Contains(mime.BodyParts, p => p.ContentId == NotificationRenderer.LogoContentId);
+
+        // A receiving server that looks up the published key accepts the signature, also after the
+        // message travelled as bytes (MimeKit 5 moved DkimSigner to MimeKit.Cryptography, Dependabot PR #80).
+        var record = $"v=DKIM1; k=rsa; p={Convert.ToBase64String(rsa.ExportSubjectPublicKeyInfo())}";
+        var verifier = new MimeKit.Cryptography.DkimVerifier(new DkimKeyDns("zelvo202611._domainkey.entity.example", record));
+        using var wire = new MemoryStream();
+        mime.WriteTo(wire, Ct);
+        wire.Position = 0;
+        using var received = MimeMessage.Load(wire, Ct);
+        var results = verifier.Verify(received, Ct);
+        var result = Assert.Single(results);
+        Assert.Equal(MimeKit.Cryptography.DkimSignatureStatus.Pass, result.Status);
+
+        // A changed subject breaks it.
+        received.Subject = "Changed";
+        Assert.NotEqual(MimeKit.Cryptography.DkimSignatureStatus.Pass, Assert.Single(verifier.Verify(received, Ct)).Status);
+    }
+
+    /// <summary>Answers the DKIM key record of one selector, as the tenant's DNS would.</summary>
+    private sealed class DkimKeyDns(string name, string record) : MimeKit.Cryptography.IDnsResolver
+    {
+        public MimeKit.Cryptography.DnsTxtResponse QueryTxt(string domain, CancellationToken cancellationToken = default) =>
+            string.Equals(domain, name, StringComparison.OrdinalIgnoreCase)
+                ? new MimeKit.Cryptography.DnsTxtResponse([record])
+                : new MimeKit.Cryptography.DnsTxtResponse(MimeKit.Cryptography.DnsQueryStatus.NonExistentDomain);
+
+        public Task<MimeKit.Cryptography.DnsTxtResponse> QueryTxtAsync(string domain, CancellationToken cancellationToken = default) =>
+            Task.FromResult(QueryTxt(domain, cancellationToken));
     }
 
     [Fact]

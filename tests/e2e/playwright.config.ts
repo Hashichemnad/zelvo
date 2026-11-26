@@ -13,6 +13,13 @@ const demoRun = process.env.E2E_DEMO === "1";
 const loadRun = process.env.E2E_LOAD === "1";
 
 /**
+ * Task F7: records the demo walkthrough as videos against the demo installation; only with
+ * E2E_VIDEO=1 (workflow "Demo video"). Full HD, slowed down so a person can follow it.
+ */
+const videoRun = process.env.E2E_VIDEO === "1";
+const fullHd = { width: 1920, height: 1080 };
+
+/**
  * End-to-end tests against a running stack (`make up`). BASE_URL defaults to the local web port.
  * CHROMIUM_PATH lets a machine with a preinstalled browser use it instead of downloading one.
  */
@@ -28,7 +35,25 @@ export default defineConfig({
     trace: "retain-on-failure",
     launchOptions: process.env.CHROMIUM_PATH ? { executablePath: process.env.CHROMIUM_PATH } : {},
   },
-  projects: demoRun
+  projects: videoRun
+    ? [
+        {
+          name: "demo-video",
+          testDir: "./video",
+          retries: 0,
+          use: {
+            ...devices["Desktop Chrome"],
+            viewport: fullHd,
+            deviceScaleFactor: 1,
+            video: { mode: "on", size: fullHd },
+            launchOptions: {
+              ...(process.env.CHROMIUM_PATH ? { executablePath: process.env.CHROMIUM_PATH } : {}),
+              slowMo: Number(process.env.DEMO_VIDEO_SLOW_MO_MS ?? 250),
+            },
+          },
+        },
+      ]
+    : demoRun
     ? [
         { name: "demo", use: { ...devices["Desktop Chrome"] }, testMatch: demo },
         { name: "demo-accessibility", use: { ...devices["Desktop Chrome"] }, testMatch: accessibility, dependencies: ["demo"] },
