@@ -18,5 +18,8 @@ case "${1:-}" in
 esac
 
 zelvo-pgbackrest --stanza="$stanza" info
-zelvo-pgbackrest --stanza="$stanza" --delta "${target[@]}" restore
+# The restored server fetches WAL through the same wrapper as archiving, which drops the empty
+# PGBACKREST_* settings Compose passes (pgBackRest's own restore_command would refuse them).
+zelvo-pgbackrest --stanza="$stanza" --delta "${target[@]}" \
+  --recovery-option="restore_command=zelvo-pgbackrest --stanza=$stanza archive-get %f \"%p\"" restore
 echo "Restored. Start PostgreSQL: it replays the archive and then accepts connections."
