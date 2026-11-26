@@ -37,7 +37,15 @@ public sealed partial class UpdateInstaller(
 {
     public static IReadOnlyList<string> InstallSteps { get; } = ["verify", "load-images", "stop", "backup", "switch-version", "migrate", "start", "health"];
 
+    /// <summary>Where a package carries the release's signed manifest (task F6).</summary>
+    internal const string ReleaseManifestEntry = "release/release-manifest.json";
+
     private UpdaterOptions Options => options.Value;
+
+    private string ReleaseDirectory => Path.Combine(Options.ComposeDirectory, Options.ReleaseDirectory);
+
+    private string[] ReleaseFiles =>
+        [Path.Combine(ReleaseDirectory, "release-manifest.json"), Path.Combine(ReleaseDirectory, "release-manifest.json.sig")];
 
     public async Task<InstallOutcome> InstallAsync(InstallPlan plan, CancellationToken cancellationToken)
     {
@@ -124,6 +132,11 @@ public sealed partial class UpdateInstaller(
                     File.Copy(Path.Combine(Options.ComposeDirectory, file), Path.Combine(backup, file.Replace('/', '_')), overwrite: true);
                 }
 
+                foreach (var file in ReleaseFiles.Where(File.Exists))
+                {
+                    File.Copy(file, Path.Combine(backup, Path.GetFileName(file)), overwrite: true);
+                }
+
                 backedUp = true;
                 return $"{Options.Databases.Count} databases and the configuration backed up.";
             }).ConfigureAwait(false);
@@ -132,6 +145,19 @@ public sealed partial class UpdateInstaller(
             {
                 switched = true;
                 await SetVersionAsync(envFile, plan.ToVersion, cancellationToken).ConfigureAwait(false);
+                // The release's signed manifest (task F6), without which its services refuse to start.
+                if (manifest!.Files.Any(f => f.Path == ReleaseManifestEntry) && manifest.Files.Any(f => f.Path == ReleaseManifestEntry + ".sig"))
+                {
+                    Directory.CreateDirectory(ReleaseDirectory);
+                    foreach (var (entry, target) in new[] { (ReleaseManifestEntry, ReleaseFiles[0]), (ReleaseManifestEntry + ".sig", ReleaseFiles[1]) })
+                    {
+                        await UpdatePackageReader.ExtractAsync(plan.PackagePath, entry, target + ".new", cancellationToken).ConfigureAwait(false);
+                        File.Move(target + ".new", target, overwrite: true);
+                    }
+
+                    return $"{Options.VersionVariable}={plan.ToVersion}; release manifest {plan.ToVersion} installed";
+                }
+
                 return $"{Options.VersionVariable}={plan.ToVersion}";
             }).ConfigureAwait(false);
 
@@ -199,6 +225,19 @@ public sealed partial class UpdateInstaller(
                 ok &= haveBackup && await TryAsync("rollback-configuration", () =>
                 {
                     File.Copy(Path.Combine(backup, Options.EnvironmentFile.Replace('/', '_')), envFile, overwrite: true);
+                    foreach (var file in ReleaseFiles)
+                    {
+                        var saved = Path.Combine(backup, Path.GetFileName(file));
+                        if (File.Exists(saved))
+                        {
+                            File.Copy(saved, file, overwrite: true);
+                        }
+                        else if (File.Exists(file))
+                        {
+                            File.Delete(file);
+                        }
+                    }
+
                     return Task.FromResult<string?>($"{Options.VersionVariable}={plan.FromVersion}");
                 }).ConfigureAwait(false);
             }

@@ -150,6 +150,69 @@ jobs:
         if: always()
         run: make demo-wipe
 
+  release-build:
+    name: Release build checks (obfuscation, Compose, Helm, scripts)
+    runs-on: ubuntu-latest
+    needs: [backend]
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/setup-dotnet@0f4a354dd5547a28c70b7853dbd95d5b67886e73 # v6.1.0
+        with:
+          global-json-file: global.json
+      - name: Obfuscated API and worker behave like the plain ones (OpenAPI, startup)
+        run: scripts/check-obfuscation.sh
+      - name: Hardened Compose uses the development image versions and is valid
+        run: |
+          scripts/check-compose-images.sh
+          cd deploy/compose
+          sed 's/=change-me/=ci-value/' .env.production.example > /tmp/ci-production.env
+          for setting in ZELVO_PUBLIC_HOST=zelvo.test ZELVO_ACME_EMAIL=ops@zelvo.test ZELVO_VERSION=ci ZELVO_COMPOSE_DIR=/opt/zelvo \
+              ZELVO_DEFAULT_TENANT_NAME_EN=Zelvo ZELVO_DEFAULT_TENANT_NAME_AR=زيلفو ZELVO_SMTP_HOST=mail.zelvo.test ZELVO_SMTP_FROM=no-reply@zelvo.test; do
+            sed -i "s#^${setting%%=*}=.*#${setting}#" /tmp/ci-production.env
+          done
+          docker compose -f compose.production.yaml --env-file /tmp/ci-production.env --profile observability config --quiet
+      - name: Helm chart lints and renders
+        run: |
+          helm lint deploy/helm/zelvo --strict -f deploy/helm/zelvo/ci/test-values.yaml
+          helm template zelvo deploy/helm/zelvo -f deploy/helm/zelvo/ci/test-values.yaml > /tmp/zelvo-chart.yaml
+          deploy/helm/zelvo/ci/check-rendered.sh /tmp/zelvo-chart.yaml
+      - name: Shell scripts
+        run: shellcheck --severity=warning scripts/*.sh scripts/*/*.sh build/obfuscar/*.sh deploy/postgres/*.sh deploy/compose/backup/*.sh
+
+  production-install:
+    name: Hardened install from a bundle, backup and restore drill
+    runs-on: ubuntu-latest
+    needs: [backend, frontend, keycloak]
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - name: Build a test bundle (obfuscated images, manifest signed with a throwaway key)
+        run: scripts/release/test-bundle.sh 0.0.1 /tmp/bundle
+      - name: Install it like a customer
+        run: |
+          mkdir -p /tmp/unpacked && tar -xf /tmp/bundle/zelvo-0.0.1.tar -C /tmp/unpacked
+          # The first run makes .env and stops for the required settings.
+          sudo /tmp/unpacked/zelvo-0.0.1/install.sh --no-start || test $? -eq 3
+          for setting in ZELVO_PUBLIC_HOST=localhost ZELVO_PUBLIC_TLS=internal ZELVO_ACME_EMAIL=ops@zelvo.test \
+              ZELVO_DEFAULT_TENANT_NAME_EN=Zelvo ZELVO_DEFAULT_TENANT_NAME_AR=زيلفو ZELVO_SMTP_HOST=mail.zelvo.test ZELVO_SMTP_FROM=no-reply@zelvo.test; do
+            sudo sed -i "s#^${setting%%=*}=.*#${setting}#" /opt/zelvo/.env
+          done
+          sudo /tmp/unpacked/zelvo-0.0.1/install.sh
+      - name: Only the proxy is reachable from outside; sign-in through /auth, no admin console
+        run: |
+          ports=$(sudo docker ps --filter label=com.docker.compose.project=zelvo --format '{{.Ports}}' \
+            | grep -oE '(0\.0\.0\.0|\[::\]):[0-9]+->' | sed -E 's/.*:([0-9]+)->/\1/' | LC_ALL=C sort -u | tr '\n' ' ')
+          echo "Ports published beyond this server: $ports"
+          [[ "$ports" == "443 80 " ]]
+          curl -fsk https://localhost/healthz > /dev/null
+          curl -fsk https://localhost/auth/realms/zelvo-default/.well-known/openid-configuration | grep -q '"issuer":"https://localhost/auth/realms/zelvo-default"'
+          test "$(curl -sk -o /dev/null -w '%{http_code}' https://localhost/auth/admin/master/console/)" = 404
+          sudo docker compose --project-directory /opt/zelvo exec -T web wget -qO- http://api:8080/api/v1/system/info | grep -q '"activationRequired":true'
+      - name: Backup and point-in-time restore drill
+        run: sudo scripts/backup/drill.sh /opt/zelvo
+      - name: Service logs on failure
+        if: failure()
+        run: sudo docker compose --project-directory /opt/zelvo logs --tail 200
+
   images:
     name: Container scan and SBOM (${{ matrix.image.name }})
     runs-on: ubuntu-latest
@@ -164,6 +227,7 @@ jobs:
           - { name: keycloak, context: src/keycloak, dockerfile: src/keycloak/Dockerfile }
           - { name: opensearch, context: deploy/opensearch, dockerfile: deploy/opensearch/Dockerfile }
           - { name: updater, context: ., dockerfile: src/updater/Zelvo.Updater/Dockerfile }
+          - { name: postgres, context: deploy/postgres, dockerfile: deploy/postgres/Dockerfile }
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - name: Build image

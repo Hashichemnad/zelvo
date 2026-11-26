@@ -23,7 +23,7 @@ internal sealed class UpdateTestSupport : IDisposable
 
     /// <summary>Writes a signed package for <paramref name="version"/>.</summary>
     public async Task<string> PackageAsync(LicensingTestSupport licensing, string version, UpdatePackageType type = UpdatePackageType.Security,
-        IReadOnlyList<string>? images = null, string? keyId = null, RSA? key = null, string? requiresVersion = null)
+        IReadOnlyList<string>? images = null, string? keyId = null, RSA? key = null, string? requiresVersion = null, bool releaseManifest = false)
     {
         var content = Directory.CreateTempSubdirectory("zelvo-content-").FullName;
         Directory.CreateDirectory(Path.Combine(content, "images"));
@@ -36,6 +36,13 @@ internal sealed class UpdateTestSupport : IDisposable
         }
 
         await File.WriteAllTextAsync(Path.Combine(content, "NOTICE.txt"), "Release files");
+        if (releaseManifest)
+        {
+            // The release's signed manifest (task F6); its content does not matter to the installer.
+            Directory.CreateDirectory(Path.Combine(content, "release"));
+            await File.WriteAllTextAsync(Path.Combine(content, "release", "release-manifest.json"), $"{{\"version\":\"{version}\"}}");
+            await File.WriteAllTextAsync(Path.Combine(content, "release", "release-manifest.json.sig"), $"signature of {version}");
+        }
         var manifest = new UpdatePackageManifest
         {
             Version = version, Type = type, RequiresVersion = requiresVersion, ReleaseNotes = new UpdateReleaseNotes("Fixes", "إصلاحات"), ExpectedMinutes = 20,

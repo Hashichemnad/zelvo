@@ -141,6 +141,27 @@ public sealed class UpdatePackageTests : IDisposable
     }
 
     [Fact]
+    public async Task An_install_puts_the_releases_signed_manifest_in_place_and_a_rollback_restores_the_old_one()
+    {
+        var (installer, _, _, health, env) = await InstallerAsync();
+        var release = Path.Combine(Path.GetDirectoryName(env)!, "release");
+        Directory.CreateDirectory(release);
+        await File.WriteAllTextAsync(Path.Combine(release, "release-manifest.json"), "{\"version\":\"1.4.0\"}", Ct);
+        await File.WriteAllTextAsync(Path.Combine(release, "release-manifest.json.sig"), "signature of 1.4.0", Ct);
+
+        var installed = await installer.InstallAsync(await PlanAsync("1.4.1", releaseManifest: true), Ct);
+        Assert.Equal(UpdateInstallState.Succeeded, installed.State);
+        Assert.Contains("1.4.1", await File.ReadAllTextAsync(Path.Combine(release, "release-manifest.json"), Ct), StringComparison.Ordinal);
+        Assert.Equal("signature of 1.4.1", await File.ReadAllTextAsync(Path.Combine(release, "release-manifest.json.sig"), Ct));
+
+        health.FirstFails = true;
+        await File.WriteAllLinesAsync(env, ["OTHER=kept", "ZELVO_VERSION=1.4.1"], Ct);
+        var failed = await installer.InstallAsync(await PlanAsync("1.4.2", releaseManifest: true), Ct);
+        Assert.Equal(UpdateInstallState.RolledBack, failed.State);
+        Assert.Equal("signature of 1.4.1", await File.ReadAllTextAsync(Path.Combine(release, "release-manifest.json.sig"), Ct));
+    }
+
+    [Fact]
     public async Task A_failed_migration_restores_the_databases_and_the_previous_version()
     {
         var (installer, host, _, _, env) = await InstallerAsync();
@@ -240,9 +261,9 @@ public sealed class UpdatePackageTests : IDisposable
 
     private static string Step(InstallOutcome outcome, string key) => outcome.Steps.Single(s => s.Key == key).State;
 
-    private async Task<InstallPlan> PlanAsync(string version)
+    private async Task<InstallPlan> PlanAsync(string version, bool releaseManifest = false)
     {
-        var package = await _updates.PackageAsync(_licensing, version);
+        var package = await _updates.PackageAsync(_licensing, version, releaseManifest: releaseManifest);
         var sha = (await CheckAsync(package, await DevelopmentAsync(), new Version(1, 4, 0))).Sha256;
         return new InstallPlan(Guid.NewGuid(), package, sha, "1.4.0", version);
     }

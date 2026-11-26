@@ -1,0 +1,10 @@
+# Hardened installs (task F6): browsers reach Keycloak's sign-in pages through the proxy at /auth.
+# Its admin console and admin REST API are never published; administrators reach them on the
+# server itself (127.0.0.1:8180, an SSH tunnel), and Zelvo's services on the internal network.
+@keycloak_admin path /auth/admin /auth/admin/*
+handle @keycloak_admin {
+	respond 404
+}
+handle /auth/* {
+	reverse_proxy keycloak:8080
+}
