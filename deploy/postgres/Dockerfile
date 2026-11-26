@@ -15,5 +15,5 @@ RUN apt-get update \
     && pgbackrest version
 
 COPY pgbackrest.conf /etc/pgbackrest/pgbackrest.conf
-COPY zelvo-backup.sh zelvo-restore.sh /usr/local/bin/
-RUN chmod 0755 /usr/local/bin/zelvo-backup.sh /usr/local/bin/zelvo-restore.sh
+COPY zelvo-pgbackrest zelvo-backup.sh zelvo-restore.sh /usr/local/bin/
+RUN chmod 0755 /usr/local/bin/zelvo-pgbackrest /usr/local/bin/zelvo-backup.sh /usr/local/bin/zelvo-restore.sh

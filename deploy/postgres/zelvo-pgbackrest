@@ -1,0 +1,8 @@
+#!/bin/sh
+# pgBackRest with Zelvo's settings (task F6). Compose passes every PGBACKREST_* setting, some of
+# them empty (the S3 repository's when the repository is the backup volume); pgBackRest refuses
+# empty options, so they are dropped here before it runs.
+for name in $(env | sed -n 's/^\(PGBACKREST_[A-Z0-9_]*\)=$/\1/p'); do
+  unset "$name"
+done
+exec pgbackrest "$@"

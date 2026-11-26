@@ -21,19 +21,19 @@ write_status() {
 }
 
 wait_for_postgres() {
-  until pg_isready -h /var/run/postgresql -U "${POSTGRES_USER:-postgres}" -q; do sleep 5; done
+  until pg_isready -h /var/run/postgresql -U "${POSTGRES_USER:-postgres}" -d postgres -q; do sleep 5; done
 }
 
 ensure_stanza() {
   wait_for_postgres
-  pgbackrest --stanza="$stanza" --log-level-console=warn stanza-create
-  pgbackrest --stanza="$stanza" --log-level-console=warn check
+  zelvo-pgbackrest --stanza="$stanza" --log-level-console=warn stanza-create
+  zelvo-pgbackrest --stanza="$stanza" --log-level-console=warn check
 }
 
 backup() {
   local type=$1
   log "Starting a $type backup"
-  if pgbackrest --stanza="$stanza" --type="$type" backup; then
+  if zelvo-pgbackrest --stanza="$stanza" --type="$type" backup; then
     write_status ok "$type"
     log "The $type backup finished"
   else
@@ -49,12 +49,12 @@ case "${1:-schedule}" in
     backup "${2:-full}"
     ;;
   info)
-    pgbackrest --stanza="$stanza" info
+    zelvo-pgbackrest --stanza="$stanza" info
     ;;
   schedule)
     ensure_stanza
     # The first backup is a full one as soon as the service starts.
-    if ! pgbackrest --stanza="$stanza" --output=json info | grep -q '"label"'; then
+    if ! zelvo-pgbackrest --stanza="$stanza" --output=json info | grep -q '"label"'; then
       backup full || true
     fi
     at=${ZELVO_BACKUP_TIME:-01:30}

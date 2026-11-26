@@ -152,7 +152,7 @@ services:
       - -c
       - archive_mode=on
       - -c
-      - archive_command=pgbackrest --stanza=zelvo archive-push %p
+      - archive_command=zelvo-pgbackrest --stanza=zelvo archive-push %p
       - -c
       - archive_timeout=60
       # TLS 1.3 only for network connections (pg_hba.conf refuses plain ones).
@@ -382,8 +382,8 @@ services:
     read_only: true
     tmpfs: [/tmp]
     environment:
-      DOTNET_ENVIRONMENT: Production
-      ConnectionStrings__PostgresOwner: Host=postgres;Database=${POSTGRES_DB};Username=${POSTGRES_SUPERUSER};Password=${POSTGRES_SUPERUSER_PASSWORD};SSL Mode=VerifyFull;Root Certificate=/run/certs/ca.crt
+      DOTNET_ENVIRONMENT: ${ZELVO_ENVIRONMENT:-Production}
+      ConnectionStrings__PostgresOwner: Host=postgres;Database=${POSTGRES_DB};Username=${POSTGRES_SUPERUSER};Password=${POSTGRES_SUPERUSER_PASSWORD};SSL Mode=VerifyFull;Root Certificate=/run/certs/ca.crt;GSS Encryption Mode=Disable
       Tenancy__Bootstrap__Slug: ${ZELVO_DEFAULT_TENANT:-default}
       Tenancy__Bootstrap__NameEn: ${ZELVO_DEFAULT_TENANT_NAME_EN:?set in .env}
       Tenancy__Bootstrap__NameAr: ${ZELVO_DEFAULT_TENANT_NAME_AR:?set in .env}
@@ -409,8 +409,8 @@ services:
     read_only: true
     tmpfs: [/tmp]
     environment:
-      ASPNETCORE_ENVIRONMENT: Production
-      ConnectionStrings__Postgres: Host=postgres;Database=${POSTGRES_DB};Username=${ZELVO_APP_DB_USER};Password=${ZELVO_APP_DB_PASSWORD};SSL Mode=VerifyFull;Root Certificate=/run/certs/ca.crt
+      ASPNETCORE_ENVIRONMENT: ${ZELVO_ENVIRONMENT:-Production}
+      ConnectionStrings__Postgres: Host=postgres;Database=${POSTGRES_DB};Username=${ZELVO_APP_DB_USER};Password=${ZELVO_APP_DB_PASSWORD};SSL Mode=VerifyFull;Root Certificate=/run/certs/ca.crt;GSS Encryption Mode=Disable
       Tenancy__DefaultTenant: ${ZELVO_DEFAULT_TENANT:-default}
       ConnectionStrings__Redis: redis:6379,password=${REDIS_PASSWORD},ssl=true,sslHost=redis,abortConnect=false
       Redis__CaFile: /run/certs/ca.crt
@@ -445,10 +445,10 @@ services:
     tmpfs: [/tmp]
     shm_size: 512m
     environment:
-      DOTNET_ENVIRONMENT: Production
+      DOTNET_ENVIRONMENT: ${ZELVO_ENVIRONMENT:-Production}
       HOME: /tmp
       Worker__HeartbeatFile: /tmp/zelvo-worker.heartbeat
-      ConnectionStrings__Postgres: Host=postgres;Database=${POSTGRES_DB};Username=${ZELVO_APP_DB_USER};Password=${ZELVO_APP_DB_PASSWORD};SSL Mode=VerifyFull;Root Certificate=/run/certs/ca.crt
+      ConnectionStrings__Postgres: Host=postgres;Database=${POSTGRES_DB};Username=${ZELVO_APP_DB_USER};Password=${ZELVO_APP_DB_PASSWORD};SSL Mode=VerifyFull;Root Certificate=/run/certs/ca.crt;GSS Encryption Mode=Disable
       ConnectionStrings__RabbitMq: amqps://zelvo-worker:${RABBITMQ_WORKER_PASSWORD:?set in .env}@rabbitmq:5671/zelvo
       RabbitMq__CaFile: /run/certs/ca.crt
       Services__OpenSearch: https://opensearch:9200/
@@ -539,8 +539,8 @@ services:
     read_only: true
     tmpfs: [/tmp]
     environment:
-      DOTNET_ENVIRONMENT: Production
-      ConnectionStrings__Postgres: Host=postgres;Database=${POSTGRES_DB};Username=${ZELVO_APP_DB_USER};Password=${ZELVO_APP_DB_PASSWORD};SSL Mode=VerifyFull;Root Certificate=/run/certs/ca.crt
+      DOTNET_ENVIRONMENT: ${ZELVO_ENVIRONMENT:-Production}
+      ConnectionStrings__Postgres: Host=postgres;Database=${POSTGRES_DB};Username=${ZELVO_APP_DB_USER};Password=${ZELVO_APP_DB_PASSWORD};SSL Mode=VerifyFull;Root Certificate=/run/certs/ca.crt;GSS Encryption Mode=Disable
       Updater__ComposeDirectory: ${ZELVO_COMPOSE_DIR:?install.sh sets it in .env}
       Updater__ComposeProjectName: ${COMPOSE_PROJECT_NAME:-zelvo}
       Updater__ComposeFileList: ${COMPOSE_FILE:-compose.yaml}

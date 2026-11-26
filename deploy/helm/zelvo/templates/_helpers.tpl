@@ -94,7 +94,7 @@ capabilities: { drop: [ALL] }
 
 {{/* The CA for Npgsql when the server's certificate is checked. */}}
 {{- define "zelvo.pgRootCert" -}}
-{{- if hasPrefix "verify" (.Values.postgres.sslMode | lower) }};Root Certificate=/run/certs/ca.crt{{ end -}}
+{{- if hasPrefix "verify" (.Values.postgres.sslMode | lower) }};Root Certificate=/run/certs/ca.crt{{ end }};GSS Encryption Mode=Disable
 {{- end }}
 
 {{/* Npgsql's SSL Mode as the PostgreSQL JDBC driver's sslmode (Keycloak). */}}

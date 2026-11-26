@@ -17,6 +17,6 @@ case "${1:-}" in
   *) echo "usage: $0 latest | time <timestamp> | backup <label>" >&2; exit 2 ;;
 esac
 
-pgbackrest --stanza="$stanza" info
-pgbackrest --stanza="$stanza" --delta "${target[@]}" restore
+zelvo-pgbackrest --stanza="$stanza" info
+zelvo-pgbackrest --stanza="$stanza" --delta "${target[@]}" restore
 echo "Restored. Start PostgreSQL: it replays the archive and then accepts connections."

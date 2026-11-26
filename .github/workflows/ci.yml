@@ -193,7 +193,9 @@ jobs:
           mkdir -p /tmp/unpacked && tar -xf /tmp/bundle/zelvo-0.0.1.tar -C /tmp/unpacked
           # The first run makes .env and stops for the required settings.
           sudo /tmp/unpacked/zelvo-0.0.1/install.sh --no-start || test $? -eq 3
-          for setting in ZELVO_PUBLIC_HOST=localhost ZELVO_PUBLIC_TLS=internal ZELVO_ACME_EMAIL=ops@zelvo.test \
+          # Staging: the test bundle is a development build (no vendor key in CI), which refuses
+          # to run in Production by design; release builds never use the development license.
+          for setting in ZELVO_ENVIRONMENT=Staging ZELVO_PUBLIC_HOST=localhost ZELVO_PUBLIC_TLS=internal ZELVO_ACME_EMAIL=ops@zelvo.test \
               ZELVO_DEFAULT_TENANT_NAME_EN=Zelvo ZELVO_DEFAULT_TENANT_NAME_AR=زيلفو ZELVO_SMTP_HOST=mail.zelvo.test ZELVO_SMTP_FROM=no-reply@zelvo.test; do
             sudo sed -i "s#^${setting%%=*}=.*#${setting}#" /opt/zelvo/.env
           done
@@ -207,7 +209,7 @@ jobs:
           curl -fsk https://localhost/healthz > /dev/null
           curl -fsk https://localhost/auth/realms/zelvo-default/.well-known/openid-configuration | grep -q '"issuer":"https://localhost/auth/realms/zelvo-default"'
           test "$(curl -sk -o /dev/null -w '%{http_code}' https://localhost/auth/admin/master/console/)" = 404
-          sudo docker compose --project-directory /opt/zelvo exec -T web wget -qO- http://api:8080/api/v1/system/info | grep -q '"activationRequired":true'
+          sudo docker compose --project-directory /opt/zelvo exec -T web wget -qO- http://api:8080/api/v1/system/info | grep -q '"activated":true'
       - name: Backup and point-in-time restore drill
         run: sudo scripts/backup/drill.sh /opt/zelvo
       - name: Service logs on failure
