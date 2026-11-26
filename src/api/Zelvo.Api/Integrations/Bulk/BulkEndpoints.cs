@@ -2,6 +2,7 @@ using Microsoft.AspNetCore.Mvc;
 using Zelvo.Api.Conventions;
 using Zelvo.Api.Identity;
 using Zelvo.Api.Tenancy;
+using Zelvo.Licensing;
 
 namespace Zelvo.Api.Integrations.Bulk;
 
@@ -69,7 +70,7 @@ internal static class BulkEndpoints
     }
 
     internal static async Task<IResult> ExportAsync(
-        string type, [FromQuery] string? format, IEnumerable<IBulkType> types, CurrentUser user, CancellationToken cancellationToken)
+        string type, [FromQuery] string? format, IEnumerable<IBulkType> types, CurrentUser user, IInstallationWatermark watermark, CancellationToken cancellationToken)
     {
         if (Find(types, type) is not { } bulkType)
         {
@@ -87,7 +88,7 @@ internal static class BulkEndpoints
         }
 
         var table = await bulkType.ExportAsync(cancellationToken);
-        var bytes = TabularFile.Write(fileFormat, table.Header, table.Rows);
+        var bytes = TabularFile.Write(fileFormat, table.Header, table.Rows, watermark.Current);
         var name = $"zelvo-{bulkType.Key}-{DateTimeOffset.UtcNow:yyyyMMdd-HHmm}.{TabularFile.Extension(fileFormat)}";
         return TypedResults.File(bytes, TabularFile.ContentType(fileFormat), name);
     }

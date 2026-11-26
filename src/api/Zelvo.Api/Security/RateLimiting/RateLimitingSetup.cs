@@ -19,9 +19,8 @@ internal static class RateLimitingSetup
             o.VisitorPermits = int.TryParse(section["VisitorPermits"], CultureInfo.InvariantCulture, out var visitor) && visitor > 0 ? visitor : o.VisitorPermits;
         });
 
-        var redis = configuration.GetConnectionString("Redis");
         services.AddSingleton(_ => new Lazy<Task<IConnectionMultiplexer>>(async () =>
-            await ConnectionMultiplexer.ConnectAsync(ConfigurationOptions.Parse(redis ?? string.Empty, ignoreUnknown: true)).ConfigureAwait(false)));
+            await ConnectionMultiplexer.ConnectAsync(ValkeyOptions(configuration)).ConfigureAwait(false)));
         services.AddSingleton<IRateLimitStore, ValkeyRateLimitStore>();
 
         // Client addresses: X-Forwarded-For and -Proto are used only when the request comes from a
@@ -53,5 +52,21 @@ internal static class RateLimitingSetup
             }
         });
         return services;
+    }
+
+    /// <summary>
+    /// The Valkey connection's options from <c>ConnectionStrings:Redis</c>; with TLS
+    /// (<c>ssl=true</c>, task F6) the server's certificate is checked against
+    /// <c>Redis:CaFile</c> when one is given (the installation's own CA), else the system's CAs.
+    /// </summary>
+    internal static ConfigurationOptions ValkeyOptions(IConfiguration configuration)
+    {
+        var options = ConfigurationOptions.Parse(configuration.GetConnectionString("Redis") ?? string.Empty, ignoreUnknown: true);
+        if (options.Ssl && configuration["Redis:CaFile"] is { Length: > 0 } caFile)
+        {
+            options.TrustIssuer(caFile);
+        }
+
+        return options;
     }
 }

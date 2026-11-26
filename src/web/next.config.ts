@@ -12,6 +12,11 @@ const securityHeaders = [
 const nextConfig: NextConfig = {
   output: "standalone",
   poweredByHeader: false,
+  // Customers receive minified builds only, never source (module 12): no browser source maps.
+  productionBrowserSourceMaps: false,
+  // Release images (task F6) are built with ZELVO_RELEASE=true; the value is compiled in, so the
+  // release integrity check cannot be switched off by the environment at run time.
+  env: { ZELVO_RELEASE_BUILD: process.env.ZELVO_RELEASE === "true" ? "true" : "false" },
   reactStrictMode: true,
   async headers() {
     return [

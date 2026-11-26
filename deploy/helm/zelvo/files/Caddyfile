@@ -1,0 +1,46 @@
+# Zelvo's proxy on Kubernetes (task F6): the same routes as the Compose installs' Caddyfile
+# (deploy/compose/caddy), listening on unprivileged ports as a non-root user. On-demand
+# certificates only for hosts a tenant verified; tenants' uploaded certificates from the API.
+{
+	http_port 8080
+	https_port 8443
+	email {$ZELVO_ACME_EMAIL}
+	acme_ca {$ZELVO_ACME_CA}
+	on_demand_tls {
+		ask http://{$ZELVO_API}/internal/tls/ask?token={$ZELVO_TLS_TOKEN}
+	}
+}
+
+(zelvo) {
+	encode zstd gzip
+	@hooks path_regexp hooks ^/hooks/([a-z0-9][a-z0-9-]{0,62})/(.+)$
+	handle @hooks {
+		rewrite * /api/v1/hooks/{re.hooks.2}?{query}
+		reverse_proxy {$ZELVO_API} {
+			header_up X-Zelvo-Tenant {re.hooks.1}
+		}
+	}
+	@keycloak_admin path /auth/admin /auth/admin/*
+	handle @keycloak_admin {
+		respond 404
+	}
+	handle /auth/* {
+		reverse_proxy {$ZELVO_KEYCLOAK}
+	}
+	handle {
+		reverse_proxy {$ZELVO_WEB}
+	}
+}
+
+{$ZELVO_PUBLIC_HOST} {
+	{$ZELVO_PUBLIC_TLS_DIRECTIVE}
+	import zelvo
+}
+
+https:// {
+	tls {
+		get_certificate http http://{$ZELVO_API}/internal/tls/certificate?token={$ZELVO_TLS_TOKEN}
+		on_demand
+	}
+	import zelvo
+}

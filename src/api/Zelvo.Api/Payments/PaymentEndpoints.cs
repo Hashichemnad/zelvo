@@ -16,6 +16,7 @@ using Zelvo.Data.Catalog;
 using Zelvo.Data.Localization;
 using Zelvo.Data.Payments;
 using Zelvo.Data.Tickets;
+using Zelvo.Licensing;
 
 namespace Zelvo.Api.Payments;
 
@@ -341,7 +342,7 @@ internal static class PaymentEndpoints
         return query;
     }
 
-    internal static async Task<IResult> ExportAsync(DateOnly? from, DateOnly? to, string? format, ZelvoDbContext db, IAuditLog audit, CancellationToken cancellationToken)
+    internal static async Task<IResult> ExportAsync(DateOnly? from, DateOnly? to, string? format, ZelvoDbContext db, IAuditLog audit, IInstallationWatermark watermark, CancellationToken cancellationToken)
     {
         var tabular = format == "csv" ? TabularFormat.Csv : TabularFormat.Xlsx;
         var rows = await Period(db.Payments.AsNoTracking().Where(p => !p.IsTest), from, to).OrderBy(p => p.CreatedAt).Take(50_000).ToListAsync(cancellationToken);
@@ -351,7 +352,8 @@ internal static class PaymentEndpoints
             ["receipt", "request", "service", "requester", "amountAed", "refundedAed", "state", "timing", "gateway", "transactionId", "createdAt", "paidAt"],
             responses.Select(p => (IReadOnlyList<string?>)[
                 p.ReceiptNumber, p.Request?.Number, p.Service?.Code, p.Payer?.DisplayName, Amount(p.AmountAed), Amount(p.RefundedAed), p.State.ToString(), p.Timing.ToString(),
-                p.Gateway, p.TransactionId, p.CreatedAt.ToString("O", CultureInfo.InvariantCulture), p.PaidAt?.ToString("O", CultureInfo.InvariantCulture)]));
+                p.Gateway, p.TransactionId, p.CreatedAt.ToString("O", CultureInfo.InvariantCulture), p.PaidAt?.ToString("O", CultureInfo.InvariantCulture)]),
+            watermark.Current);
         await audit.RecordAsync(AuditCategory.View, "payments.exported", "payments", "export",
             new Dictionary<string, object?>(StringComparer.Ordinal) { ["rows"] = rows.Count, ["from"] = from?.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture), ["to"] = to?.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture) }, cancellationToken);
         return TypedResults.File(content, TabularFile.ContentType(tabular), $"payments.{TabularFile.Extension(tabular)}");
@@ -594,7 +596,7 @@ internal static class PaymentEndpoints
         return TypedResults.Ok(ReconciliationResponse.From(day, gateway.Name, withLines: true));
     }
 
-    internal static async Task<IResult> ReconciliationExportAsync(Guid id, string? format, ZelvoDbContext db, IAuditLog audit, CancellationToken cancellationToken)
+    internal static async Task<IResult> ReconciliationExportAsync(Guid id, string? format, ZelvoDbContext db, IAuditLog audit, IInstallationWatermark watermark, CancellationToken cancellationToken)
     {
         var day = await db.PaymentReconciliations.AsNoTracking().SingleOrDefaultAsync(r => r.Id == id, cancellationToken);
         if (day is null)
@@ -606,7 +608,8 @@ internal static class PaymentEndpoints
         var lines = JsonSerializer.Deserialize<List<ReconciliationLine>>(day.Lines, JsonSerializerOptions.Web) ?? [];
         var content = TabularFile.Write(tabular, ["result", "reference", "receipt", "transactionId", "zelvoAmountAed", "gatewayAmountAed", "zelvoState", "gatewayStatus"],
             lines.Select(l => (IReadOnlyList<string?>)[l.Result.ToString(), l.Reference, l.Receipt, l.TransactionId,
-                l.ZelvoAmountAed?.ToString("0.00", CultureInfo.InvariantCulture), l.GatewayAmountAed?.ToString("0.00", CultureInfo.InvariantCulture), l.ZelvoState, l.GatewayStatus]));
+                l.ZelvoAmountAed?.ToString("0.00", CultureInfo.InvariantCulture), l.GatewayAmountAed?.ToString("0.00", CultureInfo.InvariantCulture), l.ZelvoState, l.GatewayStatus]),
+            watermark.Current);
         await audit.RecordAsync(AuditCategory.View, "payments.reconciliation.exported", "payment-reconciliation", id.ToString(), null, cancellationToken);
         return TypedResults.File(content, TabularFile.ContentType(tabular), $"reconciliation-{day.Day:yyyy-MM-dd}.{TabularFile.Extension(tabular)}");
     }

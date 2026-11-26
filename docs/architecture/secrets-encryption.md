@@ -50,8 +50,8 @@ Stored values are not re-encrypted: they keep their data key, which is only wrap
 
 ## What is not covered here
 
-- **Database files and backups.** PostgreSQL has no built-in transparent encryption; installs encrypt the volume (for example LUKS, or the cloud provider's disk encryption) and backups (task F6). Secrets are additionally encrypted by Zelvo as above.
-- **Service passwords** (PostgreSQL, RabbitMQ, OpenSearch, Valkey) are environment variables from `.env` in development; the hardened install moves them to Docker/Kubernetes secrets (F6).
+- **Database files and backups.** PostgreSQL has no built-in transparent encryption; installs encrypt the volume (for example LUKS, or the cloud provider's disk encryption). Backups are encrypted by pgBackRest (task F6, `backup-restore.md`). Secrets are additionally encrypted by Zelvo as above.
+- **Service passwords** (PostgreSQL, RabbitMQ, OpenSearch, Valkey) are environment values: from `.env` in development and in the hardened Compose install (made by `install.sh` with random values, mode 0600, root only; the master key file is readable only by the services' user), and from a Kubernetes Secret in Helm installs (task F6). A secrets manager for them is not part of Phase 1.
 
 ## Tests
 

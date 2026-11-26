@@ -24,10 +24,17 @@ public interface IContainerHost
 
     /// <summary>Restarts the updater itself on its new image (the last thing it does).</summary>
     Task RestartSelfAsync(CancellationToken cancellationToken);
+
+    /// <summary>The installation's running containers and their image ids (release integrity, task F6).</summary>
+    Task<IReadOnlyList<RunningContainer>> RunningContainersAsync(CancellationToken cancellationToken) =>
+        Task.FromResult<IReadOnlyList<RunningContainer>>([]);
 }
 
 /// <summary>A command that failed, with the end of its error output (no secrets: no command line holds one).</summary>
 public sealed class HostCommandException(string message) : Exception(message);
+
+/// <summary>A running container of the installation: its Compose service and its image id (<c>sha256:…</c>).</summary>
+public sealed record RunningContainer(string Service, string ImageId);
 
 /// <summary>Runs <c>docker</c> and <c>docker compose</c> against the installation's Compose project.</summary>
 internal sealed class DockerComposeHost(IOptions<UpdaterOptions> options) : IContainerHost
@@ -63,6 +70,23 @@ internal sealed class DockerComposeHost(IOptions<UpdaterOptions> options) : ICon
 
     public Task RestartSelfAsync(CancellationToken cancellationToken) =>
         RunAsync("docker", StartArguments([Options.SelfService]), null, null, cancellationToken);
+
+    public async Task<IReadOnlyList<RunningContainer>> RunningContainersAsync(CancellationToken cancellationToken)
+    {
+        var ids = (await RunAsync("docker", [.. Compose(), "ps", "--quiet"], null, null, cancellationToken).ConfigureAwait(false))
+            .Split('\n', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
+        if (ids.Length == 0)
+        {
+            return [];
+        }
+
+        var output = await RunAsync("docker", ["inspect", "--format", "{{index .Config.Labels \"com.docker.compose.service\"}} {{.Image}}", .. ids], null, null, cancellationToken)
+            .ConfigureAwait(false);
+        return [.. output.Split('\n', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
+            .Select(line => line.Split(' ', 2))
+            .Where(parts => parts.Length == 2 && parts[0].Length > 0)
+            .Select(parts => new RunningContainer(parts[0], parts[1]))];
+    }
 
     // The arguments of each command, kept apart so tests can check them against Compose itself.
     // Images never come from a registry: only from packages we signed (`--pull never`).

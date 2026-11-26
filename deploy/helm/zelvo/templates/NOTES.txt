@@ -1,0 +1,9 @@
+Zelvo {{ include "zelvo.tag" . }} is being installed as "{{ .Release.Name }}" in {{ .Release.Namespace }}.
+
+1. Point {{ .Values.publicHost }} at the proxy's address:
+     kubectl -n {{ .Release.Namespace }} get service {{ include "zelvo.fullname" . }}-proxy
+2. Sign in at https://{{ .Values.publicHost }}/ as the administrator, open Settings → License,
+   download the activation request (it names this cluster: {{ include "zelvo.clusterId" . | default "set licensing.clusterId" }}),
+   send it to Zelvo and import the license file you receive.
+3. Upgrades: helm upgrade with the new release's chart, images and signed release manifest
+   (--set-file release.manifest=... --set-file release.signature=...); migrations run first.

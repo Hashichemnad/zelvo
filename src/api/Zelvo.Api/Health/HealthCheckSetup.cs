@@ -2,6 +2,7 @@ using System.Text.Json;
 using Microsoft.AspNetCore.Diagnostics.HealthChecks;
 using Microsoft.Extensions.Diagnostics.HealthChecks;
 using RabbitMQ.Client;
+using StackExchange.Redis;
 
 namespace Zelvo.Api.Health;
 
@@ -34,7 +35,11 @@ internal static class HealthCheckSetup
 
         services.AddHealthChecks()
             .AddNpgSql(postgres, name: Postgres, tags: [ReadyTag], timeout: CheckTimeout)
-            .AddRedis(redis, name: Redis, tags: [ReadyTag], timeout: CheckTimeout)
+            // The rate limiter's connection (one per instance), with TLS and the installation's CA (F6).
+            .AddRedis(sp => sp.GetService<Lazy<Task<IConnectionMultiplexer>>>() is { } shared
+                    ? shared.Value.GetAwaiter().GetResult()
+                    : ConnectionMultiplexer.Connect(Security.RateLimiting.RateLimitingSetup.ValkeyOptions(configuration)),
+                name: Redis, tags: [ReadyTag], timeout: CheckTimeout)
             .AddRabbitMQ(name: RabbitMq, tags: [ReadyTag], timeout: CheckTimeout)
             .AddCheck<OpenSearchHealthCheck>(OpenSearch, tags: [ReadyTag], timeout: CheckTimeout)
             .AddUrlGroup(keycloak, name: Keycloak, tags: [ReadyTag], timeout: CheckTimeout)

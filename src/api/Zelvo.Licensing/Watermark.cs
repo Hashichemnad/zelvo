@@ -49,10 +49,3 @@ public static class Watermark
         return Alphabet[sum % Alphabet.Length];
     }
 }
-
-/// <summary>The watermark of this installation, for the places generated files carry it.</summary>
-public interface IInstallationWatermark
-{
-    /// <summary>The license's watermark (or the build's), or null in development.</summary>
-    string? Current { get; }
-}

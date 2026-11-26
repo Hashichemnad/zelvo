@@ -1,0 +1,34 @@
+{{- if .Values.imagePolicy.enabled }}
+# Kyverno admission policy (task F6 tamper detection): pods in this namespace run Zelvo's images
+# only with a cosign signature by Zelvo's key, pinned to the signed digest. Zelvo signs without a
+# transparency log (product owner decision 2026-11-26), so neither a Rekor entry nor a certificate
+# timestamp is asked for. Needs Kyverno 1.10 or later in the cluster.
+apiVersion: kyverno.io/v1
+kind: ClusterPolicy
+metadata:
+  name: {{ include "zelvo.fullname" . }}-{{ .Release.Namespace }}-signed-images
+  labels: {{- include "zelvo.labels" . | nindent 4 }}
+spec:
+  validationFailureAction: Enforce
+  webhookTimeoutSeconds: 30
+  background: false
+  rules:
+    - name: zelvo-images-signed-by-zelvo
+      match:
+        any:
+          - resources:
+              kinds: [Pod]
+              namespaces: [{{ .Release.Namespace | quote }}]
+      verifyImages:
+        - imageReferences: ["{{ .Values.image.registry }}/{{ .Values.image.prefix }}*"]
+          mutateDigest: true
+          verifyDigest: true
+          required: true
+          attestors:
+            - entries:
+                - keys:
+                    publicKeys: |-
+{{ required "imagePolicy.publicKey is required (--set-file imagePolicy.publicKey=cosign.pub)" .Values.imagePolicy.publicKey | trim | indent 22 }}
+                    rekor: { ignoreTlog: true }
+                    ctlog: { ignoreSCT: true }
+{{- end }}

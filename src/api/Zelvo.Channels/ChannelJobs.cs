@@ -12,6 +12,7 @@ using Zelvo.Data.Channels;
 using Zelvo.Data.Localization;
 using Zelvo.Data.Tenancy;
 using Zelvo.Integrations;
+using Zelvo.Licensing;
 using Zelvo.Secrets;
 using Zelvo.Tickets;
 using Zelvo.Channels.Messaging;
@@ -172,7 +173,8 @@ public sealed partial class MailboxReader(
 /// headers so the requester's mail app keeps the conversation together.
 /// </summary>
 public sealed partial class OutboundEmailSender(
-    ZelvoDbContext db, IMailboxClients clients, ISecretProtector secrets, ChannelOptions options, TimeProvider time, ILogger<OutboundEmailSender> logger)
+    ZelvoDbContext db, IMailboxClients clients, ISecretProtector secrets, ChannelOptions options, TimeProvider time, ILogger<OutboundEmailSender> logger,
+    IInstallationWatermark? watermark = null)
 {
     /// <summary>Sends email <paramref name="id"/> if it is still pending; schedules the next attempt or gives up.</summary>
     public async Task SendAsync(long id, CancellationToken cancellationToken)
@@ -252,6 +254,11 @@ public sealed partial class OutboundEmailSender(
         message.To.Add(MailboxAddress.Parse(email.ToAddress));
         message.Subject = email.Subject;
         message.MessageId = email.MessageId;
+        if (InstallationMark.Encode(watermark?.Current) is { } mark)
+        {
+            message.Headers.Add(InstallationMark.EmailHeader, mark);
+        }
+
         if (email.InReplyTo is { } inReplyTo)
         {
             message.InReplyTo = inReplyTo;

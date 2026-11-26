@@ -14,6 +14,7 @@ using Zelvo.Data.Branding;
 using Zelvo.Data.Localization;
 using Zelvo.Data.Tenancy;
 using Zelvo.Data.Tickets;
+using Zelvo.Licensing;
 using Zelvo.Tickets.Branding;
 
 namespace Zelvo.Tickets.Exports;
@@ -441,7 +442,9 @@ public sealed partial class DocumentExportJob(IServiceScopeFactory scopes, IPdfR
         try
         {
             var (html, name) = await HtmlAsync(db, export, cancellationToken).ConfigureAwait(false);
-            export.Content = await renderer.RenderAsync(html, cancellationToken).ConfigureAwait(false);
+            var pdf = await renderer.RenderAsync(html, cancellationToken).ConfigureAwait(false);
+            // The installation's hidden mark (module 12, task F6).
+            export.Content = InstallationMark.MarkPdf(pdf, scope.ServiceProvider.GetService<IInstallationWatermark>()?.Current);
             export.FileName = name;
             export.Status = ExportStatus.Ready;
             export.Error = null;

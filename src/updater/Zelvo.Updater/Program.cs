@@ -11,6 +11,8 @@ builder.AddZelvoTelemetry("zelvo-updater");
 
 // The package's signature, version and upgrade license are checked again here, with the same
 // license service as the API (a tampered license stops the updater too).
+// A modified component refuses to start (module 12 tamper detection, task F6).
+builder.Services.AddZelvoReleaseIntegrity("updater");
 builder.Services.AddZelvoLicensing(ActivationWait.StartLimited);
 var connection = builder.Configuration.GetConnectionString("Postgres")
     ?? throw new InvalidOperationException("Configuration value 'ConnectionStrings:Postgres' is required.");
@@ -38,5 +40,6 @@ builder.Services.AddSingleton<StatusFile>();
 builder.Services.AddSingleton<IInstallProgress, InstallProgress>();
 builder.Services.AddSingleton<UpdateInstaller>();
 builder.Services.AddHostedService<UpdaterService>();
+builder.Services.AddHostedService<ImageIntegrityJob>();
 
 builder.Build().Run();

@@ -44,6 +44,8 @@ The search integration tests still run OpenSearch with security off (no credenti
 
 The one-off Compose service `certs` (`deploy/compose/security/generate-certs.sh`) creates a development CA and ECDSA P-256 certificates for OpenSearch (node and admin) and RabbitMQ in the `certs` volume, renewed when fewer than 30 days are left. Each service mounts only its own folder; the API and worker mount only the CA certificate. Installs use certificates from their own CA or a public one (task F6).
 
+The hardened install (task F6, `release.md`) adds certificates for PostgreSQL and Valkey from the same service and uses TLS 1.3 for every connection inside the server: PostgreSQL refuses plain network connections (`deploy/compose/postgres/pg_hba.conf`) and Zelvo connects with `SSL Mode=VerifyFull` and the CA (Keycloak with `sslmode=verify-full`); Valkey listens only on its TLS port and the API (`Redis:CaFile`) and web app (`NODE_EXTRA_CA_CERTS`) check its certificate. Customers can replace the generated CA with their own. On Kubernetes the chart checks every data service's certificate against `caSecret`.
+
 ## Least privilege per service
 
 | Service | PostgreSQL | OpenSearch | RabbitMQ | Valkey |

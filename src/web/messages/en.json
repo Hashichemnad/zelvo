@@ -6303,7 +6303,37 @@
     "filesTitle": "License files",
     "fileLicense": "License",
     "fileUpgrade": "Upgrade license",
-    "auditNote": "Every activation request and every import is recorded in the audit log."
+    "auditNote": "Every activation request and every import is recorded in the audit log.",
+    "release": {
+      "title": "Release integrity",
+      "intro": "Each Zelvo component checks itself against the release manifest signed by Zelvo when it starts, and the updater checks the images the containers run. A release component that fails its check does not start.",
+      "manifest": "Installed release: {version} (signed by Zelvo).",
+      "none": "No component has reported yet.",
+      "component": "Component",
+      "status": "Check",
+      "version": "Release",
+      "checkedAt": "Checked",
+      "manifestStatus": {
+        "Verified": "The release manifest is signed by Zelvo.",
+        "NoManifest": "No release manifest is installed (development build).",
+        "ManifestInvalid": "The release manifest is missing its signature or is not signed by Zelvo.",
+        "ComponentUnknown": "The release manifest does not list this component.",
+        "Modified": "Modified",
+        "ImagesVerified": "Images verified",
+        "ImageMismatch": "Image mismatch",
+        "other": "Unknown"
+      },
+      "statuses": {
+        "Verified": "Verified",
+        "NoManifest": "Development build",
+        "ManifestInvalid": "Manifest not signed by Zelvo",
+        "ComponentUnknown": "Not in this release",
+        "Modified": "Modified",
+        "ImagesVerified": "Images verified",
+        "ImageMismatch": "Other images running",
+        "other": "Unknown"
+      }
+    }
   },
   "updates": {
     "intro": "Install Zelvo's signed update packages. Security and bug-fix releases are free; feature releases need an upgrade license. Packages can be carried in on USB, and everything works offline. Zelvo backs up the databases and configuration first and returns to the previous version by itself if a step fails.",

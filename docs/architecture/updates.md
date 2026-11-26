@@ -11,7 +11,7 @@ Customers update Zelvo by importing a signed update package in **Settings → Up
 
 Any change to any file breaks the check: the hashes are in the signed manifest, and an unlisted file is refused.
 
-`zelvo-sign package --manifest <manifest.json> --dir <folder with images/…> --key <key-id>.private.pem --out zelvo-1.5.0.zpkg` builds and signs a package on the signing computer (it fills in the files and their hashes and refuses images not tagged with the package's version). The release pipeline that saves the images comes with task F6.
+`zelvo-sign package --manifest <manifest.json> --dir <folder with images/…> --key <key-id>.private.pem --out zelvo-1.5.0.zpkg` builds and signs a package on the signing computer (it fills in the files and their hashes and refuses images not tagged with the package's version). The release pipeline (task F6, `release.md`) builds the install bundle with the images saved as files, the signed release manifest in `release/` and a `package-manifest.json`; the product owner signs the package from the unpacked bundle. A package that carries `release/release-manifest.json` and its `.sig` has them installed with the new version (and put back on rollback), so the new services pass their release integrity check.
 
 ## Checks before install
 
@@ -98,4 +98,4 @@ They belong to the whole installation (no tenant column or row-level security).
 
 ## Not in F4
 
-Kubernetes installs (Helm upgrades and rollbacks), image signature checks between services and the release pipeline that builds packages come with task F6; only Docker Compose installs are updated by the updater. **Malware definition files** were to be imported "in Settings with the update packages of task F4" (B1 decision, 2026-11-22); they are not in F4: definitions change daily while packages are versioned releases, so a separate definitions import in Settings is proposed for the product owner's decision. Until then `scripts/clamav-import-definitions.sh` stays.
+Kubernetes installs upgrade and roll back with Helm (task F6, `deploy/helm/README.md`); only Docker Compose installs are updated by the updater, which also checks the running containers' images against the release manifest (`release.md`). **Malware definition files** were to be imported "in Settings with the update packages of task F4" (B1 decision, 2026-11-22); they are not in F4: definitions change daily while packages are versioned releases, so a separate definitions import in Settings is proposed for the product owner's decision. Until then `scripts/clamav-import-definitions.sh` stays.

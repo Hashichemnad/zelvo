@@ -1,0 +1,64 @@
+{{- include "zelvo.required" . -}}
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ include "zelvo.fullname" . }}-settings
+  labels: {{- include "zelvo.labels" . | nindent 4 }}
+data:
+  ASPNETCORE_ENVIRONMENT: Production
+  DOTNET_ENVIRONMENT: Production
+  Tenancy__DefaultTenant: {{ .Values.tenant.slug | quote }}
+  Services__OpenSearch: {{ .Values.opensearch.url | quote }}
+  Services__KeycloakHealth: "http://{{ include "zelvo.fullname" . }}-keycloak:9000/health/ready"
+  Search__CaFile: /run/certs/ca.crt
+  RabbitMq__CaFile: /run/certs/ca.crt
+  Identity__PublicUrl: "https://{{ .Values.publicHost }}/auth"
+  Identity__InternalUrl: "http://{{ include "zelvo.fullname" . }}-keycloak:8080/auth"
+  Notifications__WebUrl: "https://{{ .Values.publicHost }}/"
+  Notifications__Smtp__Host: {{ .Values.smtp.host | quote }}
+  Notifications__Smtp__Port: {{ .Values.smtp.port | quote }}
+  Notifications__Smtp__Security: {{ .Values.smtp.security | quote }}
+  Notifications__Smtp__User: {{ .Values.smtp.user | quote }}
+  Notifications__Smtp__From: {{ .Values.smtp.from | quote }}
+  Channels__WebUrl: "https://{{ .Values.publicHost }}/"
+  Channels__PublicUrl: "https://{{ .Values.publicHost }}/"
+  Payments__PublicUrl: "https://{{ .Values.publicHost }}/"
+  Branding__PublicHost: {{ .Values.publicHost | quote }}
+  Licensing__Domain: {{ .Values.publicHost | quote }}
+  Licensing__ClusterId: {{ include "zelvo.clusterId" . | quote }}
+  Release__ManifestPath: /etc/zelvo/release/release-manifest.json
+  Secrets__Provider: {{ .Values.secrets.provider | quote }}
+  Secrets__File__Path: /run/secrets/master.key
+  {{- if eq .Values.secrets.provider "Vault" }}
+  Secrets__Vault__Address: {{ .Values.secrets.vault.address | quote }}
+  Secrets__Vault__KeyName: {{ .Values.secrets.vault.keyName | quote }}
+  {{- end }}
+  Attachments__Storage: {{ .Values.attachments.storage | quote }}
+  {{- if eq .Values.attachments.storage "S3" }}
+  Attachments__S3__Endpoint: {{ .Values.attachments.s3.endpoint | quote }}
+  Attachments__S3__Region: {{ .Values.attachments.s3.region | quote }}
+  Attachments__S3__Bucket: {{ required "attachments.s3.bucket is required for S3 storage" .Values.attachments.s3.bucket | quote }}
+  Attachments__S3__ForcePathStyle: {{ .Values.attachments.s3.forcePathStyle | quote }}
+  {{- end }}
+  Network__TrustedProxies__0: {{ .Values.podNetwork | quote }}
+  {{- range $i, $network := .Values.internalNetworks }}
+  Integrations__Webhooks__AllowedPrivateNetworks__{{ $i }}: {{ $network | quote }}
+  Ai__AllowedPrivateNetworks__{{ $i }}: {{ $network | quote }}
+  Payments__AllowedPrivateNetworks__{{ $i }}: {{ $network | quote }}
+  Channels__Network__AllowedPrivateNetworks__{{ $i }}: {{ $network | quote }}
+  Connectors__Network__AllowedPrivateNetworks__{{ $i }}: {{ $network | quote }}
+  {{- end }}
+  AttachmentScanning__Enabled: {{ .Values.clamav.enabled | quote }}
+  AttachmentScanning__Host: "{{ include "zelvo.fullname" . }}-clamav"
+  AttachmentScanning__Port: "3310"
+  OTEL_EXPORTER_OTLP_ENDPOINT: {{ .Values.telemetry.otlpEndpoint | quote }}
+  OTEL_EXPORTER_OTLP_PROTOCOL: grpc
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ include "zelvo.fullname" . }}-release
+  labels: {{- include "zelvo.labels" . | nindent 4 }}
+data:
+  release-manifest.json: {{ .Values.release.manifest | quote }}
+  release-manifest.json.sig: {{ .Values.release.signature | trim | quote }}

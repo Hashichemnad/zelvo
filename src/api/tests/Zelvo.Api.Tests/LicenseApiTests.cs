@@ -4,6 +4,7 @@ using System.Net.Http.Json;
 using System.Text;
 using System.Text.Json.Nodes;
 using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.DependencyInjection;
 using Npgsql;
 using Zelvo.Data;
 using Zelvo.Data.Identity;
@@ -19,6 +20,33 @@ public sealed class LicenseApiTests(DatabaseFixture database) : IDisposable
     private static CancellationToken Ct => TestContext.Current.CancellationToken;
 
     public void Dispose() => _support.Dispose();
+
+    [Fact]
+    public async Task Release_components_report_their_integrity_to_administrators()
+    {
+        await using var factory = ApiFactory.ForDatabase(database);
+        var tenant = await database.CreateTenantAsync("rel");
+        using var admin = await factory.ForTenant(tenant).SignedInAsync(database, tenant, BuiltInRoles.TenantAdmin);
+        using var lead = await factory.ForTenant(tenant).SignedInAsync(database, tenant, BuiltInRoles.TeamLead);
+        var store = factory.Services.GetRequiredService<IReleaseComponentStore>();
+
+        // The application role reports (and replaces) a component's check; it cannot remove one.
+        await store.RecordAsync(new ReleaseComponentReport("worker", "Modified", "1.4.0", "1.4.0", "files differ", DateTimeOffset.UtcNow), Ct);
+        await store.RecordAsync(new ReleaseComponentReport("worker", "Verified", "1.4.0", "1.4.0", "ok", DateTimeOffset.UtcNow), Ct);
+        await using (var connection = new NpgsqlConnection(database.AppConnectionString))
+        {
+            await connection.OpenAsync(Ct);
+            await using var delete = new NpgsqlCommand("DELETE FROM installation_components", connection);
+            await Assert.ThrowsAsync<PostgresException>(() => delete.ExecuteNonQueryAsync(Ct));
+        }
+
+        var components = await admin.SendOkAsync(HttpMethod.Get, "/api/v1/license/components");
+        Assert.Equal(("NoManifest", false), ((string?)components["manifestStatus"], (bool)components["releaseBuild"]!));
+        Assert.Null(components["release"]);
+        var worker = components["components"]!.AsArray().Single(c => (string?)c!["component"] == "worker")!;
+        Assert.Equal(("Verified", "1.4.0"), ((string?)worker["status"], (string?)worker["release"]));
+        Assert.Equal(HttpStatusCode.Forbidden, (await lead.GetAsync(new Uri("/api/v1/license/components", UriKind.Relative), Ct)).StatusCode);
+    }
 
     [Fact]
     public async Task An_installation_waits_for_activation_and_is_activated_with_a_license_for_its_servers()

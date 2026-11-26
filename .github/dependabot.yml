@@ -29,6 +29,10 @@ updates:
     ignore:
       - dependency-name: "@types/node"
         update-types: ["version-update:semver-major"]
+      # The SignalR client follows the server's .NET LTS major (10.x); 11.0.0 is the
+      # .NET 11 (short-term) client (PR #74, held 2026-11-26). Upgrade with the runtime.
+      - dependency-name: "@microsoft/signalr"
+        update-types: ["version-update:semver-major"]
       # OpenTelemetry majors change the telemetry pipeline (A5); upgrade by hand.
       - dependency-name: "@opentelemetry/*"
         update-types: ["version-update:semver-major"]
@@ -62,7 +66,7 @@ updates:
       # Keycloak libraries follow the Keycloak image; upgrade both together by hand.
       - dependency-name: "org.keycloak:*"
   - package-ecosystem: docker
-    directories: [/src/api/Zelvo.Api, /src/worker/Zelvo.Worker, /src/updater/Zelvo.Updater, /src/web, /src/keycloak, /deploy/opensearch]
+    directories: [/src/api/Zelvo.Api, /src/worker/Zelvo.Worker, /src/updater/Zelvo.Updater, /src/web, /src/keycloak, /deploy/opensearch, /deploy/postgres]
     schedule: { interval: weekly }
     ignore:
       - dependency-name: "dotnet/sdk"
