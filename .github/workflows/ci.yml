@@ -198,6 +198,8 @@ jobs:
             sed -i "s#^${setting%%=*}=.*#${setting}#" /tmp/ci-production.env
           done
           docker compose -f compose.production.yaml --env-file /tmp/ci-production.env --profile observability config --quiet
+      - name: Both Caddyfiles apply the same security directives (HSTS, no TRACE)
+        run: scripts/check-caddy-security.sh
       - name: Helm chart lints and renders
         run: |
           helm lint deploy/helm/zelvo --strict -f deploy/helm/zelvo/ci/test-values.yaml
