@@ -16,6 +16,30 @@ import { expect, test, type Page } from "@playwright/test";
 
 const wcag = ["wcag2a", "wcag2aa", "wcag21a", "wcag21aa", "wcag22aa"];
 const tenant = process.env.E2E_DEMO_TENANT ?? "demo-municipality";
+/**
+ * The reflow tests sign in to the other sample organisation: they visit the same pages as the
+ * WCAG audit and may run at the same time on the other worker, and the API limits each person
+ * (600 calls a minute), so the same demo user in both would share one limit.
+ */
+const reflowTenant = process.env.E2E_DEMO_REFLOW_TENANT ?? (tenant === "demo-municipality" ? "demo-company" : "demo-municipality");
+/**
+ * At least this long between two page visits of one test. A server-rendered page makes several
+ * API calls, and the audit opens about 120 pages a person in a few minutes, more than the API's
+ * per-person rate limit allows (it then answers 429 and a list page comes back empty, CI run of
+ * 2026-11-26). People do not browse that fast; the tests should not either.
+ */
+const pageIntervalMs = Number(process.env.E2E_PAGE_INTERVAL_MS ?? 1500);
+const lastVisit = new WeakMap<Page, number>();
+
+/** Opens a page, keeping at least pageIntervalMs since this page's previous visit. */
+async function visit(page: Page, url: string) {
+  const wait = (lastVisit.get(page) ?? 0) + pageIntervalMs - Date.now();
+  if (wait > 0) {
+    await page.waitForTimeout(wait);
+  }
+  lastVisit.set(page, Date.now());
+  await page.goto(url);
+}
 const reportDir = path.resolve(__dirname, "../accessibility-report");
 
 type Persona = "visitor" | "requester" | "agent" | "lead" | "approver" | "admin" | "executive";
@@ -89,12 +113,12 @@ async function settle(page: Page) {
   await page.locator("main, #kc-page-title").first().waitFor({ state: "visible" });
 }
 
-async function signInAs(page: Page, persona: Persona, baseURL: string) {
+async function signInAs(page: Page, persona: Persona, baseURL: string, organisation = tenant) {
   if (persona === "visitor") {
     return;
   }
   const response = await page.request.post("/auth/demo", {
-    form: { tenant, locale: "en", persona },
+    form: { tenant: organisation, locale: "en", persona },
     headers: { Origin: baseURL },
   });
   expect(response.ok(), `demo sign-in as ${persona}`).toBeTruthy();
@@ -104,7 +128,7 @@ async function resolve(page: Page, language: string, target: Target): Promise<{ 
   if (typeof target === "string") {
     return { name: target || "/", url: `/${language}${target}` };
   }
-  await page.goto(`/${language}${target.from}`);
+  await visit(page, `/${language}${target.from}`);
   await settle(page);
   // Some lists load in the browser after the page; look for the link for up to 10 seconds.
   const deadline = Date.now() + 10_000;
@@ -139,7 +163,7 @@ for (const persona of Object.keys(pages) as Persona[]) {
           (typeof target !== "string" && target.optional ? skipped : missing).push(`${language} ${name}`);
           continue;
         }
-        await page.goto(url);
+        await visit(page, url);
         await settle(page);
         // Every page says its language and direction (WCAG 3.1.1, and right to left for Arabic).
         await expect(page.locator("html")).toHaveAttribute("lang", language);
@@ -181,7 +205,7 @@ for (const { persona, paths } of keyboardPages) {
     const problems: string[] = [];
     for (const language of ["en", "ar"]) {
       for (const p of paths) {
-        await page.goto(`/${language}${p}`);
+        await visit(page, `/${language}${p}`);
         await settle(page);
         await page.keyboard.press("Tab");
         const first = await page.evaluate(() => (document.activeElement as HTMLAnchorElement | null)?.getAttribute("href"));
@@ -250,11 +274,11 @@ for (const { persona, paths } of reflowPages) {
   test(`the ${persona}'s main pages reflow at 320 pixels in English and Arabic`, async ({ page, baseURL }) => {
     test.setTimeout(10 * 60_000);
     await page.setViewportSize({ width: 320, height: 640 });
-    await signInAs(page, persona, baseURL ?? "http://localhost:3000");
+    await signInAs(page, persona, baseURL ?? "http://localhost:3000", reflowTenant);
     const wide: string[] = [];
     for (const language of ["en", "ar"]) {
       for (const p of paths) {
-        await page.goto(`/${language}${p}`);
+        await visit(page, `/${language}${p}`);
         await settle(page);
         const overflow = await page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth);
         if (overflow > 1) {
