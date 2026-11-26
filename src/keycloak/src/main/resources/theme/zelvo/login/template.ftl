@@ -3,7 +3,7 @@
   unchanged (Apache-2.0) except for one attribute: the read-only "attempted username" field shown when
   Keycloak asks for the password again (for example a second factor or a fresh sign-in) has no label
   in the original, so screen readers announce an unnamed text box. Here it gets the field's label
-  ("Email" / "البريد الإلكتروني") as its accessible name. Compare with the parent theme when Keycloak
+  ("Email" / "البريد الإلكتروني") as its accessible name (attemptedUsernameLabel, the only other change). Compare with the parent theme when Keycloak
   is upgraded (scripts/check-keycloak-version.sh names the version).
 -->
 <#import "field.ftl" as field>
@@ -13,11 +13,13 @@
   <#assign label>
     <#if !realm.loginWithEmailAllowed>${msg("username")}<#elseif !realm.registrationEmailAsUsername>${msg("usernameOrEmail")}<#else>${msg("email")}</#if>
   </#assign>
+  <#-- Zelvo: the same label as plain text (the captured one above is markup and cannot be trimmed). -->
+  <#assign attemptedUsernameLabel = (!realm.loginWithEmailAllowed)?then(msg("username"), (!realm.registrationEmailAsUsername)?then(msg("usernameOrEmail"), msg("email")))>
   <@field.group name="username" label=label>
     <div class="${properties.kcInputGroup}">
       <div class="${properties.kcInputGroupItemClass} ${properties.kcFill}">
         <span class="${properties.kcInputClass} ${properties.kcFormReadOnlyClass}">
-          <input id="kc-attempted-username" value="${auth.attemptedUsername}" aria-label="${label?trim}" readonly>
+          <input id="kc-attempted-username" value="${auth.attemptedUsername}" aria-label="${attemptedUsernameLabel}" readonly>
         </span>
       </div>
       <div class="${properties.kcInputGroupItemClass}">

@@ -78,6 +78,17 @@ interface Finding {
   targets: string[];
 }
 
+/**
+ * Waits until a page has loaded and shows its main content. Not "networkidle": signed-in pages
+ * keep a live-update connection open (and poll the notification count), so the network is never
+ * idle.
+ */
+async function settle(page: Page) {
+  await page.waitForLoadState("load");
+  // Zelvo's pages have <main>; a Keycloak sign-in page (a fresh sign-in on the way) has its title.
+  await page.locator("main, #kc-page-title").first().waitFor({ state: "visible" });
+}
+
 async function signInAs(page: Page, persona: Persona, baseURL: string) {
   if (persona === "visitor") {
     return;
@@ -94,10 +105,17 @@ async function resolve(page: Page, language: string, target: Target): Promise<{ 
     return { name: target || "/", url: `/${language}${target}` };
   }
   await page.goto(`/${language}${target.from}`);
-  await page.waitForLoadState("networkidle");
-  const hrefs = await page.locator("a[href]").evaluateAll((links) => links.map((a) => a.getAttribute("href") ?? ""));
-  const href = hrefs.find((h) => target.link.test(h.split("?")[0] ?? ""));
-  return { name: target.name, url: href ?? null };
+  await settle(page);
+  // Some lists load in the browser after the page; look for the link for up to 10 seconds.
+  const deadline = Date.now() + 10_000;
+  for (;;) {
+    const hrefs = await page.locator("a[href]").evaluateAll((links) => links.map((a) => a.getAttribute("href") ?? ""));
+    const href = hrefs.find((h) => target.link.test(h.split("?")[0] ?? ""));
+    if (href || Date.now() > deadline) {
+      return { name: target.name, url: href ?? null };
+    }
+    await page.waitForTimeout(500);
+  }
 }
 
 for (const persona of Object.keys(pages) as Persona[]) {
@@ -122,7 +140,7 @@ for (const persona of Object.keys(pages) as Persona[]) {
           continue;
         }
         await page.goto(url);
-        await page.waitForLoadState("networkidle");
+        await settle(page);
         // Every page says its language and direction (WCAG 3.1.1, and right to left for Arabic).
         await expect(page.locator("html")).toHaveAttribute("lang", language);
         await expect(page.locator("html")).toHaveAttribute("dir", language === "ar" ? "rtl" : "ltr");
@@ -164,7 +182,7 @@ for (const { persona, paths } of keyboardPages) {
     for (const language of ["en", "ar"]) {
       for (const p of paths) {
         await page.goto(`/${language}${p}`);
-        await page.waitForLoadState("networkidle");
+        await settle(page);
         await page.keyboard.press("Tab");
         const first = await page.evaluate(() => (document.activeElement as HTMLAnchorElement | null)?.getAttribute("href"));
         if (first !== "#main") {
@@ -237,7 +255,7 @@ for (const { persona, paths } of reflowPages) {
     for (const language of ["en", "ar"]) {
       for (const p of paths) {
         await page.goto(`/${language}${p}`);
-        await page.waitForLoadState("networkidle");
+        await settle(page);
         const overflow = await page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth);
         if (overflow > 1) {
           wide.push(`${language}${p}: ${overflow} px wider than the screen`);

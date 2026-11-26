@@ -2500,7 +2500,8 @@
       "privacy_request_received": "تم استلام طلبكم المتعلق بالخصوصية",
       "privacy_request_completed": "تم تنفيذ طلبكم المتعلق بالخصوصية",
       "privacy_request_rejected": "تعذّر تنفيذ طلبكم المتعلق بالخصوصية",
-      "privacy_request_new": "طلب خصوصية جديد بانتظار المعالجة"
+      "privacy_request_new": "طلب خصوصية جديد بانتظار المعالجة",
+      "workflow_rule": "إشعار من قاعدة سير عمل"
     },
     "audiences": {
       "Requester": "بلاغاتكم",
@@ -5084,7 +5085,10 @@
     "anyRecordType": "البلاغات وطلبات الخدمة",
     "recordTypes": {
       "Incident": "البلاغات",
-      "ServiceRequest": "طلبات الخدمة"
+      "ServiceRequest": "طلبات الخدمة",
+      "Complaint": "الشكاوى",
+      "Inquiry": "الاستفسارات",
+      "Suggestion": "الاقتراحات"
     },
     "if": "إذا",
     "match": "الشروط",
