@@ -500,7 +500,7 @@ Phase 2 adds the ITIL control practices: problem, change, configuration and asse
 
 - Configuration item classes (hardware, software, business services, applications, network, cloud resources) with custom attributes per class.
 - Relationships between items (runs on, depends on, connects to) and a visual relationship map.
-- Import and sync from Excel, the API and discovery tools; duplicate detection and reconciliation.
+- Import and sync from Excel, the API and discovery tools; duplicate detection and reconciliation. Discovery sources decided 2026-11-26: a discovery API, Microsoft Intune, Azure, Active Directory and Entra ID computers, and VMware vCenter; AWS when a customer asks.
 - Asset lifecycle: requested, ordered, received, in stock, assigned, in repair, retired, disposed.
 - Contracts, warranties and software licenses with expiry alerts; software license compliance (installed vs owned).
 - Barcode and QR labels, scanned with the phone's camera in the installable web app (module 19).
@@ -521,7 +521,7 @@ Product owner decision 2026-11-26: an **installable web app** (progressive web a
 ### 20. Workflow automation
 
 - **Plain-language rules:** an admin describes a rule in English or Arabic; Zelvo's AI builds the workflow and shows it visually for review; it only goes live after the admin approves it.
-- Custom record types and a low-code app builder, so customers can build their own processes (for example, facilities or HR requests) on the same platform.
+- Custom record types and a low-code app builder, so customers can build their own processes (for example, facilities or HR requests) on the same platform. Apps move between installations as JSON packages; an imported app is validated, previewed and approved by an administrator before it is active, and audited (decided 2026-11-26).
 - *Story:* As an admin, I want to type "when a VIP raises a critical incident, notify the IT manager on WhatsApp" and get a working rule, so that I don't build it step by step.
 
 ### 21. Agent wellbeing
@@ -530,6 +530,7 @@ Product owner decision 2026-11-26: an **installable web app** (progressive web a
 - Alerts and suggested reassignment when an agent is overloaded.
 - Visible to team leads and above, and **each agent sees their own figures** (product owner decision 2026-11-26).
 - For **workload balancing, not for ranking**: no league tables or comparisons between agents, and the figures are not used for performance scoring.
+- Off by default; when an administrator turns it on, every agent is notified (decided 2026-11-26).
 - Follows the UAE Personal Data Protection Law (GOV-5): staff are told what is recorded and why, only what workload balancing needs is kept, for a limited time, and every view of a person's figures is audited.
 - *Story:* As a team lead, I want to see who is overloaded this week, so that I rebalance work before people burn out.
 
