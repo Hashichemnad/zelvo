@@ -9,3 +9,7 @@
 **/.env.*
 docs/
 tests/e2e/
+deploy/compose/secrets/
+tests/load/.credentials/
+**/*.key
+**/*.pem

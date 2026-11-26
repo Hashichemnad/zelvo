@@ -191,4 +191,104 @@ public sealed class IdentityApiTests(DatabaseFixture database) : IAsyncDisposabl
     internal sealed record NameBody(string? En, string? Ar);
 
     internal sealed record MfaBody(bool Satisfied, bool Required);
+
+    [Fact]
+    public async Task Disabling_a_person_turns_them_off_in_keycloak_and_ends_their_sessions()
+    {
+        var tenant = await database.CreateTenantAsync("disable");
+        using var admin = await _factory.ForTenant(tenant).SignedInAsync(database, tenant, BuiltInRoles.TenantAdmin);
+        var agent = await database.CreateUserAsync(tenant, BuiltInRoles.Agent);
+        var realm = $"zelvo-{tenant.Slug}";
+
+        using var disabled = await admin.PatchAsJsonAsync($"/api/v1/users/{agent.Id}", new { status = "Disabled" }, Ct);
+        Assert.Equal(HttpStatusCode.OK, disabled.StatusCode);
+        Assert.Contains(_factory.Keycloak.EnabledCalls, c => c == (realm, agent.Subject, false));
+
+        // The API refuses the disabled person's token at once.
+        using var refused = await _factory.ForTenant(tenant).As(agent).GetAsync(MeUri, Ct);
+        Assert.Equal(HttpStatusCode.Forbidden, refused.StatusCode);
+
+        // Another change that leaves the status alone does not touch Keycloak again.
+        var before = _factory.Keycloak.EnabledCalls.Count;
+        using var renamed = await admin.PatchAsJsonAsync($"/api/v1/users/{agent.Id}", new { displayName = "Renamed agent" }, Ct);
+        Assert.Equal(HttpStatusCode.OK, renamed.StatusCode);
+        Assert.Equal(before, _factory.Keycloak.EnabledCalls.Count);
+
+        using var enabled = await admin.PatchAsJsonAsync($"/api/v1/users/{agent.Id}", new { status = "Active" }, Ct);
+        Assert.Equal(HttpStatusCode.OK, enabled.StatusCode);
+        Assert.Contains(_factory.Keycloak.EnabledCalls, c => c == (realm, agent.Subject, true));
+
+        // When Keycloak refuses, the status is not changed either.
+        _factory.Keycloak.Fail = true;
+        try
+        {
+            using var failed = await admin.PatchAsJsonAsync($"/api/v1/users/{agent.Id}", new { status = "Disabled" }, Ct);
+            Assert.Equal(HttpStatusCode.BadGateway, failed.StatusCode);
+        }
+        finally
+        {
+            _factory.Keycloak.Fail = false;
+        }
+
+        await using var db = TestData.AppContext(database, tenant);
+        Assert.Equal(UserStatus.Active, (await db.Users.SingleAsync(u => u.Id == agent.Id, Ct)).Status);
+    }
+
+    [Fact]
+    public async Task Administrators_end_a_persons_sessions_or_everyones_and_it_is_audited()
+    {
+        var tenant = await database.CreateTenantAsync("signout");
+        using var admin = await _factory.ForTenant(tenant).SignedInAsync(database, tenant, BuiltInRoles.TenantAdmin);
+        var agent = await database.CreateUserAsync(tenant, BuiltInRoles.Agent);
+        var realm = $"zelvo-{tenant.Slug}";
+
+        using var one = await admin.PostAsync($"/api/v1/users/{agent.Id}/sign-out", null, Ct);
+        Assert.Equal(HttpStatusCode.NoContent, one.StatusCode);
+        Assert.Contains(_factory.Keycloak.SignOuts, c => c == (realm, agent.Subject));
+
+        using var missing = await admin.PostAsync($"/api/v1/users/{Guid.NewGuid()}/sign-out", null, Ct);
+        Assert.Equal(HttpStatusCode.NotFound, missing.StatusCode);
+
+        using var everyone = await admin.PostAsync("/api/v1/identity/sign-out-everyone", null, Ct);
+        Assert.Equal(HttpStatusCode.NoContent, everyone.StatusCode);
+        Assert.Contains(_factory.Keycloak.SignOuts, c => c == (realm, (string?)null));
+
+        // Agents may do neither.
+        using var asAgent = _factory.ForTenant(tenant).As(agent);
+        using var refused = await asAgent.PostAsync("/api/v1/identity/sign-out-everyone", null, Ct);
+        Assert.Equal(HttpStatusCode.Forbidden, refused.StatusCode);
+
+        await using var db = TestData.AppContext(database, tenant);
+        Assert.True(await db.AuditEvents.AnyAsync(e => e.Category == AuditCategory.Security && e.Action == "users.signed-out" && e.EntityId == agent.Id.ToString(), Ct));
+        Assert.True(await db.AuditEvents.AnyAsync(e => e.Category == AuditCategory.Security && e.Action == "identity.everyone-signed-out", Ct));
+    }
+
+    [Fact]
+    public async Task Refused_calls_are_security_events_in_the_audit_log()
+    {
+        var tenant = await database.CreateTenantAsync("refused");
+        var agent = await database.CreateUserAsync(tenant, BuiltInRoles.Agent);
+        using var asAgent = _factory.ForTenant(tenant).As(agent);
+        using var forbidden = await asAgent.GetAsync("/api/v1/roles", Ct);
+        Assert.Equal(HttpStatusCode.Forbidden, forbidden.StatusCode);
+        Assert.Equal("no-store", forbidden.Headers.CacheControl?.ToString());
+
+        using var badToken = _factory.ForTenant(tenant);
+        badToken.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", "not.a.token");
+        using var unauthenticated = await badToken.GetAsync(MeUri, Ct);
+        Assert.Equal(HttpStatusCode.Unauthorized, unauthenticated.StatusCode);
+
+        // Without any credential, a visitor's 401 is only logged and counted.
+        using var visitor = _factory.ForTenant(tenant);
+        using var anonymous = await visitor.GetAsync(MeUri, Ct);
+        Assert.Equal(HttpStatusCode.Unauthorized, anonymous.StatusCode);
+
+        await using var db = TestData.AppContext(database, tenant);
+        var denied = await db.AuditEvents.SingleAsync(e => e.Action == "access.denied", Ct);
+        Assert.Equal((AuditCategory.Security, AuditActorType.User, agent.Id.ToString()), (denied.Category, denied.ActorType, denied.ActorId));
+        Assert.Contains("/roles", denied.Metadata, StringComparison.Ordinal);
+        var unauthenticatedEntry = await db.AuditEvents.SingleAsync(e => e.Action == "access.unauthenticated", Ct);
+        Assert.Equal(AuditActorType.Anonymous, unauthenticatedEntry.ActorType);
+        Assert.DoesNotContain("not.a.token", unauthenticatedEntry.Metadata, StringComparison.Ordinal);
+    }
 }

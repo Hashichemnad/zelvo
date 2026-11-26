@@ -249,7 +249,14 @@ internal sealed class KeycloakRealmProvisioner(KeycloakAdminClient admin, Identi
             ["failureFactor"] = 5,
             ["waitIncrementSeconds"] = 60,
             ["maxFailureWaitSeconds"] = 900,
-            ["passwordPolicy"] = "length(12) and notUsername and notEmail and passwordHistory(3)",
+            // Task F7 (ASVS V6.2.9): long passphrases allowed, but bounded so hashing stays cheap.
+            ["passwordPolicy"] = "length(12) and maxLength(128) and notUsername and notEmail and passwordHistory(3)",
+            // Task F7: Keycloak's defaults written down, so an upgrade cannot change them unseen.
+            ["quickLoginCheckMilliSeconds"] = 1000,
+            ["minimumQuickLoginWaitSeconds"] = 60,
+            ["maxDeltaTimeSeconds"] = 43200,
+            ["actionTokenGeneratedByUserLifespan"] = 300,
+            ["accessCodeLifespan"] = 60,
             ["internationalizationEnabled"] = true,
             ["supportedLocales"] = new JsonArray("en", "ar"),
             ["defaultLocale"] = "en",
@@ -264,6 +271,23 @@ internal sealed class KeycloakRealmProvisioner(KeycloakAdminClient admin, Identi
             ["otpPolicyAlgorithm"] = "HmacSHA1",
             ["otpPolicyDigits"] = 6,
             ["otpPolicyPeriod"] = 30,
+            ["otpPolicyLookAheadWindow"] = 1,
+            ["otpPolicyCodeReusable"] = false,
+            // Task F7 (ASVS V16.3.1): sign-ins, failed sign-ins, sign-outs, second-factor and
+            // password changes are recorded by Keycloak for 90 days (Realm → Events), and admin
+            // changes too, without their representations; also written to Keycloak's log.
+            ["eventsEnabled"] = true,
+            ["eventsExpiration"] = 7_776_000,
+            ["eventsListeners"] = new JsonArray("jboss-logging"),
+            ["enabledEventTypes"] = new JsonArray(
+                "LOGIN", "LOGIN_ERROR", "LOGOUT", "LOGOUT_ERROR", "CODE_TO_TOKEN_ERROR", "REFRESH_TOKEN_ERROR",
+                "UPDATE_PASSWORD", "UPDATE_PASSWORD_ERROR", "RESET_PASSWORD", "RESET_PASSWORD_ERROR", "SEND_RESET_PASSWORD",
+                "UPDATE_TOTP", "REMOVE_TOTP", "UPDATE_CREDENTIAL", "REMOVE_CREDENTIAL", "UPDATE_EMAIL", "VERIFY_EMAIL",
+                "IDENTITY_PROVIDER_LOGIN", "IDENTITY_PROVIDER_LOGIN_ERROR", "IDENTITY_PROVIDER_FIRST_LOGIN", "FEDERATED_IDENTITY_LINK",
+                "USER_DISABLED_BY_TEMPORARY_LOCKOUT", "USER_DISABLED_BY_PERMANENT_LOCKOUT", "CLIENT_LOGIN", "CLIENT_LOGIN_ERROR",
+                "REVOKE_GRANT", "PERMISSION_TOKEN_ERROR", "INVALID_SIGNATURE_ERROR"),
+            ["adminEventsEnabled"] = true,
+            ["adminEventsDetailsEnabled"] = false,
             ["attributes"] = new JsonObject { ["acr.loa.map"] = AcrLoaMap },
         };
 

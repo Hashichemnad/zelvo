@@ -1,6 +1,7 @@
 using System.Net.Http.Json;
 using System.Text.Json.Nodes;
 using DotNet.Testcontainers.Builders;
+using MailKit.Security;
 using Zelvo.Data.Localization;
 using Zelvo.Notifications;
 
@@ -77,4 +78,14 @@ public sealed class SmtpEmailSenderTests
         Assert.Equal((false, true), (unset.Sent, unset.Permanent));
         Assert.Contains("Notifications:Smtp:Host", unset.Error, StringComparison.Ordinal);
     }
+
+    [Theory]
+    [InlineData(SmtpSecurity.Auto, 465, SecureSocketOptions.SslOnConnect)]
+    [InlineData(SmtpSecurity.Auto, 587, SecureSocketOptions.StartTls)]
+    [InlineData(SmtpSecurity.Auto, 25, SecureSocketOptions.StartTls)]
+    [InlineData(SmtpSecurity.StartTls, 587, SecureSocketOptions.StartTls)]
+    [InlineData(SmtpSecurity.SslOnConnect, 465, SecureSocketOptions.SslOnConnect)]
+    [InlineData(SmtpSecurity.None, 1025, SecureSocketOptions.None)]
+    public void The_mail_server_password_never_travels_in_clear_unless_TLS_is_turned_off(SmtpSecurity security, int port, SecureSocketOptions expected) =>
+        Assert.Equal(expected, SmtpEmailSender.SocketOptions(security, port));
 }

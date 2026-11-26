@@ -144,7 +144,7 @@ public static class FormRules
 
         return v.GetValueKind() switch
         {
-            JsonValueKind.Number => decimal.TryParse(expected, NumberStyles.Float, CultureInfo.InvariantCulture, out var number) && v.GetValue<decimal>() == number,
+            JsonValueKind.Number => decimal.TryParse(expected, NumberStyles.Float, CultureInfo.InvariantCulture, out var number) && v.TryGetValue<decimal>(out var actual) && actual == number,
             JsonValueKind.True => string.Equals(expected, "true", StringComparison.OrdinalIgnoreCase),
             JsonValueKind.False => string.Equals(expected, "false", StringComparison.OrdinalIgnoreCase),
             JsonValueKind.String => string.Equals(v.GetValue<string>().Trim(), expected.Trim(), StringComparison.OrdinalIgnoreCase),
@@ -173,8 +173,8 @@ public static class FormRules
 
         if (v.GetValueKind() == JsonValueKind.Number)
         {
-            return decimal.TryParse(expected, NumberStyles.Float, CultureInfo.InvariantCulture, out var number)
-                ? v.GetValue<decimal>().CompareTo(number) : null;
+            return decimal.TryParse(expected, NumberStyles.Float, CultureInfo.InvariantCulture, out var number) && v.TryGetValue<decimal>(out var actual)
+                ? actual.CompareTo(number) : null;
         }
 
         if (v.GetValueKind() == JsonValueKind.String

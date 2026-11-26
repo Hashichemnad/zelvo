@@ -137,6 +137,8 @@ app.UseMiddleware<TenantResolutionMiddleware>();
 app.UseAuthentication();
 app.UseMiddleware<RateLimitingMiddleware>();
 app.UseMiddleware<AuditContextMiddleware>();
+// Task F7: refused calls (401, 403) as security events in the service log and the audit log.
+app.UseMiddleware<SecurityEventMiddleware>();
 app.UseMiddleware<CurrentUserMiddleware>();
 // Task F3: activation mode and module gating.
 app.UseMiddleware<LicenseEnforcementMiddleware>();

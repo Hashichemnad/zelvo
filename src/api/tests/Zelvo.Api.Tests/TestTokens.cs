@@ -93,6 +93,42 @@ internal sealed class FakeKeycloakAdmin : IKeycloakAdmin
         return Task.CompletedTask;
     }
 
+    /// <summary>Users turned on or off (task F7).</summary>
+    public List<(string Realm, string Subject, bool Enabled)> EnabledCalls { get; } = [];
+
+    /// <summary>Sign-outs: a user's subject, or null for everyone in the realm (task F7).</summary>
+    public List<(string Realm, string? Subject)> SignOuts { get; } = [];
+
+    public Task SetUserEnabledAsync(string realm, string subject, bool enabled, CancellationToken cancellationToken)
+    {
+        if (Fail)
+        {
+            throw new KeycloakAdminException("Keycloak is down (test).");
+        }
+
+        lock (EnabledCalls)
+        {
+            EnabledCalls.Add((realm, subject, enabled));
+        }
+
+        return Task.CompletedTask;
+    }
+
+    public Task SignOutAsync(string realm, string? subject, CancellationToken cancellationToken)
+    {
+        if (Fail)
+        {
+            throw new KeycloakAdminException("Keycloak is down (test).");
+        }
+
+        lock (SignOuts)
+        {
+            SignOuts.Add((realm, subject));
+        }
+
+        return Task.CompletedTask;
+    }
+
     public Task ApplyBrandingAsync(string realm, RealmBranding branding, CancellationToken cancellationToken)
     {
         BrandingCalls.Add((realm, branding));

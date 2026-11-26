@@ -771,6 +771,10 @@ internal static partial class ChatEndpoints
             return ApiProblem.Create(StatusCodes.Status409Conflict, "agent-unavailable", "Set yourself as available to accept chats.");
         }
 
+        // Task F7 (ASVS V2.3.4): the agent's row is locked while their chats are counted, so two
+        // chats accepted at the same moment cannot take them past the group's limit.
+        await using var transaction = await db.Database.BeginTransactionAsync(cancellationToken);
+        await db.Database.ExecuteSqlAsync($"SELECT 1 FROM users WHERE id = {me} FOR UPDATE", cancellationToken);
         var limit = await db.SupportGroups.Where(g => g.Id == session.GroupId).Select(g => g.ChatLimit).SingleAsync(cancellationToken);
         if (await db.ChatSessions.CountAsync(c => c.State == ChatState.Active && c.AgentId == me, cancellationToken) >= limit)
         {
@@ -785,6 +789,7 @@ internal static partial class ChatEndpoints
         try
         {
             await db.SaveChangesAsync(cancellationToken);
+            await transaction.CommitAsync(cancellationToken);
         }
         catch (DbUpdateConcurrencyException)
         {

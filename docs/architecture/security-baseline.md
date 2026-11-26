@@ -52,4 +52,21 @@ The one-off Compose service `certs` (`deploy/compose/security/generate-certs.sh`
 | Worker | application role | `zelvo-worker` (zelvo-* indices) | `zelvo-worker` (zelvo.*) | — |
 | migrate | owner (migrations only) | — | — | — |
 
-Still open (tracked in the ASVS checklist): TLS for PostgreSQL, Valkey and the internal HTTP calls (Keycloak back channel, OTLP), separate Valkey users, service passwords in a secrets manager, CSP and HSTS for the web app.
+Still open (tracked in the ASVS checklist, with the hardened install of F6): TLS for PostgreSQL, Valkey and the internal HTTP calls (Keycloak back channel, OTLP), separate Valkey users, service passwords in a secrets manager.
+
+## Browser security headers (task F7)
+
+- **Content-Security-Policy on every page** with a fresh 128-bit nonce per response, set by the web app's proxy (`src/web/src/lib/csp.ts`, `proxy.ts`): scripts only with the nonce (`'strict-dynamic'`; Next.js puts the nonce on its own scripts, read from the request's policy), `object-src 'none'`, `base-uri 'none'`, `frame-ancestors 'none'` (the chat widget page: `'self'` and its listed websites), everything else from this site only (`connect-src 'self'` covers live updates), `upgrade-insecure-requests` on HTTPS. Inline styles are allowed: React `style` attributes and the tenant's checked branding variables need them, and styles run no code. `next.config.ts` adds a baseline policy for responses the proxy does not see. The accessibility audit (`tests/e2e/specs/accessibility.spec.ts`) fails on any content the policy blocks, on every page in both languages.
+- **HSTS** (`Strict-Transport-Security: max-age=31536000`) from Caddy on the installation's address and custom domains, not on `localhost`; without `includeSubDomains`.
+- **No TRACE or TRACK**: Caddy answers 405.
+- **API answers are not cached**: `Cache-Control: no-store` unless an endpoint sets its own (`SecurityHeadersMiddleware`).
+
+## Security events (task F7)
+
+- **Refused API calls**: `SecurityEventMiddleware` logs every 401 and 403 on `/api` as a warning (method, route pattern, status, kind of caller, tenant; no personal data or tokens), counts it in `zelvo.security.refused`, and for a known tenant writes `access.denied` or, when a credential was sent but not accepted, `access.unauthenticated` to the audit log (category Security).
+- **Sign-in events**: every tenant realm records Keycloak events for 90 days (sign-ins and failures, sign-outs, token failures, password, second-factor and email changes, identity provider sign-ins, lockouts) and admin events without representations; Keycloak also logs successful events at info.
+- What every log holds: `docs/security/logging-inventory.md`. Every connection: `docs/architecture/communications.md`. Keys and algorithms: `docs/security/crypto-inventory.md`.
+
+## Business limits
+
+The limits that keep one person or integration from using up a shared resource, with their values, are collected in the ASVS checklist (V2.3.2, V2.4.1) and in `docs/security/components.md` ("Resource-demanding functionality").

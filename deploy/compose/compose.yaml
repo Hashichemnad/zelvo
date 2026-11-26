@@ -275,6 +275,8 @@ services:
       KC_TRACING_ENABLED: "true"
       KC_TRACING_ENDPOINT: http://otel-collector:4317
       KC_TRACING_SERVICE_NAME: keycloak
+      # Task F7 (ASVS V16.3.1): sign-in events (realm events are on) also in Keycloak's log at info.
+      KC_SPI_EVENTS_LISTENER__JBOSS_LOGGING__SUCCESS_LEVEL: info
     ports:
       - "127.0.0.1:${KEYCLOAK_PORT:-8180}:8080"
     depends_on:

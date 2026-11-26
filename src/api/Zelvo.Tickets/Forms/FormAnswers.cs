@@ -193,9 +193,10 @@ public static class FormAnswers
             case FieldType.Number:
             {
                 decimal number;
-                if (FormDefinitionCheck.Kind(value) == JsonValueKind.Number)
+                // Task F7: a number beyond decimal's range (such as 1e400) is a wrong answer, not a crash.
+                if (FormDefinitionCheck.Kind(value) == JsonValueKind.Number && value is JsonValue numeric && numeric.TryGetValue<decimal>(out var exact))
                 {
-                    number = value.GetValue<decimal>();
+                    number = exact;
                 }
                 else if (FormDefinitionCheck.Kind(value) == JsonValueKind.String
                     && decimal.TryParse(value.GetValue<string>(), NumberStyles.Float, CultureInfo.InvariantCulture, out var parsed))

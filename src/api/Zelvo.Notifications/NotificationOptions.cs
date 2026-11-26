@@ -6,7 +6,7 @@ namespace Zelvo.Notifications;
 /// <summary>How email leaves the installation (product owner decision 2026-11-24: one mail server per installation, set by the operator).</summary>
 public enum SmtpSecurity
 {
-    /// <summary>TLS from the start when the port is 465, else STARTTLS when the server offers it.</summary>
+    /// <summary>TLS from the start when the port is 465, else STARTTLS, required (a server without it is refused, so the password never travels in clear; task F7, ASVS V12.1.1).</summary>
     Auto,
 
     /// <summary>No TLS (only for a relay on the same host or network, such as Mailpit in development).</summary>

@@ -116,7 +116,12 @@ internal static class DataSubjectRequestEndpoints
             return ApiProblem.Create(StatusCodes.Status409Conflict, "too-many-requests-open", "You already have five open requests. Please wait for them to be answered.");
         }
 
-        var created = await CreateCoreAsync(db, settings, tenant, notifications, audit, id, type, request.Details, DataSubjectRequestChannel.Portal, id, null, cancellationToken);
+        var created = await CreateCoreAsync(db, settings, tenant, notifications, audit, id, type, request.Details, DataSubjectRequestChannel.Portal, id, null, cancellationToken, openLimit: 5);
+        if (created is null)
+        {
+            return ApiProblem.Create(StatusCodes.Status409Conflict, "too-many-requests-open", "You already have five open requests. Please wait for them to be answered.");
+        }
+
         return TypedResults.Created($"/api/v1/me/privacy/requests/{created.Id}", Response(created, null, null, null));
     }
 
@@ -203,7 +208,7 @@ internal static class DataSubjectRequestEndpoints
         }
 
         var created = await CreateCoreAsync(db, settings, tenant, notifications, audit, subjectId, type, request.Details, DataSubjectRequestChannel.Staff,
-            user.Account?.Id, request.IdentityCheck.Trim(), cancellationToken);
+            user.Account?.Id, request.IdentityCheck.Trim(), cancellationToken) ?? throw new InvalidOperationException("Requests logged by staff have no limit.");
         return TypedResults.Created($"/api/v1/privacy/requests/{created.Id}", await DetailAsync(db, created, user, cancellationToken));
     }
 
@@ -369,15 +374,23 @@ internal static class DataSubjectRequestEndpoints
 
     // ---- helpers ----
 
-    private static async Task<DataSubjectRequest> CreateCoreAsync(ZelvoDbContext db, TenantSettingsStore settings, ITenantContext tenant, PendingNotifications notifications,
+    private static async Task<DataSubjectRequest?> CreateCoreAsync(ZelvoDbContext db, TenantSettingsStore settings, ITenantContext tenant, PendingNotifications notifications,
         IAuditLog audit, Guid subjectId, DataSubjectRequestType type, string? details, DataSubjectRequestChannel channel, Guid? submittedBy, string? identityCheck,
-        CancellationToken cancellationToken)
+        CancellationToken cancellationToken, int? openLimit = null)
     {
         var days = await settings.GetAsync(PrivacySettings.RequestDueDays, cancellationToken);
         await using var transaction = await db.Database.BeginTransactionAsync(cancellationToken);
         // Numbers in order, never reused: one writer at a time per tenant.
         var tenantKey = tenant.TenantId!.Value.ToString();
         await db.Database.ExecuteSqlInterpolatedAsync($"SELECT pg_advisory_xact_lock(hashtext('zelvo.privacy-requests'), hashtext({tenantKey}))", cancellationToken);
+        // Task F7 (ASVS V2.3.2): the limit of open requests is counted under the same lock, so
+        // requests sent at the same moment cannot pass it.
+        if (openLimit is { } limit
+            && await db.DataSubjectRequests.CountAsync(r => r.SubjectId == subjectId && (r.State == DataSubjectRequestState.Received || r.State == DataSubjectRequestState.InProgress), cancellationToken) >= limit)
+        {
+            return null;
+        }
+
         var sequence = (await db.DataSubjectRequests.MaxAsync(r => (long?)r.Sequence, cancellationToken) ?? 0) + 1;
         var now = DateTimeOffset.UtcNow;
         var request = new DataSubjectRequest

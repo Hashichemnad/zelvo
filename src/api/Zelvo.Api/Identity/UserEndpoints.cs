@@ -4,6 +4,7 @@ using Microsoft.AspNetCore.Http.HttpResults;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Options;
 using Zelvo.Api.Conventions;
+using Zelvo.Api.Integrations;
 using Zelvo.Api.Tenancy;
 using Zelvo.Data;
 using Zelvo.Data.Auditing;
@@ -18,7 +19,7 @@ internal static partial class UserEndpoints
 {
     private static readonly string[] SensitiveFields = ["email", "emiratesId", "phone"];
 
-    [LoggerMessage(Level = LogLevel.Error, Message = "Could not record the Emirates ID in Keycloak.")]
+    [LoggerMessage(Level = LogLevel.Error, Message = "Keycloak did not accept a user change (Emirates ID or status).")]
     private static partial void LogKeycloakRefused(ILogger logger, Exception exception);
 
     public static RouteGroupBuilder MapUserEndpoints(this RouteGroupBuilder group)
@@ -71,7 +72,70 @@ internal static partial class UserEndpoints
             .Produces<UserResponse>()
             .ProducesValidationProblem();
 
+        // Task F7 (ASVS V7.4.5): administrators end sessions.
+        users.MapPost("/{id:guid}/sign-out", SignOutUserAsync)
+            .WithName("SignOutUser")
+            .WithSummary("End every session of a user (Keycloak sessions at once; web sessions at their next token refresh, within minutes). Needs users.manage; audited.")
+            .RequirePermission(Permissions.UsersManage)
+            .RequirePerson()
+            .Produces(StatusCodes.Status204NoContent);
+
+        group.MapPost("/identity/sign-out-everyone", SignOutEveryoneAsync)
+            .WithTags("Identity")
+            .RequireTenant()
+            .WithName("SignOutEveryone")
+            .WithSummary("End every session of everyone in the tenant, for example after a suspected compromise; the caller signs in again too. Needs identity.manage; audited.")
+            .RequirePermission(Permissions.IdentityManage)
+            .RequirePerson()
+            .Produces(StatusCodes.Status204NoContent);
+
         return group;
+    }
+
+    internal static async Task<Results<NoContent, ProblemHttpResult>> SignOutUserAsync(
+        Guid id, ZelvoDbContext db, ITenantContext tenant, IKeycloakAdmin keycloak, IOptions<IdentityOptions> options, IAuditLog audit,
+        ILoggerFactory loggers, CancellationToken cancellationToken)
+    {
+        var account = await db.Users.AsNoTracking().SingleOrDefaultAsync(u => u.Id == id, cancellationToken);
+        if (account is null)
+        {
+            return NotFound();
+        }
+
+        if (HasKeycloakUser(account))
+        {
+            try
+            {
+                await keycloak.SignOutAsync(options.Value.RealmFor(tenant.Slug!), account.Subject, cancellationToken);
+            }
+            catch (Exception ex) when (ex is KeycloakAdminException or HttpRequestException)
+            {
+                LogKeycloakRefused(loggers.CreateLogger("Zelvo.Identity"), ex);
+                return (ProblemHttpResult)ApiProblem.Create(StatusCodes.Status502BadGateway, "identity-provider-unavailable",
+                    "The sign-in service did not end the sessions. Try again.");
+            }
+        }
+
+        await audit.RecordAsync(AuditCategory.Security, "users.signed-out", "user_account", account.Id.ToString(), null, cancellationToken);
+        return TypedResults.NoContent();
+    }
+
+    internal static async Task<Results<NoContent, ProblemHttpResult>> SignOutEveryoneAsync(
+        ITenantContext tenant, IKeycloakAdmin keycloak, IOptions<IdentityOptions> options, IAuditLog audit, ILoggerFactory loggers, CancellationToken cancellationToken)
+    {
+        try
+        {
+            await keycloak.SignOutAsync(options.Value.RealmFor(tenant.Slug!), null, cancellationToken);
+        }
+        catch (Exception ex) when (ex is KeycloakAdminException or HttpRequestException)
+        {
+            LogKeycloakRefused(loggers.CreateLogger("Zelvo.Identity"), ex);
+            return (ProblemHttpResult)ApiProblem.Create(StatusCodes.Status502BadGateway, "identity-provider-unavailable",
+                "The sign-in service did not end the sessions. Try again.");
+        }
+
+        await audit.RecordAsync(AuditCategory.Security, "identity.everyone-signed-out", "tenant", tenant.TenantId?.ToString(), null, cancellationToken);
+        return TypedResults.NoContent();
     }
 
     internal static async Task<Ok<JsonObject>> ListAsync(
@@ -335,6 +399,7 @@ internal static partial class UserEndpoints
             account.DisplayName = request.DisplayName.Trim();
         }
 
+        var statusChanged = request.Status is { } newStatus && newStatus != account.Status;
         if (request.Status is { } status)
         {
             account.Status = status;
@@ -370,11 +435,22 @@ internal static partial class UserEndpoints
         // Saved and copied to Keycloak together: if Keycloak refuses, nothing changes.
         await using var transaction = await db.Database.BeginTransactionAsync(cancellationToken);
         await db.SaveChangesAsync(cancellationToken);
-        if (emiratesIdChanged)
+        if (emiratesIdChanged || (statusChanged && HasKeycloakUser(account)))
         {
             try
             {
-                await keycloak.SetEmiratesIdAsync(options.Value.RealmFor(tenant.Slug!), account.Subject, newEmiratesId, cancellationToken);
+                var realm = options.Value.RealmFor(tenant.Slug!);
+                if (emiratesIdChanged)
+                {
+                    await keycloak.SetEmiratesIdAsync(realm, account.Subject, newEmiratesId, cancellationToken);
+                }
+
+                // Task F7 (ASVS V7.4.2): a disabled person can no longer sign in, and their
+                // Keycloak sessions end, so the web app cannot refresh their tokens either.
+                if (statusChanged && HasKeycloakUser(account))
+                {
+                    await keycloak.SetUserEnabledAsync(realm, account.Subject, account.Status == UserStatus.Active, cancellationToken);
+                }
             }
             catch (Exception ex) when (ex is KeycloakAdminException or HttpRequestException)
             {
@@ -387,6 +463,12 @@ internal static partial class UserEndpoints
         await transaction.CommitAsync(cancellationToken);
         return TypedResults.Ok(await ResponseAsync(db, user, account, cancellationToken));
     }
+
+    /// <summary>
+    /// Whether the account is a Keycloak user (its subject is the Keycloak id), rather than an email
+    /// or chat contact, an erased person or one of Zelvo's own accounts without sign-in.
+    /// </summary>
+    internal static bool HasKeycloakUser(UserAccount account) => Guid.TryParse(account.Subject, out _);
 
     private static bool IsEmiratesId(string value) =>
         value.Length == UserAccount.EmiratesIdLength && value.StartsWith("784", StringComparison.Ordinal) && value.All(char.IsAsciiDigit);
