@@ -23,6 +23,9 @@
     <SkipMethod type="*" rx="^&lt;.*&gt;b__" />
     <SkipMethod type="*" name="Invoke" />
     <SkipMethod type="*" name="InvokeAsync" />
+    <!-- Code that .NET's source generators add to our assemblies (OpenAPI, validation) implements
+         framework interfaces; keep it as generated. -->
+    <SkipType name="Microsoft.*" skipMethods="true" skipFields="true" />
     <SkipType name="*Endpoint*" skipMethods="true" />
     <SkipType name="*Hub" skipMethods="true" />
     <SkipType name="Zelvo.Api.Incidents.IncidentSettings" skipMethods="true" />

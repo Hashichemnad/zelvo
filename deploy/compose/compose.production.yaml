@@ -496,7 +496,7 @@ services:
     <<: [*hardened, *zelvo-image]
     image: zelvo/web:${ZELVO_VERSION}
     read_only: true
-    tmpfs: [/tmp, /app/.next/cache:uid=1000,gid=1000]
+    tmpfs: [/tmp]
     environment:
       API_INTERNAL_URL: http://api:8080
       APP_URL: https://${ZELVO_PUBLIC_HOST}
@@ -510,7 +510,11 @@ services:
       # One reverse proxy (Caddy) in front of the web app.
       TRUSTED_PROXY_HOPS: "1"
       RELEASE_MANIFEST_PATH: /etc/zelvo/release/release-manifest.json
-    volumes: [*release, *ca-volume]
+    volumes:
+      - *release
+      - *ca-volume
+      # Next.js writes its image and page cache here; the web app runs as uid 1000 (node).
+      - { type: tmpfs, target: /app/.next/cache, tmpfs: { mode: 0o1777 } }
     deploy:
       resources:
         limits: { cpus: "2", memory: 1g, pids: 512 }

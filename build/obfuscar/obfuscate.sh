@@ -29,14 +29,27 @@ if [[ ${#modules[@]} -eq 0 ]]; then
   exit 1
 fi
 
-# Obfuscar resolves references from these folders: the application itself and the newest
-# version of each shared framework (Microsoft.NETCore.App, Microsoft.AspNetCore.App).
+# Obfuscar resolves references from these folders: the application itself and, for each shared
+# framework the application runs on (its runtimeconfig.json), the newest installed version of
+# the same major version. A newer major (a preview SDK on a build machine) has different
+# interfaces, and Obfuscar would then rename methods that implement them.
 dotnet_root=$(dirname "$(readlink -f "$(command -v dotnet)")")
 search_paths=("$publish")
-for framework in "$dotnet_root"/shared/*/; do
-  newest=$(ls -d "$framework"*/ 2>/dev/null | sort -V | tail -n 1)
-  [[ -n "$newest" ]] && search_paths+=("${newest%/}")
-done
+frameworks=$(cat "$publish"/*.runtimeconfig.json 2>/dev/null | tr -d '\n\r' \
+  | { grep -oE '"name": *"[^"]+", *"version": *"[0-9]+' || true; } \
+  | sed -E 's/"name": *"([^"]+)", *"version": *"([0-9]+)/\1 \2/' | sort -u)
+if [[ -z "$frameworks" ]]; then
+  echo "obfuscate: no runtimeconfig.json with frameworks in $publish" >&2
+  exit 1
+fi
+while read -r name major; do
+  newest=$(ls -d "$dotnet_root/shared/$name/$major".*/ 2>/dev/null | sort -V | tail -n 1)
+  if [[ -z "$newest" ]]; then
+    echo "obfuscate: $name $major.x is not installed in $dotnet_root" >&2
+    exit 1
+  fi
+  search_paths+=("${newest%/}")
+done <<< "$frameworks"
 
 rules=$(grep '<Skip' "$here/rules.xml")
 
