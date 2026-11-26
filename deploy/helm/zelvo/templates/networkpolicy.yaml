@@ -1,0 +1,43 @@
+{{- if .Values.networkPolicy.enabled }}
+{{- $root := . -}}
+# Nothing reaches Zelvo's pods except along the paths below; only the proxy takes traffic from
+# outside the namespace. Egress stays open: the data services, mail, directories, gateways and
+# AI providers are outside it (the services' own outgoing-request policy applies).
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: {{ include "zelvo.fullname" . }}-default-deny
+  labels: {{- include "zelvo.labels" . | nindent 4 }}
+spec:
+  podSelector:
+    matchLabels: { app.kubernetes.io/instance: {{ .Release.Name }} }
+  policyTypes: [Ingress]
+{{- range $target := list (dict "name" "proxy" "from" (list) "ports" (list 8080 8443))
+    (dict "name" "web" "from" (list "proxy") "ports" (list 3000))
+    (dict "name" "api" "from" (list "proxy" "web") "ports" (list 8080))
+    (dict "name" "keycloak" "from" (list "proxy" "web" "api" "migrate" "keycloak") "ports" (list 8080 9000 7800 57800))
+    (dict "name" "clamav" "from" (list "worker") "ports" (list 3310)) }}
+---
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: {{ include "zelvo.fullname" $root }}-{{ $target.name }}
+  labels: {{- include "zelvo.labels" $root | nindent 4 }}
+spec:
+  podSelector:
+    matchLabels: {{- include "zelvo.selector" (dict "root" $root "name" $target.name) | nindent 6 }}
+  policyTypes: [Ingress]
+  ingress:
+    - ports:
+        {{- range $port := $target.ports }}
+        - { port: {{ $port }}, protocol: TCP }
+        {{- end }}
+      {{- if $target.from }}
+      from:
+        {{- range $from := $target.from }}
+        - podSelector:
+            matchLabels: {{- include "zelvo.selector" (dict "root" $root "name" $from) | nindent 14 }}
+        {{- end }}
+      {{- end }}
+{{- end }}
+{{- end }}

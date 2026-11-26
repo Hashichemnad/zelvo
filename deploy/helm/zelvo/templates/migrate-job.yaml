@@ -1,0 +1,66 @@
+{{- $fullname := include "zelvo.fullname" . -}}
+# Database migrations and tenant set-up (Keycloak realms) before an upgrade's new pods, and after
+# the first install (when Keycloak runs). Helm upgrades and rollbacks replace the updater of
+# Compose installs on Kubernetes.
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: {{ $fullname }}-migrate-{{ .Release.Revision }}
+  labels: {{- include "zelvo.labels" . | nindent 4 }}
+  annotations:
+    helm.sh/hook: post-install,pre-upgrade
+    helm.sh/hook-weight: "0"
+    helm.sh/hook-delete-policy: before-hook-creation,hook-succeeded
+spec:
+  backoffLimit: 10
+  activeDeadlineSeconds: 3600
+  template:
+    metadata:
+      labels:
+        {{- include "zelvo.labels" . | nindent 8 }}
+        app.kubernetes.io/name: migrate
+    spec:
+      restartPolicy: OnFailure
+      automountServiceAccountToken: false
+      {{- with .Values.image.pullSecrets }}
+      imagePullSecrets: {{- toYaml . | nindent 8 }}
+      {{- end }}
+      securityContext:
+        {{- include "zelvo.podSecurity" . | nindent 8 }}
+        runAsUser: 1654
+        runAsGroup: 1654
+      containers:
+        - name: migrate
+          image: {{ include "zelvo.image" (dict "root" . "name" "api") }}
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          args: ["migrate"]
+          securityContext: {{- include "zelvo.containerSecurity" . | nindent 12 }}
+          env:
+            - { name: DOTNET_ENVIRONMENT, value: Production }
+            {{- include "zelvo.secretEnv" (dict "root" . "env" "DB_OWNER_PASSWORD" "key" "postgresOwnerPassword") | nindent 12 }}
+            - name: ConnectionStrings__PostgresOwner
+              value: "Host={{ .Values.postgres.host }};Port={{ .Values.postgres.port }};Database={{ .Values.postgres.database }};Username={{ .Values.postgres.owner }};Password=$(DB_OWNER_PASSWORD);SSL Mode={{ .Values.postgres.sslMode }}"
+            - { name: Tenancy__Bootstrap__Slug, value: {{ .Values.tenant.slug | quote }} }
+            - { name: Tenancy__Bootstrap__NameEn, value: {{ .Values.tenant.nameEn | quote }} }
+            - { name: Tenancy__Bootstrap__NameAr, value: {{ .Values.tenant.nameAr | quote }} }
+            - { name: Identity__PublicUrl, value: "https://{{ .Values.publicHost }}/auth" }
+            - { name: Identity__InternalUrl, value: "http://{{ $fullname }}-keycloak:8080/auth" }
+            {{- include "zelvo.secretEnv" (dict "root" . "env" "Identity__ProvisionerClientSecret" "key" "keycloakProvisionerSecret") | nindent 12 }}
+            - { name: Identity__Provisioning__AdminUser, value: admin }
+            {{- include "zelvo.secretEnv" (dict "root" . "env" "Identity__Provisioning__AdminPassword" "key" "keycloakAdminPassword") | nindent 12 }}
+            - { name: Identity__Provisioning__WebUrl, value: "https://{{ .Values.publicHost }}" }
+            {{- include "zelvo.secretEnv" (dict "root" . "env" "Identity__Provisioning__WebClientSecret" "key" "webClientSecret") | nindent 12 }}
+            - { name: Identity__Provisioning__Smtp__Host, value: {{ .Values.smtp.host | quote }} }
+            - { name: Identity__Provisioning__Smtp__Port, value: {{ .Values.smtp.port | quote }} }
+            - { name: Identity__Provisioning__Smtp__From, value: {{ .Values.smtp.from | quote }} }
+            - { name: Identity__Provisioning__Smtp__User, value: {{ .Values.smtp.user | quote }} }
+            {{- include "zelvo.secretEnv" (dict "root" . "env" "Identity__Provisioning__Smtp__Password" "key" "smtpPassword") | nindent 12 }}
+            - { name: Identity__Provisioning__Smtp__StartTls, value: {{ eq .Values.smtp.security "StartTls" | quote }} }
+            - { name: Licensing__Domain, value: {{ .Values.publicHost | quote }} }
+            - { name: Licensing__ClusterId, value: {{ include "zelvo.clusterId" . | quote }} }
+          volumeMounts:
+            - { name: tmp, mountPath: /tmp }
+          resources: {{- toYaml .Values.migrate.resources | nindent 12 }}
+      volumes:
+        - name: tmp
+          emptyDir: {}

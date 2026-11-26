@@ -1,0 +1,22 @@
+# Values for CI's helm lint and template (task F6). Addresses are examples; no secrets here: the
+# chart reads them from the existing secret "zelvo-secrets".
+publicHost: zelvo.example.org
+tenant: { nameEn: Example Authority, nameAr: هيئة المثال }
+postgres: { host: zelvo-db-rw.zelvo.svc }
+redis: { endpoint: "zelvo-valkey.zelvo.svc:6379" }
+rabbitmq: { host: zelvo-rabbitmq.zelvo.svc }
+opensearch: { url: "https://zelvo-opensearch.zelvo.svc:9200/" }
+smtp: { host: mail.example.org, from: no-reply@example.org }
+proxy: { acmeEmail: ops@example.org }
+licensing: { clusterId: 00000000-0000-0000-0000-000000000000 }
+attachments:
+  storage: S3
+  s3: { endpoint: "https://objects.example.org", region: me-central-1, bucket: zelvo-attachments }
+internalNetworks: [10.20.0.0/16]
+release:
+  manifest: '{"format":"zelvo-release/1","version":"0.1.0","createdAt":"2026-11-26T00:00:00Z","components":[]}'
+  signature: c2lnbmF0dXJl
+imagePolicy:
+  enabled: true
+  # Only rendered, never verified here: a placeholder, not a key.
+  publicKey: placeholder-public-key-for-rendering-only

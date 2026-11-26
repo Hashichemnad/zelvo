@@ -1,0 +1,53 @@
+{{- if .Values.clamav.enabled }}
+{{- $fullname := include "zelvo.fullname" . -}}
+# ClamAV (GPL-2.0, its official image unmodified) scans every attachment before download (B1).
+# Its entrypoint starts as root and switches to the clamav user, so this pod needs the namespace's
+# Pod Security level "baseline" (every other pod meets "restricted").
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ $fullname }}-clamav
+  labels:
+    {{- include "zelvo.labels" . | nindent 4 }}
+    app.kubernetes.io/name: clamav
+spec:
+  replicas: 1
+  selector:
+    matchLabels: {{- include "zelvo.selector" (dict "root" . "name" "clamav") | nindent 6 }}
+  template:
+    metadata:
+      labels:
+        {{- include "zelvo.labels" . | nindent 8 }}
+        app.kubernetes.io/name: clamav
+    spec:
+      automountServiceAccountToken: false
+      securityContext:
+        seccompProfile: { type: RuntimeDefault }
+      containers:
+        - name: clamav
+          image: clamav/clamav:1.5.4
+          securityContext:
+            allowPrivilegeEscalation: false
+            capabilities: { drop: [ALL], add: [CHOWN, DAC_OVERRIDE, FOWNER, SETGID, SETUID] }
+          env:
+            - { name: CLAMAV_NO_FRESHCLAMD, value: {{ .Values.clamav.noFreshclam | quote }} }
+            - { name: CLAMD_CONF_StreamMaxLength, value: 105M }
+            - { name: CLAMD_CONF_MaxFileSize, value: 105M }
+            - { name: CLAMD_CONF_MaxScanSize, value: 400M }
+          ports: [{ name: clamd, containerPort: 3310 }]
+          readinessProbe: { tcpSocket: { port: clamd }, initialDelaySeconds: 30, periodSeconds: 15 }
+          volumeMounts: [{ name: definitions, mountPath: /var/lib/clamav }]
+          resources: {{- toYaml .Values.clamav.resources | nindent 12 }}
+      volumes:
+        - name: definitions
+          emptyDir: {}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ $fullname }}-clamav
+  labels: {{- include "zelvo.labels" . | nindent 4 }}
+spec:
+  selector: {{- include "zelvo.selector" (dict "root" . "name" "clamav") | nindent 4 }}
+  ports: [{ name: clamd, port: 3310, targetPort: clamd }]
+{{- end }}

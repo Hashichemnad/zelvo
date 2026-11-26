@@ -1,0 +1,165 @@
+# Zelvo on Kubernetes (medium and large installs; task F6, product owner decisions 2026-11-26).
+# The chart runs Zelvo's own services: api, worker, web, keycloak, clamav and the caddy proxy, and
+# the migrate job. PostgreSQL (with pgvector), OpenSearch (with the ICU plugin), RabbitMQ and
+# Valkey are given by address: run them with operators (CloudNativePG, the OpenSearch operator,
+# the RabbitMQ cluster operator; see examples/) or use the customer's managed services.
+# See README.md and docs/architecture/release.md.
+
+image:
+  # Release images from the private registry (or the customer's own registry, after loading the
+  # bundle's image files and pushing them there).
+  registry: ghcr.io/hashichemnad
+  prefix: zelvo-
+  # Defaults to the chart's appVersion; per-customer builds add the watermark (1.4.0-zw-...).
+  tag: ""
+  pullPolicy: IfNotPresent
+  pullSecrets: []
+
+# REQUIRED: the address people use (the proxy's certificate is for it).
+publicHost: ""
+
+tenant:
+  slug: default
+  nameEn: ""
+  nameAr: ""
+
+# REQUIRED: a Secret the operator creates with the installation's passwords (keys in README.md).
+existingSecret: zelvo-secrets
+
+postgres:
+  host: ""
+  port: 5432
+  database: zelvo
+  owner: zelvo_owner
+  appUser: zelvo_app
+  keycloakDatabase: keycloak
+  keycloakUser: keycloak
+  sslMode: Require
+
+redis:
+  # host:port of Valkey (Redis protocol).
+  endpoint: ""
+  tls: false
+
+rabbitmq:
+  host: ""
+  port: 5671
+  vhost: zelvo
+  # A Secret with ca.crt for RabbitMQ's and OpenSearch's TLS.
+  caSecret: zelvo-ca
+
+opensearch:
+  url: ""
+
+smtp:
+  host: ""
+  port: 587
+  security: StartTls
+  user: ""
+  from: ""
+
+# The signed release manifest of the release (from the bundle's release/ folder):
+#   --set-file release.manifest=release/release-manifest.json --set-file release.signature=release/release-manifest.json.sig
+# Every Zelvo service checks itself against it and refuses to start without it in release builds.
+release:
+  manifest: ""
+  signature: ""
+
+licensing:
+  # The cluster part of the license fingerprint. Empty: the kube-system namespace's uid, read by Helm.
+  clusterId: ""
+
+secrets:
+  # File: the master key in the existing secret's key "masterKey"; Vault: HashiCorp Vault or OpenBao Transit.
+  provider: File
+  vault:
+    address: ""
+    keyName: zelvo
+
+attachments:
+  # Database (default) or S3: S3-compatible object storage for medium and large installs.
+  storage: Database
+  s3:
+    endpoint: ""
+    region: ""
+    bucket: ""
+    forcePathStyle: true
+
+telemetry:
+  # OTLP gRPC endpoint of the cluster's OpenTelemetry Collector; empty turns telemetry off.
+  otlpEndpoint: ""
+  otlpHttpEndpoint: ""
+
+# Internal networks Zelvo may call (mail, directories, gateways, self-hosted AI), CIDR.
+internalNetworks: []
+# The pod network the proxy runs in (only it may forward client addresses).
+podNetwork: 10.0.0.0/8
+
+api:
+  replicas: 2
+  autoscaling: { enabled: true, minReplicas: 2, maxReplicas: 10, targetCPUUtilizationPercentage: 70 }
+  resources:
+    requests: { cpu: 500m, memory: 1Gi }
+    limits: { cpu: "4", memory: 3Gi }
+
+worker:
+  replicas: 2
+  resources:
+    requests: { cpu: 500m, memory: 1Gi }
+    limits: { cpu: "2", memory: 3Gi }
+
+web:
+  replicas: 2
+  autoscaling: { enabled: true, minReplicas: 2, maxReplicas: 8, targetCPUUtilizationPercentage: 70 }
+  resources:
+    requests: { cpu: 250m, memory: 512Mi }
+    limits: { cpu: "2", memory: 1Gi }
+
+migrate:
+  resources:
+    requests: { cpu: 250m, memory: 512Mi }
+    limits: { cpu: "2", memory: 2Gi }
+
+keycloak:
+  replicas: 2
+  resources:
+    requests: { cpu: 500m, memory: 1Gi }
+    limits: { cpu: "2", memory: 2Gi }
+
+clamav:
+  enabled: true
+  # Offline clusters: true, then import definition files.
+  noFreshclam: false
+  resources:
+    requests: { cpu: 250m, memory: 1536Mi }
+    limits: { cpu: "1", memory: 3Gi }
+
+# HTTPS in front of the web app: Caddy with on-demand certificates for tenants' verified custom
+# domains (F1). One replica, its certificates on a volume.
+proxy:
+  image: caddy:2.11.9-alpine
+  service:
+    type: LoadBalancer
+    annotations: {}
+  # Empty: ACME (Let's Encrypt or acmeCa); "internal": Caddy's own CA (tests).
+  tls: ""
+  acmeEmail: ""
+  acmeCa: https://acme-v02.api.letsencrypt.org/directory
+  storage: { size: 1Gi, storageClass: "" }
+  resources:
+    requests: { cpu: 100m, memory: 128Mi }
+    limits: { cpu: "1", memory: 256Mi }
+
+podDisruptionBudget:
+  enabled: true
+  minAvailable: 1
+
+networkPolicy:
+  enabled: true
+
+# Kyverno admission policy: pods of this namespace may only run Zelvo images signed with Zelvo's
+# key (cosign, no transparency log). Needs Kyverno 1.10 or later installed in the cluster.
+imagePolicy:
+  enabled: false
+  # Zelvo's cosign public key (the bundle's cosign.pub): --set-file imagePolicy.publicKey=cosign.pub
+  publicKey: ""

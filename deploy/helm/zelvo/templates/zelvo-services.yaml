@@ -1,0 +1,170 @@
+{{- /* api, worker and web: Zelvo's stateless services. */ -}}
+{{- $root := . -}}
+{{- $fullname := include "zelvo.fullname" . -}}
+{{- range $name := list "api" "worker" "web" }}
+{{- $values := index $root.Values $name }}
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ $fullname }}-{{ $name }}
+  labels:
+    {{- include "zelvo.labels" $root | nindent 4 }}
+    app.kubernetes.io/name: {{ $name }}
+spec:
+  {{- if not (and (hasKey $values "autoscaling") $values.autoscaling.enabled) }}
+  replicas: {{ $values.replicas }}
+  {{- end }}
+  revisionHistoryLimit: 5
+  selector:
+    matchLabels: {{- include "zelvo.selector" (dict "root" $root "name" $name) | nindent 6 }}
+  strategy:
+    type: RollingUpdate
+    rollingUpdate: { maxUnavailable: 0, maxSurge: 1 }
+  template:
+    metadata:
+      labels:
+        {{- include "zelvo.labels" $root | nindent 8 }}
+        app.kubernetes.io/name: {{ $name }}
+      annotations:
+        checksum/settings: {{ include (print $root.Template.BasePath "/configmap.yaml") $root | sha256sum }}
+    spec:
+      automountServiceAccountToken: false
+      {{- with $root.Values.image.pullSecrets }}
+      imagePullSecrets: {{- toYaml . | nindent 8 }}
+      {{- end }}
+      securityContext:
+        {{- include "zelvo.podSecurity" $root | nindent 8 }}
+        {{- if eq $name "web" }}
+        runAsUser: 1000
+        runAsGroup: 1000
+        {{- else }}
+        runAsUser: 1654
+        runAsGroup: 1654
+        fsGroup: 1654
+        {{- end }}
+      topologySpreadConstraints:
+        - maxSkew: 1
+          topologyKey: kubernetes.io/hostname
+          whenUnsatisfiable: ScheduleAnyway
+          labelSelector:
+            matchLabels: {{- include "zelvo.selector" (dict "root" $root "name" $name) | nindent 14 }}
+      containers:
+        - name: {{ $name }}
+          image: {{ include "zelvo.image" (dict "root" $root "name" $name) }}
+          imagePullPolicy: {{ $root.Values.image.pullPolicy }}
+          securityContext: {{- include "zelvo.containerSecurity" $root | nindent 12 }}
+          {{- if eq $name "web" }}
+          env:
+            - { name: API_INTERNAL_URL, value: "http://{{ $fullname }}-api:8080" }
+            - { name: APP_URL, value: "https://{{ $root.Values.publicHost }}" }
+            - { name: ZELVO_TENANT, value: {{ $root.Values.tenant.slug | quote }} }
+            - { name: KEYCLOAK_PUBLIC_URL, value: "https://{{ $root.Values.publicHost }}/auth" }
+            - { name: KEYCLOAK_INTERNAL_URL, value: "http://{{ $fullname }}-keycloak:8080/auth" }
+            - { name: TRUSTED_PROXY_HOPS, value: "1" }
+            - { name: RELEASE_MANIFEST_PATH, value: /etc/zelvo/release/release-manifest.json }
+            - { name: OTEL_EXPORTER_OTLP_ENDPOINT, value: {{ $root.Values.telemetry.otlpHttpEndpoint | quote }} }
+            {{- include "zelvo.secretEnv" (dict "root" $root "env" "ZELVO_WEB_CLIENT_SECRET" "key" "webClientSecret") | nindent 12 }}
+            {{- include "zelvo.secretEnv" (dict "root" $root "env" "REDIS_PASSWORD" "key" "redisPassword") | nindent 12 }}
+            - name: SESSION_STORE_URL
+              value: "{{ if $root.Values.redis.tls }}rediss{{ else }}redis{{ end }}://:$(REDIS_PASSWORD)@{{ $root.Values.redis.endpoint }}/1"
+          ports: [{ name: http, containerPort: 3000 }]
+          readinessProbe: { httpGet: { path: /healthz, port: http }, periodSeconds: 10 }
+          livenessProbe: { httpGet: { path: /healthz, port: http }, periodSeconds: 20, failureThreshold: 6 }
+          volumeMounts:
+            - { name: tmp, mountPath: /tmp }
+            - { name: next-cache, mountPath: /app/.next/cache }
+            - { name: release, mountPath: /etc/zelvo/release, readOnly: true }
+          {{- else }}
+          envFrom: [{ configMapRef: { name: {{ $fullname }}-settings } }]
+          env:
+            {{- include "zelvo.dotnetEnv" $root | nindent 12 }}
+            {{- include "zelvo.secretEnv" (dict "root" $root "env" "RABBITMQ_PASSWORD" "key" (printf "rabbitmq%sPassword" (title $name))) | nindent 12 }}
+            - name: ConnectionStrings__RabbitMq
+              value: "amqps://zelvo-{{ $name }}:$(RABBITMQ_PASSWORD)@{{ $root.Values.rabbitmq.host }}:{{ $root.Values.rabbitmq.port }}/{{ $root.Values.rabbitmq.vhost }}"
+            - { name: Search__Username, value: "zelvo-{{ $name }}" }
+            {{- include "zelvo.secretEnv" (dict "root" $root "env" "Search__Password" "key" (printf "opensearch%sPassword" (title $name))) | nindent 12 }}
+            {{- include "zelvo.secretEnv" (dict "root" $root "env" "Notifications__Smtp__Password" "key" "smtpPassword") | nindent 12 }}
+            {{- if eq $root.Values.attachments.storage "S3" }}
+            {{- include "zelvo.secretEnv" (dict "root" $root "env" "Attachments__S3__AccessKey" "key" "s3AccessKey") | nindent 12 }}
+            {{- include "zelvo.secretEnv" (dict "root" $root "env" "Attachments__S3__SecretKey" "key" "s3SecretKey") | nindent 12 }}
+            {{- end }}
+            {{- if eq $name "api" }}
+            {{- include "zelvo.secretEnv" (dict "root" $root "env" "REDIS_PASSWORD" "key" "redisPassword") | nindent 12 }}
+            - name: ConnectionStrings__Redis
+              value: "{{ $root.Values.redis.endpoint }},password=$(REDIS_PASSWORD),ssl={{ $root.Values.redis.tls }},abortConnect=false"
+            {{- include "zelvo.secretEnv" (dict "root" $root "env" "Identity__ProvisionerClientSecret" "key" "keycloakProvisionerSecret") | nindent 12 }}
+            {{- include "zelvo.secretEnv" (dict "root" $root "env" "Branding__TlsToken" "key" "tlsToken") | nindent 12 }}
+            {{- else }}
+            - { name: HOME, value: /tmp }
+            - { name: Worker__HeartbeatFile, value: /tmp/zelvo-worker.heartbeat }
+            {{- end }}
+          {{- if eq $name "api" }}
+          ports: [{ name: http, containerPort: 8080 }]
+          readinessProbe: { httpGet: { path: /health/ready, port: http }, periodSeconds: 10, failureThreshold: 6 }
+          livenessProbe: { httpGet: { path: /health/live, port: http }, periodSeconds: 20, failureThreshold: 6 }
+          startupProbe: { httpGet: { path: /health/live, port: http }, periodSeconds: 5, failureThreshold: 60 }
+          {{- else }}
+          livenessProbe:
+            exec: { command: ["sh", "-c", "find /tmp/zelvo-worker.heartbeat -mmin -1 | grep -q ."] }
+            initialDelaySeconds: 60
+            periodSeconds: 30
+          {{- end }}
+          volumeMounts: {{- include "zelvo.commonMounts" $root | nindent 12 }}
+            {{- if eq $name "worker" }}
+            - { name: shm, mountPath: /dev/shm }
+            {{- end }}
+          {{- end }}
+          resources: {{- toYaml $values.resources | nindent 12 }}
+      volumes:
+        {{- include "zelvo.commonVolumes" $root | nindent 8 }}
+        {{- if eq $name "web" }}
+        - name: next-cache
+          emptyDir: {}
+        {{- end }}
+        {{- if eq $name "worker" }}
+        - name: shm
+          emptyDir: { medium: Memory, sizeLimit: 512Mi }
+        {{- end }}
+{{- if ne $name "worker" }}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ $fullname }}-{{ $name }}
+  labels:
+    {{- include "zelvo.labels" $root | nindent 4 }}
+    app.kubernetes.io/name: {{ $name }}
+spec:
+  selector: {{- include "zelvo.selector" (dict "root" $root "name" $name) | nindent 4 }}
+  ports:
+    - { name: http, port: {{ if eq $name "web" }}3000{{ else }}8080{{ end }}, targetPort: http }
+{{- end }}
+{{- if and (hasKey $values "autoscaling") $values.autoscaling.enabled }}
+---
+apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler
+metadata:
+  name: {{ $fullname }}-{{ $name }}
+  labels: {{- include "zelvo.labels" $root | nindent 4 }}
+spec:
+  scaleTargetRef: { apiVersion: apps/v1, kind: Deployment, name: {{ $fullname }}-{{ $name }} }
+  minReplicas: {{ $values.autoscaling.minReplicas }}
+  maxReplicas: {{ $values.autoscaling.maxReplicas }}
+  metrics:
+    - type: Resource
+      resource: { name: cpu, target: { type: Utilization, averageUtilization: {{ $values.autoscaling.targetCPUUtilizationPercentage }} } }
+{{- end }}
+{{- if $root.Values.podDisruptionBudget.enabled }}
+---
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: {{ $fullname }}-{{ $name }}
+  labels: {{- include "zelvo.labels" $root | nindent 4 }}
+spec:
+  minAvailable: {{ $root.Values.podDisruptionBudget.minAvailable }}
+  selector:
+    matchLabels: {{- include "zelvo.selector" (dict "root" $root "name" $name) | nindent 6 }}
+{{- end }}
+{{- end }}
