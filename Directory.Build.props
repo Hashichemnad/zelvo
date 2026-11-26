@@ -12,8 +12,17 @@
     <Product>Zelvo</Product>
     <Copyright>Copyright (c) 2026 Zelvo. All rights reserved.</Copyright>
     <Version>0.1.0</Version>
-    <!-- Release builds replace the development licensing stub by setting this to the
-         private zelvo-licensing project path. See docs/architecture/licensing.md. -->
-    <ZelvoLicensingProject Condition="'$(ZelvoLicensingProject)' == ''"></ZelvoLicensingProject>
+    <!-- Release licensing build (task F6 sets it with -p:ZelvoRelease=true): no development
+         license, no development signing keys from configuration, and the vendor public keys in
+         src/api/Zelvo.Licensing/vendor-keys.json are required. See docs/architecture/licensing.md. -->
+    <ZelvoRelease Condition="'$(ZelvoRelease)' == ''">false</ZelvoRelease>
+    <!-- Per-customer builds (task F6) set the customer's watermark: -p:ZelvoBuildWatermark=ZW-... -->
+    <ZelvoBuildWatermark Condition="'$(ZelvoBuildWatermark)' == ''"></ZelvoBuildWatermark>
+  </PropertyGroup>
+  <ItemGroup Condition="'$(ZelvoBuildWatermark)' != ''">
+    <AssemblyMetadata Include="ZelvoBuildWatermark" Value="$(ZelvoBuildWatermark)" />
+  </ItemGroup>
+  <PropertyGroup Condition="'$(ZelvoRelease)' == 'true'">
+    <DefineConstants>$(DefineConstants);ZELVO_RELEASE</DefineConstants>
   </PropertyGroup>
 </Project>

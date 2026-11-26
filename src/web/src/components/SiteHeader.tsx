@@ -1,6 +1,6 @@
 import { getLocale, getTranslations } from "next-intl/server";
 import { Link } from "@/i18n/navigation";
-import { getBranding, getCurrentUser, getDemo } from "@/lib/api";
+import { getBranding, getCurrentUser, getDemo, getSystemInfo } from "@/lib/api";
 import { brandingImagePath } from "@/lib/branding";
 import { getRequestAuthConfig } from "@/lib/auth/config";
 import { getSession } from "@/lib/auth/session";
@@ -17,6 +17,9 @@ import { NotificationBell } from "./notifications/NotificationBell";
 import { DemoPanel } from "./DemoPanel";
 import { LanguageSwitcher } from "./LanguageSwitcher";
 import { TestInstallationBanner } from "./TestInstallationBanner";
+import { ActivationBanner } from "./ActivationBanner";
+import { MaintenanceBanner } from "./MaintenanceBanner";
+import { moduleShown, modules } from "@/lib/license";
 
 export async function SiteHeader() {
   const t = await getTranslations("common");
@@ -36,6 +39,8 @@ export async function SiteHeader() {
   const logoLight = brandingImagePath(config.tenant, "LogoLight", branding?.images.logoLight);
   const logoDark = brandingImagePath(config.tenant, "LogoDark", branding?.images.logoDark) ?? logoLight;
   const session = await getSession(config).catch(() => null);
+  // Task F3: links to modules the license does not include are left out.
+  const licensed = (await getSystemInfo())?.modules;
   const user = session ? await getCurrentUser(session.data.accessToken, config.tenant) : null;
   // Demo installations only: the API says whether this is one.
   const demo = config.demoTenants.length > 0 ? await getDemo(config.tenant) : null;
@@ -66,28 +71,36 @@ export async function SiteHeader() {
             </Link>
             <nav aria-label={tIncidents("label")}>
               <ul className="flex flex-wrap gap-3 text-sm font-semibold">
-                <li>
-                  <Link href="/help" className="text-brand underline-offset-4 hover:underline">
-                    {tKnowledge("help")}
-                  </Link>
-                </li>
-                <li>
-                  <Link href="/catalog" className="text-brand underline-offset-4 hover:underline">
-                    {tCatalog("catalog")}
-                  </Link>
-                </li>
-                <li>
-                  <Link href="/contact" className="text-brand underline-offset-4 hover:underline">
-                    {tVoice("contact")}
-                  </Link>
-                </li>
-                {user && (
-                  <>
+                {moduleShown(licensed, modules.knowledge) && (
                   <li>
-                    <Link href="/my-tickets" className="text-brand underline-offset-4 hover:underline">
-                      {tPortal("myTickets")}
+                    <Link href="/help" className="text-brand underline-offset-4 hover:underline">
+                      {tKnowledge("help")}
                     </Link>
                   </li>
+                )}
+                {moduleShown(licensed, modules.serviceCatalog) && (
+                  <li>
+                    <Link href="/catalog" className="text-brand underline-offset-4 hover:underline">
+                      {tCatalog("catalog")}
+                    </Link>
+                  </li>
+                )}
+                {moduleShown(licensed, modules.customerVoice) && (
+                  <li>
+                    <Link href="/contact" className="text-brand underline-offset-4 hover:underline">
+                      {tVoice("contact")}
+                    </Link>
+                  </li>
+                )}
+                {user && (
+                  <>
+                  {moduleShown(licensed, modules.portal) && (
+                    <li>
+                      <Link href="/my-tickets" className="text-brand underline-offset-4 hover:underline">
+                        {tPortal("myTickets")}
+                      </Link>
+                    </li>
+                  )}
                   {user.permissions.includes("voice.read") && (
                     <li>
                       <Link href="/customer-voice" className="text-brand underline-offset-4 hover:underline">
@@ -190,6 +203,8 @@ export async function SiteHeader() {
           </div>
         </div>
       </header>
+      <ActivationBanner />
+      <MaintenanceBanner />
       <TestInstallationBanner />
       {demo && (
         <DemoPanel

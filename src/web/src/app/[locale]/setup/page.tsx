@@ -3,6 +3,7 @@ import { SetupWizard } from "@/components/setup/SetupWizard";
 import { Link } from "@/i18n/navigation";
 import { getJsonAs } from "@/lib/api";
 import { getDisplayFormat } from "@/lib/display";
+import type { LicenseState } from "@/lib/license";
 import type { DepartmentTemplate, SetupState } from "@/lib/reports";
 import { requireSignedIn } from "@/lib/signed-in";
 
@@ -20,6 +21,10 @@ export default async function SetupPage({ params }: PageProps<"/[locale]/setup">
   const t = await getTranslations({ locale, namespace: "setup" });
   const allowed = user?.permissions.includes("setup.manage") ?? false;
   const token = session.data.accessToken;
+  // Task F3: the license step activates the installation (operator tenant's administrators).
+  const license = allowed && user?.permissions.includes("installation.manage")
+    ? await getJsonAs<LicenseState>("/api/v1/license", token, tenant)
+    : null;
   const [state, templates, tenantInfo, format] = allowed
     ? await Promise.all([
       getJsonAs<SetupState>("/api/v1/setup", token, tenant),
@@ -37,7 +42,7 @@ export default async function SetupPage({ params }: PageProps<"/[locale]/setup">
           <>
             <p className="max-w-3xl">{t("intro")}</p>
             <SetupWizard initial={state} templates={templates} tenantName={tenantInfo?.name ?? null} canRename={user?.permissions.includes("tenant.manage") ?? false}
-              csrfToken={session.data.csrfToken} digits={format.digits} />
+              csrfToken={session.data.csrfToken} digits={format.digits} license={license} calendar={format.calendar} timeZone={format.timeZone} />
           </>
         )}
     </section>

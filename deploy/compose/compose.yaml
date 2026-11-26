@@ -88,6 +88,32 @@ x-channels-env: &channels-env
   Connectors__Network__AllowedPrivateNetworks__1: 192.168.0.0/16
   Connectors__Network__AllowedPrivateNetworks__2: 10.0.0.0/8
 
+# Licensing (task F3, docs/architecture/licensing.md): the fingerprint's server part is the host's
+# machine id, mounted read-only, and its domain is the installation's public host. Development
+# builds use the development license until a license is imported; Licensing__DevelopmentLicense:
+# "false" tries activation, with a key of your own from the signing tool in Licensing__DevelopmentKeys.
+x-licensing-env: &licensing-env
+  Licensing__Domain: ${ZELVO_PUBLIC_HOST:-localhost}
+  Licensing__DevelopmentLicense: ${ZELVO_DEVELOPMENT_LICENSE:-true}
+  Licensing__DevelopmentKeys__0__Id: ${ZELVO_DEV_SIGNING_KEY_ID:-}
+  Licensing__DevelopmentKeys__0__PublicKey: ${ZELVO_DEV_SIGNING_PUBLIC_KEY:-}
+
+# Installs set ZELVO_MACHINE_ID_FILE=/etc/machine-id (the hardened Compose file of task F6 does);
+# development leaves it empty, because Docker Desktop hosts have no /etc/machine-id.
+x-machine-id: &machine-id
+  type: bind
+  source: ${ZELVO_MACHINE_ID_FILE:-/dev/null}
+  target: /etc/machine-id
+  read_only: true
+  bind: { create_host_path: false }
+
+# Updates (F4, docs/architecture/updates.md): packages, the inbox for packages carried in on USB,
+# backups and the maintenance page's status, shared by the API, the updater and the proxy.
+x-updates-volume: &updates-volume
+  type: volume
+  source: updates
+  target: /var/lib/zelvo/updates
+
 x-secrets-env: &secrets-env
   Secrets__Provider: File
   Secrets__File__Path: /run/secrets/zelvo-master-key
@@ -175,7 +201,7 @@ services:
     <<: *restart
     build:
       context: ../opensearch
-    image: zelvo/opensearch:dev
+    image: zelvo/opensearch:${ZELVO_VERSION:-dev}
     # Security plugin on (A5): HTTPS and TLS between nodes with the development certificates,
     # users admin, zelvo-api (reads) and zelvo-worker (writes zelvo-* indices). See security/opensearch.
     entrypoint: ["/zelvo-security/start.sh"]
@@ -229,7 +255,7 @@ services:
     <<: *restart
     build:
       context: ../../src/keycloak
-    image: zelvo/keycloak:dev
+    image: zelvo/keycloak:${ZELVO_VERSION:-dev}
     command: ["start-dev"]
     environment:
       KC_DB: postgres
@@ -388,7 +414,7 @@ services:
     build:
       context: ../..
       dockerfile: src/api/Zelvo.Api/Dockerfile
-    image: zelvo/api:dev
+    image: zelvo/api:${ZELVO_VERSION:-dev}
     command: ["migrate"]
     restart: "no"
     environment:
@@ -422,7 +448,7 @@ services:
 
   api:
     <<: *restart
-    image: zelvo/api:dev
+    image: zelvo/api:${ZELVO_VERSION:-dev}
     pull_policy: never
     environment:
       ASPNETCORE_ENVIRONMENT: Development
@@ -436,7 +462,7 @@ services:
       Search__Password: ${OPENSEARCH_API_PASSWORD}
       Search__CaFile: /run/certs/ca.crt
       Services__KeycloakHealth: http://keycloak:9000/health/ready
-      <<: [*identity, *secrets-env, *telemetry-env, *integrations-env, *ai-env, *notifications-env, *channels-env, *branding-env, *payments-env]
+      <<: [*identity, *secrets-env, *telemetry-env, *integrations-env, *ai-env, *notifications-env, *channels-env, *branding-env, *payments-env, *licensing-env]
       # Development: everything in the Compose network (the web app's server) may forward client
       # addresses. Installs list their proxies' exact addresses.
       Network__TrustedProxies__0: 172.16.0.0/12
@@ -448,7 +474,7 @@ services:
       # New attachments wait for the worker's malware scan unless scanning is off (B1).
       AttachmentScanning__Enabled: ${ZELVO_ATTACHMENT_SCANNING:-true}
     secrets: [zelvo-master-key]
-    volumes: [*ca-volume]
+    volumes: [*ca-volume, *machine-id, *updates-volume]
     ports:
       - "127.0.0.1:${API_PORT:-8080}:8080"
     depends_on:
@@ -477,7 +503,7 @@ services:
     build:
       context: ../..
       dockerfile: src/worker/Zelvo.Worker/Dockerfile
-    image: zelvo/worker:dev
+    image: zelvo/worker:${ZELVO_VERSION:-dev}
     environment:
       DOTNET_ENVIRONMENT: Development
       Worker__HeartbeatFile: /tmp/zelvo-worker.heartbeat
@@ -495,9 +521,9 @@ services:
       AttachmentScanning__Enabled: ${ZELVO_ATTACHMENT_SCANNING:-true}
       AttachmentScanning__Host: clamav
       AttachmentScanning__Port: "3310"
-      <<: [*secrets-env, *telemetry-env, *integrations-env, *ai-env, *notifications-env, *channels-env]
+      <<: [*secrets-env, *telemetry-env, *integrations-env, *ai-env, *notifications-env, *channels-env, *licensing-env]
     secrets: [zelvo-master-key]
-    volumes: [*ca-volume]
+    volumes: [*ca-volume, *machine-id]
     depends_on:
       migrate: { condition: service_completed_successfully }
       postgres: { condition: service_healthy }
@@ -536,7 +562,7 @@ services:
     <<: *restart
     build:
       context: ../../src/web
-    image: zelvo/web:dev
+    image: zelvo/web:${ZELVO_VERSION:-dev}
     environment:
       API_INTERNAL_URL: http://api:8080
       APP_URL: http://localhost:${WEB_PORT:-3000}
@@ -561,6 +587,37 @@ services:
       timeout: 5s
       retries: 30
 
+  # Updater (F4): installs the update packages administrators import and schedule in Settings →
+  # Updates: checks the package's signature again, loads its images, stops Zelvo's services (the
+  # proxy shows the maintenance page), backs up the databases and this configuration, switches
+  # ZELVO_VERSION in .env, runs migrate, starts the services and rolls back by itself when a step
+  # fails. It needs the Docker socket (root on the host), so it listens on no port and acts only on
+  # installs recorded in the database for packages signed by Zelvo.
+  updater:
+    <<: *restart
+    build:
+      context: ../..
+      dockerfile: src/updater/Zelvo.Updater/Dockerfile
+    image: zelvo/updater:${ZELVO_VERSION:-dev}
+    environment:
+      DOTNET_ENVIRONMENT: Development
+      ConnectionStrings__Postgres: Host=postgres;Database=${POSTGRES_DB};Username=${ZELVO_APP_DB_USER};Password=${ZELVO_APP_DB_PASSWORD}
+      ZELVO_COMPOSE_DIR: ${ZELVO_COMPOSE_DIR:?run scripts/dev-up.sh, which sets it in .env}
+      Updater__ComposeDirectory: ${ZELVO_COMPOSE_DIR}
+      Updater__ComposeProjectName: ${COMPOSE_PROJECT_NAME:-zelvo}
+      Updater__ComposeFileList: ${COMPOSE_FILE:-compose.yaml}
+      Updater__DatabaseList: ${POSTGRES_DB},keycloak
+      <<: [*telemetry-env, *licensing-env]
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+      - ${ZELVO_COMPOSE_DIR}:${ZELVO_COMPOSE_DIR}
+      - *updates-volume
+      - *machine-id
+    depends_on:
+      postgres: { condition: service_healthy }
+      # The API's image sets up the updates volume's folders and their owner.
+      api: { condition: service_healthy }
+
   # Reverse proxy (F1): HTTPS for the installation's address and tenants' custom domains, with
   # automatic certificates (ACME) or the ones tenants uploaded. Caddy (Apache-2.0), unmodified.
   # Development: https://localhost:8443 with Caddy's own certificate authority.
@@ -576,6 +633,9 @@ services:
     volumes:
       - ./caddy/Caddyfile:/etc/caddy/Caddyfile:ro
       - caddy-data:/data
+      # F4: the maintenance page while an update is installed, and the updater's status for it.
+      - ./caddy/maintenance:/srv/maintenance:ro
+      - { type: volume, source: updates, target: /srv/zelvo-status, read_only: true, volume: { subpath: status } }
     ports:
       - "${ZELVO_HTTP_PORT:-8088}:80"
       - "${ZELVO_HTTPS_PORT:-8443}:443"
@@ -673,6 +733,7 @@ volumes:
   grafana-data:
   certs:
   clamav-db:
+  updates:
   caddy-data:
 
 secrets:

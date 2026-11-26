@@ -1,0 +1,31 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <RootNamespace>Zelvo.Licensing</RootNamespace>
+    <Description>License verification, installation fingerprint, customer watermark and update package signatures (modules 12 and 13).</Description>
+  </PropertyGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\Zelvo.Licensing.Abstractions\Zelvo.Licensing.Abstractions.csproj" />
+  </ItemGroup>
+  <ItemGroup>
+    <PackageReference Include="Npgsql" />
+    <PackageReference Include="Microsoft.Extensions.Hosting.Abstractions" />
+  </ItemGroup>
+  <ItemGroup>
+    <!-- Our public signing keys (never private keys). The signing tool prints the entry to add. -->
+    <EmbeddedResource Include="vendor-keys.json" LogicalName="Zelvo.Licensing.vendor-keys.json" />
+  </ItemGroup>
+  <ItemGroup>
+    <InternalsVisibleTo Include="Zelvo.Api" />
+    <InternalsVisibleTo Include="Zelvo.Api.Tests" />
+    <InternalsVisibleTo Include="Zelvo.SigningTool" />
+    <InternalsVisibleTo Include="Zelvo.Updater" />
+  </ItemGroup>
+  <!-- A release build without a vendor public key could never accept a license. -->
+  <Target Name="ZelvoCheckVendorKeys" BeforeTargets="CoreCompile" Condition="'$(ZelvoRelease)' == 'true'">
+    <ReadLinesFromFile File="vendor-keys.json">
+      <Output TaskParameter="Lines" ItemName="ZelvoVendorKeyLines" />
+    </ReadLinesFromFile>
+    <Error Condition="!$([System.String]::Copy('@(ZelvoVendorKeyLines)').Contains('publicKey'))"
+           Text="Release builds need at least one vendor public key in src/api/Zelvo.Licensing/vendor-keys.json (zelvo-sign keygen prints it)." />
+  </Target>
+</Project>

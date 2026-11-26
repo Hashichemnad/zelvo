@@ -43,6 +43,8 @@ async function forward(request: NextRequest, { params }: { params: Promise<{ pat
   const live = path[1] === "live";
   // "Reset demo" empties and reseeds every sample organisation, which takes longer than the usual timeout.
   const demoReset = request.method === "POST" && path.join("/") === "v1/demo/reset";
+  // Task F4: update packages are large, so their upload is streamed to the API, not buffered.
+  const packageUpload = request.method === "POST" && path.join("/") === "v1/updates/packages";
   const headers = new Headers();
   // The chat token proves a visitor's chat is theirs (task E2).
   for (const name of ["content-type", "accept", "accept-language", "if-match", "x-chat-token", ...(live ? ["x-requested-with", "x-signalr-user-agent"] : [])]) {
@@ -54,7 +56,8 @@ async function forward(request: NextRequest, { params }: { params: Promise<{ pat
   const response = await apiFetch(target, session?.data.accessToken ?? "", config.tenant, {
     method: request.method,
     headers,
-    body: changes ? await request.arrayBuffer() : undefined,
+    body: changes ? (packageUpload ? request.body : await request.arrayBuffer()) : undefined,
+    ...(packageUpload ? { duplex: "half", signal: AbortSignal.timeout(3_600_000) } as RequestInit : {}),
     ...(live ? { signal: request.signal } : demoReset ? { signal: AbortSignal.timeout(300_000) } : {}),
   });
 

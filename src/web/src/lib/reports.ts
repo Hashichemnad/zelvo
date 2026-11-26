@@ -319,7 +319,7 @@ export function seesDashboards(permissions: readonly string[]): boolean {
 
 // --- Setup wizard ---
 
-export type SetupStepKey = "organisation" | "language" | "calendar" | "branding" | "signIn" | "departments" | "users" | "channels" | "ai";
+export type SetupStepKey = "license" | "organisation" | "language" | "calendar" | "branding" | "signIn" | "departments" | "users" | "channels" | "ai";
 export type SetupStepStatus = "Pending" | "Done" | "Skipped";
 
 export interface SetupStep {
@@ -339,6 +339,7 @@ export interface SetupState {
 
 /** Where each step's own settings are (paths below /[locale]); the organisation's name is changed in the wizard itself. */
 export const setupStepLinks: Record<SetupStepKey, string | null> = {
+  license: "/settings/license",
   organisation: null,
   language: "/settings/language",
   calendar: "/settings/business-calendars",

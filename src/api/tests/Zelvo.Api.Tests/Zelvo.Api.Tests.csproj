@@ -30,6 +30,8 @@
     <ProjectReference Include="..\..\Zelvo.Secrets\Zelvo.Secrets.csproj" />
     <ProjectReference Include="..\..\Zelvo.Channels\Zelvo.Channels.csproj" />
     <ProjectReference Include="..\..\Zelvo.Connectors\Zelvo.Connectors.csproj" />
-    <ProjectReference Include="..\..\Zelvo.Licensing.Development\Zelvo.Licensing.Development.csproj" />
+    <ProjectReference Include="..\..\Zelvo.Licensing\Zelvo.Licensing.csproj" />
+    <ProjectReference Include="..\..\..\tools\Zelvo.SigningTool\Zelvo.SigningTool.csproj" />
+    <ProjectReference Include="..\..\..\updater\Zelvo.Updater\Zelvo.Updater.csproj" />
   </ItemGroup>
 </Project>

@@ -1,0 +1,17 @@
+<Project Sdk="Microsoft.NET.Sdk.Worker">
+  <PropertyGroup>
+    <RootNamespace>Zelvo.Updater</RootNamespace>
+    <Description>Zelvo's updater service (module 13): installs imported update packages step by step with a backup first and an automatic rollback.</Description>
+  </PropertyGroup>
+  <ItemGroup>
+    <PackageReference Include="Microsoft.Extensions.Hosting" />
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\..\api\Zelvo.Licensing\Zelvo.Licensing.csproj" />
+    <ProjectReference Include="..\..\api\Zelvo.Data\Zelvo.Data.csproj" />
+    <ProjectReference Include="..\..\api\Zelvo.Observability\Zelvo.Observability.csproj" />
+  </ItemGroup>
+  <ItemGroup>
+    <InternalsVisibleTo Include="Zelvo.Api.Tests" />
+  </ItemGroup>
+</Project>

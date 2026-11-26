@@ -26,7 +26,8 @@ var builder = Host.CreateApplicationBuilder(args);
 // Traces, metrics and logs over OTLP when OTEL_EXPORTER_OTLP_ENDPOINT is set (A5).
 builder.AddZelvoTelemetry("zelvo-worker");
 
-builder.Services.AddZelvoLicensing();
+// Task F3: jobs start only once the installation is activated; a tampered license stops the worker.
+builder.Services.AddZelvoLicensing(ActivationWait.WaitForLicense);
 builder.Services.AddHostedService<HeartbeatService>();
 
 // The application role: row-level security applies to every job, which sets its tenant.

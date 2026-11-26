@@ -1,0 +1,62 @@
+{
+  "en": {
+    "title": "Zelvo is being updated",
+    "intro": "Zelvo is being updated to a new version. It will be back shortly; this page reloads by itself.",
+    "version": "New version: {version}",
+    "states": {
+      "installing": "Installing the update…",
+      "rolling-back": "Something went wrong, so the previous version is being restored…",
+      "done": "The update is installed. Zelvo is starting…",
+      "rolled-back": "The update could not be installed. The previous version is starting…",
+      "failed": "The update could not be installed. The administrator has been informed.",
+      "unknown": "Zelvo is not available right now. Please try again in a few minutes."
+    },
+    "steps": {
+      "verify": "Checking the package",
+      "load-images": "Loading the new version",
+      "stop": "Stopping Zelvo",
+      "backup": "Backing up",
+      "switch-version": "Switching to the new version",
+      "migrate": "Updating the database",
+      "start": "Starting Zelvo",
+      "health": "Checking that everything works",
+      "rollback-stop": "Stopping the new version",
+      "rollback-database": "Restoring the database",
+      "rollback-configuration": "Restoring the configuration",
+      "rollback-start": "Starting the previous version",
+      "rollback-health": "Checking the previous version"
+    },
+    "stepStates": { "Pending": "waiting", "Running": "in progress", "Done": "done", "Failed": "failed", "Skipped": "skipped" },
+    "poweredBy": "Powered by Zelvo"
+  },
+  "ar": {
+    "title": "جارٍ تحديث زيلفو",
+    "intro": "يجري تحديث زيلفو إلى إصدار جديد، وسيعود للعمل قريبًا. وستُعاد تحميل هذه الصفحة تلقائيًا.",
+    "version": "الإصدار الجديد: {version}",
+    "states": {
+      "installing": "جارٍ تثبيت التحديث…",
+      "rolling-back": "حدث خطأ، لذا تجري استعادة الإصدار السابق…",
+      "done": "تم تثبيت التحديث، وجارٍ تشغيل زيلفو…",
+      "rolled-back": "تعذّر تثبيت التحديث، وجارٍ تشغيل الإصدار السابق…",
+      "failed": "تعذّر تثبيت التحديث، وقد أُبلغ المسؤول بذلك.",
+      "unknown": "زيلفو غير متاح حاليًا. يُرجى المحاولة مرة أخرى بعد دقائق."
+    },
+    "steps": {
+      "verify": "التحقق من الحزمة",
+      "load-images": "تحميل الإصدار الجديد",
+      "stop": "إيقاف زيلفو",
+      "backup": "إنشاء نسخة احتياطية",
+      "switch-version": "الانتقال إلى الإصدار الجديد",
+      "migrate": "تحديث قاعدة البيانات",
+      "start": "تشغيل زيلفو",
+      "health": "التحقق من عمل كل شيء",
+      "rollback-stop": "إيقاف الإصدار الجديد",
+      "rollback-database": "استعادة قاعدة البيانات",
+      "rollback-configuration": "استعادة الإعدادات",
+      "rollback-start": "تشغيل الإصدار السابق",
+      "rollback-health": "التحقق من الإصدار السابق"
+    },
+    "stepStates": { "Pending": "بالانتظار", "Running": "قيد التنفيذ", "Done": "تم", "Failed": "تعذّر", "Skipped": "تم تخطيه" },
+    "poweredBy": "بتقنية زيلفو"
+  }
+}

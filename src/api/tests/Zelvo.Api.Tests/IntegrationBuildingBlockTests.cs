@@ -218,9 +218,7 @@ public sealed class IntegrationBuildingBlockTests
     [InlineData(null, LicenseKind.Development, "development")]
     public async Task The_test_installation_runs_under_a_test_license(string? profile, LicenseKind kind, string environment)
     {
-        var service = new DevelopmentLicenseService(
-            new HostingEnvironment { EnvironmentName = "Development" },
-            Configuration(new() { [InstallationProfile.ConfigurationKey] = profile }));
+        var service = LicensingTestSupport.Development("Development", Configuration(new() { [InstallationProfile.ConfigurationKey] = profile }));
 
         var status = await service.VerifyAsync(TestContext.Current.CancellationToken);
 

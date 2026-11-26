@@ -69,7 +69,7 @@ change ──SaveChanges──▶ WebhookEventInterceptor ──▶ webhook_deli
 
 ## Test installation
 
-`Installation:Profile=Test`: the development stub reports `LicenseKind.Test` (a release test installation gets the test license file issued with the customer's license; the check is in `zelvo-licensing`). `ILicenseService.EnvironmentName()` gives `production`, `test`, `demo` or `development`, sent in `Zelvo-Environment` on every API response, in `GET /api/v1/system/info` and in every webhook. The web app shows a "Test installation" banner on every page. `make test-installation` starts it as its own Compose project (`zelvo-test`, `deploy/compose/compose.test.yaml`).
+`Installation:Profile=Test`: the development license reports `LicenseKind.Test` (a release test installation gets the test license file issued with the customer's license, `zelvo-sign issue --kind test`; see `licensing.md`). `ILicenseService.EnvironmentName()` gives `production`, `test`, `demo` or `development`, sent in `Zelvo-Environment` on every API response, in `GET /api/v1/system/info` and in every webhook. The web app shows a "Test installation" banner on every page. `make test-installation` starts it as its own Compose project (`zelvo-test`, `deploy/compose/compose.test.yaml`).
 
 ## API
 

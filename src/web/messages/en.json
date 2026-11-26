@@ -12,7 +12,10 @@
     "approvals": "My approvals",
     "payments": "Payments",
     "privacyRequests": "Privacy requests",
-    "privacyNotice": "Privacy notice"
+    "privacyNotice": "Privacy notice",
+    "activationRequired": "Zelvo is not activated on these servers yet, so most screens are not available. An administrator imports the license in Settings → License.",
+    "maintenanceAhead": "Zelvo will be updated to version {version} on {when} and will be unavailable for about {minutes} minutes.",
+    "maintenanceNow": "Zelvo is being updated to version {version} and will be unavailable for a few minutes."
   },
   "language": {
     "name": "English",
@@ -304,6 +307,14 @@
       "privacy": {
         "title": "Privacy",
         "description": "The privacy notice, optional consent purposes, retention periods and the time to answer privacy requests."
+      },
+      "license": {
+        "title": "License",
+        "description": "Activation, the license and the servers it is issued for."
+      },
+      "updates": {
+        "title": "Updates",
+        "description": "Offline update packages, maintenance windows and the update history."
       }
     },
     "missingWarning": "{count, plural, one {# text is} other {# texts are}} missing a translation.",
@@ -537,7 +548,8 @@
         "payments_refund": "Refund payments",
         "privacy_manage": "Set the privacy notice, consent purposes and retention periods",
         "privacy_requests": "Handle privacy requests: copies of people's data and erasure",
-        "privacy_consents_read": "Read people's consent to the optional purposes"
+        "privacy_consents_read": "Read people's consent to the optional purposes",
+        "installation_manage": "Manage the installation's license and update packages"
       },
       "events": {
         "user_created": "A user was created",
@@ -1872,7 +1884,8 @@
         "connectors": "Connectors and monitoring",
         "proactive": "Proactive services",
         "payments": "Payments",
-        "privacy": "Privacy"
+        "privacy": "Privacy",
+        "installation": "Installation"
       },
       "tenant_manage": "Change the organisation's name",
       "translations_read": "See missing translations",
@@ -1927,7 +1940,8 @@
       "payments_refund": "Refund payments",
       "privacy_manage": "Set the privacy notice, consent purposes and retention periods",
       "privacy_requests": "Handle privacy requests: copies of people's data and erasure",
-      "privacy_consents_read": "Read people's consent to the optional purposes"
+      "privacy_consents_read": "Read people's consent to the optional purposes",
+      "installation_manage": "Manage the installation's license and update packages"
     },
     "assignment": {
       "intro": "The rules are checked in order and the first that matches decides where a new ticket goes. They run when a ticket is created and when an agent chooses \"Route again\"; they never move a ticket on their own later.",
@@ -5454,6 +5468,11 @@
     "finish": "Finish setup",
     "finishHint": "Steps not done stay in the list; you can come back at any time.",
     "steps": {
+      "license": {
+        "title": "License",
+        "description": "Activate Zelvo on your servers: download the activation request, send it to Zelvo and import the license file you receive.",
+        "link": "Open the license page"
+      },
       "organisation": {
         "title": "Organisation",
         "description": "Give your organisation its name in English and Arabic. It appears on the portal, in emails and in reports.",
@@ -5523,7 +5542,8 @@
       "neverChanges": "Applying creates new items only; nothing that already exists is changed.",
       "apply": "Create the department",
       "applied": "Done: {groups} groups, {categories} categories with their routing, {policies} SLA policies, {services} draft services and {responses} canned responses were created."
-    }
+    },
+    "licenseByOperator": "The installation's administrator activates the license for the whole installation."
   },
   "connectors": {
     "title": "Connectors",
@@ -6199,5 +6219,185 @@
         "erased": "The person's data was erased."
       }
     }
+  },
+  "license": {
+    "intro": "Zelvo runs on your own servers under a license we issue for them. To activate it, download the activation request, send it to Zelvo, and import the license file you receive. Everything works offline.",
+    "statusActivated": "Zelvo is activated on these servers.",
+    "statusDevelopment": "This is a development build: every module is allowed, and it cannot be used in production.",
+    "statusNotActivated": "Zelvo is not activated on these servers.",
+    "licensedTo": "Licensed to {name}.",
+    "licenseId": "License ID",
+    "kind": "License type",
+    "kinds": {
+      "None": "None",
+      "Development": "Development",
+      "Demo": "Demo",
+      "Production": "Production",
+      "Test": "Test installation"
+    },
+    "customerId": "Customer ID",
+    "licensedVersion": "Licensed versions",
+    "issuedAt": "Issued",
+    "installedVersion": "Installed version",
+    "activateTitle": "Activate Zelvo",
+    "replaceTitle": "Replace the license or add an upgrade license",
+    "stepRequest": "Download the activation request. It describes these servers and holds no passwords or personal data.",
+    "downloadRequest": "Download activation request",
+    "stepSend": "Send the file to Zelvo, by email or on a USB drive. Zelvo returns a license file made for these servers only.",
+    "stepImport": "Import the license file you received:",
+    "upgradeHint": "For a paid feature release, send a new activation request to Zelvo and import the upgrade license you receive in the same way. If you move to new servers, do the same to get a replacement license.",
+    "requestDownloaded": "Activation request {file} downloaded.",
+    "imported": "License file imported.",
+    "failed": "That did not work. Please try again.",
+    "problems": {
+      "not-activated": "No license is installed yet.",
+      "fingerprint-mismatch": "The license was issued for other servers. Send a new activation request to Zelvo.",
+      "kind-mismatch": "This license is for another kind of installation (for example a demo or test installation).",
+      "watermark-mismatch": "This license was issued to another customer than this installation.",
+      "signature-invalid": "The file was changed after Zelvo issued it, or it was not issued by Zelvo.",
+      "unknown-key": "The file is signed with a key this installation does not trust.",
+      "format-invalid": "This is not a Zelvo license file.",
+      "upgrade-mismatch": "This upgrade license is for another license. Import the matching license first.",
+      "store-unavailable": "The license could not be read because the database is not reachable.",
+      "development-in-production": "A development build cannot run in production.",
+      "other": "The license file was not accepted."
+    },
+    "modulesTitle": "Licensed modules",
+    "modules": {
+      "m01-incidents": "Incident management",
+      "m02-service-catalog": "Service requests and catalog",
+      "m03-customer-voice": "Complaints, inquiries and suggestions",
+      "m04-portal": "Self-service portal",
+      "m05-agent-workspace": "Agent workspace",
+      "m06-omnichannel": "Email, chat and other channels",
+      "m07-knowledge": "Knowledge base",
+      "m08-sla": "SLA management",
+      "m09-ai": "AI capabilities",
+      "m10-notifications-reporting": "Notifications, reporting and administration",
+      "m11-branding": "White-label branding",
+      "m12-licensing": "Licensing",
+      "m13-updates": "Offline update packages",
+      "m14-integrations": "Integrations and developer tools",
+      "m15-payments": "Online payments"
+    },
+    "licensed": "licensed",
+    "notLicensed": "not licensed",
+    "fingerprintTitle": "These servers",
+    "fingerprintIntro": "A license works only on the servers it was issued for. These are the parts it checks.",
+    "part": "Part",
+    "value": "Value",
+    "matches": "Matches the license",
+    "parts": {
+      "installationId": "Installation ID",
+      "databaseId": "Database ID",
+      "machineId": "Server",
+      "clusterId": "Cluster",
+      "domain": "Domain"
+    },
+    "yes": "Yes",
+    "no": "No",
+    "filesTitle": "License files",
+    "fileLicense": "License",
+    "fileUpgrade": "Upgrade license",
+    "auditNote": "Every activation request and every import is recorded in the audit log."
+  },
+  "updates": {
+    "intro": "Install Zelvo's signed update packages. Security and bug-fix releases are free; feature releases need an upgrade license. Packages can be carried in on USB, and everything works offline. Zelvo backs up the databases and configuration first and returns to the previous version by itself if a step fails.",
+    "installedVersion": "Installed version",
+    "updater": "Updater",
+    "updaterOnline": "Online",
+    "updaterOffline": "Not running: installs wait until the updater service runs.",
+    "restarting": "Zelvo is restarting during the update; this page continues when it is back.",
+    "importTitle": "Import a package",
+    "importIntro": "Upload the package file (.zpkg) Zelvo sent you. For large packages or air-gapped networks, the operator copies it into the updates inbox, and you import it below.",
+    "uploadLabel": "Package file (up to {size} MB)",
+    "inboxTitle": "Updates inbox",
+    "inboxEmpty": "No packages are waiting in the inbox.",
+    "importFile": "Import",
+    "megabytes": "{size} MB",
+    "imported": "The package passed every check and was imported.",
+    "packagesTitle": "Imported packages",
+    "noPackages": "No packages are imported.",
+    "types": {
+      "Security": "Security and bug fix",
+      "Feature": "Feature release"
+    },
+    "packageStatus": {
+      "Imported": "Ready to install",
+      "Installed": "Installed",
+      "Removed": "Removed"
+    },
+    "importedAt": "Imported {when}",
+    "expected": "About {minutes} minutes",
+    "installNow": "Install now",
+    "windowLabel": "Maintenance window starts",
+    "noticeLabel": "Show the notice to users from",
+    "schedule": "Schedule",
+    "chooseTime": "Choose when the maintenance window starts.",
+    "confirmNow": "Zelvo will be unavailable while the update is installed. Install now?",
+    "confirmSchedule": "Schedule the install for this maintenance window?",
+    "started": "The install starts in a moment.",
+    "scheduled": "The install is scheduled.",
+    "cancel": "Cancel the install",
+    "cancelled": "The install was cancelled.",
+    "remove": "Remove",
+    "confirmRemove": "Remove this package?",
+    "removed": "The package was removed.",
+    "scheduledTitle": "Version {version} is scheduled",
+    "runningTitle": "Installing version {version}",
+    "scheduledFor": "Starts {when}; users are told from {notice}; about {minutes} minutes.",
+    "steps": {
+      "verify": "Checking the package",
+      "load-images": "Loading the new version",
+      "stop": "Stopping Zelvo",
+      "backup": "Backing up the databases and configuration",
+      "switch-version": "Switching to the new version",
+      "migrate": "Updating the database",
+      "start": "Starting Zelvo",
+      "health": "Checking that everything works",
+      "rollback-stop": "Stopping the new version",
+      "rollback-database": "Restoring the databases",
+      "rollback-configuration": "Restoring the configuration",
+      "rollback-start": "Starting the previous version",
+      "rollback-health": "Checking the previous version"
+    },
+    "stepStates": {
+      "Pending": "waiting",
+      "Running": "in progress",
+      "Done": "done",
+      "Failed": "failed",
+      "Skipped": "skipped"
+    },
+    "historyTitle": "History",
+    "noHistory": "No updates have been installed yet.",
+    "columns": {
+      "versions": "Versions",
+      "state": "Result",
+      "when": "When"
+    },
+    "states": {
+      "Scheduled": "Scheduled",
+      "Running": "Installing",
+      "Succeeded": "Installed",
+      "RolledBack": "Rolled back to the previous version",
+      "Failed": "Failed: the operator must restore the previous version",
+      "Cancelled": "Cancelled"
+    },
+    "problems": {
+      "package-format-invalid": "This is not a Zelvo update package.",
+      "package-signature-invalid": "The package was changed after Zelvo signed it, or it was not issued by Zelvo.",
+      "package-unknown-key": "The package is signed with a key this installation does not trust.",
+      "package-file-mismatch": "A file in the package does not match its signed contents: the package was changed or is incomplete.",
+      "package-not-newer": "This version, or a newer one, is installed already.",
+      "package-type-mismatch": "The package's type does not fit its version change.",
+      "package-upgrade-license-required": "This is a paid feature release: import its upgrade license in Settings → License first.",
+      "package-installed-too-old": "Install the releases before this one first.",
+      "package-images-missing": "The package lacks parts this installation runs.",
+      "package-not-licensed": "Activate Zelvo before installing updates.",
+      "package-too-large": "The package is too large to upload; copy it into the updates inbox instead.",
+      "install-pending": "Another install is scheduled or running.",
+      "other": "That did not work. Please try again."
+    },
+    "auditNote": "Every import, install and rollback is recorded in the audit log."
   }
 }

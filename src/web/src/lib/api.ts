@@ -23,6 +23,12 @@ export interface SystemInfo {
   licenseMode: string;
   /** production, test (the test installation every license includes), demo or development. */
   environment?: string;
+  /** Task F3: a valid license applies. */
+  activated?: boolean;
+  /** Task F3: the installation waits for a license for its servers; only the activation screens work. */
+  activationRequired?: boolean;
+  /** Task F3: licensed modules (m01-incidents and so on). */
+  modules?: string[];
 }
 
 const apiBaseUrl = process.env.API_INTERNAL_URL ?? "http://localhost:8080";
@@ -58,6 +64,11 @@ async function getJson<T>(path: string): Promise<T | null> {
 
 export function getHealth(): Promise<HealthReport | null> {
   return getJson<HealthReport>("/health/ready");
+}
+
+/** Task F4: the update users are told about (open to everyone). */
+export function getMaintenance(): Promise<import("./updates").Maintenance | null> {
+  return getJson("/api/v1/system/maintenance");
 }
 
 export function getSystemInfo(): Promise<SystemInfo | null> {

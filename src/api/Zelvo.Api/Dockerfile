@@ -17,7 +17,7 @@ COPY src/api/Zelvo.Ai/Zelvo.Ai.csproj src/api/Zelvo.Ai/
 COPY src/api/Zelvo.Secrets/Zelvo.Secrets.csproj src/api/Zelvo.Secrets/
 COPY src/api/Zelvo.Observability/Zelvo.Observability.csproj src/api/Zelvo.Observability/
 COPY src/api/Zelvo.Licensing.Abstractions/Zelvo.Licensing.Abstractions.csproj src/api/Zelvo.Licensing.Abstractions/
-COPY src/api/Zelvo.Licensing.Development/Zelvo.Licensing.Development.csproj src/api/Zelvo.Licensing.Development/
+COPY src/api/Zelvo.Licensing/Zelvo.Licensing.csproj src/api/Zelvo.Licensing/
 RUN dotnet restore src/api/Zelvo.Api/Zelvo.Api.csproj
 COPY src/api/Zelvo.Api/ src/api/Zelvo.Api/
 COPY src/api/Zelvo.Data/ src/api/Zelvo.Data/
@@ -32,7 +32,7 @@ COPY src/api/Zelvo.Ai/ src/api/Zelvo.Ai/
 COPY src/api/Zelvo.Secrets/ src/api/Zelvo.Secrets/
 COPY src/api/Zelvo.Observability/ src/api/Zelvo.Observability/
 COPY src/api/Zelvo.Licensing.Abstractions/ src/api/Zelvo.Licensing.Abstractions/
-COPY src/api/Zelvo.Licensing.Development/ src/api/Zelvo.Licensing.Development/
+COPY src/api/Zelvo.Licensing/ src/api/Zelvo.Licensing/
 RUN dotnet publish src/api/Zelvo.Api/Zelvo.Api.csproj -c Release -o /app --no-restore -p:UseAppHost=false
 
 FROM mcr.microsoft.com/dotnet/aspnet:10.0 AS runtime
@@ -40,6 +40,9 @@ WORKDIR /app
 COPY --from=build /app .
 ENV ASPNETCORE_HTTP_PORTS=8080
 EXPOSE 8080
+# Task F4: the updates volume (packages and the inbox) starts owned by the API's user.
+RUN mkdir -p /var/lib/zelvo/updates/packages /var/lib/zelvo/updates/inbox /var/lib/zelvo/updates/status \
+    && chown -R "$APP_UID" /var/lib/zelvo
 # Non-root user provided by the .NET base image.
 USER $APP_UID
 # `migrate` as the first argument applies database migrations and exits (see MigrateCommand).

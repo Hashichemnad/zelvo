@@ -42,7 +42,9 @@ export interface SettingsSection {
     | "privacy"
     | "translations"
     | "reports"
-    | "setup";
+    | "setup"
+    | "license"
+    | "updates";
   /** Path below /[locale]. */
   href: string;
   /** Permission needed to open the section. */
@@ -54,6 +56,10 @@ export interface SettingsSection {
 export const settingsSections: readonly SettingsSection[] = [
   // Task F2: the setup wizard and department templates lead a new tenant to go-live.
   { key: "setup", href: "/setup", permission: "setup.manage" },
+  // Task F3: the installation's license (operator tenant only; the API decides).
+  { key: "license", href: "/settings/license", permission: "installation.manage" },
+  // Task F4: offline update packages for the whole installation.
+  { key: "updates", href: "/settings/updates", permission: "installation.manage" },
   { key: "language", href: "/settings/language", permission: "settings.manage" },
   // Task F1: white-label branding, custom domains and the email sender domain.
   { key: "branding", href: "/settings/branding", permission: "branding.manage" },

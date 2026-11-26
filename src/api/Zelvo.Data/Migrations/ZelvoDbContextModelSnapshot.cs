@@ -4860,6 +4860,181 @@ namespace Zelvo.Data.Migrations
                     b.ToTable("user_roles", (string)null);
                 });
 
+            modelBuilder.Entity("Zelvo.Data.Installation.UpdateInstall", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<string>("BackupPath")
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)")
+                        .HasColumnName("backup_path");
+
+                    b.Property<DateTimeOffset>("CreatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("created_at");
+
+                    b.Property<string>("Error")
+                        .HasMaxLength(2000)
+                        .HasColumnType("character varying(2000)")
+                        .HasColumnName("error");
+
+                    b.Property<int>("ExpectedMinutes")
+                        .HasColumnType("integer")
+                        .HasColumnName("expected_minutes");
+
+                    b.Property<DateTimeOffset?>("FinishedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("finished_at");
+
+                    b.Property<string>("FromVersion")
+                        .IsRequired()
+                        .HasMaxLength(30)
+                        .HasColumnType("character varying(30)")
+                        .HasColumnName("from_version");
+
+                    b.Property<DateTimeOffset>("NoticeFrom")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("notice_from");
+
+                    b.Property<Guid>("PackageId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("package_id");
+
+                    b.Property<Guid?>("RequestedByTenantId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("requested_by_tenant_id");
+
+                    b.Property<Guid?>("RequestedByUserId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("requested_by_user_id");
+
+                    b.Property<DateTimeOffset>("ScheduledFor")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("scheduled_for");
+
+                    b.Property<DateTimeOffset?>("StartedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("started_at");
+
+                    b.Property<string>("State")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("character varying(20)")
+                        .HasColumnName("state");
+
+                    b.Property<string>("Steps")
+                        .IsRequired()
+                        .HasColumnType("jsonb")
+                        .HasColumnName("steps");
+
+                    b.Property<string>("ToVersion")
+                        .IsRequired()
+                        .HasMaxLength(30)
+                        .HasColumnType("character varying(30)")
+                        .HasColumnName("to_version");
+
+                    b.Property<DateTimeOffset>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("updated_at");
+
+                    b.HasKey("Id")
+                        .HasName("pk_update_installs");
+
+                    b.HasIndex("CreatedAt")
+                        .HasDatabaseName("ix_update_installs_created_at");
+
+                    b.HasIndex("PackageId")
+                        .HasDatabaseName("ix_update_installs_package_id");
+
+                    b.ToTable("update_installs", null, t =>
+                        {
+                            t.HasCheckConstraint("ck_update_installs_minutes", "expected_minutes BETWEEN 1 AND 1440");
+
+                            t.HasCheckConstraint("ck_update_installs_notice", "notice_from <= scheduled_for");
+
+                            t.HasCheckConstraint("ck_update_installs_state", "state IN ('Scheduled', 'Running', 'Succeeded', 'RolledBack', 'Failed', 'Cancelled')");
+                        });
+                });
+
+            modelBuilder.Entity("Zelvo.Data.Installation.UpdatePackage", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<string>("FileName")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)")
+                        .HasColumnName("file_name");
+
+                    b.Property<DateTimeOffset>("ImportedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("imported_at");
+
+                    b.Property<Guid?>("ImportedByTenantId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("imported_by_tenant_id");
+
+                    b.Property<Guid?>("ImportedByUserId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("imported_by_user_id");
+
+                    b.Property<string>("Manifest")
+                        .IsRequired()
+                        .HasColumnType("jsonb")
+                        .HasColumnName("manifest");
+
+                    b.Property<string>("PackageType")
+                        .IsRequired()
+                        .HasMaxLength(10)
+                        .HasColumnType("character varying(10)")
+                        .HasColumnName("package_type");
+
+                    b.Property<string>("Sha256")
+                        .IsRequired()
+                        .HasMaxLength(64)
+                        .HasColumnType("character varying(64)")
+                        .HasColumnName("sha256");
+
+                    b.Property<long>("SizeBytes")
+                        .HasColumnType("bigint")
+                        .HasColumnName("size_bytes");
+
+                    b.Property<string>("Status")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("character varying(20)")
+                        .HasColumnName("status");
+
+                    b.Property<string>("StoragePath")
+                        .IsRequired()
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)")
+                        .HasColumnName("storage_path");
+
+                    b.Property<string>("Version")
+                        .IsRequired()
+                        .HasMaxLength(30)
+                        .HasColumnType("character varying(30)")
+                        .HasColumnName("version");
+
+                    b.HasKey("Id")
+                        .HasName("pk_update_packages");
+
+                    b.HasIndex("ImportedAt")
+                        .HasDatabaseName("ix_update_packages_imported_at");
+
+                    b.ToTable("update_packages", null, t =>
+                        {
+                            t.HasCheckConstraint("ck_update_packages_status", "status IN ('Imported', 'Installed', 'Removed')");
+
+                            t.HasCheckConstraint("ck_update_packages_type", "package_type IN ('Security', 'Feature')");
+                        });
+                });
+
             modelBuilder.Entity("Zelvo.Data.Integrations.ApiClient", b =>
                 {
                     b.Property<Guid>("Id")
@@ -10795,6 +10970,16 @@ namespace Zelvo.Data.Migrations
                         .HasConstraintName("fk_user_roles_users_user_id");
 
                     b.Navigation("Role");
+                });
+
+            modelBuilder.Entity("Zelvo.Data.Installation.UpdateInstall", b =>
+                {
+                    b.HasOne("Zelvo.Data.Installation.UpdatePackage", null)
+                        .WithMany()
+                        .HasForeignKey("PackageId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired()
+                        .HasConstraintName("fk_update_installs_update_packages_package_id");
                 });
 
             modelBuilder.Entity("Zelvo.Data.Integrations.ApiClient", b =>

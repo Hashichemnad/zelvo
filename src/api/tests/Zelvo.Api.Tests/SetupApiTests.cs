@@ -27,16 +27,17 @@ public sealed class SetupApiTests(DatabaseFixture database) : IAsyncDisposable
 
         var setup = await admin.SendOkAsync(HttpMethod.Get, "/api/v1/setup");
         var steps = setup["steps"]!.AsArray();
-        Assert.Equal(["organisation", "language", "calendar", "branding", "signIn", "departments", "users", "channels", "ai"], steps.Select(s => (string)s!["key"]!));
+        Assert.Equal(["license", "organisation", "language", "calendar", "branding", "signIn", "departments", "users", "channels", "ai"], steps.Select(s => (string)s!["key"]!));
         Assert.All(steps, s => Assert.Equal("Pending", (string?)s!["status"]));
         // The test tenant has an English and an Arabic name; no calendar or AI provider yet.
         Assert.True((bool)steps[0]!["configured"]!);
-        Assert.False((bool)steps[2]!["configured"]!);
-        Assert.Null(steps[4]!["configured"]);
+        Assert.True((bool)steps[1]!["configured"]!);
+        Assert.False((bool)steps[3]!["configured"]!);
+        Assert.Null(steps[5]!["configured"]);
         Assert.Null(setup["completedAt"]);
 
         var done = await admin.SendOkAsync(HttpMethod.Put, "/api/v1/setup/steps/branding", new { status = "Skipped" });
-        Assert.Equal(("Skipped", 1), ((string?)done["steps"]![3]!["status"], (int)done["finished"]!));
+        Assert.Equal(("Skipped", 1), ((string?)done["steps"]![4]!["status"], (int)done["finished"]!));
         Assert.Equal(HttpStatusCode.NotFound, (await admin.SendAsync(HttpMethod.Put, "/api/v1/setup/steps/nothing", new { status = "Done" })).StatusCode);
         Assert.Equal(HttpStatusCode.BadRequest, (await admin.SendAsync(HttpMethod.Put, "/api/v1/setup/steps/ai", new { })).StatusCode);
         Assert.NotNull((await admin.SendOkAsync(HttpMethod.Post, "/api/v1/setup/finish"))["completedAt"]);
@@ -102,8 +103,8 @@ public sealed class SetupApiTests(DatabaseFixture database) : IAsyncDisposable
 
         var progress = await admin.SendOkAsync(HttpMethod.Get, "/api/v1/setup");
         Assert.Equal(2, progress["applied"]!.AsArray().Count);
-        Assert.Equal("Done", (string?)progress["steps"]![5]!["status"]);
-        Assert.True((bool)progress["steps"]![5]!["configured"]!);
+        Assert.Equal("Done", (string?)progress["steps"]![6]!["status"]);
+        Assert.True((bool)progress["steps"]![6]!["configured"]!);
         Assert.Contains(await database.AuditAsync(tenant), e => e.Action == "setup.template.applied");
     }
 

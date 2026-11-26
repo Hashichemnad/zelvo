@@ -7,7 +7,9 @@ import { fieldButton, fieldInput, primaryAction } from "@/components/forms/ui";
 import { Link } from "@/i18n/navigation";
 import { getJson, patchJson, postJson, putJson } from "@/lib/client-api";
 import { formatFigure, setupStepLinks, type DepartmentTemplate, type SetupState, type SetupStepKey, type SetupStepStatus } from "@/lib/reports";
-import type { DigitSystem } from "@/lib/format";
+import type { CalendarSystem, DigitSystem } from "@/lib/format";
+import type { LicenseState } from "@/lib/license";
+import { LicensePanel } from "@/components/license/LicensePanel";
 import { TemplatePicker } from "./TemplatePicker";
 
 /**
@@ -16,19 +18,23 @@ import { TemplatePicker } from "./TemplatePicker";
  * set up, links to its own Settings page and is marked done or skipped. The organisation's name is
  * changed here; the departments step creates whole service desks from templates.
  */
-export function SetupWizard({ initial, templates, tenantName, canRename, csrfToken, digits }: {
+export function SetupWizard({ initial, templates, tenantName, canRename, csrfToken, digits, license = null, calendar = "gregory", timeZone = "Asia/Dubai" }: {
   initial: SetupState;
   templates: DepartmentTemplate[];
   tenantName: { en: string | null; ar: string | null } | null;
   canRename: boolean;
   csrfToken: string;
   digits: DigitSystem;
+  /** Task F3: the license, for administrators who may activate the installation. */
+  license?: LicenseState | null;
+  calendar?: CalendarSystem;
+  timeZone?: string;
 }) {
   const t = useTranslations("setup");
   const locale = useLocale();
   const id = useId();
   const [state, setState] = useState(initial);
-  const firstOpen = initial.steps.find((s) => s.status === "Pending")?.key ?? initial.steps[0]?.key ?? "organisation";
+  const firstOpen = initial.steps.find((s) => s.status === "Pending")?.key ?? initial.steps[0]?.key ?? "license";
   const [current, setCurrent] = useState<SetupStepKey>(firstOpen);
   const { status, run, busy } = useSaver();
   const [name, setName] = useState({ en: tenantName?.en ?? "", ar: tenantName?.ar ?? "" });
@@ -113,6 +119,10 @@ export function SetupWizard({ initial, templates, tenantName, canRename, csrfTok
               <button type="submit" disabled={busy || (!name.en.trim() && !name.ar.trim())} className={fieldButton}>{t("saveName")}</button>
             </form>
           ) : <p className="text-sm">{t("noRename")}</p>)}
+
+          {step.key === "license" && (license ? (
+            <LicensePanel initial={license} csrfToken={csrfToken} calendar={calendar} digits={digits} timeZone={timeZone} compact />
+          ) : <p className="text-sm">{t("licenseByOperator")}</p>)}
 
           {step.key === "departments" && (
             <TemplatePicker templates={templates} csrfToken={csrfToken} digits={digits}

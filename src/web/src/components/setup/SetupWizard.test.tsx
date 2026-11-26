@@ -10,8 +10,8 @@ vi.mock("@/i18n/navigation", () => ({
   Link: ({ href, ...rest }: AnchorHTMLAttributes<HTMLAnchorElement>) => <a href={`/en${href}`} {...rest} />,
 }));
 
-const keys = ["organisation", "language", "calendar", "branding", "signIn", "departments", "users", "channels", "ai"] as const;
-const state = (done: string[] = []): SetupState => ({
+const keys = ["license", "organisation", "language", "calendar", "branding", "signIn", "departments", "users", "channels", "ai"] as const;
+const state = (done: string[] = ["license"]): SetupState => ({
   steps: keys.map((key) => ({ key, status: done.includes(key) ? "Done" : "Pending", configured: key === "signIn" ? null : key === "organisation" })),
   completedAt: null, finished: done.length, total: keys.length, applied: [],
 });
@@ -37,15 +37,15 @@ afterEach(() => vi.unstubAllGlobals());
 describe("SetupWizard", () => {
   it("shows the steps with their progress and the first step to do", () => {
     renderWizard();
-    expect(screen.getByRole("progressbar")).toHaveAttribute("aria-valuetext", "0 of 9 steps finished");
-    expect(screen.getAllByRole("listitem")).toHaveLength(9);
+    expect(screen.getByRole("progressbar")).toHaveAttribute("aria-valuetext", "1 of 10 steps finished");
+    expect(screen.getAllByRole("listitem")).toHaveLength(10);
     expect(screen.getByRole("heading", { level: 2, name: "Organisation" })).toBeInTheDocument();
     expect(screen.getByTestId("setup-check")).toHaveTextContent("This already looks set up.");
     expect(screen.getByLabelText("English")).toHaveValue("City Council");
   });
 
   it("marks a step done and moves to the next one", async () => {
-    const next = state(["organisation"]);
+    const next = state(["license", "organisation"]);
     const fetchMock = vi.fn().mockResolvedValue(new Response(JSON.stringify(next), { status: 200 }));
     vi.stubGlobal("fetch", fetchMock);
     renderWizard();
@@ -53,14 +53,14 @@ describe("SetupWizard", () => {
     await waitFor(() => expect(screen.getByRole("heading", { level: 2, name: "Language and region" })).toBeInTheDocument());
     expect(fetchMock.mock.calls[0]![0]).toBe("/bff/api/v1/setup/steps/organisation");
     expect(JSON.parse((fetchMock.mock.calls[0]![1] as RequestInit).body as string)).toEqual({ status: "Done" });
-    expect(screen.getByRole("progressbar")).toHaveAttribute("aria-valuenow", "1");
+    expect(screen.getByRole("progressbar")).toHaveAttribute("aria-valuenow", "2");
     expect(screen.getByRole("link", { name: "Open language and region" })).toHaveAttribute("href", "/en/settings/language");
   });
 
   it("previews a department template and applies it with changed names", async () => {
     const fetchMock = vi.fn()
       .mockResolvedValueOnce(new Response(JSON.stringify({ template: "it-service-desk", departmentId: "d", groupIds: ["g"], rootCategoryId: "c", categories: 1, policies: 1, catalogId: null, serviceIds: ["s"], responses: 1 }), { status: 201 }))
-      .mockResolvedValue(new Response(JSON.stringify(state(["departments"])), { status: 200 }));
+      .mockResolvedValue(new Response(JSON.stringify(state(["license", "departments"])), { status: 200 }));
     vi.stubGlobal("fetch", fetchMock);
     renderWizard();
     fireEvent.click(screen.getByRole("button", { name: /Departments and service desks/ }));
@@ -74,6 +74,24 @@ describe("SetupWizard", () => {
     const body = JSON.parse((fetchMock.mock.calls[0]![1] as RequestInit).body as string);
     expect(fetchMock.mock.calls[0]![0]).toBe("/bff/api/v1/setup/templates/it-service-desk/apply");
     expect(body).toMatchObject({ departmentName: { en: "Information technology", ar: "مكتب خدمة تقنية المعلومات" }, includeServices: true, includeResponses: false });
+  });
+
+  it("starts with the license step, which activates the installation for its administrators", () => {
+    render(
+      <NextIntlClientProvider locale="en" messages={en}>
+        <SetupWizard initial={state([])} templates={templates} tenantName={null} canRename={false} csrfToken="csrf-2" digits="latn"
+          license={{ activated: false, activationRequired: true, kind: "None", problem: "not-activated", reason: null, licenseId: null, licensedTo: null, customerId: null,
+            licensedVersion: null, upgrades: [], issuedAt: null, installedVersion: "1.0.0", releaseBuild: true, modules: [], fingerprint: [], files: [] }} />
+      </NextIntlClientProvider>,
+    );
+    expect(screen.getByRole("heading", { level: 2, name: "License" })).toBeInTheDocument();
+    expect(screen.getByTestId("license-status")).toHaveTextContent("Zelvo is not activated on these servers.");
+    expect(screen.getByRole("button", { name: "Download activation request" })).toBeInTheDocument();
+  });
+
+  it("leaves the license to the installation's administrator in other organisations", () => {
+    renderWizard("en", state([]));
+    expect(screen.getByText("The installation's administrator activates the license for the whole installation.")).toBeInTheDocument();
   });
 
   it("is in Arabic", () => {

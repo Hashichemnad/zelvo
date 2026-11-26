@@ -194,6 +194,13 @@ internal static class Permissions
     /// <summary>The setup wizard and department templates (module 10, task F2).</summary>
     public const string SetupManage = "setup.manage";
 
+    /// <summary>
+    /// The installation's license (module 12, task F3) and update packages (module 13, task F4).
+    /// These belong to the whole installation, so they apply only in the installation's operator
+    /// tenant (<c>Installation:OperatorTenant</c>, else <c>Tenancy:DefaultTenant</c>).
+    /// </summary>
+    public const string InstallationManage = "installation.manage";
+
     /// <summary>Settings → Customer voice: anonymous submission, severities, root causes and the happiness meter (GOV-2).</summary>
     public const string VoiceManage = Zelvo.Tickets.VoicePermissions.Manage;
     /// <summary>
@@ -308,6 +315,7 @@ internal static class PermissionCatalog
         Permissions.PrivacyManage,
         Permissions.PrivacyRequests,
         Permissions.PrivacyConsentsRead,
+        Permissions.InstallationManage,
     ];
 
     /// <summary>
@@ -344,6 +352,9 @@ internal static class PermissionCatalog
         // leaked key must never be able to download or erase people's data.
         Permissions.PrivacyManage,
         Permissions.PrivacyRequests,
+        // Task F3, for the product owner's approval: licenses and update packages change the
+        // whole installation, and an update stops it for a while.
+        Permissions.InstallationManage,
     };
 
     /// <summary>Permissions an integration may be given as scopes.</summary>
@@ -427,6 +438,32 @@ internal static class PermissionCatalog
         new HashSet<string>(StringComparer.Ordinal) { Permissions.UsersManage, Permissions.RolesManage };
 
     public static bool IsPermission(string key) => All.Contains(key, StringComparer.Ordinal);
+
+    /// <summary>
+    /// The licensed module a permission belongs to (task F3): without the module in the license the
+    /// permission does not apply. Permissions of the shared platform (users, roles, settings,
+    /// directory, forms, notifications, workflow rules, setup, privacy (GOV-5), license and updates) belong to none.
+    /// </summary>
+    public static string? ModuleOf(string permission) => permission switch
+    {
+        Permissions.IncidentsRead or Permissions.IncidentsCreate or Permissions.IncidentsEdit or Permissions.IncidentsAssign or Permissions.IncidentsMajor
+            => Zelvo.Licensing.LicensedModules.Incidents,
+        Permissions.CatalogManage or Permissions.CatalogPublish or Permissions.RequestsRead or Permissions.RequestsEdit or Permissions.RequestsAssign
+            or Permissions.ProactiveTrigger => Zelvo.Licensing.LicensedModules.ServiceCatalog,
+        Permissions.VoiceRead or Permissions.VoiceEdit or Permissions.VoiceAssign or Permissions.VoiceReport or Permissions.VoiceManage
+            => Zelvo.Licensing.LicensedModules.CustomerVoice,
+        Permissions.ResponsesManage or Permissions.WorkspaceViewsShare => Zelvo.Licensing.LicensedModules.AgentWorkspace,
+        Permissions.ChannelsManage or Permissions.ChatHandle => Zelvo.Licensing.LicensedModules.Omnichannel,
+        Permissions.KnowledgeRead or Permissions.KnowledgeWrite or Permissions.KnowledgePublish => Zelvo.Licensing.LicensedModules.KnowledgeBase,
+        Permissions.SlaManage => Zelvo.Licensing.LicensedModules.Sla,
+        Permissions.AiManage => Zelvo.Licensing.LicensedModules.Ai,
+        Permissions.ReportsRead or Permissions.ReportsAll or Permissions.ReportsManage => Zelvo.Licensing.LicensedModules.NotificationsReporting,
+        Permissions.BrandingManage => Zelvo.Licensing.LicensedModules.Branding,
+        // Task E7: connectors are part of module 14.
+        Permissions.IntegrationsManage or Permissions.ConnectorsManage => Zelvo.Licensing.LicensedModules.Integrations,
+        Permissions.PaymentsManage or Permissions.PaymentsRead or Permissions.PaymentsRefund => Zelvo.Licensing.LicensedModules.Payments,
+        _ => null,
+    };
 
     public static ResourceDefinition? Resource(string key) => Resources.FirstOrDefault(r => r.Key == key);
 }

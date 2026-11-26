@@ -13,7 +13,7 @@ Product owner decisions, 2026-11-18:
 
 | Piece | What it does |
 | --- | --- |
-| License kind `Demo` | Demo features exist only when `ILicenseService` reports a valid demo license (`license.IsDemo()`). In this repository the development stub reports it when `Installation__Profile=Demo`. A release demo installation gets a demo license file from the private `zelvo-licensing` implementation instead, which must report `LicenseKind.Demo` (coordinate with that repository). |
+| License kind `Demo` | Demo features exist only when `ILicenseService` reports a valid demo license (`license.IsDemo()`). Development builds report it from the development license when `Installation__Profile=Demo`. A release demo installation gets a demo license file (kind `Demo`, issued with `zelvo-sign issue --kind demo`); see `licensing.md`. |
 | Own database | `make demo` starts Compose project `zelvo-demo` (`compose.yaml` + `compose.demo.yaml`), with its own volumes. `migrate` refuses (exit code 4) to run a demo on a database that holds any tenant that is not a sample organisation, so demo data is never mixed with real data. |
 | No bootstrap tenant, no development users | In a demo installation, `migrate` creates only the sample organisations. |
 | Other installations | `GET /api/v1/demo` and `POST /api/v1/demo/reset` answer 404 `not-demo`; the web app shows no demo panel; realms have no demo sign-in step. |

@@ -13,6 +13,7 @@ using Zelvo.Api.Forms;
 using Zelvo.Api.Health;
 using Zelvo.Api.Identity;
 using Zelvo.Api.Incidents;
+using Zelvo.Api.Installation;
 using Zelvo.Api.Integrations;
 using Zelvo.Api.Catalog;
 using Zelvo.Api.Payments;
@@ -118,6 +119,9 @@ builder.Services.AddZelvoApiChannels(builder.Configuration);
 builder.Services.AddZelvoConnectors(builder.Configuration);
 builder.Services.AddZelvoBranding(builder.Configuration);
 builder.Services.AddZelvoReports();
+// Task F4: where update packages are kept, and the running version.
+builder.Services.AddZelvoUpdateOptions(builder.Configuration);
+builder.Services.AddSingleton<InstalledVersionProvider>();
 
 var app = builder.Build();
 
@@ -134,6 +138,8 @@ app.UseAuthentication();
 app.UseMiddleware<RateLimitingMiddleware>();
 app.UseMiddleware<AuditContextMiddleware>();
 app.UseMiddleware<CurrentUserMiddleware>();
+// Task F3: activation mode and module gating.
+app.UseMiddleware<LicenseEnforcementMiddleware>();
 app.UseMiddleware<IntegrationLogMiddleware>();
 app.UseZelvoMcpAccess();
 app.UseAuthorization();
@@ -155,8 +161,6 @@ v1.MapPreferenceEndpoints();
 v1.MapSettingsEndpoints();
 v1.MapSearchEndpoints();
 v1.MapDemoEndpoints();
-v1.MapIncidentEndpoints();
-v1.MapIncidentSettingsEndpoints();
 v1.MapTreeEndpoints();
 v1.MapGroupEndpoints();
 v1.MapAssignmentRuleEndpoints();
@@ -165,28 +169,36 @@ v1.MapFormEndpoints();
 v1.MapFieldSetEndpoints();
 v1.MapFormBindingEndpoints();
 v1.MapFormUploadEndpoints();
-v1.MapSlaEndpoints();
-v1.MapIntegrationEndpoints();
-v1.MapAiEndpoints();
-v1.MapAiFeatureEndpoints();
-v1.MapZelvoKnowledgeEndpoints();
-v1.MapZelvoCatalogEndpoints();
-v1.MapPaymentEndpoints();
+// Task F5: UAE privacy law (GOV-5) applies whatever the license includes.
 v1.MapPrivacyEndpoints();
 v1.MapDataSubjectRequestEndpoints();
-v1.MapZelvoCustomerVoiceEndpoints();
-v1.MapPortalEndpoints();
 v1.MapZelvoWorkflowEndpoints();
-v1.MapZelvoMcp();
-v1.MapMcpEndpoints();
-v1.MapMcpServerEndpoints();
 v1.MapNotificationEndpoints();
-v1.MapWorkspaceEndpoints();
-v1.MapZelvoReportEndpoints();
 v1.MapSetupEndpoints();
+// Task F3: the license screens; the rest of each module answers only when the license includes it.
+v1.MapLicenseEndpoints();
+// Task F4: offline update packages.
+v1.MapUpdateEndpoints();
+v1.ForModule(LicensedModules.Incidents).MapIncidentEndpoints();
+v1.ForModule(LicensedModules.Incidents).MapIncidentSettingsEndpoints();
+v1.ForModule(LicensedModules.Sla).MapSlaEndpoints();
+v1.ForModule(LicensedModules.Integrations).MapIntegrationEndpoints();
+v1.ForModule(LicensedModules.Ai).MapAiEndpoints();
+v1.ForModule(LicensedModules.Ai).MapAiFeatureEndpoints();
+v1.ForModule(LicensedModules.Ai).MapZelvoMcp();
+v1.ForModule(LicensedModules.Ai).MapMcpEndpoints();
+v1.ForModule(LicensedModules.Ai).MapMcpServerEndpoints();
+v1.ForModule(LicensedModules.KnowledgeBase).MapZelvoKnowledgeEndpoints();
+v1.ForModule(LicensedModules.ServiceCatalog).MapZelvoCatalogEndpoints();
+v1.ForModule(LicensedModules.Payments).MapPaymentEndpoints();
+v1.ForModule(LicensedModules.CustomerVoice).MapZelvoCustomerVoiceEndpoints();
+v1.ForModule(LicensedModules.Portal).MapPortalEndpoints();
+v1.ForModule(LicensedModules.AgentWorkspace).MapWorkspaceEndpoints();
+v1.ForModule(LicensedModules.NotificationsReporting).MapZelvoReportEndpoints();
 app.MapZelvoLiveUpdates();
-v1.MapZelvoChannels();
-v1.MapConnectorEndpoints();
+v1.ForModule(LicensedModules.Omnichannel).MapZelvoChannels();
+// Task E7: identity, CRM and REST connectors and monitoring alerts (module 14).
+v1.ForModule(LicensedModules.Integrations).MapConnectorEndpoints();
 app.MapBrandingEndpoints(v1);
 
 await app.RunAsync();

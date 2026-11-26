@@ -13,7 +13,7 @@ internal static class SystemEndpoints
         group.MapGet("/system/info", GetInfo)
             .WithName("GetSystemInfo")
             .WithTags("System")
-            .WithSummary("Product name, version, supported languages, license mode and environment (production, test, demo or development).");
+            .WithSummary("Product name, version, supported languages, license mode, environment (production, test, demo or development), whether the installation is activated and the licensed modules (task F3), so screens can hide modules the license does not include.");
         return group;
     }
 
@@ -28,7 +28,9 @@ internal static class SystemEndpoints
             version = version[..plusIndex];
         }
 
-        return new SystemInfo("Zelvo", version, SupportedLanguages, licenseService.Current.Kind.ToString(), licenseService.EnvironmentName());
+        var current = licenseService.Current;
+        return new SystemInfo("Zelvo", version, SupportedLanguages, current.Kind.ToString(), licenseService.EnvironmentName(),
+            current.IsValid, current.ActivationRequired, [.. LicensedModules.Phase1.Where(licenseService.IsModuleLicensed)]);
     }
 }
 
@@ -38,4 +40,9 @@ internal static class SystemEndpoints
 /// <param name="Languages">Supported UI languages.</param>
 /// <param name="LicenseMode">Kind of license the installation runs under.</param>
 /// <param name="Environment">What the installation is for: <c>production</c>, <c>test</c> (the test installation every license includes), <c>demo</c> or <c>development</c>.</param>
-internal sealed record SystemInfo(string Product, string Version, IReadOnlyList<string> Languages, string LicenseMode, string Environment);
+/// <param name="Activated">A valid license applies (task F3).</param>
+/// <param name="ActivationRequired">The installation waits for a license for these servers; only the activation screens work.</param>
+/// <param name="Modules">Licensed modules (<c>m01-incidents</c> and so on).</param>
+internal sealed record SystemInfo(
+    string Product, string Version, IReadOnlyList<string> Languages, string LicenseMode, string Environment, bool Activated, bool ActivationRequired,
+    IReadOnlyList<string> Modules);

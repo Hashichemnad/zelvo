@@ -6,7 +6,7 @@ WORKDIR /src
 COPY global.json Directory.Build.props Directory.Packages.props .editorconfig ./
 COPY src/worker/Zelvo.Worker/Zelvo.Worker.csproj src/worker/Zelvo.Worker/
 COPY src/api/Zelvo.Licensing.Abstractions/Zelvo.Licensing.Abstractions.csproj src/api/Zelvo.Licensing.Abstractions/
-COPY src/api/Zelvo.Licensing.Development/Zelvo.Licensing.Development.csproj src/api/Zelvo.Licensing.Development/
+COPY src/api/Zelvo.Licensing/Zelvo.Licensing.csproj src/api/Zelvo.Licensing/
 COPY src/api/Zelvo.Data/Zelvo.Data.csproj src/api/Zelvo.Data/
 COPY src/api/Zelvo.Search/Zelvo.Search.csproj src/api/Zelvo.Search/
 COPY src/api/Zelvo.Tickets/Zelvo.Tickets.csproj src/api/Zelvo.Tickets/
@@ -21,7 +21,7 @@ COPY src/api/Zelvo.Observability/Zelvo.Observability.csproj src/api/Zelvo.Observ
 RUN dotnet restore src/worker/Zelvo.Worker/Zelvo.Worker.csproj
 COPY src/worker/Zelvo.Worker/ src/worker/Zelvo.Worker/
 COPY src/api/Zelvo.Licensing.Abstractions/ src/api/Zelvo.Licensing.Abstractions/
-COPY src/api/Zelvo.Licensing.Development/ src/api/Zelvo.Licensing.Development/
+COPY src/api/Zelvo.Licensing/ src/api/Zelvo.Licensing/
 COPY src/api/Zelvo.Data/ src/api/Zelvo.Data/
 COPY src/api/Zelvo.Search/ src/api/Zelvo.Search/
 COPY src/api/Zelvo.Tickets/ src/api/Zelvo.Tickets/

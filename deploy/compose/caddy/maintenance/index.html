@@ -1,0 +1,66 @@
+<!doctype html>
+<html lang="en" dir="ltr">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="robots" content="noindex">
+  <title>Zelvo</title>
+  <style>
+    :root { color-scheme: light dark; --ink: #1f2933; --muted: #52606d; --line: #cbd2d9; --brand: #0b5cad; --surface: #ffffff; --ok: #1d6b3a; --danger: #a61b1b; }
+    @media (prefers-color-scheme: dark) { :root { --ink: #f5f7fa; --muted: #cbd2d9; --line: #52606d; --brand: #8cc4ff; --surface: #1f2933; --ok: #7ad69a; --danger: #ff9b9b; } }
+    body { margin: 0; font-family: system-ui, "Segoe UI", Tahoma, sans-serif; background: var(--surface); color: var(--ink); }
+    main { max-width: 40rem; margin-block: 4rem; margin-inline: auto; padding-inline: 1rem; }
+    h1 { color: var(--brand); }
+    ol { padding-inline-start: 1.25rem; }
+    li { margin-block: .25rem; }
+    .muted { color: var(--muted); }
+    .Done { color: var(--ok); } .Failed { color: var(--danger); }
+    footer { margin-block-start: 3rem; border-block-start: 1px solid var(--line); padding-block-start: 1rem; color: var(--muted); }
+  </style>
+</head>
+<body>
+  <main>
+    <h1 id="title">Zelvo</h1>
+    <p id="intro"></p>
+    <p id="version" class="muted"></p>
+    <p id="state" role="status" aria-live="polite"></p>
+    <ol id="steps"></ol>
+    <footer id="powered"></footer>
+  </main>
+  <script>
+    // Task F4: the maintenance page. Texts come from messages.json (English and Arabic); the
+    // language is the visitor's chosen one (cookie) or browser language. It shows the updater's
+    // progress and reloads once Zelvo answers again.
+    (async function () {
+      const cookie = document.cookie.split("; ").find((c) => c.startsWith("zelvo-language="));
+      const chosen = cookie ? cookie.split("=")[1] : (navigator.language || "en").slice(0, 2);
+      const lang = chosen === "ar" ? "ar" : "en";
+      document.documentElement.lang = lang;
+      document.documentElement.dir = lang === "ar" ? "rtl" : "ltr";
+      let texts;
+      try { texts = (await (await fetch("/_zelvo/maintenance/messages.json", { cache: "no-store" })).json())[lang]; } catch { return; }
+      const set = (id, text) => { document.getElementById(id).textContent = text; };
+      set("title", texts.title); document.title = texts.title; set("intro", texts.intro); set("powered", texts.poweredBy);
+      async function refresh() {
+        try {
+          const back = await fetch("/healthz", { cache: "no-store" });
+          if (back.ok) { location.reload(); return; }
+        } catch { /* still down */ }
+        let status = null;
+        try { const r = await fetch("/_zelvo/status.json", { cache: "no-store" }); if (r.ok) status = await r.json(); } catch { /* none */ }
+        set("state", texts.states[status && status.state] || texts.states.unknown);
+        set("version", status && status.version ? texts.version.replace("{version}", status.version) : "");
+        const list = document.getElementById("steps");
+        list.replaceChildren(...((status && status.steps) || []).filter((s) => texts.steps[s.key]).map((s) => {
+          const item = document.createElement("li");
+          item.className = s.state;
+          item.textContent = texts.steps[s.key] + " — " + (texts.stepStates[s.state] || s.state);
+          return item;
+        }));
+      }
+      await refresh();
+      setInterval(refresh, 5000);
+    })();
+  </script>
+</body>
+</html>
