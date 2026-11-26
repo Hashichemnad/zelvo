@@ -1,0 +1,89 @@
+name: Demo video
+
+# Task F7: records the demo walkthrough (docs/release-readiness/demo-walkthrough.md) as one MP4:
+# starts the demo installation, runs tests/e2e/video/demo-video.spec.ts with Playwright video
+# recording at 1920×1080, slowed down and with a caption naming each step, first in English and
+# then in Arabic, joins the two clips with ffmpeg and keeps the video as an artifact for 7 days.
+# Started by hand only (Actions → Demo video → Run workflow). Only fictional sample data appears.
+
+on:
+  workflow_dispatch:
+    inputs:
+      hold_ms:
+        description: "How long each step stays on screen, in milliseconds"
+        required: false
+        default: "4500"
+      slow_mo_ms:
+        description: "Delay Playwright adds to every action, in milliseconds"
+        required: false
+        default: "250"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: demo-video
+  cancel-in-progress: true
+
+jobs:
+  video:
+    name: Record the demo walkthrough
+    runs-on: ubuntu-latest
+    timeout-minutes: 120
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: 24
+          cache: npm
+          cache-dependency-path: tests/e2e/package-lock.json
+      - name: Check the inputs
+        env:
+          HOLD_MS: ${{ inputs.hold_ms }}
+          SLOW_MO_MS: ${{ inputs.slow_mo_ms }}
+        run: |
+          [[ "$HOLD_MS" =~ ^[0-9]{3,5}$ ]] || { echo "hold_ms must be 100 to 99999" >&2; exit 1; }
+          [[ "$SLOW_MO_MS" =~ ^[0-9]{1,4}$ ]] || { echo "slow_mo_ms must be 0 to 9999" >&2; exit 1; }
+      - name: Start the demo installation
+        run: make demo
+      - name: Install Playwright (Chromium and its video recorder) and ffmpeg
+        working-directory: tests/e2e
+        run: |
+          npm ci --no-audit --no-fund
+          npx playwright install --with-deps chromium ffmpeg
+          sudo apt-get update -qq && sudo apt-get install -y -qq ffmpeg
+      - name: Record the walkthrough in English, then in Arabic
+        working-directory: tests/e2e
+        env:
+          E2E_VIDEO: "1"
+          DEMO_VIDEO_HOLD_MS: ${{ inputs.hold_ms }}
+          DEMO_VIDEO_SLOW_MO_MS: ${{ inputs.slow_mo_ms }}
+        run: npx playwright test
+      - name: Join the clips into one MP4
+        working-directory: tests/e2e/demo-video
+        run: |
+          test -s 1-en.webm && test -s 2-ar.webm
+          ffmpeg -hide_banner -loglevel error -y -i 1-en.webm -i 2-ar.webm \
+            -filter_complex "[0:v]fps=30,scale=1920:1080,setsar=1[a];[1:v]fps=30,scale=1920:1080,setsar=1[b];[a][b]concat=n=2:v=1:a=0,format=yuv420p[v]" \
+            -map "[v]" -c:v libx264 -preset medium -crf 22 -movflags +faststart zelvo-demo-walkthrough.mp4
+          ffprobe -v error -show_entries stream=width,height:format=duration -of compact zelvo-demo-walkthrough.mp4
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: zelvo-demo-walkthrough
+          path: tests/e2e/demo-video/zelvo-demo-walkthrough.mp4
+          retention-days: 7
+          if-no-files-found: error
+      - name: Service logs on failure
+        if: failure()
+        run: cd deploy/compose && COMPOSE_PROJECT_NAME=zelvo-demo COMPOSE_FILE=compose.yaml:compose.demo.yaml docker compose logs --tail 200
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        if: failure()
+        with:
+          name: demo-video-report
+          path: |
+            tests/e2e/playwright-report
+            tests/e2e/test-results
+          retention-days: 7
+      - name: Stop the demo
+        if: always()
+        run: make demo-wipe
