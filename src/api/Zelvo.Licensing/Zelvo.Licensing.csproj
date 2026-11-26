@@ -13,6 +13,8 @@
   <ItemGroup>
     <!-- Our public signing keys (never private keys). The signing tool prints the entry to add. -->
     <EmbeddedResource Include="vendor-keys.json" LogicalName="Zelvo.Licensing.vendor-keys.json" />
+    <!-- Our cosign public keys for images and release manifests (task F6; never private keys). -->
+    <EmbeddedResource Include="image-signing-keys.json" LogicalName="Zelvo.Licensing.image-signing-keys.json" />
   </ItemGroup>
   <ItemGroup>
     <InternalsVisibleTo Include="Zelvo.Api" />
@@ -27,5 +29,10 @@
     </ReadLinesFromFile>
     <Error Condition="!$([System.String]::Copy('@(ZelvoVendorKeyLines)').Contains('publicKey'))"
            Text="Release builds need at least one vendor public key in src/api/Zelvo.Licensing/vendor-keys.json (zelvo-sign keygen prints it)." />
+    <ReadLinesFromFile File="image-signing-keys.json">
+      <Output TaskParameter="Lines" ItemName="ZelvoImageKeyLines" />
+    </ReadLinesFromFile>
+    <Error Condition="!$([System.String]::Copy('@(ZelvoImageKeyLines)').Contains('publicKey'))"
+           Text="Release builds need Zelvo's cosign public key in src/api/Zelvo.Licensing/image-signing-keys.json (see docs/architecture/release.md)." />
   </Target>
 </Project>

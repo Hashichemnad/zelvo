@@ -46,4 +46,10 @@ public sealed class UpdaterOptions
 
     /// <summary>The updater's own service, restarted on the new image after a successful install.</summary>
     public string SelfService { get; set; } = "updater";
+
+    /// <summary>
+    /// The folder with the installation's signed release manifest (task F6), which the services
+    /// mount read-only; relative paths are under <see cref="ComposeDirectory"/>.
+    /// </summary>
+    public string ReleaseDirectory { get; set; } = "release";
 }

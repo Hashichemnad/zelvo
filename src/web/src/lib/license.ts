@@ -55,3 +55,19 @@ export function problemKey(code: string | null | undefined): LicenseProblem | "o
   const bare = code?.replace(/^license-/, "") ?? "";
   return (licenseProblems as readonly string[]).includes(bare) ? (bare as LicenseProblem) : "other";
 }
+
+/** The release integrity of the installation's components (task F6), as GET /license/components answers. */
+export interface ReleaseComponentsState {
+  release: string | null;
+  manifestStatus: string;
+  manifestReason: string;
+  releaseBuild: boolean;
+  components: { component: string; status: string; release: string | null; buildVersion: string; detail: string; checkedAt: string }[];
+}
+
+export const releaseStatuses = ["Verified", "NoManifest", "ManifestInvalid", "ComponentUnknown", "Modified", "ImagesVerified", "ImageMismatch"] as const;
+
+/** The status's key for the translations, or "other". */
+export function releaseStatusKey(status: string): (typeof releaseStatuses)[number] | "other" {
+  return (releaseStatuses as readonly string[]).includes(status) ? (status as (typeof releaseStatuses)[number]) : "other";
+}

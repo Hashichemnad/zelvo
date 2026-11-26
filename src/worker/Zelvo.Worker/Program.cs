@@ -27,6 +27,8 @@ var builder = Host.CreateApplicationBuilder(args);
 builder.AddZelvoTelemetry("zelvo-worker");
 
 // Task F3: jobs start only once the installation is activated; a tampered license stops the worker.
+// A modified component refuses to start (module 12 tamper detection, task F6).
+builder.Services.AddZelvoReleaseIntegrity("worker");
 builder.Services.AddZelvoLicensing(ActivationWait.WaitForLicense);
 builder.Services.AddHostedService<HeartbeatService>();
 

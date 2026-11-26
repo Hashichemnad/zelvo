@@ -48,7 +48,7 @@ Prometheus alert rules (`observability/alerts.yaml`, shown in Grafana): API p95 
 
 ## Retention
 
-Traces 7 days (Tempo), logs 15 days (Loki), metrics 15 days (Prometheus), all on local volumes. Medium and large installs size these in their Helm values (task F6).
+Traces 7 days (Tempo), logs 15 days (Loki), metrics 15 days (Prometheus), all on local volumes. The hardened Compose install keeps them as the Compose profile `observability` (on by default). The Helm chart (task F6) sends telemetry to the cluster's own OpenTelemetry Collector (`telemetry.otlpEndpoint`) and does not deploy the backends.
 
 ## Compose services
 

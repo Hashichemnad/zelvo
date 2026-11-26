@@ -57,7 +57,7 @@ Publishing (and verifying a domain) updates the tenant's realm through Keycloak'
    - **Uploaded**: the customer's PEM certificate chain and unencrypted private key (`PUT /settings/branding/domains/{id}/certificate`). The pair must belong together, be valid now and match the host. The key is encrypted with the tenant's data key (`Zelvo.Secrets`, purpose `branding.domain:<id>.privateKey`) and never returned. Caddy fetches it in the TLS handshake from `GET /internal/tls/certificate?server_name=<host>&token=…`; Zelvo answers 204 for hosts without an uploaded certificate, and Caddy uses ACME.
    - The `/internal/tls/...` endpoints are outside `/api`, answer 404 without the shared secret (`Branding:TlsToken`, `ZELVO_TLS_TOKEN`, compared in constant time), are left out of the OpenAPI document, and the proxy forwards public traffic only to the web app.
 
-Compose runs Caddy as `proxy` on `https://localhost:8443` (development uses Caddy's internal certificate authority; `ZELVO_PUBLIC_TLS` empty uses ACME for the installation's own host). Helm comes with F6.
+Compose runs Caddy as `proxy` on `https://localhost:8443` (development uses Caddy's internal certificate authority; `ZELVO_PUBLIC_TLS` empty uses ACME for the installation's own host). On Kubernetes the chart runs the same proxy (task F6, `deploy/helm/zelvo/files/Caddyfile`).
 
 ## Email sender domain
 
@@ -102,7 +102,6 @@ Every change is audited: draft, images, publish and discard, domains (added, che
 
 ## Not in F1
 
-- Helm charts with Caddy (or an ingress with cert-manager) for medium and large installations: F6.
 - WhatsApp and SMS template branding: with E3.
 - Report PDFs: added by F2 with the same renderer (`docs/architecture/reporting.md`).
 - Not tried against a real ACME server or a real customer DNS zone yet; DNS checks were tested with a fake resolver.

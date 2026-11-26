@@ -1,0 +1,98 @@
+{{- $fullname := include "zelvo.fullname" . -}}
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ $fullname }}-proxy
+  labels: {{- include "zelvo.labels" . | nindent 4 }}
+data:
+  Caddyfile: |-
+{{ .Files.Get "files/Caddyfile" | indent 4 }}
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: {{ $fullname }}-proxy-data
+  labels: {{- include "zelvo.labels" . | nindent 4 }}
+spec:
+  accessModes: [ReadWriteOnce]
+  {{- with .Values.proxy.storage.storageClass }}
+  storageClassName: {{ . }}
+  {{- end }}
+  resources: { requests: { storage: {{ .Values.proxy.storage.size }} } }
+---
+# One replica: its certificates and ACME account live on its volume.
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ $fullname }}-proxy
+  labels:
+    {{- include "zelvo.labels" . | nindent 4 }}
+    app.kubernetes.io/name: proxy
+spec:
+  replicas: 1
+  strategy: { type: Recreate }
+  selector:
+    matchLabels: {{- include "zelvo.selector" (dict "root" . "name" "proxy") | nindent 6 }}
+  template:
+    metadata:
+      labels:
+        {{- include "zelvo.labels" . | nindent 8 }}
+        app.kubernetes.io/name: proxy
+      annotations:
+        checksum/caddyfile: {{ .Files.Get "files/Caddyfile" | sha256sum }}
+    spec:
+      automountServiceAccountToken: false
+      securityContext:
+        {{- include "zelvo.podSecurity" . | nindent 8 }}
+        runAsUser: 1000
+        runAsGroup: 1000
+        fsGroup: 1000
+      containers:
+        - name: caddy
+          image: {{ .Values.proxy.image }}
+          securityContext: {{- include "zelvo.containerSecurity" . | nindent 12 }}
+          env:
+            - { name: ZELVO_PUBLIC_HOST, value: {{ .Values.publicHost | quote }} }
+            - { name: ZELVO_PUBLIC_TLS_DIRECTIVE, value: {{ if .Values.proxy.tls }}{{ printf "tls %s" .Values.proxy.tls | quote }}{{ else }}""{{ end }} }
+            - { name: ZELVO_ACME_EMAIL, value: {{ required "proxy.acmeEmail is required" .Values.proxy.acmeEmail | quote }} }
+            - { name: ZELVO_ACME_CA, value: {{ .Values.proxy.acmeCa | quote }} }
+            - { name: ZELVO_API, value: "{{ $fullname }}-api:8080" }
+            - { name: ZELVO_WEB, value: "{{ $fullname }}-web:3000" }
+            - { name: ZELVO_KEYCLOAK, value: "{{ $fullname }}-keycloak:8080" }
+            - { name: XDG_CONFIG_HOME, value: /config }
+            - { name: XDG_DATA_HOME, value: /data }
+            {{- include "zelvo.secretEnv" (dict "root" . "env" "ZELVO_TLS_TOKEN" "key" "tlsToken") | nindent 12 }}
+          ports:
+            - { name: http, containerPort: 8080 }
+            - { name: https, containerPort: 8443 }
+          readinessProbe: { tcpSocket: { port: https }, periodSeconds: 10 }
+          volumeMounts:
+            - { name: caddyfile, mountPath: /etc/caddy }
+            - { name: data, mountPath: /data }
+            - { name: config, mountPath: /config }
+          resources: {{- toYaml .Values.proxy.resources | nindent 12 }}
+      volumes:
+        - name: caddyfile
+          configMap: { name: {{ $fullname }}-proxy }
+        - name: data
+          persistentVolumeClaim: { claimName: {{ $fullname }}-proxy-data }
+        - name: config
+          emptyDir: {}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ $fullname }}-proxy
+  labels: {{- include "zelvo.labels" . | nindent 4 }}
+  {{- with .Values.proxy.service.annotations }}
+  annotations: {{- toYaml . | nindent 4 }}
+  {{- end }}
+spec:
+  type: {{ .Values.proxy.service.type }}
+  {{- if eq .Values.proxy.service.type "LoadBalancer" }}
+  externalTrafficPolicy: Local
+  {{- end }}
+  selector: {{- include "zelvo.selector" (dict "root" . "name" "proxy") | nindent 4 }}
+  ports:
+    - { name: http, port: 80, targetPort: http }
+    - { name: https, port: 443, targetPort: https }

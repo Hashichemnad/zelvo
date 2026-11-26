@@ -58,11 +58,21 @@ src/worker/      background jobs
 src/updater/     updater service that installs update packages (Settings → Updates)
 src/tools/       zelvo-sign, the offline signing tool for licenses and update packages (signing computer only)
 src/keycloak/    Keycloak extension (email one-time code sign-in) and login/email theme, built into Zelvo's Keycloak image
-deploy/compose/  Docker Compose for development (observability and security configuration in observability/ and security/)
-deploy/helm/     Helm charts for Kubernetes installs (later Phase 1 task)
+build/obfuscar/  release obfuscation (Obfuscar rules and script)
+deploy/compose/  Docker Compose for development (compose.yaml) and the hardened small install (compose.production.yaml)
+deploy/postgres/ PostgreSQL image with pgBackRest for the hardened install's backups
+deploy/helm/     Helm chart for Kubernetes installs (medium and large)
 tests/e2e/       Playwright end-to-end tests
-scripts/         start and stop scripts
+scripts/         start and stop scripts; release/ (bundle and install), backup/ (restore drill)
 ```
+
+## Install for customers
+
+Customers never build Zelvo: the release pipeline (`.github/workflows/release.yml`) builds signed,
+obfuscated release images and an offline install bundle. Small installs unpack the bundle and run
+`sudo ./install.sh` (hardened Docker Compose, backups with pgBackRest); medium and large installs
+use the Helm chart (`deploy/helm/README.md`). See `docs/architecture/release.md` and
+`docs/architecture/backup-restore.md`.
 
 ## Develop and test
 

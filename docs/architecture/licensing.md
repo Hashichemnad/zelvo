@@ -112,4 +112,4 @@ To try activation locally: `dotnet run --project src/tools/Zelvo.SigningTool -- 
 
 ## Not in F3
 
-Image signatures checked between services, obfuscation and minified builds, the per-customer release build and the hidden marks in generated files come with release packaging (task F6).
+Image signatures checked between services, obfuscation and minified builds, the per-customer release build and the hidden marks in generated files came with release packaging (task F6): see `release.md`. The watermark is in PDF and Excel exports and emails as an encoded mark (`InstallationMark`; `zelvo-sign mark` reads it), and image and file checks use the signed release manifest.

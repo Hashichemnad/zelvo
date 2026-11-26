@@ -1,0 +1,49 @@
+# Example: PostgreSQL for Zelvo with CloudNativePG (Apache-2.0; task F6). A primary and a replica,
+# continuous WAL archiving and a daily base backup to S3-compatible object storage kept 35 days
+# (recovery point under 15 minutes; restore to any moment with a new Cluster bootstrapped from
+# the backup, see docs/architecture/backup-restore.md). The image must include pgvector. Newer
+# CloudNativePG versions move the object store
+# settings to the Barman Cloud plugin; the values stay the same.
+apiVersion: postgresql.cnpg.io/v1
+kind: Cluster
+metadata:
+  name: zelvo-db
+  namespace: zelvo
+spec:
+  instances: 2
+  # A CloudNativePG-compatible PostgreSQL 17 image that includes pgvector.
+  imageName: registry.example.org/postgresql:17-pgvector
+  enableSuperuserAccess: true
+  superuserSecret: { name: zelvo-db-superuser }
+  storage: { size: 200Gi }
+  postgresql:
+    parameters:
+      archive_timeout: "60"
+      max_connections: "400"
+  bootstrap:
+    initdb:
+      database: zelvo
+      owner: zelvo_owner
+      secret: { name: zelvo-db-owner }
+      dataChecksums: true
+      # Then run database-roles.sql once as the superuser (roles and the Keycloak database).
+  backup:
+    retentionPolicy: 35d
+    barmanObjectStore:
+      destinationPath: s3://zelvo-backups/zelvo-db
+      endpointURL: https://objects.example.org
+      s3Credentials:
+        accessKeyId: { name: zelvo-backup-s3, key: accessKey }
+        secretAccessKey: { name: zelvo-backup-s3, key: secretKey }
+      wal: { compression: zstd, encryption: AES256 }
+      data: { compression: zstd, encryption: AES256 }
+---
+apiVersion: postgresql.cnpg.io/v1
+kind: ScheduledBackup
+metadata:
+  name: zelvo-db-daily
+  namespace: zelvo
+spec:
+  schedule: "0 30 1 * * *"
+  backupOwnerReference: self
+  cluster: { name: zelvo-db }

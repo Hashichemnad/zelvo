@@ -15,10 +15,26 @@ COPY src/api/Zelvo.Licensing.Abstractions/ src/api/Zelvo.Licensing.Abstractions/
 COPY src/api/Zelvo.Licensing/ src/api/Zelvo.Licensing/
 COPY src/api/Zelvo.Data/ src/api/Zelvo.Data/
 COPY src/api/Zelvo.Observability/ src/api/Zelvo.Observability/
-RUN dotnet publish src/updater/Zelvo.Updater/Zelvo.Updater.csproj -c Release -o /app --no-restore -p:UseAppHost=false
+# Release builds (task F6; the release pipeline sets these): ZELVO_RELEASE=true is the release
+# licensing build, ZELVO_BUILD_WATERMARK the customer's watermark for a per-customer build, and
+# ZELVO_OBFUSCATE=true obfuscates Zelvo's assemblies (build/obfuscar) and removes their symbols.
+ARG ZELVO_RELEASE=false
+ARG ZELVO_BUILD_WATERMARK=
+ARG ZELVO_OBFUSCATE=false
+RUN dotnet publish src/updater/Zelvo.Updater/Zelvo.Updater.csproj -c Release -o /app --no-restore -p:UseAppHost=false \
+    -p:ZelvoRelease="$ZELVO_RELEASE" -p:ZelvoBuildWatermark="$ZELVO_BUILD_WATERMARK"
+COPY dotnet-tools.json ./
+COPY build/obfuscar/ build/obfuscar/
+RUN mkdir -p /obfuscation && if [ "$ZELVO_OBFUSCATE" = "true" ]; then \
+      build/obfuscar/obfuscate.sh /app /obfuscation/Mapping.txt; fi
+
+# The obfuscation mapping, for the release pipeline only (docker build --target obfuscation-map
+# --output ...); it is never part of the image.
+FROM scratch AS obfuscation-map
+COPY --from=build /obfuscation/ /
 
 # The Docker command line and its Compose plugin (static binaries) from Docker's official images.
-FROM docker:29.9.3-cli AS docker
+FROM docker:29.10.0-cli AS docker
 FROM docker/compose-bin:v5.8.0 AS compose
 
 FROM mcr.microsoft.com/dotnet/runtime:10.0 AS runtime

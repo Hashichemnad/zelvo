@@ -4,6 +4,7 @@
     <Description>Zelvo ticket core (module 1): state rules, the tenant's ticket settings, incident search documents, the attachment store and malware scanning, and the worker jobs that close resolved tickets and scan attachments.</Description>
   </PropertyGroup>
   <ItemGroup>
+    <PackageReference Include="AWSSDK.S3" />
     <PackageReference Include="DnsClient" />
     <PackageReference Include="Microsoft.Extensions.Hosting.Abstractions" />
   </ItemGroup>
@@ -13,6 +14,7 @@
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\Zelvo.Data\Zelvo.Data.csproj" />
+    <ProjectReference Include="..\Zelvo.Licensing.Abstractions\Zelvo.Licensing.Abstractions.csproj" />
     <ProjectReference Include="..\Zelvo.Search\Zelvo.Search.csproj" />
     <ProjectReference Include="..\Zelvo.Integrations\Zelvo.Integrations.csproj" />
   </ItemGroup>

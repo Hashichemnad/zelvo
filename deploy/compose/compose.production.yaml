@@ -1,0 +1,724 @@
+# Zelvo for small installs (up to 50 agents, one server; task F6). Hardened Docker Compose:
+# release images loaded from the install bundle (never built or pulled for Zelvo's own images),
+# every service with a read-only file system where its image allows, no Linux capabilities beyond
+# what it needs, no privilege escalation, memory, CPU and process limits, rotated logs, and only the
+# reverse proxy reachable from the network (ports 80 and 443). Secrets come from .env (made by
+# install.sh with random values, readable by root only) and the master key file. Continuous
+# PostgreSQL backups by pgBackRest (backup service). See docs/architecture/release.md and
+# docs/architecture/backup-restore.md.
+#
+# The install bundle ships this file as compose.yaml with .env.example (from
+# .env.production.example); install.sh prepares and starts it. Upgrades come as signed update
+# packages through Settings → Updates (the updater service).
+
+name: ${COMPOSE_PROJECT_NAME:-zelvo}
+
+x-hardened: &hardened
+  restart: unless-stopped
+  security_opt: ["no-new-privileges:true"]
+  cap_drop: [ALL]
+  logging:
+    driver: json-file
+    options: { max-size: 20m, max-file: "5" }
+
+x-zelvo-image: &zelvo-image
+  pull_policy: never
+
+x-telemetry-env: &telemetry-env
+  # Empty turns telemetry off (the observability services are then not needed: COMPOSE_PROFILES).
+  OTEL_EXPORTER_OTLP_ENDPOINT: ${ZELVO_OTLP_ENDPOINT-http://otel-collector:4317}
+  OTEL_EXPORTER_OTLP_PROTOCOL: grpc
+  OTEL_METRIC_EXPORT_INTERVAL: "15000"
+
+x-ca-volume: &ca-volume
+  type: volume
+  source: certs
+  target: /run/certs
+  read_only: true
+  volume: { subpath: ca }
+
+# Outgoing requests (webhooks, AI, payments, mail, connectors): HTTPS only and no internal
+# addresses, unless the operator lists the internal networks its own systems are on.
+x-outgoing-env: &outgoing-env
+  Integrations__Webhooks__AllowedPrivateNetworks__0: ${ZELVO_INTERNAL_NETWORK_1:-}
+  Integrations__Webhooks__AllowedPrivateNetworks__1: ${ZELVO_INTERNAL_NETWORK_2:-}
+  Ai__AllowedPrivateNetworks__0: ${ZELVO_INTERNAL_NETWORK_1:-}
+  Ai__AllowedPrivateNetworks__1: ${ZELVO_INTERNAL_NETWORK_2:-}
+  Payments__AllowedPrivateNetworks__0: ${ZELVO_INTERNAL_NETWORK_1:-}
+  Payments__AllowedPrivateNetworks__1: ${ZELVO_INTERNAL_NETWORK_2:-}
+  Channels__Network__AllowedPrivateNetworks__0: ${ZELVO_INTERNAL_NETWORK_1:-}
+  Channels__Network__AllowedPrivateNetworks__1: ${ZELVO_INTERNAL_NETWORK_2:-}
+  Connectors__Network__AllowedPrivateNetworks__0: ${ZELVO_INTERNAL_NETWORK_1:-}
+  Connectors__Network__AllowedPrivateNetworks__1: ${ZELVO_INTERNAL_NETWORK_2:-}
+  Payments__PublicUrl: https://${ZELVO_PUBLIC_HOST:?set in .env}/
+
+x-notifications-env: &notifications-env
+  Notifications__WebUrl: https://${ZELVO_PUBLIC_HOST}/
+  Notifications__Smtp__Host: ${ZELVO_SMTP_HOST:?set in .env}
+  Notifications__Smtp__Port: ${ZELVO_SMTP_PORT:-587}
+  Notifications__Smtp__Security: ${ZELVO_SMTP_SECURITY:-StartTls}
+  Notifications__Smtp__User: ${ZELVO_SMTP_USER:-}
+  Notifications__Smtp__Password: ${ZELVO_SMTP_PASSWORD:-}
+  Notifications__Smtp__From: ${ZELVO_SMTP_FROM:?set in .env}
+
+x-branding-env: &branding-env
+  Branding__PublicHost: ${ZELVO_PUBLIC_HOST}
+  Branding__TlsToken: ${ZELVO_TLS_TOKEN:?set in .env}
+  Branding__SpfInclude: ${ZELVO_SPF_INCLUDE:-}
+
+x-channels-env: &channels-env
+  Channels__WebUrl: https://${ZELVO_PUBLIC_HOST}/
+  Channels__PublicUrl: https://${ZELVO_PUBLIC_HOST}/
+
+x-identity-env: &identity-env
+  # Browsers reach Keycloak through the proxy at /auth; Zelvo's servers on the internal network.
+  Identity__PublicUrl: https://${ZELVO_PUBLIC_HOST}/auth
+  Identity__InternalUrl: http://keycloak:8080/auth
+  Identity__ProvisionerClientSecret: ${KEYCLOAK_PROVISIONER_SECRET:?set in .env}
+
+x-licensing-env: &licensing-env
+  Licensing__Domain: ${ZELVO_PUBLIC_HOST}
+  # The signed release manifest (task F6): every Zelvo service checks itself against it.
+  Release__ManifestPath: /etc/zelvo/release/release-manifest.json
+
+x-secrets-env: &secrets-env
+  Secrets__Provider: ${ZELVO_SECRETS_PROVIDER:-File}
+  Secrets__File__Path: /run/secrets/zelvo-master-key
+
+x-machine-id: &machine-id
+  type: bind
+  source: /etc/machine-id
+  target: /etc/machine-id
+  read_only: true
+  bind: { create_host_path: false }
+
+x-release: &release
+  type: bind
+  source: ./release
+  target: /etc/zelvo/release
+  read_only: true
+  bind: { create_host_path: false }
+
+x-updates-volume: &updates-volume
+  type: volume
+  source: updates
+  target: /var/lib/zelvo/updates
+
+x-dotnet-healthcheck: &dotnet-healthcheck
+  test:
+    - CMD
+    - bash
+    - -c
+    - >-
+      exec 3<>/dev/tcp/127.0.0.1/8080 &&
+      printf 'GET /health/live HTTP/1.1\r\nHost: localhost\r\nConnection: close\r\n\r\n' >&3 &&
+      grep -q '200 OK' <&3
+  interval: 10s
+  timeout: 5s
+  retries: 30
+
+services:
+  # Internal CA and TLS certificates for OpenSearch and RabbitMQ (traffic inside this server).
+  certs:
+    <<: *zelvo-image
+    image: zelvo/postgres:${ZELVO_VERSION:?set in .env}
+    entrypoint: ["sh", "/generate-certs.sh"]
+    user: root
+    restart: "no"
+    network_mode: none
+    volumes:
+      - ./security/generate-certs.sh:/generate-certs.sh:ro
+      - certs:/certs
+
+  postgres:
+    <<: [*hardened, *zelvo-image]
+    image: zelvo/postgres:${ZELVO_VERSION}
+    # The image's entrypoint changes owners and switches to the postgres user.
+    cap_add: [CHOWN, DAC_OVERRIDE, FOWNER, SETGID, SETUID]
+    read_only: true
+    tmpfs: [/tmp]
+    shm_size: 1g
+    command:
+      - postgres
+      - -c
+      - shared_buffers=2GB
+      - -c
+      - effective_cache_size=6GB
+      - -c
+      - max_connections=300
+      # Continuous WAL archiving to pgBackRest: at most a minute of changes not yet archived.
+      - -c
+      - wal_level=replica
+      - -c
+      - archive_mode=on
+      - -c
+      - archive_command=zelvo-pgbackrest --stanza=zelvo archive-push %p
+      - -c
+      - archive_timeout=60
+      # TLS 1.3 only for network connections (pg_hba.conf refuses plain ones).
+      - -c
+      - ssl=on
+      - -c
+      - ssl_cert_file=/run/pgtls/server.crt
+      - -c
+      - ssl_key_file=/run/pgtls/server.key
+      - -c
+      - ssl_min_protocol_version=TLSv1.3
+      - -c
+      - hba_file=/etc/postgresql/pg_hba.conf
+      - -c
+      - password_encryption=scram-sha-256
+    environment:
+      POSTGRES_USER: ${POSTGRES_SUPERUSER:?set in .env}
+      POSTGRES_PASSWORD: ${POSTGRES_SUPERUSER_PASSWORD:?set in .env}
+      POSTGRES_DB: ${POSTGRES_DB:?set in .env}
+      POSTGRES_INITDB_ARGS: --data-checksums
+      ZELVO_APP_DB_USER: ${ZELVO_APP_DB_USER:?set in .env}
+      ZELVO_APP_DB_PASSWORD: ${ZELVO_APP_DB_PASSWORD:?set in .env}
+      KEYCLOAK_DB_USER: ${KEYCLOAK_DB_USER:?set in .env}
+      KEYCLOAK_DB_PASSWORD: ${KEYCLOAK_DB_PASSWORD:?set in .env}
+      <<: &pgbackrest-env
+        PGBACKREST_PG1_USER: ${POSTGRES_SUPERUSER}
+        # Optional: the repository in S3-compatible storage instead of the backup volume.
+        PGBACKREST_REPO1_TYPE: ${ZELVO_BACKUP_REPO_TYPE:-posix}
+        PGBACKREST_REPO1_S3_BUCKET: ${ZELVO_BACKUP_S3_BUCKET:-}
+        PGBACKREST_REPO1_S3_ENDPOINT: ${ZELVO_BACKUP_S3_ENDPOINT:-}
+        PGBACKREST_REPO1_S3_REGION: ${ZELVO_BACKUP_S3_REGION:-}
+        PGBACKREST_REPO1_S3_KEY: ${ZELVO_BACKUP_S3_KEY:-}
+        PGBACKREST_REPO1_S3_KEY_SECRET: ${ZELVO_BACKUP_S3_KEY_SECRET:-}
+        PGBACKREST_REPO1_CIPHER_TYPE: aes-256-cbc
+        PGBACKREST_REPO1_CIPHER_PASS: ${ZELVO_BACKUP_CIPHER_PASS:?set in .env}
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+      - ./postgres/init:/docker-entrypoint-initdb.d:ro
+      - ./postgres/pg_hba.conf:/etc/postgresql/pg_hba.conf:ro
+      - { type: volume, source: certs, target: /run/pgtls, read_only: true, volume: { subpath: postgres } }
+      - backup-repo:/var/lib/pgbackrest
+      - backup-spool:/var/spool/pgbackrest
+      - backup-log:/var/log/pgbackrest
+      - postgres-socket:/var/run/postgresql
+    deploy:
+      resources:
+        limits: { cpus: "4", memory: 8g, pids: 512 }
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U \"$${POSTGRES_USER}\" -d \"$${POSTGRES_DB}\""]
+      interval: 5s
+      timeout: 5s
+      retries: 30
+    depends_on:
+      certs: { condition: service_completed_successfully }
+
+  # pgBackRest's schedule: a full backup on Sundays and a differential one on the other days at
+  # ZELVO_BACKUP_TIME, kept 35 days; WAL is archived continuously by PostgreSQL itself.
+  backup:
+    <<: [*hardened, *zelvo-image]
+    image: zelvo/postgres:${ZELVO_VERSION}
+    user: postgres
+    read_only: true
+    tmpfs: [/tmp]
+    network_mode: none
+    entrypoint: ["/usr/local/bin/zelvo-backup.sh"]
+    command: ["schedule"]
+    environment:
+      POSTGRES_USER: ${POSTGRES_SUPERUSER}
+      ZELVO_BACKUP_TIME: ${ZELVO_BACKUP_TIME:-01:30}
+      TZ: ${ZELVO_TIME_ZONE:-Asia/Dubai}
+      <<: *pgbackrest-env
+    volumes:
+      - postgres-data:/var/lib/postgresql/data:ro
+      - postgres-socket:/var/run/postgresql
+      - backup-repo:/var/lib/pgbackrest
+      - backup-spool:/var/spool/pgbackrest
+      - backup-log:/var/log/pgbackrest
+    deploy:
+      resources:
+        limits: { cpus: "2", memory: 1g }
+    depends_on:
+      postgres: { condition: service_healthy }
+
+  redis:
+    <<: *hardened
+    image: valkey/valkey:9.2-alpine
+    user: "999:1000"
+    read_only: true
+    # TLS 1.3 only (no plain port), with the installation's internal certificate.
+    command: ["sh", "-c", "exec valkey-server --requirepass \"$${REDIS_PASSWORD}\" --appendonly yes --maxmemory 1gb --maxmemory-policy noeviction --port 0 --tls-port 6379 --tls-cert-file /tls/server.crt --tls-key-file /tls/server.key --tls-ca-cert-file /tls/ca.crt --tls-auth-clients no --tls-protocols TLSv1.3"]
+    environment:
+      REDIS_PASSWORD: ${REDIS_PASSWORD:?set in .env}
+      VALKEYCLI_AUTH: ${REDIS_PASSWORD}
+    volumes:
+      - redis-data:/data
+      - { type: volume, source: certs, target: /tls, read_only: true, volume: { subpath: valkey } }
+    deploy:
+      resources:
+        limits: { cpus: "1", memory: 1536m }
+    depends_on:
+      certs: { condition: service_completed_successfully }
+    healthcheck:
+      test: ["CMD", "valkey-cli", "--tls", "--cacert", "/tls/ca.crt", "--sni", "redis", "-h", "redis", "ping"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+
+  rabbitmq:
+    <<: *hardened
+    image: rabbitmq:4.4-alpine
+    cap_add: [CHOWN, DAC_OVERRIDE, FOWNER, SETGID, SETUID]
+    volumes:
+      - rabbitmq-data:/var/lib/rabbitmq
+      - ./security/rabbitmq/10-zelvo.conf:/etc/rabbitmq/conf.d/10-zelvo.conf:ro
+      - ./secrets/rabbitmq-definitions.json:/etc/rabbitmq/definitions.json:ro
+      - { type: volume, source: certs, target: /certs, read_only: true, volume: { subpath: rabbitmq } }
+    deploy:
+      resources:
+        limits: { cpus: "1", memory: 1g }
+    healthcheck:
+      test: ["CMD", "rabbitmq-diagnostics", "-q", "ping"]
+      interval: 10s
+      timeout: 10s
+      retries: 20
+    depends_on:
+      certs: { condition: service_completed_successfully }
+
+  opensearch:
+    <<: [*hardened, *zelvo-image]
+    image: zelvo/opensearch:${ZELVO_VERSION}
+    entrypoint: ["/zelvo-security/start.sh"]
+    ulimits:
+      memlock: { soft: -1, hard: -1 }
+      nofile: { soft: 65536, hard: 65536 }
+    environment:
+      discovery.type: single-node
+      DISABLE_INSTALL_DEMO_CONFIG: "true"
+      OPENSEARCH_ADMIN_PASSWORD: ${OPENSEARCH_ADMIN_PASSWORD:?set in .env}
+      OPENSEARCH_API_PASSWORD: ${OPENSEARCH_API_PASSWORD:?set in .env}
+      OPENSEARCH_WORKER_PASSWORD: ${OPENSEARCH_WORKER_PASSWORD:?set in .env}
+      plugins.security.ssl.http.enabled: "true"
+      plugins.security.ssl.http.pemcert_filepath: certs/node.crt
+      plugins.security.ssl.http.pemkey_filepath: certs/node.key
+      plugins.security.ssl.http.pemtrustedcas_filepath: certs/ca.crt
+      plugins.security.ssl.transport.pemcert_filepath: certs/node.crt
+      plugins.security.ssl.transport.pemkey_filepath: certs/node.key
+      plugins.security.ssl.transport.pemtrustedcas_filepath: certs/ca.crt
+      plugins.security.ssl.transport.enforce_hostname_verification: "false"
+      plugins.security.ssl.http.enabled_protocols: TLSv1.3
+      plugins.security.ssl.transport.enabled_protocols: TLSv1.3
+      plugins.security.nodes_dn: CN=opensearch,O=Zelvo Development
+      plugins.security.authcz.admin_dn: CN=zelvo-opensearch-admin,O=Zelvo Development
+      plugins.security.allow_default_init_securityindex: "true"
+      plugins.security.audit.type: log4j
+      bootstrap.memory_lock: "true"
+      OPENSEARCH_JAVA_OPTS: -Xms2g -Xmx2g
+    volumes:
+      - opensearch-data:/usr/share/opensearch/data
+      - ./security/opensearch:/zelvo-security:ro
+      - { type: volume, source: certs, target: /usr/share/opensearch/config/certs, read_only: true, volume: { subpath: opensearch } }
+    deploy:
+      resources:
+        limits: { cpus: "2", memory: 4g }
+    healthcheck:
+      test: ["CMD-SHELL", "curl -fsS --cacert config/certs/ca.crt -u \"admin:$${OPENSEARCH_ADMIN_PASSWORD}\" 'https://localhost:9200/_cluster/health?wait_for_status=yellow&timeout=5s' >/dev/null"]
+      interval: 10s
+      timeout: 10s
+      retries: 60
+    depends_on:
+      certs: { condition: service_completed_successfully }
+
+  # Keycloak in production mode behind the proxy, at https://<public host>/auth. Its admin
+  # console is not published by the proxy (reach it with an SSH tunnel to 127.0.0.1:8180).
+  keycloak:
+    <<: [*hardened, *zelvo-image]
+    image: zelvo/keycloak:${ZELVO_VERSION}
+    # Keycloak builds its optimised configuration into its own folder on first start.
+    command: ["start"]
+    environment:
+      KC_DB: postgres
+      KC_DB_URL: jdbc:postgresql://postgres:5432/keycloak?sslmode=verify-full&sslrootcert=/run/certs/ca.crt
+      KC_DB_USERNAME: ${KEYCLOAK_DB_USER}
+      KC_DB_PASSWORD: ${KEYCLOAK_DB_PASSWORD}
+      KC_BOOTSTRAP_ADMIN_USERNAME: ${KEYCLOAK_ADMIN_USER:?set in .env}
+      KC_BOOTSTRAP_ADMIN_PASSWORD: ${KEYCLOAK_ADMIN_PASSWORD:?set in .env}
+      KC_HEALTH_ENABLED: "true"
+      KC_METRICS_ENABLED: "true"
+      KC_HTTP_ENABLED: "true"
+      KC_HTTP_PORT: "8080"
+      KC_HTTP_RELATIVE_PATH: /auth
+      # Health and metrics stay at the management port's root (9000, inside the network only).
+      KC_HTTP_MANAGEMENT_RELATIVE_PATH: /
+      KC_HOSTNAME: https://${ZELVO_PUBLIC_HOST}/auth
+      KC_HOSTNAME_BACKCHANNEL_DYNAMIC: "true"
+      KC_PROXY_HEADERS: xforwarded
+      KC_TRACING_ENABLED: ${ZELVO_KEYCLOAK_TRACING:-true}
+      KC_TRACING_ENDPOINT: http://otel-collector:4317
+      KC_TRACING_SERVICE_NAME: keycloak
+      JAVA_OPTS_KC_HEAP: -XX:MaxRAMPercentage=70
+    volumes: [*ca-volume]
+    ports:
+      - "127.0.0.1:${KEYCLOAK_ADMIN_PORT:-8180}:8080"
+    deploy:
+      resources:
+        limits: { cpus: "2", memory: 2g }
+    depends_on:
+      postgres: { condition: service_healthy }
+    healthcheck:
+      test:
+        - CMD
+        - bash
+        - -c
+        - >-
+          exec 3<>/dev/tcp/127.0.0.1/9000 &&
+          printf 'GET /health/ready HTTP/1.1\r\nHost: localhost\r\nConnection: close\r\n\r\n' >&3 &&
+          grep -q '"UP"' <&3
+      interval: 10s
+      timeout: 5s
+      retries: 60
+      start_period: 60s
+
+  migrate:
+    <<: [*hardened, *zelvo-image]
+    image: zelvo/api:${ZELVO_VERSION}
+    command: ["migrate"]
+    restart: "no"
+    read_only: true
+    tmpfs: [/tmp]
+    environment:
+      DOTNET_ENVIRONMENT: ${ZELVO_ENVIRONMENT:-Production}
+      ConnectionStrings__PostgresOwner: Host=postgres;Database=${POSTGRES_DB};Username=${POSTGRES_SUPERUSER};Password=${POSTGRES_SUPERUSER_PASSWORD};SSL Mode=VerifyFull;Root Certificate=/run/certs/ca.crt;GSS Encryption Mode=Disable
+      Tenancy__Bootstrap__Slug: ${ZELVO_DEFAULT_TENANT:-default}
+      Tenancy__Bootstrap__NameEn: ${ZELVO_DEFAULT_TENANT_NAME_EN:?set in .env}
+      Tenancy__Bootstrap__NameAr: ${ZELVO_DEFAULT_TENANT_NAME_AR:?set in .env}
+      <<: [*identity-env, *licensing-env]
+      Identity__Provisioning__AdminUser: ${KEYCLOAK_ADMIN_USER}
+      Identity__Provisioning__AdminPassword: ${KEYCLOAK_ADMIN_PASSWORD}
+      Identity__Provisioning__WebUrl: https://${ZELVO_PUBLIC_HOST}
+      Identity__Provisioning__WebClientSecret: ${ZELVO_WEB_CLIENT_SECRET:?set in .env}
+      Identity__Provisioning__Smtp__Host: ${ZELVO_SMTP_HOST}
+      Identity__Provisioning__Smtp__Port: ${ZELVO_SMTP_PORT:-587}
+      Identity__Provisioning__Smtp__From: ${ZELVO_SMTP_FROM}
+      Identity__Provisioning__Smtp__User: ${ZELVO_SMTP_USER:-}
+      Identity__Provisioning__Smtp__Password: ${ZELVO_SMTP_PASSWORD:-}
+      Identity__Provisioning__Smtp__StartTls: ${ZELVO_SMTP_STARTTLS:-true}
+    volumes: [*release, *ca-volume]
+    depends_on:
+      postgres: { condition: service_healthy }
+      keycloak: { condition: service_healthy }
+
+  api:
+    <<: [*hardened, *zelvo-image]
+    image: zelvo/api:${ZELVO_VERSION}
+    read_only: true
+    tmpfs: [/tmp]
+    environment:
+      ASPNETCORE_ENVIRONMENT: ${ZELVO_ENVIRONMENT:-Production}
+      ConnectionStrings__Postgres: Host=postgres;Database=${POSTGRES_DB};Username=${ZELVO_APP_DB_USER};Password=${ZELVO_APP_DB_PASSWORD};SSL Mode=VerifyFull;Root Certificate=/run/certs/ca.crt;GSS Encryption Mode=Disable
+      Tenancy__DefaultTenant: ${ZELVO_DEFAULT_TENANT:-default}
+      ConnectionStrings__Redis: redis:6379,password=${REDIS_PASSWORD},ssl=true,sslHost=redis,abortConnect=false
+      Redis__CaFile: /run/certs/ca.crt
+      ConnectionStrings__RabbitMq: amqps://zelvo-api:${RABBITMQ_API_PASSWORD:?set in .env}@rabbitmq:5671/zelvo
+      RabbitMq__CaFile: /run/certs/ca.crt
+      Services__OpenSearch: https://opensearch:9200/
+      Search__Username: zelvo-api
+      Search__Password: ${OPENSEARCH_API_PASSWORD}
+      Search__CaFile: /run/certs/ca.crt
+      Services__KeycloakHealth: http://keycloak:9000/health/ready
+      # Only the proxy in front of the web app forwards client addresses.
+      Network__TrustedProxies__0: ${ZELVO_DOCKER_NETWORK:-172.16.0.0/12}
+      AttachmentScanning__Enabled: "true"
+      <<: [*identity-env, *secrets-env, *telemetry-env, *outgoing-env, *notifications-env, *channels-env, *branding-env, *licensing-env]
+    secrets: [zelvo-master-key]
+    volumes: [*ca-volume, *machine-id, *updates-volume, *release]
+    deploy:
+      resources:
+        limits: { cpus: "4", memory: 3g, pids: 1024 }
+    depends_on:
+      migrate: { condition: service_completed_successfully }
+      redis: { condition: service_healthy }
+      rabbitmq: { condition: service_healthy }
+      opensearch: { condition: service_healthy }
+    healthcheck: *dotnet-healthcheck
+
+  worker:
+    <<: [*hardened, *zelvo-image]
+    image: zelvo/worker:${ZELVO_VERSION}
+    read_only: true
+    # Chromium (PDF exports) needs a writable /tmp and shared memory.
+    tmpfs: [/tmp]
+    shm_size: 512m
+    environment:
+      DOTNET_ENVIRONMENT: ${ZELVO_ENVIRONMENT:-Production}
+      HOME: /tmp
+      Worker__HeartbeatFile: /tmp/zelvo-worker.heartbeat
+      ConnectionStrings__Postgres: Host=postgres;Database=${POSTGRES_DB};Username=${ZELVO_APP_DB_USER};Password=${ZELVO_APP_DB_PASSWORD};SSL Mode=VerifyFull;Root Certificate=/run/certs/ca.crt;GSS Encryption Mode=Disable
+      ConnectionStrings__RabbitMq: amqps://zelvo-worker:${RABBITMQ_WORKER_PASSWORD:?set in .env}@rabbitmq:5671/zelvo
+      RabbitMq__CaFile: /run/certs/ca.crt
+      Services__OpenSearch: https://opensearch:9200/
+      Search__Username: zelvo-worker
+      Search__Password: ${OPENSEARCH_WORKER_PASSWORD}
+      Search__CaFile: /run/certs/ca.crt
+      AttachmentScanning__Enabled: "true"
+      AttachmentScanning__Host: clamav
+      AttachmentScanning__Port: "3310"
+      <<: [*secrets-env, *telemetry-env, *outgoing-env, *notifications-env, *channels-env, *licensing-env]
+    secrets: [zelvo-master-key]
+    volumes: [*ca-volume, *machine-id, *release]
+    deploy:
+      resources:
+        limits: { cpus: "2", memory: 3g, pids: 1024 }
+    depends_on:
+      migrate: { condition: service_completed_successfully }
+      rabbitmq: { condition: service_healthy }
+      opensearch: { condition: service_healthy }
+      clamav: { condition: service_started }
+    healthcheck:
+      test: ["CMD-SHELL", "find /tmp/zelvo-worker.heartbeat -mmin -1 | grep -q ."]
+      interval: 10s
+      timeout: 5s
+      retries: 12
+      start_period: 30s
+
+  clamav:
+    <<: *hardened
+    image: clamav/clamav:1.5.4
+    cap_add: [CHOWN, DAC_OVERRIDE, FOWNER, SETGID, SETUID]
+    environment:
+      # Offline installs: true, then import definitions (scripts/clamav-import-definitions.sh).
+      CLAMAV_NO_FRESHCLAMD: ${CLAMAV_NO_FRESHCLAMD:-false}
+      CLAMD_CONF_StreamMaxLength: 105M
+      CLAMD_CONF_MaxFileSize: 105M
+      CLAMD_CONF_MaxScanSize: 400M
+    volumes:
+      - clamav-db:/var/lib/clamav
+    deploy:
+      resources:
+        limits: { cpus: "1", memory: 3g }
+
+  web:
+    <<: [*hardened, *zelvo-image]
+    image: zelvo/web:${ZELVO_VERSION}
+    read_only: true
+    tmpfs: [/tmp]
+    environment:
+      API_INTERNAL_URL: http://api:8080
+      APP_URL: https://${ZELVO_PUBLIC_HOST}
+      ZELVO_TENANT: ${ZELVO_DEFAULT_TENANT:-default}
+      KEYCLOAK_PUBLIC_URL: https://${ZELVO_PUBLIC_HOST}/auth
+      KEYCLOAK_INTERNAL_URL: http://keycloak:8080/auth
+      ZELVO_WEB_CLIENT_SECRET: ${ZELVO_WEB_CLIENT_SECRET}
+      SESSION_STORE_URL: rediss://:${REDIS_PASSWORD}@redis:6379/1
+      NODE_EXTRA_CA_CERTS: /run/certs/ca.crt
+      OTEL_EXPORTER_OTLP_ENDPOINT: ${ZELVO_OTLP_HTTP_ENDPOINT-http://otel-collector:4318}
+      # One reverse proxy (Caddy) in front of the web app.
+      TRUSTED_PROXY_HOPS: "1"
+      RELEASE_MANIFEST_PATH: /etc/zelvo/release/release-manifest.json
+    volumes:
+      - *release
+      - *ca-volume
+      # Next.js writes its image and page cache here; the web app runs as uid 1000 (node).
+      - { type: tmpfs, target: /app/.next/cache, tmpfs: { mode: 0o1777 } }
+    deploy:
+      resources:
+        limits: { cpus: "2", memory: 1g, pids: 512 }
+    depends_on:
+      api: { condition: service_healthy }
+      redis: { condition: service_healthy }
+      keycloak: { condition: service_healthy }
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://127.0.0.1:3000/healthz >/dev/null"]
+      interval: 10s
+      timeout: 5s
+      retries: 30
+
+  # Installs signed update packages (Settings → Updates) with backups and automatic rollback.
+  # It needs the Docker socket, so it listens on no port and acts only on packages signed by Zelvo.
+  updater:
+    <<: [*hardened, *zelvo-image]
+    image: zelvo/updater:${ZELVO_VERSION}
+    # Root in the container for the Docker socket; only the capabilities to manage the
+    # installation's files (.env, backups in the updates volume owned by the API's user).
+    cap_add: [CHOWN, DAC_OVERRIDE, FOWNER]
+    read_only: true
+    tmpfs: [/tmp]
+    environment:
+      DOTNET_ENVIRONMENT: ${ZELVO_ENVIRONMENT:-Production}
+      ConnectionStrings__Postgres: Host=postgres;Database=${POSTGRES_DB};Username=${ZELVO_APP_DB_USER};Password=${ZELVO_APP_DB_PASSWORD};SSL Mode=VerifyFull;Root Certificate=/run/certs/ca.crt;GSS Encryption Mode=Disable
+      Updater__ComposeDirectory: ${ZELVO_COMPOSE_DIR:?install.sh sets it in .env}
+      Updater__ComposeProjectName: ${COMPOSE_PROJECT_NAME:-zelvo}
+      Updater__ComposeFileList: ${COMPOSE_FILE:-compose.yaml}
+      Updater__DatabaseList: ${POSTGRES_DB},keycloak
+      Updater__Services__0: opensearch
+      Updater__Services__1: keycloak
+      Updater__Services__2: api
+      Updater__Services__3: worker
+      Updater__Services__4: web
+      # The backup service runs the zelvo/postgres image of the release; PostgreSQL itself keeps
+      # running during updates (its new image applies when the operator restarts it).
+      Updater__Services__5: backup
+      Updater__HealthUrls__0: http://api:8080/health/ready
+      Updater__HealthUrls__1: http://web:3000/healthz
+      <<: [*telemetry-env, *licensing-env]
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+      - ${ZELVO_COMPOSE_DIR}:${ZELVO_COMPOSE_DIR}
+      - *updates-volume
+      - *machine-id
+      - *release
+      - *ca-volume
+    deploy:
+      resources:
+        limits: { cpus: "1", memory: 512m }
+    depends_on:
+      postgres: { condition: service_healthy }
+      api: { condition: service_healthy }
+
+  proxy:
+    <<: *hardened
+    image: caddy:2.11.9-alpine
+    cap_add: [NET_BIND_SERVICE]
+    read_only: true
+    tmpfs: [/tmp, /config]
+    environment:
+      ZELVO_PUBLIC_HOST: ${ZELVO_PUBLIC_HOST}
+      # Empty: a certificate by ACME; "internal": Caddy's own CA (tests only); or a file pair.
+      ZELVO_PUBLIC_TLS: ${ZELVO_PUBLIC_TLS:-}
+      ZELVO_TLS_TOKEN: ${ZELVO_TLS_TOKEN}
+      ZELVO_ACME_EMAIL: ${ZELVO_ACME_EMAIL:?set in .env}
+      ZELVO_ACME_CA: ${ZELVO_ACME_CA:-https://acme-v02.api.letsencrypt.org/directory}
+    volumes:
+      - ./caddy/Caddyfile:/etc/caddy/Caddyfile:ro
+      - ./caddy/production:/etc/caddy/conf.d:ro
+      - ./caddy/maintenance:/srv/maintenance:ro
+      - caddy-data:/data
+      - { type: volume, source: updates, target: /srv/zelvo-status, read_only: true, volume: { subpath: status } }
+    ports:
+      - "${ZELVO_HTTP_PORT:-80}:80"
+      - "${ZELVO_HTTPS_PORT:-443}:443"
+      - "${ZELVO_HTTPS_PORT:-443}:443/udp"
+    deploy:
+      resources:
+        limits: { cpus: "1", memory: 256m }
+    depends_on:
+      web: { condition: service_healthy }
+
+  # Observability (A5): on by default (COMPOSE_PROFILES=observability in .env). English only.
+  otel-collector:
+    <<: *hardened
+    profiles: [observability]
+    image: otel/opentelemetry-collector:0.165.0
+    read_only: true
+    command: ["--config=/etc/otelcol/config.yaml"]
+    volumes:
+      - ./observability/otel-collector.yaml:/etc/otelcol/config.yaml:ro
+    deploy:
+      resources:
+        limits: { cpus: "1", memory: 512m }
+    depends_on:
+      prometheus: { condition: service_healthy }
+      tempo: { condition: service_started }
+      loki: { condition: service_started }
+
+  prometheus:
+    <<: *hardened
+    profiles: [observability]
+    image: prom/prometheus:v3.16.0
+    read_only: true
+    command:
+      - --config.file=/etc/prometheus/prometheus.yaml
+      - --storage.tsdb.path=/prometheus
+      - --storage.tsdb.retention.time=15d
+      - --web.enable-otlp-receiver
+    volumes:
+      - ./observability/prometheus.yaml:/etc/prometheus/prometheus.yaml:ro
+      - ./observability/alerts.yaml:/etc/prometheus/alerts.yaml:ro
+      - prometheus-data:/prometheus
+    deploy:
+      resources:
+        limits: { cpus: "1", memory: 1g }
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://127.0.0.1:9090/-/ready"]
+      interval: 10s
+      timeout: 5s
+      retries: 12
+
+  tempo:
+    <<: *hardened
+    profiles: [observability]
+    image: grafana/tempo:3.1.1
+    read_only: true
+    command: ["-config.file=/etc/tempo.yaml"]
+    volumes:
+      - ./observability/tempo.yaml:/etc/tempo.yaml:ro
+      - tempo-data:/var/tempo
+    deploy:
+      resources:
+        limits: { cpus: "1", memory: 1g }
+
+  loki:
+    <<: *hardened
+    profiles: [observability]
+    image: grafana/loki:3.7.10
+    read_only: true
+    command: ["-config.file=/etc/loki/config.yaml"]
+    volumes:
+      - ./observability/loki.yaml:/etc/loki/config.yaml:ro
+      - loki-data:/loki
+    deploy:
+      resources:
+        limits: { cpus: "1", memory: 1g }
+
+  # Dashboards: http://127.0.0.1:3001 on the server (an SSH tunnel), never published.
+  grafana:
+    <<: *hardened
+    profiles: [observability]
+    image: grafana/grafana:13.3.1
+    read_only: true
+    tmpfs: [/tmp]
+    environment:
+      GF_SECURITY_ADMIN_USER: ${GRAFANA_ADMIN_USER:-admin}
+      GF_SECURITY_ADMIN_PASSWORD: ${GRAFANA_ADMIN_PASSWORD:?set in .env}
+      GF_SECURITY_DISABLE_GRAVATAR: "true"
+      GF_SECURITY_COOKIE_SAMESITE: strict
+      GF_AUTH_ANONYMOUS_ENABLED: "false"
+      GF_USERS_ALLOW_SIGN_UP: "false"
+      GF_ANALYTICS_REPORTING_ENABLED: "false"
+      GF_ANALYTICS_CHECK_FOR_UPDATES: "false"
+      GF_ANALYTICS_CHECK_FOR_PLUGIN_UPDATES: "false"
+      GF_NEWS_NEWS_FEED_ENABLED: "false"
+      GF_PLUGINS_PREINSTALL_DISABLED: "true"
+    volumes:
+      - ./observability/grafana/provisioning:/etc/grafana/provisioning:ro
+      - ./observability/grafana/dashboards:/var/lib/grafana/dashboards:ro
+      - grafana-data:/var/lib/grafana
+    ports:
+      - "127.0.0.1:${GRAFANA_PORT:-3001}:3000"
+    deploy:
+      resources:
+        limits: { cpus: "1", memory: 512m }
+    depends_on:
+      prometheus: { condition: service_healthy }
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://127.0.0.1:3000/api/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 20
+
+volumes:
+  postgres-data:
+  postgres-socket:
+  backup-repo:
+  backup-spool:
+  backup-log:
+  redis-data:
+  rabbitmq-data:
+  opensearch-data:
+  prometheus-data:
+  tempo-data:
+  loki-data:
+  grafana-data:
+  certs:
+  clamav-db:
+  updates:
+  caddy-data:
+
+secrets:
+  zelvo-master-key:
+    file: ./secrets/master.key

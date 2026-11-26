@@ -1,0 +1,259 @@
+name: Release
+
+# Release packaging (task F6; product owner decisions 2026-11-26): release builds of every image
+# (release licensing build with the vendor public keys, obfuscated .NET, minified web, optional
+# per-customer watermark), SBOM and vulnerability scan, push to the private GitHub Container
+# Registry, cosign signatures with Zelvo's own key (no public transparency log), the signed
+# release manifest, and the offline install bundle with the images as files. The update package
+# (.zpkg) is signed afterwards on the product owner's computer with zelvo-sign package, from the
+# bundle. See docs/architecture/release.md.
+#
+# Needs, in the GitHub environment "release": COSIGN_PRIVATE_KEY and COSIGN_PASSWORD (from
+# cosign generate-key-pair on the product owner's computer). The public key is committed in
+# src/api/Zelvo.Licensing/image-signing-keys.json and src/web/src/lib/image-signing-keys.json,
+# and at least one vendor public key in src/api/Zelvo.Licensing/vendor-keys.json; release
+# builds fail without them.
+
+on:
+  push:
+    tags: ["v[0-9]+.[0-9]+.[0-9]+"]
+  workflow_dispatch:
+    inputs:
+      version:
+        description: "Version (major.minor.patch), for example 1.4.0"
+        required: true
+      watermark:
+        description: "Customer watermark for a per-customer build (ZW-XXXX-XXXX-XXXX-C, from zelvo-sign issue); empty for the general build"
+        required: false
+        default: ""
+
+permissions:
+  contents: read
+
+concurrency:
+  group: release-${{ github.ref }}-${{ inputs.version }}-${{ inputs.watermark }}
+  cancel-in-progress: false
+
+env:
+  DOTNET_CLI_TELEMETRY_OPTOUT: "1"
+  DOTNET_NOLOGO: "1"
+  COSIGN_IMAGE: ghcr.io/sigstore/cosign/cosign:v2.4.1
+
+jobs:
+  prepare:
+    name: Version and checks
+    runs-on: ubuntu-latest
+    outputs:
+      version: ${{ steps.version.outputs.version }}
+      tag: ${{ steps.version.outputs.tag }}
+      registry: ${{ steps.version.outputs.registry }}
+      watermark: ${{ steps.version.outputs.watermark }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - id: version
+        name: Version, image tag and registry
+        env:
+          INPUT_VERSION: ${{ inputs.version }}
+          INPUT_WATERMARK: ${{ inputs.watermark }}
+          OWNER: ${{ github.repository_owner }}
+        run: |
+          version="${INPUT_VERSION:-${GITHUB_REF_NAME#v}}"
+          [[ "$version" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]] || { echo "Version '$version' is not major.minor.patch" >&2; exit 1; }
+          watermark="${INPUT_WATERMARK}"
+          if [[ -n "$watermark" && ! "$watermark" =~ ^ZW-[0-9A-HJKMNP-TV-Z]{4}-[0-9A-HJKMNP-TV-Z]{4}-[0-9A-HJKMNP-TV-Z]{4}-[0-9A-HJKMNP-TV-Z]$ ]]; then
+            echo "The watermark is not ZW-XXXX-XXXX-XXXX-C" >&2; exit 1
+          fi
+          # Per-customer images carry the watermark in their tag (the watermark means nothing on its own).
+          tag="$version${watermark:+-$(echo "$watermark" | tr 'A-Z' 'a-z')}"
+          {
+            echo "version=$version"
+            echo "tag=$tag"
+            echo "registry=ghcr.io/${OWNER,,}"
+            echo "watermark=$watermark"
+          } >> "$GITHUB_OUTPUT"
+      - name: Release keys are committed
+        run: |
+          grep -q publicKey src/api/Zelvo.Licensing/vendor-keys.json || { echo "No vendor public key in vendor-keys.json" >&2; exit 1; }
+          grep -q publicKey src/api/Zelvo.Licensing/image-signing-keys.json || { echo "No cosign public key in image-signing-keys.json (scripts/release/add-image-signing-key.sh)" >&2; exit 1; }
+          cmp src/api/Zelvo.Licensing/image-signing-keys.json src/web/src/lib/image-signing-keys.json
+
+  images:
+    name: Release image (${{ matrix.image.name }})
+    runs-on: ubuntu-latest
+    needs: prepare
+    permissions:
+      contents: read
+      packages: write
+    strategy:
+      fail-fast: true
+      matrix:
+        image:
+          - { name: api, context: ., dockerfile: src/api/Zelvo.Api/Dockerfile, dotnet: true, app: /app }
+          - { name: worker, context: ., dockerfile: src/worker/Zelvo.Worker/Dockerfile, dotnet: true, app: /app }
+          - { name: updater, context: ., dockerfile: src/updater/Zelvo.Updater/Dockerfile, dotnet: true, app: /app }
+          - { name: web, context: src/web, dockerfile: src/web/Dockerfile, dotnet: false, app: /app, exclude: .next/cache }
+          - { name: keycloak, context: src/keycloak, dockerfile: src/keycloak/Dockerfile, dotnet: false }
+          - { name: opensearch, context: deploy/opensearch, dockerfile: deploy/opensearch/Dockerfile, dotnet: false }
+          - { name: postgres, context: deploy/postgres, dockerfile: deploy/postgres/Dockerfile, dotnet: false }
+    env:
+      VERSION: ${{ needs.prepare.outputs.version }}
+      TAG: ${{ needs.prepare.outputs.tag }}
+      REGISTRY: ${{ needs.prepare.outputs.registry }}
+      WATERMARK: ${{ needs.prepare.outputs.watermark }}
+      NAME: ${{ matrix.image.name }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - name: Build the release image
+        env:
+          DOCKERFILE: ${{ matrix.image.dockerfile }}
+          CONTEXT: ${{ matrix.image.context }}
+        run: |
+          docker buildx build --load -f "$DOCKERFILE" \
+            --build-arg ZELVO_RELEASE=true --build-arg ZELVO_OBFUSCATE=true --build-arg "ZELVO_BUILD_WATERMARK=$WATERMARK" \
+            --label "org.opencontainers.image.version=$VERSION" --label "org.opencontainers.image.revision=$GITHUB_SHA" \
+            -t "zelvo/$NAME:$VERSION" "$CONTEXT"
+      - name: Obfuscation mapping (kept with the release for reading stack traces; never shipped)
+        if: matrix.image.dotnet
+        env:
+          DOCKERFILE: ${{ matrix.image.dockerfile }}
+          CONTEXT: ${{ matrix.image.context }}
+        run: |
+          docker buildx build -f "$DOCKERFILE" --target obfuscation-map \
+            --build-arg ZELVO_RELEASE=true --build-arg ZELVO_OBFUSCATE=true --build-arg "ZELVO_BUILD_WATERMARK=$WATERMARK" \
+            --output "type=local,dest=out/mapping" "$CONTEXT"
+          test -s out/mapping/Mapping.txt
+          mv out/mapping/Mapping.txt "out/obfuscation-$NAME.txt" && rmdir out/mapping
+      - name: No source maps, symbols or obfuscation mapping in the image
+        if: matrix.image.app
+        env:
+          APP: ${{ matrix.image.app }}
+        run: |
+          found=$(docker run --rm --entrypoint sh "zelvo/$NAME:$VERSION" -c "find '$APP' \\( -name '*.map' -o -name 'Zelvo*.pdb' -o -name 'Mapping.txt' \\) -print" 2>/dev/null || true)
+          if [[ -n "$found" ]]; then echo "$found" >&2; exit 1; fi
+      - name: Software bill of materials (CycloneDX)
+        uses: anchore/sbom-action@66cbf4bc1f1c0d2edc94016e65bc221b6bb0ad6c # v0.24.3
+        with:
+          image: zelvo/${{ matrix.image.name }}:${{ needs.prepare.outputs.version }}
+          format: cyclonedx-json
+          output-file: out/sbom-${{ matrix.image.name }}.cdx.json
+          upload-artifact: false
+      - name: Scan for vulnerabilities (fail on fixable critical)
+        uses: anchore/scan-action@27805bf3b4e84b4a5c980df22ed233c00390a439 # v7.4.2
+        with:
+          image: zelvo/${{ matrix.image.name }}:${{ needs.prepare.outputs.version }}
+          severity-cutoff: critical
+          only-fixed: true
+          output-format: table
+      - name: Push to the private GitHub Container Registry
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          echo "$GH_TOKEN" | docker login ghcr.io -u "$GITHUB_ACTOR" --password-stdin
+          docker tag "zelvo/$NAME:$VERSION" "$REGISTRY/zelvo-$NAME:$TAG"
+          docker push "$REGISTRY/zelvo-$NAME:$TAG"
+          digest=$(docker image inspect --format '{{index .RepoDigests 0}}' "$REGISTRY/zelvo-$NAME:$TAG" | cut -d@ -f2)
+          echo "DIGEST=$digest" >> "$GITHUB_ENV"
+      - name: Describe the component for the release manifest
+        env:
+          APP: ${{ matrix.image.app }}
+          EXCLUDE: ${{ matrix.image.exclude }}
+        run: |
+          mkdir -p out/components
+          scripts/release/component.sh "$NAME" "zelvo/$NAME:$VERSION" "$REGISTRY/zelvo-$NAME" "$DIGEST" ${APP:+"$APP"} ${EXCLUDE:+$EXCLUDE} > "out/components/$NAME.json"
+          cat "out/components/$NAME.json"
+      - name: Image archive for offline installs
+        run: |
+          mkdir -p out/images
+          docker save "zelvo/$NAME:$VERSION" | gzip -1 > "out/images/$NAME.tar.gz"
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: image-${{ matrix.image.name }}
+          path: out
+          retention-days: 30
+
+  sign:
+    name: Sign images and the release manifest
+    runs-on: ubuntu-latest
+    needs: [prepare, images]
+    environment: release
+    permissions:
+      contents: read
+      packages: write
+    env:
+      VERSION: ${{ needs.prepare.outputs.version }}
+      REGISTRY: ${{ needs.prepare.outputs.registry }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
+        with:
+          pattern: image-*
+          path: parts
+      - name: Release manifest
+        run: |
+          mkdir -p components release
+          cp parts/image-*/components/*.json components/
+          scripts/release/manifest.sh "$VERSION" components > release/release-manifest.json
+          cat release/release-manifest.json
+      - name: Sign with Zelvo's key (cosign, no transparency log)
+        env:
+          COSIGN_PRIVATE_KEY: ${{ secrets.COSIGN_PRIVATE_KEY }}
+          COSIGN_PASSWORD: ${{ secrets.COSIGN_PASSWORD }}
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          echo "$GH_TOKEN" | docker login ghcr.io -u "$GITHUB_ACTOR" --password-stdin
+          cosign() {
+            docker run --rm -e COSIGN_PRIVATE_KEY -e COSIGN_PASSWORD -v "$PWD:/work" -w /work \
+              -v "$HOME/.docker/config.json:/root/.docker/config.json:ro" -e DOCKER_CONFIG=/root/.docker "$COSIGN_IMAGE" "$@"
+          }
+          cosign sign-blob --yes --key env://COSIGN_PRIVATE_KEY --tlog-upload=false \
+            --output-signature release/release-manifest.json.sig release/release-manifest.json
+          for component in components/*.json; do
+            name=$(jq -r .name "$component"); ref="$(jq -r .image "$component")@$(jq -r .digest "$component")"
+            cosign sign --yes --key env://COSIGN_PRIVATE_KEY --tlog-upload=false "$ref"
+            cosign attest --yes --key env://COSIGN_PRIVATE_KEY --tlog-upload=false --type cyclonedx \
+              --predicate "parts/image-$name/sbom-$name.cdx.json" "$ref"
+          done
+      - name: Check the signatures with the committed public key
+        run: |
+          jq -r '.[0].publicKey' src/api/Zelvo.Licensing/image-signing-keys.json > cosign.pub
+          cosign() { docker run --rm -v "$PWD:/work" -w /work -v "$HOME/.docker/config.json:/root/.docker/config.json:ro" -e DOCKER_CONFIG=/root/.docker "$COSIGN_IMAGE" "$@"; }
+          cosign verify-blob --key cosign.pub --insecure-ignore-tlog=true \
+            --signature release/release-manifest.json.sig release/release-manifest.json
+          for component in components/*.json; do
+            cosign verify --key cosign.pub --insecure-ignore-tlog=true "$(jq -r .image "$component")@$(jq -r .digest "$component")" > /dev/null
+          done
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: release-manifest
+          path: release
+          retention-days: 90
+
+  bundle:
+    name: Offline install bundle
+    runs-on: ubuntu-latest
+    needs: [prepare, sign]
+    env:
+      VERSION: ${{ needs.prepare.outputs.version }}
+      TAG: ${{ needs.prepare.outputs.tag }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
+        with:
+          path: parts
+      # Helm comes with GitHub's Ubuntu runners.
+      - name: Assemble the bundle
+        run: scripts/release/bundle.sh "$VERSION" "$TAG" parts "zelvo-$TAG"
+      - name: Obfuscation mappings (for us only; not in the bundle)
+        run: |
+          mkdir -p mappings && cp parts/image-*/obfuscation-*.txt mappings/
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: zelvo-${{ needs.prepare.outputs.tag }}
+          path: zelvo-${{ needs.prepare.outputs.tag }}.tar
+          compression-level: 0
+          retention-days: 30
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: obfuscation-mappings-${{ needs.prepare.outputs.tag }}
+          path: mappings
+          retention-days: 90

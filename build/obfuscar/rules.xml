@@ -1,0 +1,35 @@
+<!--
+  Obfuscar rules for Zelvo's release builds (task F6; product owner decision 2026-11-26).
+  Build/Zelvo.Obfuscation.targets copies these lines into every <Module> of the generated
+  configuration (Obfuscar applies Skip rules per module only).
+
+  What is obfuscated: private and internal method and field names, method parameter names, and
+  string literals (hidden in an encrypted table). What is kept, because .NET finds it by name
+  at run time:
+  - type names: OpenAPI schema names, EF Core entities, Elsa activities, log categories;
+  - property and event names (Var RenameProperties/RenameEvents=false): JSON, EF Core, options;
+  - enum values: stored as text in PostgreSQL and sent as JSON strings;
+  - constructors' parameter names: JSON and configuration binding of records;
+  - minimal API handlers (types with "Endpoint" in their name and the classes listed below)
+    and lambdas: route and body binding use parameter names;
+  - middleware Invoke/InvokeAsync and SignalR hub methods.
+  scripts/check-obfuscation.sh compares the API's OpenAPI document before and after
+  obfuscation; CI runs it, so a new reflection convention fails the build.
+-->
+<Rules>
+    <SkipType name="*" />
+    <SkipEnums value="true" />
+    <SkipMethod type="*" name=".ctor" />
+    <SkipMethod type="*" rx="^&lt;.*&gt;b__" />
+    <SkipMethod type="*" name="Invoke" />
+    <SkipMethod type="*" name="InvokeAsync" />
+    <!-- Code that .NET's source generators add to our assemblies (OpenAPI, validation) implements
+         framework interfaces; keep it as generated. -->
+    <SkipType name="Microsoft.*" skipMethods="true" skipFields="true" />
+    <SkipType name="*Endpoint*" skipMethods="true" />
+    <SkipType name="*Hub" skipMethods="true" />
+    <SkipType name="Zelvo.Api.Incidents.IncidentSettings" skipMethods="true" />
+    <SkipType name="Zelvo.Api.Voice.VoiceSettings" skipMethods="true" />
+    <SkipType name="Zelvo.Api.Channels.MessagingHooks" skipMethods="true" />
+    <SkipType name="Zelvo.Api.Catalog.ServiceTemplates" skipMethods="true" />
+</Rules>

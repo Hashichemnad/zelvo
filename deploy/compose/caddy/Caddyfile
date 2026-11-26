@@ -46,6 +46,8 @@
 		header Cache-Control no-store
 		file_server
 	}
+	# Task F6: routes of the hardened install (caddy/production, mounted as conf.d); none in development.
+	import /etc/caddy/conf.d/*.caddy
 	handle {
 		reverse_proxy web:3000
 	}

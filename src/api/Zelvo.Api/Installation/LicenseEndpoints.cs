@@ -24,6 +24,9 @@ internal static class LicenseEndpoints
         license.MapGet("/", GetAsync).WithName("GetLicense")
             .WithSummary("The installation's license: whether it is activated (or why not), the customer, the license id, licensed modules and version, upgrade licenses, the installed version, the fingerprint of these servers part by part and the license files kept. Never shows the watermark. Needs installation.manage.")
             .RequirePermission(Permissions.InstallationManage).Produces<LicenseResponse>();
+        license.MapGet("/components", ComponentsAsync).WithName("GetReleaseComponents")
+            .WithSummary("The release integrity of the installation's components (module 12 tamper detection): the signed release manifest's version and, per component (api, worker, updater, web, images), its last check: Verified, NoManifest (development builds), ManifestInvalid, ComponentUnknown, Modified, or from the updater's image check ImagesVerified or ImageMismatch. A component that fails refuses to start in release builds. Needs installation.manage.")
+            .RequirePermission(Permissions.InstallationManage).Produces<ReleaseComponentsResponse>();
         license.MapPost("/activation-request", ActivationRequestAsync).WithName("CreateActivationRequest")
             .WithSummary("Download a new activation request file for these servers (installation id, database id, machine or cluster id, domain, version) to send to Zelvo, which returns a license file bound to them. Holds no secrets. Needs installation.manage; audited.")
             .RequirePermission(Permissions.InstallationManage).Produces(StatusCodes.Status200OK, contentType: "application/json");
@@ -37,6 +40,16 @@ internal static class LicenseEndpoints
 
     internal static async Task<IResult> GetAsync(ILicenseService license, CancellationToken cancellationToken) =>
         TypedResults.Ok(await ResponseAsync(license, cancellationToken));
+
+    internal static async Task<IResult> ComponentsAsync(
+        IReleaseComponentStore store, ReleaseIntegrityOptions options, ImageSigningKeys keys, CancellationToken cancellationToken)
+    {
+        var manifest = ReleaseIntegrity.ReadManifest(options.ManifestPath, keys, out var status, out var reason);
+        var reports = await store.ListAsync(cancellationToken);
+        return TypedResults.Ok(new ReleaseComponentsResponse(
+            manifest?.Version, status.ToString(), reason, VendorKeys.IsReleaseBuild,
+            [.. reports.Select(r => new ReleaseComponentResponse(r.Component, r.Status, r.Version, r.BuildVersion, r.Detail, r.CheckedAt))]));
+    }
 
     internal static async Task<IResult> ActivationRequestAsync(ILicenseService license, IAuditLog audit, CancellationToken cancellationToken)
     {
@@ -103,6 +116,18 @@ internal static class LicenseEndpoints
             files);
     }
 }
+
+/// <summary>The installation's release and each component's last integrity check.</summary>
+/// <param name="Release">The signed release manifest's version, or null without a valid manifest.</param>
+/// <param name="ManifestStatus">Verified, NoManifest or ManifestInvalid.</param>
+/// <param name="ManifestReason">The same in words.</param>
+/// <param name="ReleaseBuild">Whether failed checks stop components (release builds).</param>
+/// <param name="Components">Each component's last report.</param>
+internal sealed record ReleaseComponentsResponse(
+    string? Release, string ManifestStatus, string ManifestReason, bool ReleaseBuild, IReadOnlyList<ReleaseComponentResponse> Components);
+
+/// <summary>A component's last release integrity check.</summary>
+internal sealed record ReleaseComponentResponse(string Component, string Status, string? Release, string BuildVersion, string Detail, DateTimeOffset CheckedAt);
 
 /// <summary>A name in English and Arabic.</summary>
 internal sealed record LicenseNameResponse(string? En, string? Ar);

@@ -1,0 +1,10 @@
+apiVersion: v2
+name: zelvo
+description: Zelvo ITSM for medium and large installs on Kubernetes (task F6). Zelvo's own services; PostgreSQL, OpenSearch, RabbitMQ and Valkey are given by address.
+type: application
+# The release pipeline packages the chart with the release's version (helm package --version).
+version: 0.1.0
+appVersion: "0.1.0"
+kubeVersion: ">=1.29.0-0"
+home: https://zelvo.ae
+keywords: [itsm, service-desk]

@@ -15,6 +15,7 @@ using Zelvo.Data.Branding;
 using Zelvo.Data.Localization;
 using Zelvo.Data.Tickets;
 using Zelvo.Tickets.Reports;
+using Zelvo.Licensing;
 
 namespace Zelvo.Api.Reports;
 
@@ -110,7 +111,7 @@ internal static class ReportEndpoints
     }
 
     internal static async Task<IResult> TableAsync(
-        string kind, string? format, [AsParameters] ReportQuery query, ZelvoDbContext db, CurrentUser user, IAuditLog audit, TimeProvider time, CancellationToken cancellationToken)
+        string kind, string? format, [AsParameters] ReportQuery query, ZelvoDbContext db, CurrentUser user, IAuditLog audit, TimeProvider time, IInstallationWatermark watermark, CancellationToken cancellationToken)
     {
         if (!Enum.TryParse<ReportKind>(kind, ignoreCase: true, out var reportKind))
         {
@@ -135,7 +136,7 @@ internal static class ReportEndpoints
         await audit.RecordAsync(AuditCategory.View, "report.exported", "report", reportKind.ToString(),
             new Dictionary<string, object?>(Details(filter!, scope)) { ["format"] = tabular.ToString() }, cancellationToken);
         var name = string.Create(CultureInfo.InvariantCulture, $"{reportKind.ToString().ToLowerInvariant()}-{filter!.From:yyyy-MM-dd}-{filter.To:yyyy-MM-dd}.{TabularFile.Extension(tabular)}");
-        return TypedResults.File(TabularFile.Write(tabular, header, rows), TabularFile.ContentType(tabular), name);
+        return TypedResults.File(TabularFile.Write(tabular, header, rows, watermark.Current), TabularFile.ContentType(tabular), name);
     }
 
     internal static async Task<IResult> ExportAsync(

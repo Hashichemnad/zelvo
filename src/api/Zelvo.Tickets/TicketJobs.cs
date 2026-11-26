@@ -363,6 +363,17 @@ public static class TicketServiceCollectionExtensions
             })
             .Validate(o => o.Port is > 0 and < 65536 && !string.IsNullOrWhiteSpace(o.Host), "AttachmentScanning:Host and Port are required.");
         services.TryAddSingleton(TimeProvider.System);
+        // Attachment content in PostgreSQL, or in S3-compatible object storage (task F6).
+        var storage = AttachmentStorageOptions.From(configuration);
+        services.TryAddSingleton(storage);
+        if (storage.UsesObjectStorage)
+        {
+            services.TryAddSingleton<IObjectStorage>(_ => new S3ObjectStorage(storage));
+            services.TryAddScoped<PendingObjectUploads>();
+            services.AddZelvoSaveChangesInterceptor<ObjectUploadInterceptor>();
+            services.TryAddScoped<IAttachmentStore, ObjectAttachmentStore>();
+        }
+
         services.TryAddScoped<IAttachmentStore, PostgresAttachmentStore>();
         services.TryAddSingleton<IMalwareScanner, ClamAvScanner>();
         services.AddScoped<ISearchDocumentSource, IncidentSearchSource>();
@@ -387,6 +398,11 @@ public static class TicketServiceCollectionExtensions
     public static IServiceCollection AddZelvoTicketJobs(this IServiceCollection services, IConfiguration configuration)
     {
         services.AddZelvoTickets(configuration);
+        if (AttachmentStorageOptions.From(configuration).UsesObjectStorage)
+        {
+            services.AddHostedService<ObjectStorageSweeper>();
+        }
+
         services.TryAddSingleton<TicketAutoCloseJob>();
         services.AddHostedService(sp => sp.GetRequiredService<TicketAutoCloseJob>());
         services.TryAddSingleton<Sla.SlaTimerJob>();
