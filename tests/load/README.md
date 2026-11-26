@@ -1,6 +1,6 @@
 # Load tests (task F7)
 
-Scripts that check the performance targets of `docs/requirements.md` on a **dedicated test server**:
+Scripts that check the performance targets of `docs/requirements.md` on a **dedicated test server**. The step-by-step runbook (sizing, commands, reading the results, clean-up and report) is `docs/release-readiness/load-test-guide.md`.
 
 | Target | Script | Pass when |
 | --- | --- | --- |
@@ -56,7 +56,7 @@ docker compose -f deploy/compose/compose.yaml -f tests/load/compose.load.yaml up
 cd tests/e2e && npm ci && E2E_LOAD=1 npx playwright test --project=load-provision
 ```
 
-Then, from a separate load generator machine (or the same server, which then also carries k6; the API and web ports are bound to 127.0.0.1 in Compose, so a separate machine needs an SSH tunnel or the hardened install's proxy, with `API_URL` and `WEB_URL` set):
+Then, from a separate load generator machine (or the same server, which then also carries k6). The API and web ports are bound to 127.0.0.1 in Compose; `compose.load-network.yaml` also publishes them on the test server's private address (`ZELVO_LOAD_BIND`, ports 18080 and 13000), and the generator sets `API_URL` and `WEB_URL` to them. Changes always send the web app's own address as `Origin` (from `load.json`, or `WEB_ORIGIN`), because the web proxy refuses changes from other origins:
 
 ```bash
 k6 run --summary-export tests/load/results/api-latency.json tests/load/k6/api-latency.js
@@ -67,6 +67,6 @@ node tests/load/live/live-connections.mjs > tests/load/results/live.log &
 k6 run --summary-export tests/load/results/agents.json tests/load/k6/agents.js
 ```
 
-k6 runs as a binary or as its container (`docker run --rm --network host -v "$PWD/tests/load:/load" -w /load grafana/k6 run k6/agents.js`). k6 exits non-zero when a threshold is missed. Settings are environment variables (`-e NAME=value` for k6): `API_URL`, `WEB_URL`, `LOAD_TENANT`, `LOAD_CREDENTIALS`, `P95_TARGET_MS` (200), `ERROR_RATE_TARGET` (0.01), and the per-script ones above.
+k6 runs as a binary or as its container (`docker run --rm --network host -v "$PWD/tests/load:/load" -w /load grafana/k6 run k6/agents.js`). k6 exits non-zero when a threshold is missed. Settings are environment variables (`-e NAME=value` for k6): `API_URL`, `WEB_URL`, `LOAD_TENANT`, `LOAD_CREDENTIALS`, `WEB_ORIGIN`, `P95_TARGET_MS` (200), `ERROR_RATE_TARGET` (0.01), and the per-script ones above.
 
-While a test runs, watch Grafana's "Zelvo overview" dashboard (task A5): its API p95 panel shows the target line, and CPU, memory, PostgreSQL connections and the RabbitMQ and search queues show where time goes. Record the server size, the installation's version, the k6 summaries and screenshots of the dashboard in the release-readiness report, and update the server sizing in `docs/requirements.md` with what was measured.
+While a test runs, watch Grafana's "Zelvo overview" dashboard (task A5): its API p95 panel shows the target line, and latency by route, database query time, memory and the RabbitMQ and search queues show where time goes (CPU from `docker stats`; see the guide). Record the server size, the installation's version, the k6 summaries and screenshots of the dashboard in the release-readiness report, and update the server sizing in `docs/requirements.md` with what was measured.

@@ -19,6 +19,8 @@ import path from "node:path";
 const credentialsFile = process.env.LOAD_CREDENTIALS ?? path.resolve(import.meta.dirname, "../.credentials/load.json");
 const provisioned = JSON.parse(readFileSync(credentialsFile, "utf8"));
 const webUrl = process.env.WEB_URL ?? provisioned.webUrl;
+// The web app's own origin for changes, also when it is reached at another address (see common.js).
+const webOrigin = process.env.WEB_ORIGIN ?? new URL(provisioned.webUrl).origin;
 const total = Number(process.env.CONNECTIONS ?? 1000);
 const durationMs = Number(process.env.DURATION_MINUTES ?? 30) * 60_000;
 const rampMs = Number(process.env.RAMP_SECONDS ?? 300) * 1000;
@@ -36,7 +38,7 @@ async function connectOnce(session) {
   const started = performance.now();
   const negotiate = await fetch(`${webUrl}/bff/api/v1/live/negotiate?negotiateVersion=1`, {
     method: "POST",
-    headers: headersFor(session, { "X-CSRF-Token": session.csrf, Origin: webUrl, "Content-Type": "text/plain;charset=UTF-8" }),
+    headers: headersFor(session, { "X-CSRF-Token": session.csrf, Origin: webOrigin, "Content-Type": "text/plain;charset=UTF-8" }),
   });
   if (!negotiate.ok) {
     throw new Error(`negotiate ${negotiate.status}`);
@@ -55,7 +57,7 @@ async function connectOnce(session) {
     }
     const handshake = await fetch(`${webUrl}/bff/api/v1/live?id=${id}`, {
       method: "POST",
-      headers: headersFor(session, { "X-CSRF-Token": session.csrf, Origin: webUrl, "Content-Type": "text/plain;charset=UTF-8" }),
+      headers: headersFor(session, { "X-CSRF-Token": session.csrf, Origin: webOrigin, "Content-Type": "text/plain;charset=UTF-8" }),
       body: `${JSON.stringify({ protocol: "json", version: 1 })}${recordSeparator}`,
     });
     if (!handshake.ok) {

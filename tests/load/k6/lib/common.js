@@ -12,6 +12,12 @@ export const config = () => provisioned[0];
 /** Where the API is (direct) and where the web app is (through its backend-for-frontend). */
 export const apiUrl = () => __ENV.API_URL || config().apiUrl;
 export const webUrl = () => __ENV.WEB_URL || config().webUrl;
+/**
+ * The Origin header of changes: the web app's own address (its ZELVO_APP_URL, which provisioning
+ * used), even when the load generator reaches it at another address (WEB_URL, for example the test
+ * server's private address); the web proxy refuses changes from any other origin (csrf-failed).
+ */
+export const webOrigin = () => __ENV.WEB_ORIGIN || /^https?:\/\/[^/]+/i.exec(config().webUrl)[0];
 export const tenant = () => __ENV.LOAD_TENANT || config().tenant;
 
 /** The NFR target: API under 200 ms at the 95th percentile (docs/requirements.md). */
@@ -52,7 +58,7 @@ export function webCall(method, path, body, name, sessionIndex) {
   if (method !== "GET") {
     headers["Content-Type"] = "application/json";
     headers["X-CSRF-Token"] = session.csrf;
-    headers.Origin = webUrl();
+    headers.Origin = webOrigin();
   }
   const response = http.request(method, `${webUrl()}/bff/api/v1/${path}`, body === undefined ? null : JSON.stringify(body), {
     headers,
