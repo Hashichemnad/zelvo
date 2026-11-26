@@ -61,44 +61,46 @@ export function TaskTable({ tasks, display, csrfToken, showRequest, onChanged }:
   const cell = "border-b border-line px-2 py-2 text-start align-top";
   if (tasks.length === 0) return <p>{t("none")}</p>;
   return (
-    <table className="w-full border-collapse" data-testid="task-table">
-      <thead>
-        <tr>
-          <th scope="col" className={cell}>{t("task")}</th>
-          {showRequest && <th scope="col" className={cell}>{t("request")}</th>}
-          <th scope="col" className={cell}>{t("group")}</th>
-          <th scope="col" className={cell}>{t("assignee")}</th>
-          <th scope="col" className={cell}>{t("state")}</th>
-          <th scope="col" className={cell}>{t("due")}</th>
-          <th scope="col" className={cell}>{t("actions")}</th>
-        </tr>
-      </thead>
-      <tbody>
-        {tasks.map((task) => (
-          <tr key={task.id} data-testid="task-row">
-            <td className={cell}>
-              <span className="font-semibold"><Localized text={task.name} locale={locale} /></span>
-              {!showRequest && <span className="block text-sm text-ink-muted">{t("stageLine", { number: task.stage + 1 })}</span>}
-              {task.notes && <span className="block text-sm" dir="auto">{task.notes}</span>}
-            </td>
-            {showRequest && (
-              <td className={cell}>
-                <Link href={`/requests/${task.requestId}`} className="font-mono font-semibold text-brand underline" dir="ltr">{task.requestNumber}</Link>
-                <span className="block text-sm" dir="auto">{task.requestTitle}</span>
-              </td>
-            )}
-            <td className={cell}>{task.group ? <Localized text={task.group.name} locale={locale} /> : "—"}</td>
-            <td className={cell}>{task.assignee?.displayName ?? t("nobody")}</td>
-            <td className={cell}>{t(`states.${task.state}`)}</td>
-            <td className={cell}>
-              {task.dueAt ? formatDateTime(new Date(task.dueAt), display) : "—"}
-              {task.overdue && <span className="block font-semibold text-bad">{t("overdue")}</span>}
-            </td>
-            <td className={cell}><TaskActions task={task} csrfToken={csrfToken} onChanged={onChanged} /></td>
+    <div className="overflow-x-auto">
+      <table className="w-full border-collapse" data-testid="task-table">
+        <thead>
+          <tr>
+            <th scope="col" className={cell}>{t("task")}</th>
+            {showRequest && <th scope="col" className={cell}>{t("request")}</th>}
+            <th scope="col" className={cell}>{t("group")}</th>
+            <th scope="col" className={cell}>{t("assignee")}</th>
+            <th scope="col" className={cell}>{t("state")}</th>
+            <th scope="col" className={cell}>{t("due")}</th>
+            <th scope="col" className={cell}>{t("actions")}</th>
           </tr>
-        ))}
-      </tbody>
-    </table>
+        </thead>
+        <tbody>
+          {tasks.map((task) => (
+            <tr key={task.id} data-testid="task-row">
+              <td className={cell}>
+                <span className="font-semibold"><Localized text={task.name} locale={locale} /></span>
+                {!showRequest && <span className="block text-sm text-ink-muted">{t("stageLine", { number: task.stage + 1 })}</span>}
+                {task.notes && <span className="block text-sm" dir="auto">{task.notes}</span>}
+              </td>
+              {showRequest && (
+                <td className={cell}>
+                  <Link href={`/requests/${task.requestId}`} className="font-mono font-semibold text-brand underline" dir="ltr">{task.requestNumber}</Link>
+                  <span className="block text-sm" dir="auto">{task.requestTitle}</span>
+                </td>
+              )}
+              <td className={cell}>{task.group ? <Localized text={task.group.name} locale={locale} /> : "—"}</td>
+              <td className={cell}>{task.assignee?.displayName ?? t("nobody")}</td>
+              <td className={cell}>{t(`states.${task.state}`)}</td>
+              <td className={cell}>
+                {task.dueAt ? formatDateTime(new Date(task.dueAt), display) : "—"}
+                {task.overdue && <span className="block font-semibold text-bad">{t("overdue")}</span>}
+              </td>
+              <td className={cell}><TaskActions task={task} csrfToken={csrfToken} onChanged={onChanged} /></td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
   );
 }
 

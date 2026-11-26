@@ -168,24 +168,26 @@ export function UpdatesPanel({ initial, csrfToken, calendar, digits, timeZone }:
       <section aria-labelledby={`${id}-history`} className="space-y-2">
         <h3 id={`${id}-history`} className="text-xl font-bold">{t("historyTitle")}</h3>
         {state.installs.length === 0 ? <p className="text-sm text-ink-muted">{t("noHistory")}</p> : (
-          <table className="w-full text-start text-sm">
-            <thead>
-              <tr className="border-b border-line">
-                <th scope="col" className="py-2 text-start">{t("columns.versions")}</th>
-                <th scope="col" className="py-2 text-start">{t("columns.state")}</th>
-                <th scope="col" className="py-2 text-start">{t("columns.when")}</th>
-              </tr>
-            </thead>
-            <tbody>
-              {state.installs.map((i) => (
-                <tr key={i.id} className="border-b border-line align-top">
-                  <td className="py-2"><bdi dir="ltr">{i.fromVersion} → {i.toVersion}</bdi></td>
-                  <td className="py-2">{t(`states.${i.state}`)}{i.error && <span className="block text-ink-muted"><bdi dir="ltr">{i.error}</bdi></span>}</td>
-                  <td className="py-2">{when(i.finishedAt ?? i.startedAt ?? i.scheduledFor)}</td>
+          <div className="overflow-x-auto">
+            <table className="w-full text-start text-sm">
+              <thead>
+                <tr className="border-b border-line">
+                  <th scope="col" className="py-2 text-start">{t("columns.versions")}</th>
+                  <th scope="col" className="py-2 text-start">{t("columns.state")}</th>
+                  <th scope="col" className="py-2 text-start">{t("columns.when")}</th>
                 </tr>
-              ))}
-            </tbody>
-          </table>
+              </thead>
+              <tbody>
+                {state.installs.map((i) => (
+                  <tr key={i.id} className="border-b border-line align-top">
+                    <td className="py-2"><bdi dir="ltr">{i.fromVersion} → {i.toVersion}</bdi></td>
+                    <td className="py-2">{t(`states.${i.state}`)}{i.error && <span className="block text-ink-muted"><bdi dir="ltr">{i.error}</bdi></span>}</td>
+                    <td className="py-2">{when(i.finishedAt ?? i.startedAt ?? i.scheduledFor)}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
         )}
         <p className="text-sm text-ink-muted">{t("auditNote")}</p>
       </section>

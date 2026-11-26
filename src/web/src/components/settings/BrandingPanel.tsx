@@ -289,26 +289,28 @@ function Publish({ settings, onChange, csrfToken }: { settings: BrandingSettings
 function Records({ records }: { records: DnsRecord[] }) {
   const t = useTranslations("settings.branding.dns");
   return (
-    <table className="w-full text-sm">
-      <thead>
-        <tr className="text-start">
-          <th scope="col" className="text-start">{t("type")}</th>
-          <th scope="col" className="text-start">{t("name")}</th>
-          <th scope="col" className="text-start">{t("value")}</th>
-          <th scope="col" className="text-start">{t("status")}</th>
-        </tr>
-      </thead>
-      <tbody>
-        {records.map((r) => (
-          <tr key={`${r.type}-${r.name}`} className="border-t border-line align-top">
-            <td dir="ltr" className="font-mono">{r.type}</td>
-            <td dir="ltr" className="break-all font-mono">{r.name}</td>
-            <td dir="ltr" className="break-all font-mono">{r.value}</td>
-            <td className={r.status === "Passed" ? "text-ok" : r.status === "Unknown" ? "" : "text-bad"}>{t(`states.${r.status}`)}</td>
+    <div className="overflow-x-auto">
+      <table className="w-full text-sm">
+        <thead>
+          <tr className="text-start">
+            <th scope="col" className="text-start">{t("type")}</th>
+            <th scope="col" className="text-start">{t("name")}</th>
+            <th scope="col" className="text-start">{t("value")}</th>
+            <th scope="col" className="text-start">{t("status")}</th>
           </tr>
-        ))}
-      </tbody>
-    </table>
+        </thead>
+        <tbody>
+          {records.map((r) => (
+            <tr key={`${r.type}-${r.name}`} className="border-t border-line align-top">
+              <td dir="ltr" className="font-mono">{r.type}</td>
+              <td dir="ltr" className="break-all font-mono">{r.name}</td>
+              <td dir="ltr" className="break-all font-mono">{r.value}</td>
+              <td className={r.status === "Passed" ? "text-ok" : r.status === "Unknown" ? "" : "text-bad"}>{t(`states.${r.status}`)}</td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
   );
 }
 

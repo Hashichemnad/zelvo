@@ -86,31 +86,33 @@ export default async function UsersPage({ params, searchParams }: PageProps<"/[l
       ) : (
         <>
           <p className="text-sm text-ink-muted" aria-live="polite">{t("count", { count: page.totalCount })}</p>
-          <table className="w-full border-collapse text-start text-sm" data-testid="users-table">
-            <caption className="sr-only">{t("caption")}</caption>
-            <thead>
-              <tr>
-                <th scope="col" className={cellClass}>{t("displayName")}</th>
-                <th scope="col" className={cellClass}>{t("email")}</th>
-                <th scope="col" className={cellClass}>{t("roles")}</th>
-                <th scope="col" className={cellClass}>{t("status")}</th>
-              </tr>
-            </thead>
-            <tbody>
-              {page.items.map((u) => (
-                <tr key={u.id}>
-                  <td className={cellClass}>
-                    <Link href={`/settings/users/${u.id}`} className="font-semibold text-brand underline-offset-4 hover:underline" dir="auto">
-                      {u.displayName ?? t("noName")}
-                    </Link>
-                  </td>
-                  <td className={cellClass} dir="ltr">{u.email ?? "—"}</td>
-                  <td className={cellClass}>{u.roles?.map(roleName).join(locale === "ar" ? "، " : ", ") ?? "—"}</td>
-                  <td className={cellClass}>{u.status ? t(`statuses.${u.status}`) : "—"}</td>
+          <div className="overflow-x-auto">
+            <table className="w-full border-collapse text-start text-sm" data-testid="users-table">
+              <caption className="sr-only">{t("caption")}</caption>
+              <thead>
+                <tr>
+                  <th scope="col" className={cellClass}>{t("displayName")}</th>
+                  <th scope="col" className={cellClass}>{t("email")}</th>
+                  <th scope="col" className={cellClass}>{t("roles")}</th>
+                  <th scope="col" className={cellClass}>{t("status")}</th>
                 </tr>
-              ))}
-            </tbody>
-          </table>
+              </thead>
+              <tbody>
+                {page.items.map((u) => (
+                  <tr key={u.id}>
+                    <td className={cellClass}>
+                      <Link href={`/settings/users/${u.id}`} className="font-semibold text-brand underline-offset-4 hover:underline" dir="auto">
+                        {u.displayName ?? t("noName")}
+                      </Link>
+                    </td>
+                    <td className={cellClass} dir="ltr">{u.email ?? "—"}</td>
+                    <td className={cellClass}>{u.roles?.map(roleName).join(locale === "ar" ? "، " : ", ") ?? "—"}</td>
+                    <td className={cellClass}>{u.status ? t(`statuses.${u.status}`) : "—"}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
           <Pagination page={page.page} pageSize={page.pageSize} totalCount={page.totalCount} query={filters} basePath="/settings/users" />
         </>
       )}

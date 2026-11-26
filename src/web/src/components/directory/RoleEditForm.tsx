@@ -84,37 +84,39 @@ export function RoleEditForm({ initial, catalog, csrfToken }: { initial: Role; c
         <h3 id={`${id}-fields`} className="text-xl font-bold">{t("fieldRules")}</h3>
         <p className="max-w-2xl">{t("fieldRulesIntro")}</p>
         {catalog.resources.map((resource) => (
-          <table key={resource.key} className={tableClass}>
-            <caption className="pb-1 text-start font-semibold">{tPermissions.has(`areas.${resource.key}`) ? tPermissions(`areas.${resource.key}`) : resource.key}</caption>
-            <thead>
-              <tr>
-                <th scope="col" className={cellClass}>{t("field")}</th>
-                <th scope="col" className={cellClass}>{t("access")}</th>
-              </tr>
-            </thead>
-            <tbody>
-              {resource.fields.map((field) => {
-                const key = `${resource.key}.${field.key}`;
-                return (
-                  <tr key={key}>
-                    <th scope="row" className={cellClass}>
-                      <span dir="ltr" className="font-mono">{field.key}</span>
-                      {field.sensitive && <span className="ms-2 text-xs text-bad">{t("sensitive")}</span>}
-                    </th>
-                    <td className={cellClass}>
-                      <select aria-label={t("accessOf", { field: key })} value={rules[key] ?? ""} className={`${inputClass} max-w-xs`}
-                        onChange={(e) => setRules({ ...rules, [key]: e.target.value as FieldAccess | "" })}>
-                        <option value="">{field.sensitive ? t("defaultHidden") : t("defaultByPermission")}</option>
-                        {fieldAccessLevels.filter((level) => level !== "Edit" || field.writable).map((level) => (
-                          <option key={level} value={level}>{t(`levels.${level}`)}</option>
-                        ))}
-                      </select>
-                    </td>
-                  </tr>
-                );
-              })}
-            </tbody>
-          </table>
+          <div key={resource.key} className="overflow-x-auto">
+            <table className={tableClass}>
+              <caption className="pb-1 text-start font-semibold">{tPermissions.has(`areas.${resource.key}`) ? tPermissions(`areas.${resource.key}`) : resource.key}</caption>
+              <thead>
+                <tr>
+                  <th scope="col" className={cellClass}>{t("field")}</th>
+                  <th scope="col" className={cellClass}>{t("access")}</th>
+                </tr>
+              </thead>
+              <tbody>
+                {resource.fields.map((field) => {
+                  const key = `${resource.key}.${field.key}`;
+                  return (
+                    <tr key={key}>
+                      <th scope="row" className={cellClass}>
+                        <span dir="ltr" className="font-mono">{field.key}</span>
+                        {field.sensitive && <span className="ms-2 text-xs text-bad">{t("sensitive")}</span>}
+                      </th>
+                      <td className={cellClass}>
+                        <select aria-label={t("accessOf", { field: key })} value={rules[key] ?? ""} className={`${inputClass} max-w-xs`}
+                          onChange={(e) => setRules({ ...rules, [key]: e.target.value as FieldAccess | "" })}>
+                          <option value="">{field.sensitive ? t("defaultHidden") : t("defaultByPermission")}</option>
+                          {fieldAccessLevels.filter((level) => level !== "Edit" || field.writable).map((level) => (
+                            <option key={level} value={level}>{t(`levels.${level}`)}</option>
+                          ))}
+                        </select>
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
         ))}
       </section>
 

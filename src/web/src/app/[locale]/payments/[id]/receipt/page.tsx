@@ -59,27 +59,29 @@ export default async function ReceiptPage({ params }: PageProps<"/[locale]/payme
           </div>
         ))}
       </dl>
-      <table className="w-full border-collapse">
-        <caption className="text-start font-semibold">{en("lines")} · <span lang="ar" dir="rtl">{ar("lines")}</span></caption>
-        <tbody>
-          {receipt.lines.map((line, i) => (
-            <tr key={i} className="border-b border-line">
-              <th scope="row" className="py-1 text-start font-normal"><Localized text={line.name} locale={locale as Locale} /></th>
-              <td className="py-1 text-end" dir="ltr">{formatAed(line.amountAed, locale, display.digits)} AED</td>
-            </tr>
-          ))}
-          <tr>
-            <th scope="row" className="py-1 text-start">{en("total")} · <span lang="ar" dir="rtl">{ar("total")}</span></th>
-            <td className="py-1 text-end font-bold" dir="ltr">{formatAed(receipt.amountAed, locale, display.digits)} AED</td>
-          </tr>
-          {receipt.refundedAed > 0 && (
+      <div className="overflow-x-auto">
+        <table className="w-full border-collapse">
+          <caption className="text-start font-semibold">{en("lines")} · <span lang="ar" dir="rtl">{ar("lines")}</span></caption>
+          <tbody>
+            {receipt.lines.map((line, i) => (
+              <tr key={i} className="border-b border-line">
+                <th scope="row" className="py-1 text-start font-normal"><Localized text={line.name} locale={locale as Locale} /></th>
+                <td className="py-1 text-end" dir="ltr">{formatAed(line.amountAed, locale, display.digits)} AED</td>
+              </tr>
+            ))}
             <tr>
-              <th scope="row" className="py-1 text-start">{en("refunded")} · <span lang="ar" dir="rtl">{ar("refunded")}</span></th>
-              <td className="py-1 text-end" dir="ltr">{formatAed(receipt.refundedAed, locale, display.digits)} AED</td>
+              <th scope="row" className="py-1 text-start">{en("total")} · <span lang="ar" dir="rtl">{ar("total")}</span></th>
+              <td className="py-1 text-end font-bold" dir="ltr">{formatAed(receipt.amountAed, locale, display.digits)} AED</td>
             </tr>
-          )}
-        </tbody>
-      </table>
+            {receipt.refundedAed > 0 && (
+              <tr>
+                <th scope="row" className="py-1 text-start">{en("refunded")} · <span lang="ar" dir="rtl">{ar("refunded")}</span></th>
+                <td className="py-1 text-end" dir="ltr">{formatAed(receipt.refundedAed, locale, display.digits)} AED</td>
+              </tr>
+            )}
+          </tbody>
+        </table>
+      </div>
       <p className="text-sm text-ink-muted">{t("note")}</p>
     </article>
   );

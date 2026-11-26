@@ -23,4 +23,12 @@ if [[ "${BASH_REMATCH[1]}" != "$pom_version" ]]; then
   exit 1
 fi
 
+# Task F7: the zelvo login theme carries a copy of Keycloak's login template (one accessibility
+# fix); after an upgrade it is compared with the new parent theme and its header updated.
+template=src/main/resources/theme/zelvo/login/template.ftl
+if ! grep -q "Keycloak ${pom_version}'s keycloak.v2 login template" "$template"; then
+  echo "$template is a copy of an older Keycloak login template; compare it with Keycloak $pom_version's keycloak.v2 template and update its header." >&2
+  exit 1
+fi
+
 echo "Keycloak image $image_tag matches keycloak.version $pom_version."

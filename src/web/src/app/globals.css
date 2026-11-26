@@ -48,3 +48,28 @@ body {
   background: var(--color-canvas);
   color: var(--color-ink);
 }
+
+/*
+ * Task F7 (WCAG 2.4.7): date and time fields keep their focus ring on every part. Chromium moves
+ * focus inside them (day, month, year, then the calendar button), and while the calendar button
+ * has focus the field no longer matches :focus or :focus-visible (only :focus-within), so its own
+ * ring would disappear and only the browser's thin ring around the small calendar icon would show.
+ */
+input:is([type="date"], [type="datetime-local"], [type="time"], [type="month"]):is(:focus, :focus-within) {
+  outline: 2px solid var(--color-brand);
+  outline-offset: 2px;
+}
+
+/*
+ * Task F7 (WCAG 1.4.10): a box that scrolls sideways (wide data tables) also holds the
+ * visually-hidden texts inside it. Without a positioned box they are placed against the page, at
+ * the far end of the wide table, and make the whole page scroll sideways on a narrow screen.
+ */
+:where(.overflow-x-auto) {
+  position: relative;
+}
+
+/* Task F7 (WCAG 1.4.10): the browser's file picker never makes a narrow screen scroll sideways. */
+input[type="file"] {
+  max-inline-size: 100%;
+}

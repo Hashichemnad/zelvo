@@ -44,29 +44,31 @@ export function BarList({ caption, rows, max, valueHeading, labelHeading, empty,
           <p className="text-ink-muted">{empty}</p>
         </>
       ) : (
-        <table className="w-full border-collapse text-sm">
-          <caption className="pb-1 text-start font-semibold">{caption}</caption>
-          <thead>
-            <tr>
-              <th scope="col" className={cell}>{labelHeading}</th>
-              <th scope="col" className={`${cell} w-2/5`}><span className="sr-only">{valueHeading}</span></th>
-              <th scope="col" className={`${cell} text-end`}>{valueHeading}</th>
-            </tr>
-          </thead>
-          <tbody>
-            {rows.map((r) => (
-              <tr key={r.key}>
-                <th scope="row" className={`${cell} font-normal`}><bdi>{r.label}</bdi></th>
-                <td className={cell}>
-                  <span aria-hidden="true" className="block h-3 rounded-full bg-surface-muted">
-                    <span className="block h-3 rounded-full bg-brand" style={{ width: `${Math.min(100, Math.max(0, ((r.value.value ?? 0) / top) * 100))}%` }} />
-                  </span>
-                </td>
-                <td className={`${cell} text-end tabular-nums`}>{r.value.text}</td>
+        <div className="overflow-x-auto">
+          <table className="w-full border-collapse text-sm">
+            <caption className="pb-1 text-start font-semibold">{caption}</caption>
+            <thead>
+              <tr>
+                <th scope="col" className={cell}>{labelHeading}</th>
+                <th scope="col" className={`${cell} w-2/5`}><span className="sr-only">{valueHeading}</span></th>
+                <th scope="col" className={`${cell} text-end`}>{valueHeading}</th>
               </tr>
-            ))}
-          </tbody>
-        </table>
+            </thead>
+            <tbody>
+              {rows.map((r) => (
+                <tr key={r.key}>
+                  <th scope="row" className={`${cell} font-normal`}><bdi>{r.label}</bdi></th>
+                  <td className={cell}>
+                    <span aria-hidden="true" className="block h-3 rounded-full bg-surface-muted">
+                      <span className="block h-3 rounded-full bg-brand" style={{ width: `${Math.min(100, Math.max(0, ((r.value.value ?? 0) / top) * 100))}%` }} />
+                    </span>
+                  </td>
+                  <td className={`${cell} text-end tabular-nums`}>{r.value.text}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
       )}
     </section>
   );

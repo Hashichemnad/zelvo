@@ -29,7 +29,7 @@ export default async function SettingsLayout({ children, params }: LayoutProps<"
       ) : (
         <>
           {user.permissions.includes("translations.read") && <MissingTranslationsWarning />}
-          <div className="grid gap-6 md:grid-cols-[14rem_1fr]">
+          <div className="grid grid-cols-1 gap-6 md:grid-cols-[14rem_minmax(0,1fr)]">
             <SettingsNav sections={sections} />
             <div className="min-w-0">{children}</div>
           </div>

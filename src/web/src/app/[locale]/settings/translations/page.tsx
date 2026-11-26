@@ -52,24 +52,26 @@ export default async function TranslationsPage({ params }: PageProps<"/[locale]/
         <>
           <p className="max-w-2xl">{t("intro")}</p>
           <p className="text-sm text-ink-muted">{t("total", { count: page.totalCount })}</p>
-          <table className="w-full border-collapse text-start text-sm" data-testid="missing-translations">
-            <thead>
-              <tr className="border-b border-line">
-                <th scope="col" className="py-2 text-start">{t("entity")}</th>
-                <th scope="col" className="py-2 text-start">{t("field")}</th>
-                <th scope="col" className="py-2 text-start">{t("missing")}</th>
-              </tr>
-            </thead>
-            <tbody>
-              {page.items.map((item) => (
-                <tr key={`${item.entityType}:${item.entityId}:${item.field}`} className="border-b border-line">
-                  <td className="py-2">{label("entityTypes", item.entityType)}</td>
-                  <td className="py-2">{label("fields", item.field)}</td>
-                  <td className="py-2">{format.list(item.missingLanguages.map((l) => tDisplay(`languages.${l}`)))}</td>
+          <div className="overflow-x-auto">
+            <table className="w-full border-collapse text-start text-sm" data-testid="missing-translations">
+              <thead>
+                <tr className="border-b border-line">
+                  <th scope="col" className="py-2 text-start">{t("entity")}</th>
+                  <th scope="col" className="py-2 text-start">{t("field")}</th>
+                  <th scope="col" className="py-2 text-start">{t("missing")}</th>
                 </tr>
-              ))}
-            </tbody>
-          </table>
+              </thead>
+              <tbody>
+                {page.items.map((item) => (
+                  <tr key={`${item.entityType}:${item.entityId}:${item.field}`} className="border-b border-line">
+                    <td className="py-2">{label("entityTypes", item.entityType)}</td>
+                    <td className="py-2">{label("fields", item.field)}</td>
+                    <td className="py-2">{format.list(item.missingLanguages.map((l) => tDisplay(`languages.${l}`)))}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
         </>
       )}
     </section>

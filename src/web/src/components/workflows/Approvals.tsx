@@ -16,30 +16,32 @@ export function ApprovalList({ approvals, display }: { approvals: ApprovalSummar
   const cell = "border-b border-line px-2 py-2 text-start align-top";
   if (approvals.length === 0) return <p>{t("none")}</p>;
   return (
-    <table className="w-full border-collapse" data-testid="approval-table">
-      <thead>
-        <tr>
-          <th scope="col" className={cell}>{t("request")}</th>
-          <th scope="col" className={cell}>{t("service")}</th>
-          <th scope="col" className={cell}>{t("requester")}</th>
-          <th scope="col" className={cell}>{t("level")}</th>
-          <th scope="col" className={cell}>{t("state")}</th>
-          <th scope="col" className={cell}>{t("asked")}</th>
-        </tr>
-      </thead>
-      <tbody>
-        {approvals.map((a) => (
-          <tr key={a.id}>
-            <td className={cell}><Link href={`/approvals/${a.id}`} className="font-mono font-semibold text-brand underline" dir="ltr">{a.ticket.number}</Link></td>
-            <td className={cell}>{a.ticket.service ? <Localized text={a.ticket.service.name} locale={locale} /> : <span dir="auto">{a.ticket.title}</span>}</td>
-            <td className={cell}>{a.ticket.requester.displayName}</td>
-            <td className={cell}><Localized text={a.levelName} locale={locale} /></td>
-            <td className={cell}>{t(`decisionStates.${a.state}`)}</td>
-            <td className={cell}>{formatDateTime(new Date(a.createdAt), display)}</td>
+    <div className="overflow-x-auto">
+      <table className="w-full border-collapse" data-testid="approval-table">
+        <thead>
+          <tr>
+            <th scope="col" className={cell}>{t("request")}</th>
+            <th scope="col" className={cell}>{t("service")}</th>
+            <th scope="col" className={cell}>{t("requester")}</th>
+            <th scope="col" className={cell}>{t("level")}</th>
+            <th scope="col" className={cell}>{t("state")}</th>
+            <th scope="col" className={cell}>{t("asked")}</th>
           </tr>
-        ))}
-      </tbody>
-    </table>
+        </thead>
+        <tbody>
+          {approvals.map((a) => (
+            <tr key={a.id}>
+              <td className={cell}><Link href={`/approvals/${a.id}`} className="font-mono font-semibold text-brand underline" dir="ltr">{a.ticket.number}</Link></td>
+              <td className={cell}>{a.ticket.service ? <Localized text={a.ticket.service.name} locale={locale} /> : <span dir="auto">{a.ticket.title}</span>}</td>
+              <td className={cell}>{a.ticket.requester.displayName}</td>
+              <td className={cell}><Localized text={a.levelName} locale={locale} /></td>
+              <td className={cell}>{t(`decisionStates.${a.state}`)}</td>
+              <td className={cell}>{formatDateTime(new Date(a.createdAt), display)}</td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
   );
 }
 

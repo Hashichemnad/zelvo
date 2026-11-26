@@ -52,37 +52,39 @@ function ServiceTable({ services, catalogs }: { services: ServiceSummary[]; cata
   const locale = useLocale() as Locale;
   const names = new Map(catalogs.map((c) => [c.id, c.name]));
   return (
-    <table className={tableClass} data-testid="catalog-services">
-      <thead>
-        <tr>
-          <th scope="col" className={cellClass}>{t("code")}</th>
-          <th scope="col" className={cellClass}>{t("name")}</th>
-          <th scope="col" className={cellClass}>{t("state")}</th>
-          <th scope="col" className={cellClass}>{t("catalogs")}</th>
-          <th scope="col" className={cellClass}>{t("versions")}</th>
-        </tr>
-      </thead>
-      <tbody>
-        {services.map((s) => (
-          <tr key={s.id}>
-            <td className={cellClass}>
-              <Link href={`/settings/catalog/services/${s.id}`} className="font-mono font-semibold text-brand underline" dir="ltr">{s.code}</Link>
-            </td>
-            <td className={cellClass}><Localized text={s.name} locale={locale} /></td>
-            <td className={cellClass}><ServiceStateBadge state={s.state} /></td>
-            <td className={cellClass}>{s.catalogIds.map((c) => textOf(names.get(c), locale)).filter(Boolean).join(locale === "ar" ? "، " : ", ")}</td>
-            <td className={cellClass}>
-              {s.publishedVersion !== null && <span className="block">{t("publishedVersion", { number: s.publishedVersion })}</span>}
-              {s.workingVersion !== null && (
-                <span className="block text-sm text-ink-muted">
-                  {t(s.workingState === "UnderReview" ? "versionInReview" : "versionDraft", { number: s.workingVersion })}
-                </span>
-              )}
-            </td>
+    <div className="overflow-x-auto">
+      <table className={tableClass} data-testid="catalog-services">
+        <thead>
+          <tr>
+            <th scope="col" className={cellClass}>{t("code")}</th>
+            <th scope="col" className={cellClass}>{t("name")}</th>
+            <th scope="col" className={cellClass}>{t("state")}</th>
+            <th scope="col" className={cellClass}>{t("catalogs")}</th>
+            <th scope="col" className={cellClass}>{t("versions")}</th>
           </tr>
-        ))}
-      </tbody>
-    </table>
+        </thead>
+        <tbody>
+          {services.map((s) => (
+            <tr key={s.id}>
+              <td className={cellClass}>
+                <Link href={`/settings/catalog/services/${s.id}`} className="font-mono font-semibold text-brand underline" dir="ltr">{s.code}</Link>
+              </td>
+              <td className={cellClass}><Localized text={s.name} locale={locale} /></td>
+              <td className={cellClass}><ServiceStateBadge state={s.state} /></td>
+              <td className={cellClass}>{s.catalogIds.map((c) => textOf(names.get(c), locale)).filter(Boolean).join(locale === "ar" ? "، " : ", ")}</td>
+              <td className={cellClass}>
+                {s.publishedVersion !== null && <span className="block">{t("publishedVersion", { number: s.publishedVersion })}</span>}
+                {s.workingVersion !== null && (
+                  <span className="block text-sm text-ink-muted">
+                    {t(s.workingState === "UnderReview" ? "versionInReview" : "versionDraft", { number: s.workingVersion })}
+                  </span>
+                )}
+              </td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
   );
 }
 
@@ -216,41 +218,43 @@ function CatalogsSection({ catalogs, departments, groups, manager, csrfToken }: 
       <h3 id={`${id}-heading`} className="text-xl font-semibold">{t("catalogsTitle")}</h3>
       <p className="max-w-2xl text-ink-muted">{t("catalogsIntro")}</p>
       {catalogs.length === 0 ? <p>{t("catalogsEmpty")}</p> : (
-        <table className={tableClass} data-testid="catalog-catalogs">
-          <thead>
-            <tr>
-              <th scope="col" className={cellClass}>{t("name")}</th>
-              <th scope="col" className={cellClass}>{t("key")}</th>
-              <th scope="col" className={cellClass}>{t("department")}</th>
-              <th scope="col" className={cellClass}>{t("editors")}</th>
-              <th scope="col" className={cellClass}>{t("serviceCount")}</th>
-              {manager && <th scope="col" className={cellClass}><span className="sr-only">{t("actions")}</span></th>}
-            </tr>
-          </thead>
-          <tbody>
-            {catalogs.map((c) => (
-              <tr key={c.id}>
-                <td className={cellClass}>
-                  <Localized text={c.name} locale={locale} />
-                  {!c.active && <span className="ms-2 text-sm text-ink-muted">({t("inactive")})</span>}
-                </td>
-                <td className={cellClass}><span className="font-mono" dir="ltr">{c.key}</span></td>
-                <td className={cellClass}>{c.departmentId ? textOf(departmentName.get(c.departmentId), locale) : ""}</td>
-                <td className={cellClass}>{c.editors.map((e) => e.name ?? "").filter(Boolean).join(", ")}</td>
-                <td className={cellClass}>{c.serviceCount}</td>
-                {manager && (
-                  <td className={cellClass}>
-                    <div className="flex flex-wrap gap-2">
-                      <button type="button" className={smallButton} onClick={() => setEditing(c)} aria-label={t("editCatalog", { name: textOf(c.name, locale) })}>{t("edit")}</button>
-                      <button type="button" className={smallButton} aria-label={t("deleteCatalog", { name: textOf(c.name, locale) })}
-                        onClick={() => void run(async () => { await deleteRequest(`/v1/catalog/catalogs/${c.id}`, csrfToken); router.refresh(); })}>{t("delete")}</button>
-                    </div>
-                  </td>
-                )}
+        <div className="overflow-x-auto">
+          <table className={tableClass} data-testid="catalog-catalogs">
+            <thead>
+              <tr>
+                <th scope="col" className={cellClass}>{t("name")}</th>
+                <th scope="col" className={cellClass}>{t("key")}</th>
+                <th scope="col" className={cellClass}>{t("department")}</th>
+                <th scope="col" className={cellClass}>{t("editors")}</th>
+                <th scope="col" className={cellClass}>{t("serviceCount")}</th>
+                {manager && <th scope="col" className={cellClass}><span className="sr-only">{t("actions")}</span></th>}
               </tr>
-            ))}
-          </tbody>
-        </table>
+            </thead>
+            <tbody>
+              {catalogs.map((c) => (
+                <tr key={c.id}>
+                  <td className={cellClass}>
+                    <Localized text={c.name} locale={locale} />
+                    {!c.active && <span className="ms-2 text-sm text-ink-muted">({t("inactive")})</span>}
+                  </td>
+                  <td className={cellClass}><span className="font-mono" dir="ltr">{c.key}</span></td>
+                  <td className={cellClass}>{c.departmentId ? textOf(departmentName.get(c.departmentId), locale) : ""}</td>
+                  <td className={cellClass}>{c.editors.map((e) => e.name ?? "").filter(Boolean).join(", ")}</td>
+                  <td className={cellClass}>{c.serviceCount}</td>
+                  {manager && (
+                    <td className={cellClass}>
+                      <div className="flex flex-wrap gap-2">
+                        <button type="button" className={smallButton} onClick={() => setEditing(c)} aria-label={t("editCatalog", { name: textOf(c.name, locale) })}>{t("edit")}</button>
+                        <button type="button" className={smallButton} aria-label={t("deleteCatalog", { name: textOf(c.name, locale) })}
+                          onClick={() => void run(async () => { await deleteRequest(`/v1/catalog/catalogs/${c.id}`, csrfToken); router.refresh(); })}>{t("delete")}</button>
+                      </div>
+                    </td>
+                  )}
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
       )}
       <CatalogStatusLine status={status} />
       {manager && editing === null && (

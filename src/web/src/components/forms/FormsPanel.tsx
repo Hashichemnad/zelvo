@@ -52,38 +52,40 @@ export function FormsPanel({ initial, csrfToken }: { initial: FormSummary[]; csr
       {initial.length === 0 ? (
         <p>{t("empty")}</p>
       ) : (
-        <table className={tableClass}>
-          <caption className="sr-only">{t("caption")}</caption>
-          <thead>
-            <tr>
-              <th scope="col" className={cellClass}>{t("name")}</th>
-              <th scope="col" className={cellClass}>{t("state")}</th>
-              <th scope="col" className={cellClass}>{t("usedFor")}</th>
-            </tr>
-          </thead>
-          <tbody>
-            {initial.map((form) => (
-              <tr key={form.id}>
-                <td className={cellClass}>
-                  <Link href={`/settings/forms/${form.id}`} className="font-semibold text-brand underline">
-                    <Localized text={form.name} locale={locale} />
-                  </Link>
-                  <span className="block text-sm text-ink-muted" dir="ltr">{form.key}</span>
-                </td>
-                <td className={cellClass}>
-                  {t(`states.${form.state}`)}
-                  {form.publishedVersion !== null && <span className="block text-sm">{t("version", { number: form.publishedVersion })}</span>}
-                  {form.hasUnpublishedChanges && form.state !== "Draft" && <span className="block text-sm text-ink-muted">{t("unpublishedChanges")}</span>}
-                </td>
-                <td className={cellClass}>
-                  {form.usedBy.length === 0
-                    ? t("notUsed")
-                    : form.usedBy.map((b) => (b.category ? textOf(b.category.path, locale) : t("defaultFor", { type: t(`recordTypes.${b.recordType}`) }))).join("; ")}
-                </td>
+        <div className="overflow-x-auto">
+          <table className={tableClass}>
+            <caption className="sr-only">{t("caption")}</caption>
+            <thead>
+              <tr>
+                <th scope="col" className={cellClass}>{t("name")}</th>
+                <th scope="col" className={cellClass}>{t("state")}</th>
+                <th scope="col" className={cellClass}>{t("usedFor")}</th>
               </tr>
-            ))}
-          </tbody>
-        </table>
+            </thead>
+            <tbody>
+              {initial.map((form) => (
+                <tr key={form.id}>
+                  <td className={cellClass}>
+                    <Link href={`/settings/forms/${form.id}`} className="font-semibold text-brand underline">
+                      <Localized text={form.name} locale={locale} />
+                    </Link>
+                    <span className="block text-sm text-ink-muted" dir="ltr">{form.key}</span>
+                  </td>
+                  <td className={cellClass}>
+                    {t(`states.${form.state}`)}
+                    {form.publishedVersion !== null && <span className="block text-sm">{t("version", { number: form.publishedVersion })}</span>}
+                    {form.hasUnpublishedChanges && form.state !== "Draft" && <span className="block text-sm text-ink-muted">{t("unpublishedChanges")}</span>}
+                  </td>
+                  <td className={cellClass}>
+                    {form.usedBy.length === 0
+                      ? t("notUsed")
+                      : form.usedBy.map((b) => (b.category ? textOf(b.category.path, locale) : t("defaultFor", { type: t(`recordTypes.${b.recordType}`) }))).join("; ")}
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
       )}
       <CreateForm kind="forms" csrfToken={csrfToken} />
     </div>
@@ -114,38 +116,40 @@ export function FormBindingsPanel({ initial, forms, categories, csrfToken }: { i
       {bindings.length === 0 ? (
         <p>{t("empty")}</p>
       ) : (
-        <table className={tableClass}>
-          <caption className="sr-only">{t("caption")}</caption>
-          <thead>
-            <tr>
-              <th scope="col" className={cellClass}>{t("recordType")}</th>
-              <th scope="col" className={cellClass}>{t("where")}</th>
-              <th scope="col" className={cellClass}>{t("form")}</th>
-              <th scope="col" className={cellClass}>{t("actions")}</th>
-            </tr>
-          </thead>
-          <tbody>
-            {bindings.map((b) => {
-              const where = b.category ? textOf(b.category.path, locale) : tList("defaultFor", { type: tList(`recordTypes.${b.recordType}`) });
-              return (
-                <tr key={b.id}>
-                  <td className={cellClass}>{t(`recordTypeNames.${b.recordType}`)}</td>
-                  <td className={cellClass}>{where}</td>
-                  <td className={cellClass}>
-                    <Localized text={b.form.name} locale={locale} />
-                    {b.form.state !== "Published" && <span className="block text-sm text-ink-muted">{t("notPublished")}</span>}
-                  </td>
-                  <td className={cellClass}>
-                    <button type="button" className={smallButton} disabled={busy}
-                      onClick={() => void run(async () => { await deleteRequest(`/v1/form-bindings/${b.id}`, csrfToken); await reload(); })}>
-                      {t("remove", { where })}
-                    </button>
-                  </td>
-                </tr>
-              );
-            })}
-          </tbody>
-        </table>
+        <div className="overflow-x-auto">
+          <table className={tableClass}>
+            <caption className="sr-only">{t("caption")}</caption>
+            <thead>
+              <tr>
+                <th scope="col" className={cellClass}>{t("recordType")}</th>
+                <th scope="col" className={cellClass}>{t("where")}</th>
+                <th scope="col" className={cellClass}>{t("form")}</th>
+                <th scope="col" className={cellClass}>{t("actions")}</th>
+              </tr>
+            </thead>
+            <tbody>
+              {bindings.map((b) => {
+                const where = b.category ? textOf(b.category.path, locale) : tList("defaultFor", { type: tList(`recordTypes.${b.recordType}`) });
+                return (
+                  <tr key={b.id}>
+                    <td className={cellClass}>{t(`recordTypeNames.${b.recordType}`)}</td>
+                    <td className={cellClass}>{where}</td>
+                    <td className={cellClass}>
+                      <Localized text={b.form.name} locale={locale} />
+                      {b.form.state !== "Published" && <span className="block text-sm text-ink-muted">{t("notPublished")}</span>}
+                    </td>
+                    <td className={cellClass}>
+                      <button type="button" className={smallButton} disabled={busy}
+                        onClick={() => void run(async () => { await deleteRequest(`/v1/form-bindings/${b.id}`, csrfToken); await reload(); })}>
+                        {t("remove", { where })}
+                      </button>
+                    </td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
+        </div>
       )}
       <form className="grid gap-2 rounded-lg border border-line p-3 sm:grid-cols-4" aria-label={t("add")}
         onSubmit={(e) => {
@@ -193,33 +197,35 @@ export function FieldSetsPanel({ initial, csrfToken }: { initial: FieldSetDetail
       {initial.length === 0 ? (
         <p>{t("emptyFieldSets")}</p>
       ) : (
-        <table className={tableClass}>
-          <caption className="sr-only">{t("captionFieldSets")}</caption>
-          <thead>
-            <tr>
-              <th scope="col" className={cellClass}>{t("name")}</th>
-              <th scope="col" className={cellClass}>{t("state")}</th>
-              <th scope="col" className={cellClass}>{t("usedByForms")}</th>
-            </tr>
-          </thead>
-          <tbody>
-            {initial.map((set) => (
-              <tr key={set.id}>
-                <td className={cellClass}>
-                  <Link href={`/settings/field-sets/${set.id}`} className="font-semibold text-brand underline">
-                    <Localized text={set.name} locale={locale} />
-                  </Link>
-                  <span className="block text-sm text-ink-muted" dir="ltr">{set.key}</span>
-                </td>
-                <td className={cellClass}>
-                  {t(`states.${set.state}`)}
-                  {set.publishedVersion !== null && <span className="block text-sm">{t("version", { number: set.publishedVersion })}</span>}
-                </td>
-                <td className={cellClass}>{set.usedBy.length === 0 ? t("notUsed") : set.usedBy.map((f) => textOf(f.name, locale)).join("; ")}</td>
+        <div className="overflow-x-auto">
+          <table className={tableClass}>
+            <caption className="sr-only">{t("captionFieldSets")}</caption>
+            <thead>
+              <tr>
+                <th scope="col" className={cellClass}>{t("name")}</th>
+                <th scope="col" className={cellClass}>{t("state")}</th>
+                <th scope="col" className={cellClass}>{t("usedByForms")}</th>
               </tr>
-            ))}
-          </tbody>
-        </table>
+            </thead>
+            <tbody>
+              {initial.map((set) => (
+                <tr key={set.id}>
+                  <td className={cellClass}>
+                    <Link href={`/settings/field-sets/${set.id}`} className="font-semibold text-brand underline">
+                      <Localized text={set.name} locale={locale} />
+                    </Link>
+                    <span className="block text-sm text-ink-muted" dir="ltr">{set.key}</span>
+                  </td>
+                  <td className={cellClass}>
+                    {t(`states.${set.state}`)}
+                    {set.publishedVersion !== null && <span className="block text-sm">{t("version", { number: set.publishedVersion })}</span>}
+                  </td>
+                  <td className={cellClass}>{set.usedBy.length === 0 ? t("notUsed") : set.usedBy.map((f) => textOf(f.name, locale)).join("; ")}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
       )}
       <CreateForm kind="fieldSets" csrfToken={csrfToken} />
     </div>
