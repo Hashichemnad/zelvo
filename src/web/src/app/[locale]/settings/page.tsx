@@ -36,7 +36,7 @@ export default async function SettingsPage({ params }: PageProps<"/[locale]/sett
         </div>
       )}
       {definitions?.outdated && (
-        <div role="alert" className="rounded-lg border-2 border-danger bg-surface p-4" data-testid="definitions-banner">
+        <div role="alert" className="rounded-lg border-2 border-bad bg-surface p-4" data-testid="definitions-banner">
           <p className="font-semibold">{t("definitionsBanner.title")}</p>
           <p className="text-sm">{t("definitionsBanner.text", { days: definitions.warningDays })}</p>
           <Link href="/settings/updates/malware-definitions" className="mt-2 inline-block font-semibold text-brand underline-offset-4 hover:underline">{t("definitionsBanner.action")}</Link>
