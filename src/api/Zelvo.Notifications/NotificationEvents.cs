@@ -163,6 +163,12 @@ public static class NotificationEvents
     public const string PrivacyRequestNew = "privacy.request.new";
 
     /// <summary>
+    /// The malware definitions ClamAV has loaded are older than the warning period (task M1); to the
+    /// operator tenant's holders of <c>installation.manage</c>, once per daily version.
+    /// </summary>
+    public const string MalwareDefinitionsOutdated = "malware.definitions-outdated";
+
+    /// <summary>
     /// A notify action of a workflow rule (task C3). Its wording is the rule's own, carried in the
     /// notification's values; it is not listed in Settings → Notifications or Account → Notifications.
     /// </summary>
@@ -232,6 +238,8 @@ public static class NotificationEvents
         new(PrivacyRequestCompleted, NotificationAudience.Requester, false, [Placeholders.PrivacyRequestNumber, Placeholders.PrivacyRequestType, Placeholders.PrivacyRequestResolution]),
         new(PrivacyRequestRejected, NotificationAudience.Requester, false, [Placeholders.PrivacyRequestNumber, Placeholders.PrivacyRequestType, Placeholders.PrivacyRequestResolution]),
         new(PrivacyRequestNew, NotificationAudience.Staff, false, [Placeholders.PrivacyRequestNumber, Placeholders.PrivacyRequestType, Placeholders.PrivacyRequestDueAt]),
+        // Task M1: the scanner's definitions are out of date.
+        new(MalwareDefinitionsOutdated, NotificationAudience.Staff, true, [Placeholders.DefinitionsVersion, Placeholders.DefinitionsBuiltAt, Placeholders.DefinitionsDays]),
     ];
 
     /// <summary>Events that are not set up in Settings (their wording comes from elsewhere).</summary>
@@ -331,6 +339,15 @@ public static class Placeholders
 
     /// <summary>When a data subject request is due (task F5).</summary>
     public const string PrivacyRequestDueAt = "privacyRequest.dueAt";
+
+    /// <summary>The daily version of the malware definitions ClamAV has loaded (task M1).</summary>
+    public const string DefinitionsVersion = "definitions.version";
+
+    /// <summary>When those definitions were built.</summary>
+    public const string DefinitionsBuiltAt = "definitions.builtAt";
+
+    /// <summary>The warning period in days.</summary>
+    public const string DefinitionsDays = "definitions.days";
 
     /// <summary>What was done, or why a data subject request was refused (task F5).</summary>
     public const string PrivacyRequestResolution = "privacyRequest.resolution";

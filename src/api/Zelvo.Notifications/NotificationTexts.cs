@@ -134,6 +134,9 @@ public static class NotificationSamples
             [Placeholders.PrivacyRequestType] = PlaceholderValue.OfTerm("privacy.type.Access"),
             [Placeholders.PrivacyRequestDueAt] = PlaceholderValue.OfDate(now.AddDays(30)),
             [Placeholders.PrivacyRequestResolution] = Both(Placeholders.PrivacyRequestResolution),
+            [Placeholders.DefinitionsVersion] = new PlaceholderValue { Number = 28191 },
+            [Placeholders.DefinitionsBuiltAt] = PlaceholderValue.OfDate(now.AddDays(-9)),
+            [Placeholders.DefinitionsDays] = new PlaceholderValue { Number = 7 },
         };
     }
 }

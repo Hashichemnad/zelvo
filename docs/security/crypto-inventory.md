@@ -125,6 +125,7 @@ These are random values with enough entropy that a fast hash is sufficient (no p
 | Stored secrets | AES-256-GCM with associated data | `SecretProtector.cs` |
 | Audit log hash chain | SHA-256 over canonical JSON of the entry and the previous hash, computed by a PostgreSQL trigger (`zelvo_audit_hash`, `sha256()`) | migration `20261113072239_InitialTenancyAndAudit`, `data-tenancy-audit.md` |
 | File integrity | SHA-256 of every attachment, form upload, voice note and service file; SHA-256 of every file in an update package, listed in the signed manifest | `IncidentAttachmentEndpoints.cs`, `Zelvo.Licensing/UpdatePackage.cs` |
+| Malware definition files (M1) | SHA-256 of each imported file (audit log, ETag). A `.cvd`'s **MD5** is checked against the one its header publishes, only to find damaged or cut-off copies (the CVD format fixes MD5); the proof of origin is ClamAV's own check of the Talos signature (RSA in the header, PKCS#7 in ClamAV 1.5's `.cvd.sign`) before it loads a file | `Zelvo.Tickets/Malware/ClamAvDefinitions.cs`, `updates.md` |
 | Licenses and update packages | RSA-PSS SHA-256, RSA-4096 keys (3072 minimum) | `SignedFile.cs`, `VendorKeys.cs` |
 | Access tokens accepted by the API | RS256, PS256, ES256; issuer, audience and expiry required | `ZelvoBearerHandler.cs` |
 | AI text cache keys | SHA-256 | `Zelvo.Ai/Features/AiText.cs` |

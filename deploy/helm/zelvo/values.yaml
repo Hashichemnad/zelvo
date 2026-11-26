@@ -131,8 +131,7 @@ keycloak:
 
 clamav:
   enabled: true
-  # Offline clusters: true, then import definition files.
-  noFreshclam: false
+  # Definitions come from Zelvo's private mirror: Settings → Updates → Malware definitions (task M1).
   resources:
     requests: { cpu: 250m, memory: 1536Mi }
     limits: { cpu: "1", memory: 3Gi }

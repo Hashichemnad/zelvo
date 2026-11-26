@@ -280,4 +280,19 @@ public sealed class RealClamAvTests
         Assert.Contains("Eicar", infected.Signature, StringComparison.OrdinalIgnoreCase);
         Assert.True(clean.Clean);
     }
+
+    [Fact]
+    public async Task ClamAV_says_which_definitions_it_has_loaded()
+    {
+        var address = Environment.GetEnvironmentVariable("ZELVO_TEST_CLAMAV");
+        Assert.SkipWhen(string.IsNullOrEmpty(address), "Set ZELVO_TEST_CLAMAV=host:port to run against a real ClamAV.");
+        var (host, port) = (address!.Split(':')[0], int.Parse(address.Split(':')[1], System.Globalization.CultureInfo.InvariantCulture));
+        var client = new Zelvo.Tickets.Malware.ClamAvVersionClient(Options.Create(new AttachmentScanningOptions { Host = host, Port = port }));
+
+        var loaded = await client.GetAsync(TestContext.Current.CancellationToken);
+
+        Assert.StartsWith("1.", loaded.Engine, StringComparison.Ordinal);
+        Assert.True(loaded.DailyVersion > 27000);
+        Assert.True(loaded.DailyBuiltAt > new DateTimeOffset(2025, 1, 1, 0, 0, 0, TimeSpan.Zero));
+    }
 }

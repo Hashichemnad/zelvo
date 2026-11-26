@@ -1,6 +1,7 @@
 import { getTranslations, setRequestLocale } from "next-intl/server";
 import { Link } from "@/i18n/navigation";
 import { getJsonAs } from "@/lib/api";
+import type { MalwareDefinitionsState } from "@/lib/malware-definitions";
 import type { SetupState } from "@/lib/reports";
 import { sectionsFor } from "@/lib/settings-sections";
 import { requireSignedIn } from "@/lib/signed-in";
@@ -20,6 +21,10 @@ export default async function SettingsPage({ params }: PageProps<"/[locale]/sett
   const sections = sectionsFor(user?.permissions ?? []);
   // Task F2: administrators are reminded of the setup wizard until they finish it.
   const setup = user?.permissions.includes("setup.manage") ? await getJsonAs<SetupState>("/api/v1/setup", session.data.accessToken, tenant) : null;
+  // Task M1: the installation's administrators are warned while the malware definitions are out of date.
+  const definitions = user?.permissions.includes("installation.manage")
+    ? await getJsonAs<MalwareDefinitionsState>("/api/v1/malware-definitions", session.data.accessToken, tenant).catch(() => null)
+    : null;
 
   return (
     <section className="space-y-4">
@@ -28,6 +33,13 @@ export default async function SettingsPage({ params }: PageProps<"/[locale]/sett
           <p className="font-semibold">{t("setupBanner.title")}</p>
           <p className="text-sm">{t("setupBanner.text", { done: setup.finished, total: setup.total })}</p>
           <Link href="/setup" className="mt-2 inline-block rounded-md bg-brand px-4 py-2 font-semibold text-surface">{t("setupBanner.action")}</Link>
+        </div>
+      )}
+      {definitions?.outdated && (
+        <div role="alert" className="rounded-lg border-2 border-danger bg-surface p-4" data-testid="definitions-banner">
+          <p className="font-semibold">{t("definitionsBanner.title")}</p>
+          <p className="text-sm">{t("definitionsBanner.text", { days: definitions.warningDays })}</p>
+          <Link href="/settings/updates/malware-definitions" className="mt-2 inline-block font-semibold text-brand underline-offset-4 hover:underline">{t("definitionsBanner.action")}</Link>
         </div>
       )}
       <p>{t("intro")}</p>

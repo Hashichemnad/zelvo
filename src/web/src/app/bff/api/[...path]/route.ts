@@ -44,7 +44,8 @@ async function forward(request: NextRequest, { params }: { params: Promise<{ pat
   // "Reset demo" empties and reseeds every sample organisation, which takes longer than the usual timeout.
   const demoReset = request.method === "POST" && path.join("/") === "v1/demo/reset";
   // Task F4: update packages are large, so their upload is streamed to the API, not buffered.
-  const packageUpload = request.method === "POST" && path.join("/") === "v1/updates/packages";
+  // Task M1: so are malware definition files (main.cvd is about 90 MB).
+  const packageUpload = request.method === "POST" && ["v1/updates/packages", "v1/malware-definitions/files"].includes(path.join("/"));
   const headers = new Headers();
   // The chat token proves a visitor's chat is theirs (task E2).
   for (const name of ["content-type", "accept", "accept-language", "if-match", "x-chat-token", ...(live ? ["x-requested-with", "x-signalr-user-agent"] : [])]) {

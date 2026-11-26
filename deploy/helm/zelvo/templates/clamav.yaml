@@ -25,12 +25,15 @@ spec:
         seccompProfile: { type: RuntimeDefault }
       containers:
         - name: clamav
-          image: clamav/clamav:1.5.4
+          image: clamav/clamav:1.5.5
           securityContext:
             allowPrivilegeEscalation: false
             capabilities: { drop: [ALL], add: [CHOWN, DAC_OVERRIDE, FOWNER, SETGID, SETUID] }
           env:
-            - { name: CLAMAV_NO_FRESHCLAMD, value: {{ .Values.clamav.noFreshclam | quote }} }
+            # Task M1: freshclam reads Zelvo's private mirror (Settings → Updates → Malware
+            # definitions) every 30 minutes; the API sends it on to ClamAV's servers when allowed.
+            - { name: FRESHCLAM_CONF_PrivateMirror, value: "http://{{ $fullname }}-api:8080/internal/clamav" }
+            - { name: FRESHCLAM_CHECKS, value: "48" }
             - { name: CLAMD_CONF_StreamMaxLength, value: 105M }
             - { name: CLAMD_CONF_MaxFileSize, value: 105M }
             - { name: CLAMD_CONF_MaxScanSize, value: 400M }

@@ -98,4 +98,74 @@ They belong to the whole installation (no tenant column or row-level security).
 
 ## Not in F4
 
-Kubernetes installs upgrade and roll back with Helm (task F6, `deploy/helm/README.md`); only Docker Compose installs are updated by the updater, which also checks the running containers' images against the release manifest (`release.md`). **Malware definition files** were to be imported "in Settings with the update packages of task F4" (B1 decision, 2026-11-22); they are not in F4: definitions change daily while packages are versioned releases, so a separate definitions import in Settings is proposed as task M1 of `docs/phase2-build-plan.md` (Settings → Updates → Malware definitions). Until then `scripts/clamav-import-definitions.sh` stays.
+Kubernetes installs upgrade and roll back with Helm (task F6, `deploy/helm/README.md`); only Docker Compose installs are updated by the updater, which also checks the running containers' images against the release manifest (`release.md`). Malware definition files are not update packages (they change daily while packages are versioned releases); they have their own page, below (task M1).
+
+## Malware definitions (task M1)
+
+**Settings → Updates → Malware definitions** (`/settings/updates/malware-definitions`, `installation.manage`, the operator tenant's administrators; approved 2026-11-26) keeps ClamAV's definitions current, also on installations without internet access. Zelvo is **ClamAV's private mirror**: freshclam in the unmodified ClamAV image reads `PrivateMirror http://api:8080/internal/clamav` (Compose `FRESHCLAM_CONF_PrivateMirror`; on Kubernetes the chart's api service, with a network policy that lets ClamAV reach the API) every 30 minutes (`FRESHCLAM_CHECKS=48`, freshclam's limit is 50 a day). No Docker socket is needed, so Compose and Kubernetes work the same. `/internal/clamav/…` is mapped outside `/api`, is not in the OpenAPI document and is never routed by the proxy or the web app's API proxy; the files it serves are ClamAV's public definitions.
+
+### The screen
+
+- **Status:** whether malware scanning is on, the definitions ClamAV has loaded (clamd's `VERSION`: the daily version and its build date, in the person's calendar and digits), the last update (imported by whom and when, or loaded from elsewhere) and when the scanner was last asked; a red warning when the loaded definitions are older than the warning period.
+- **Import:** a file picker for several files at once, or files the operator copied into the updates inbox (`docker compose cp daily.cvd api:/var/lib/zelvo/updates/inbox/`). Each file is listed with its type, version and date before it is sent (read from its header in the browser; the inbox list is read by the API) and "Import" is enabled only when every file passed; the API checks everything again and imports **all or nothing**, answering 422 with each file's outcome (`import`, `same` when Zelvo already serves that version, `refused` with its reason).
+- **Files Zelvo gives ClamAV**, **Settings** (the warning period, 1–90 days, default 7; "Download definitions automatically") and **History** (the last 20 imports, refusals and versions ClamAV loaded, with who imported them).
+- Settings shows a banner while the definitions are out of date, and the operator tenant's holders of `installation.manage` get the notification `malware.definitions-outdated` (in the app and by email, English and formal Arabic) once per daily version that becomes too old.
+
+### Checks
+
+| Check | Problem |
+| --- | --- |
+| A definition file's name: `main`, `daily` or `bytecode` `.cvd` or `.cld`, or `<database>-<version>.cvd.sign` (ClamAV 1.5's separate signature, optional) | `definitions-not-clamav` |
+| A ClamAV database header (`ClamAV-VDB:…`, 512 bytes); a signature file starts with `#clamsign-` | `definitions-not-clamav` |
+| A `.cvd`'s content matches the MD5 its header publishes (damaged or cut-off copies) | `definitions-damaged` |
+| At most `MalwareDefinitions:MaxFileBytes` (256 MiB; main.cvd is about 90 MB), 64 KiB for signature files, 10 files per import | `definitions-too-large` |
+| Each database once per import | `definitions-duplicate` |
+| Newer than the version Zelvo serves, and the daily database not older than the one ClamAV has loaded (the same version is left out) | `definitions-older` |
+| A signature file belongs to a `.cvd` of this import or the one served | `definitions-sign-unmatched` |
+| The first import brings main, daily and bytecode (ClamAV cannot start from nothing without all three) | `definitions-incomplete` |
+
+The **Talos signature** is checked by ClamAV itself: freshclam tests every file it downloads and refuses one that is not signed by ClamAV's publisher, so a file that passes Zelvo's checks but was not made by Talos is never loaded (the history then shows no "loaded" entry). `.cdiff` files are not imported: freshclam takes the version to fetch from the mirror's `daily.cvd` or `daily.cld` header, so incremental updates alone would never be used; freshclam on a computer with internet access writes up-to-date `.cld` files, and ClamAV's cvdupdate tool full `.cvd` files, which are imported instead.
+
+### The mirror
+
+freshclam asks for `daily.cld`, then `daily.cvd` (first its 512-byte header with `Range: bytes=0-511`, then the file), with the loaded file's build time as `If-Modified-Since`, and in ClamAV 1.5 for `daily-<version>.cvd.sign`; the same for main and bytecode. Zelvo answers (`DefinitionMirror.Decide`, checked with ClamAV 1.5.5's freshclam):
+
+| Request | Answer |
+| --- | --- |
+| An imported file newer than ClamAV's, under its own name (`.cld` or `.cvd`) | 200, or 206 for a range (streamed from PostgreSQL), `Last-Modified` its build time |
+| The other name of that database | 404, so freshclam asks for the right one |
+| Nothing newer, "Download definitions automatically" on | 302 to `MalwareDefinitions:UpstreamMirror` (`https://database.clamav.net`) with the same file name, incremental `.cdiff` files too |
+| Nothing newer, automatic downloads off | 304 for the `.cvd` (freshclam: "up to date"; it asks nobody else), 404 for a `.cld` Zelvo does not have |
+| Anything else | 404 |
+
+So with automatic downloads off ClamAV reads only the imported files; with them on, imported files still win while they are newer, and ClamAV's servers are used otherwise. Files an operator copies into ClamAV's own folder with `scripts/clamav-import-definitions.sh` (kept for operators) are replaced only by newer ones. A ClamAV container that starts without any definitions (a new Kubernetes pod, whose definitions are on an `emptyDir`) needs either imported files or automatic downloads; ClamAV's own image brings definitions on Compose.
+
+### Who records what
+
+- The **worker** (the only service that reaches clamd) asks clamd's `VERSION` every 5 minutes (`AttachmentScanning:StatusInterval`) and records the answer, or why it could not ask, on `installation` (`ClamAvStatusJob`).
+- The **API** (`MalwareDefinitionJobs`, every minute; `MalwareDefinitions:JobsEnabled`, `JobInterval`) records a daily version ClamAV newly loaded in the history ("loaded" when it was imported, "downloaded" otherwise, which includes the definitions shipped in ClamAV's image) and in the operator tenant's audit log (`malware.definitions.loaded`), and sends the outdated warning (`malware.definitions.outdated` in the audit log). Each is claimed by a single `UPDATE … RETURNING`, so several API instances never record or send one twice.
+- Imports (`malware.definitions.imported`, with each file's SHA-256, version and outcome), refusals (`malware.definitions.refused`, with the reasons) and settings changes (`malware.definitions.settings-changed`) are in the audit log of the operator tenant, with who did it.
+
+### Data
+
+| Table | Contents |
+| --- | --- |
+| `malware_definition_files` | Imported files: database, kind (`cvd`, `cld`, `sign`), version, build time, name, size, SHA-256, who imported them and how (`Upload`, `Inbox`). Only the current file of each database (and its signature file) keeps its **content** (`bytea`, so every API instance serves the same files and backups include them); replaced files keep their record. |
+| `malware_definition_events` | The history: `Imported`, `Refused`, `Loaded`, `Downloaded`, with the versions. |
+| `installation` columns | What ClamAV loaded (`clamav_engine`, `clamav_daily_version`, `clamav_daily_built_at`, `clamav_checked_at`, `clamav_error`), the warning period and automatic downloads, and the versions already recorded and warned about. |
+
+Like the update tables they belong to the whole installation (no tenant column or row-level security); the application role may add files and history but never delete either (migration `20261126110000_MalwareDefinitions`). Uploads are streamed to `staging/` on the updates volume (the web app's proxy streams them too) and removed after the import.
+
+### Configuration
+
+| Setting | Default | Used by |
+| --- | --- | --- |
+| `MalwareDefinitions:MaxFileBytes` | 256 MiB | API |
+| `MalwareDefinitions:UpstreamMirror` | `https://database.clamav.net` (must be HTTPS) | API |
+| `MalwareDefinitions:JobInterval`, `JobsEnabled` | 1 minute, on | API |
+| `AttachmentScanning:StatusInterval` | 5 minutes | worker |
+| `FRESHCLAM_CONF_PrivateMirror`, `FRESHCLAM_CHECKS` | the API's internal address, 48 | ClamAV (Compose, Helm) |
+
+`CLAMAV_NO_FRESHCLAMD` is no longer used: freshclam always runs, because it is what reads Zelvo's mirror; "Download definitions automatically" off replaces it for offline installations.
+
+Not tried against ClamAV's own servers from here (the build environment has no access to them); the redirect, ranges, If-Modified-Since and fallback behaviour were checked against ClamAV 1.5.5's freshclam with local mirrors.
