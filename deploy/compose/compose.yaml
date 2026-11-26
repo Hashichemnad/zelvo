@@ -313,7 +313,7 @@ services:
   # security "No TLS", and send it mail from the host with any SMTP client on localhost:3025.
   greenmail:
     <<: *restart
-    image: greenmail/standalone:2.1.5
+    image: greenmail/standalone:2.1.15
     environment:
       GREENMAIL_OPTS: -Dgreenmail.setup.test.smtp -Dgreenmail.setup.test.imap -Dgreenmail.hostname=0.0.0.0 -Dgreenmail.auth.disabled -Dgreenmail.verbose=false
     ports:
