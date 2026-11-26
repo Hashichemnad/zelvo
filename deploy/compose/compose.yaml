@@ -623,7 +623,7 @@ services:
   # Development: https://localhost:8443 with Caddy's own certificate authority.
   proxy:
     <<: *restart
-    image: caddy:2.10.2-alpine
+    image: caddy:2.11.9-alpine
     environment:
       ZELVO_PUBLIC_HOST: ${ZELVO_PUBLIC_HOST:-localhost}
       ZELVO_PUBLIC_TLS: ${ZELVO_PUBLIC_TLS:-internal}
