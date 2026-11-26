@@ -77,6 +77,11 @@ internal sealed class FakeContainerHost : IContainerHost
 {
     public List<string> Calls { get; } = [];
 
+    public List<RunningContainer> Running { get; } = [];
+
+    public Task<IReadOnlyList<RunningContainer>> RunningContainersAsync(CancellationToken cancellationToken) =>
+        Task.FromResult<IReadOnlyList<RunningContainer>>([.. Running]);
+
     /// <summary>The call that fails (for example "migrate"); rollback calls are named rollback-… only by the installer's steps.</summary>
     public HashSet<string> Failing { get; } = new(StringComparer.Ordinal);
 

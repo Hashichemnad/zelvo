@@ -78,6 +78,8 @@ builder.Services.AddValidation();
 builder.Services.ConfigureHttpJsonOptions(options =>
     options.SerializerOptions.Converters.Add(new JsonStringEnumConverter()));
 builder.Services.AddZelvoOpenApi();
+// A modified component refuses to start (module 12 tamper detection, task F6).
+builder.Services.AddZelvoReleaseIntegrity("api", monitorOthers: true);
 builder.Services.AddZelvoLicensing();
 builder.Services.AddZelvoHealthChecks(builder.Configuration);
 builder.Services.AddZelvoIdentity(builder.Configuration);

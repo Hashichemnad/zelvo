@@ -7,7 +7,13 @@ import { RedactingSpanProcessor, SkipProbesSampler } from "@/lib/telemetry-redac
  * trace context, so one trace covers the browser request, this server and the API. Nothing is
  * collected when no endpoint is set. Health probes are not traced. Query strings, client addresses and user ids are removed.
  */
-export function register() {
+export async function register() {
+  // A modified web app refuses to start (module 12 tamper detection, task F6). Node.js only: the
+  // edge runtime has no file system.
+  if (process.env.NEXT_RUNTIME === "nodejs") {
+    const { enforceReleaseIntegrity } = await import("@/lib/release-integrity");
+    enforceReleaseIntegrity();
+  }
   if (!process.env.OTEL_EXPORTER_OTLP_ENDPOINT) {
     return;
   }
