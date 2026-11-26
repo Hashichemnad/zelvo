@@ -6,9 +6,9 @@ Zelvo targets OWASP ASVS **Level 2** for every tenant (non-functional requiremen
 - Status: **Met** (with evidence), **Partly met**, **Open** (with the task expected to close it), **Not applicable**, **Not assessed** (not reviewed yet).
 - Evidence points to code, tests, architecture notes and build plan tasks (A1-F7 in `docs/phase1-build-plan.md`).
 
-**Summary (2026-11-25):** Met: 102 · Partly met: 23 · Open: 3 · Not applicable: 18 · Not assessed: 107.
+**Summary (2026-11-26):** Met: 105 · Partly met: 23 · Open: 3 · Not applicable: 17 · Not assessed: 105.
 
-Main gaps found so far: web app without Content-Security-Policy and HSTS (V3.4); TLS still to add for PostgreSQL, Valkey and internal HTTP (V12.3, F6); service passwords as environment variables rather than a secrets manager (V13.3.1, F6); password policy, breached-password checks and session management settings in Keycloak not yet reviewed (V6.2, V7). File handling (V5) was added with attachments in B1.
+Main gaps found so far: web app without Content-Security-Policy and HSTS (V3.4); TLS still to add for internal HTTP (Keycloak back channel, API behind the proxy) and OTLP (V12.3, F7); service passwords as environment values rather than a secrets manager (V13.3.1); password policy, breached-password checks and session management settings in Keycloak not yet reviewed (V6.2, V7). File handling (V5) was added with attachments in B1.
 
 ## V1 Encoding and Sanitization
 
@@ -260,10 +260,10 @@ Main gaps found so far: web app without Content-Security-Policy and HSTS (V3.4);
 | V12.1.3 | 2 | V12.1 General TLS Security Guidance | Not assessed |  |
 | V12.2.1 | 1 | V12.2 HTTPS Communication with External Facing Services | Partly met | External HTTPS with publicly trusted certificates: hardened install (F6) and custom domains (F1). F1: custom domains get publicly trusted certificates from ACME through Caddy, only for hosts a tenant verified by DNS (on-demand TLS "ask"), or the customer's own uploaded certificate (pair, validity and host checked; key encrypted at rest). The installation's own address and Helm come with F6. |
 | V12.2.2 | 1 | V12.2 HTTPS Communication with External Facing Services | Open | External HTTPS with publicly trusted certificates: hardened install (F6) and custom domains (F1). |
-| V12.3.1 | 2 | V12.3 General Service to Service Communication Security | Partly met | A5: TLS for OpenSearch, RabbitMQ and Vault; PostgreSQL, Valkey, Keycloak back channel and the OTLP collector are still plain inside the Compose network (follow-up, F6). |
+| V12.3.1 | 2 | V12.3 General Service to Service Communication Security | Partly met | A5: TLS for OpenSearch, RabbitMQ and Vault. F6: the hardened install also uses TLS 1.3 for PostgreSQL (`pg_hba.conf` refuses plain network connections) and Valkey (TLS port only), and the Helm chart for all four data services; checked in CI's hardened install. Still plain inside the server's or cluster's network: the Keycloak back channel, the API behind the proxy and the OTLP collector (F7). Development stays plain. |
 | V12.3.2 | 2 | V12.3 General Service to Service Communication Security | Met | A5: clients validate server certificates (CA chain and host name) for OpenSearch, RabbitMQ and Vault. Tests: `ServiceTransportSecurityTests`. |
 | V12.3.3 | 2 | V12.3 General Service to Service Communication Security | Partly met | See V12.3.1. |
-| V12.3.4 | 2 | V12.3 General Service to Service Communication Security | Partly met | A5: internal certificates from a development CA that clients trust explicitly; installs use their own CA (F6). |
+| V12.3.4 | 2 | V12.3 General Service to Service Communication Security | Met | A5: internal certificates from a CA that clients trust explicitly. F6: each hardened install makes its own CA (`certs` service) or uses the customer's; Zelvo's clients trust only it (`SSL Mode=VerifyFull` with `Root Certificate`, `Redis:CaFile`, `RabbitMq:CaFile`, `Search:CaFile`), and the Helm chart's `caSecret`. |
 
 ## V13 Configuration
 
@@ -275,10 +275,10 @@ Main gaps found so far: web app without Content-Security-Policy and HSTS (V3.4);
 | V13.2.3 | 2 | V13.2 Backend Communication Configuration | Met | No default credentials: `dev-up.sh` generates random passwords; RabbitMQ `guest` is loopback-only and not created. |
 | V13.2.4 | 2 | V13.2 Backend Communication Configuration | Partly met | E1: outgoing webhooks reach only addresses the installation allows (`Integrations:Webhooks:AllowedPrivateNetworks`, HTTPS only, internal networks refused by default). The no-code connector builder (E7) will use the same policy. E4: AI providers likewise (`Ai:AllowedPrivateNetworks`, HTTPS only by default). E6: customers' MCP servers likewise. E2: mail servers and providers likewise (`Channels:Network:AllowedPrivateNetworks`; HTTPS for providers; IMAP and SMTP never send credentials in clear unless "No TLS" is chosen for a server on the same network). E8: payment gateways reach only addresses the installation allows (`Payments:AllowedPrivateNetworks`, HTTPS only unless `Payments:AllowInsecureHttp`). E3: messaging providers and SMS gateways follow `Channels:Network:AllowedPrivateNetworks`, the same operator setting as mailboxes. E7: connectors follow `Connectors:Network:AllowedPrivateNetworks`; credentials are encrypted per connector with `Zelvo.Secrets` and needed again for a new address or app. |
 | V13.2.5 | 2 | V13.2 Backend Communication Configuration | Not assessed |  |
-| V13.3.1 | 2 | V13.3 Secret Management | Partly met | A5: stored secrets encrypted with keys from a master key file or Vault/OpenBao; service passwords are environment variables (`.env`, git-ignored) until the hardened install (F6). F1: uploaded certificates' private keys and DKIM private keys are encrypted with the tenant's data key and never returned; the reverse proxy's TLS endpoints need a shared secret compared in constant time. E8: gateway credentials encrypted with `Zelvo.Secrets`, never returned or audited in clear (`PaymentApiTests.Gateways_keep_their_credentials_secret_and_go_live_only_after_a_sandbox_test_payment`). |
+| V13.3.1 | 2 | V13.3 Secret Management | Partly met | A5: stored secrets encrypted with keys from a master key file or Vault/OpenBao; service passwords are environment values: F6's hardened install makes them random per install in a root-only `.env` (mode 0600) with the master key readable only by the services' user, and Helm reads them from a Kubernetes Secret; a secrets manager for them is not in Phase 1. F6: release signing keys never in the repository (cosign key a GitHub environment secret, vendor key on the product owner's computer); backups encrypted. F1: uploaded certificates' private keys and DKIM private keys are encrypted with the tenant's data key and never returned; the reverse proxy's TLS endpoints need a shared secret compared in constant time. E8: gateway credentials encrypted with `Zelvo.Secrets`, never returned or audited in clear (`PaymentApiTests.Gateways_keep_their_credentials_secret_and_go_live_only_after_a_sandbox_test_payment`). |
 | V13.3.2 | 2 | V13.3 Secret Management | Met | A5: the API and worker can read only the CA certificate, not other services' keys; the Vault policy allows only encrypt/decrypt/rewrap with Zelvo's key. |
 | V13.4.1 | 1 | V13.4 Unintended Information Leakage | Met | Images built from explicit project folders; `.git` is not copied. |
-| V13.4.2 | 2 | V13.4 Unintended Information Leakage | Not assessed |  |
+| V13.4.2 | 2 | V13.4 Unintended Information Leakage | Met | F6: release images run with `ASPNETCORE_ENVIRONMENT`/`DOTNET_ENVIRONMENT=Production` (no developer exception pages, OpenAPI off unless enabled), .NET without debug symbols and obfuscated, the web app minified without source maps; the release pipeline fails when an image holds `*.map`, Zelvo `.pdb` files or the obfuscation mapping. |
 | V13.4.3 | 2 | V13.4 Unintended Information Leakage | Not assessed |  |
 | V13.4.4 | 2 | V13.4 Unintended Information Leakage | Not assessed |  |
 | V13.4.5 | 2 | V13.4 Unintended Information Leakage | Met | OpenAPI and the API explorer are on in Development only (elsewhere `OpenApi:Enabled=true`); Prometheus is not published, Grafana and admin consoles are bound to 127.0.0.1 and need a sign-in. |
@@ -302,7 +302,7 @@ Main gaps found so far: web app without Content-Security-Policy and HSTS (V3.4);
 | Requirement | Level | Section | Status | Evidence and notes |
 | --- | --- | --- | --- | --- |
 | V15.1.1 | 1 | V15.1 Secure Coding and Architecture Documentation | Not assessed |  |
-| V15.1.2 | 2 | V15.1 Secure Coding and Architecture Documentation | Met | CycloneDX SBOM per image in CI; Dependabot; Grype image scanning; NuGet and npm vulnerability gates. |
+| V15.1.2 | 2 | V15.1 Secure Coding and Architecture Documentation | Met | CycloneDX SBOM per image in CI; Dependabot; Grype image scanning; NuGet and npm vulnerability gates. F6: every release image is scanned, and its SBOM is attached as a cosign attestation signed with Zelvo's key. |
 | V15.1.3 | 2 | V15.1 Secure Coding and Architecture Documentation | Not assessed |  |
 | V15.2.1 | 1 | V15.2 Security Architecture and Dependencies | Not assessed |  |
 | V15.2.2 | 2 | V15.2 Security Architecture and Dependencies | Not assessed |  |
