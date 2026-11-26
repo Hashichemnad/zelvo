@@ -18,7 +18,7 @@ COPY src/api/Zelvo.Observability/ src/api/Zelvo.Observability/
 RUN dotnet publish src/updater/Zelvo.Updater/Zelvo.Updater.csproj -c Release -o /app --no-restore -p:UseAppHost=false
 
 # The Docker command line and its Compose plugin (static binaries) from Docker's official images.
-FROM docker:29.9.3-cli AS docker
+FROM docker:29.10.0-cli AS docker
 FROM docker/compose-bin:v5.8.0 AS compose
 
 FROM mcr.microsoft.com/dotnet/runtime:10.0 AS runtime
