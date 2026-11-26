@@ -7,6 +7,9 @@ const tenantWide = [/settings\.spec\.ts/, /uae-pass\.spec\.ts/, /integrations\.s
 const demo = /demo\.spec\.ts/;
 const demoRun = process.env.E2E_DEMO === "1";
 
+/** Task F7: prepares an installation for the load tests (tests/load/README.md); only with E2E_LOAD=1. */
+const loadRun = process.env.E2E_LOAD === "1";
+
 /**
  * End-to-end tests against a running stack (`make up`). BASE_URL defaults to the local web port.
  * CHROMIUM_PATH lets a machine with a preinstalled browser use it instead of downloading one.
@@ -25,6 +28,8 @@ export default defineConfig({
   },
   projects: demoRun
     ? [{ name: "demo", use: { ...devices["Desktop Chrome"] }, testMatch: demo }]
+    : loadRun
+    ? [{ name: "load-provision", use: { ...devices["Desktop Chrome"] }, testDir: "./load", testMatch: /provision\.spec\.ts$/ }]
     : [
         // Sets up the staff users' authenticators once, before the parallel projects (see the setup file).
         { name: "second-factor", use: { ...devices["Desktop Chrome"] }, testDir: "./setup", testMatch: /\.setup\.ts$/ },

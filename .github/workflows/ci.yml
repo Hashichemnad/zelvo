@@ -80,6 +80,31 @@ jobs:
       - name: Fail on high or critical vulnerabilities in runtime dependencies (approved exceptions in audit-exceptions.json)
         run: node scripts/audit.mjs
 
+  load-scripts:
+    # Task F7: the load tests run on a dedicated test server (tests/load/README.md); CI only checks
+    # that the scripts load and the provisioning spec type-checks.
+    name: Load-test scripts load
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: 24
+          cache: npm
+          cache-dependency-path: tests/e2e/package-lock.json
+      - name: k6 scripts load with sample credentials
+        run: |
+          for script in agents api-latency; do
+            docker run --rm -v "$PWD/tests/load:/load" -w /load grafana/k6:2.4.0 inspect -e LOAD_CREDENTIALS=/load/k6/fixtures/sample-load.json "k6/$script.js" > /dev/null
+          done
+      - name: Live-connection script parses
+        run: node --check tests/load/live/live-connections.mjs
+      - name: End-to-end and provisioning specs type-check
+        working-directory: tests/e2e
+        run: |
+          npm ci --no-audit --no-fund
+          npx tsc -p tsconfig.json
+
   e2e:
     name: Stack starts and end-to-end tests pass
     runs-on: ubuntu-latest

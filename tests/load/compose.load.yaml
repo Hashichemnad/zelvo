@@ -1,0 +1,11 @@
+# Task F7: settings for a load-test run on a dedicated test server, on top of the installation's
+# own Compose files (see README.md). Only for load tests: it raises the per-person API rate limit,
+# because every load-test agent's web session belongs to the same development agent, who would
+# otherwise be held to the 600 calls a minute one person may make. Integrations keep their own
+# limits (the provisioned keys allow 100,000 a minute each). Everything else stays as installed.
+#
+#   docker compose -f deploy/compose/compose.yaml -f tests/load/compose.load.yaml up -d api
+services:
+  api:
+    environment:
+      RateLimiting__SignedInPermits: ${ZELVO_LOAD_SIGNED_IN_PERMITS:-1000000}

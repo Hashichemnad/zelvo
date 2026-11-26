@@ -1,0 +1,4 @@
+# Written by tests/e2e/load/provision.spec.ts: real API keys and session cookies of the tested installation.
+.credentials/
+# k6 summaries and live-connection logs of a run.
+results/
