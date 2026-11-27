@@ -10,11 +10,13 @@ import {
   approvalAllowed,
   emptyAction,
   fixedRecipients,
+  messagingKinds,
   notifyPlaceholders,
   recordTypes,
   toRuleInput,
   workflowTriggers,
   type ConditionMatch,
+  type PlainLanguageAvailability,
   type RecordType,
   type RuleTestResult,
   type WorkflowAction,
@@ -24,6 +26,8 @@ import {
   type WorkflowTrigger,
 } from "@/lib/workflows";
 import { ApprovalLevelsEditor, ConditionsEditor, type WorkflowChoices } from "./WorkflowEditors";
+import { PlainLanguageRule } from "./PlainLanguageRule";
+import { RuleDiagram } from "./RuleDiagram";
 
 const blankRule = (): WorkflowRuleInput => ({
   name: { en: null, ar: null },
@@ -56,6 +60,12 @@ function RecipientsEditor({ recipients, choices, onChange }: { recipients: strin
           <label key={g.id} className="flex items-center gap-2">
             <input type="checkbox" checked={recipients.includes(`group:${g.id}`)} onChange={(e) => toggle(`group:${g.id}`, e.target.checked)} />
             {t("groupMembers", { name: textOf(g.name, locale) })}
+          </label>
+        ))}
+        {choices.groups.map((g) => (
+          <label key={`leads-${g.id}`} className="flex items-center gap-2">
+            <input type="checkbox" checked={recipients.includes(`groupLeads:${g.id}`)} onChange={(e) => toggle(`groupLeads:${g.id}`, e.target.checked)} />
+            {t("groupLeadsOf", { name: textOf(g.name, locale) })}
           </label>
         ))}
         {choices.roles.map((r) => (
@@ -159,6 +169,19 @@ function ActionEditor({ action, index, rule, choices, onChange, onRemove }: {
             <input type="checkbox" checked={action.email} onChange={(e) => onChange({ ...action, email: e.target.checked })} />
             {t("alsoEmail")}
           </label>
+          <fieldset className="space-y-1" aria-describedby={`${id}-channels-hint`}>
+            <legend className="text-sm font-semibold">{t("alsoBy")}</legend>
+            <div className="flex flex-wrap gap-4">
+              {messagingKinds.map((kind) => (
+                <label key={kind} className="flex items-center gap-2">
+                  <input type="checkbox" checked={(action.channels ?? []).includes(kind)}
+                    onChange={(e) => onChange({ ...action, channels: e.target.checked ? [...(action.channels ?? []), kind] : (action.channels ?? []).filter((c) => c !== kind) })} />
+                  {t(`channels.${kind}`)}
+                </label>
+              ))}
+            </div>
+            <p id={`${id}-channels-hint`} className="text-sm text-ink-muted">{t("channelsHint")}</p>
+          </fieldset>
         </div>
       )}
       {action.type === "approval" && (
@@ -271,7 +294,13 @@ export function RuleEditor({ initial, choices, busy, problems, onSubmit, onCance
  * code, with move up / down (keyboard friendly), and a tester that shows which rules hold for an
  * existing ticket.
  */
-export function WorkflowRulesPanel({ initialRules, choices, csrfToken }: { initialRules: WorkflowRule[]; choices: WorkflowChoices; csrfToken: string }) {
+export function WorkflowRulesPanel({ initialRules, choices, csrfToken, plainLanguage }: {
+  initialRules: WorkflowRule[];
+  choices: WorkflowChoices;
+  csrfToken: string;
+  /** Task K1: whether rules can be described in plain language (the AI feature is on). */
+  plainLanguage?: PlainLanguageAvailability;
+}) {
   const t = useTranslations("workflows");
   const locale = useLocale() as Locale;
   const id = useId();
@@ -282,6 +311,8 @@ export function WorkflowRulesPanel({ initialRules, choices, csrfToken }: { initi
   const [testTrigger, setTestTrigger] = useState<WorkflowTrigger>("TicketCreated");
   const [tested, setTested] = useState<RuleTestResult[] | null>(null);
   const { status, run, busy } = useSaver();
+  const [approved, setApproved] = useState<string | null>(null);
+  const drafts = rules.filter((r) => r.draft);
 
   async function save(input: WorkflowRuleInput) {
     setProblems([]);
@@ -297,6 +328,22 @@ export function WorkflowRulesPanel({ initialRules, choices, csrfToken }: { initi
     }
   }
 
+  async function approve(rule: WorkflowRule) {
+    setProblems([]);
+    try {
+      const saved = await postJson<WorkflowRule>(`/v1/workflow-rules/${rule.id}/approve`, {}, csrfToken, { "If-Match": rule.etag });
+      setRules((list) => list.map((r) => (r.id === saved.id ? saved : r)));
+      setApproved(saved.id);
+    } catch (error) {
+      if (error instanceof ApiError && Array.isArray(error.details.problems)) {
+        setProblems(error.details.problems as WorkflowProblem[]);
+        setEditing(rule);
+      } else {
+        setProblems([{ field: null, code: error instanceof ApiError ? (error.code ?? "failed") : "failed", message: t("saveFailed") }]);
+      }
+    }
+  }
+
   async function move(index: number, by: number) {
     const ids = rules.map((r) => r.id);
     [ids[index], ids[index + by]] = [ids[index + by]!, ids[index]!];
@@ -306,6 +353,46 @@ export function WorkflowRulesPanel({ initialRules, choices, csrfToken }: { initi
 
   return (
     <div className="space-y-6">
+      {plainLanguage && !editing && (
+        <PlainLanguageRule availability={plainLanguage} csrfToken={csrfToken} onDrafted={(draft) => { setApproved(null); setRules((list) => [...list, draft]); }} />
+      )}
+      {drafts.length > 0 && !editing && (
+        <section aria-labelledby={`${id}-drafts`} className="space-y-3" data-testid="rule-drafts">
+          <h3 id={`${id}-drafts`} className="text-lg font-semibold">{t("drafts.title")}</h3>
+          <p>{t("drafts.intro")}</p>
+          {problems.length > 0 && !editing && (
+            <p role="alert" className="text-bad">{t("saveFailed")}</p>
+          )}
+          {drafts.map((rule) => (
+            <article key={rule.id} aria-labelledby={`${id}-draft-${rule.id}`} className="space-y-3 rounded-lg border-2 border-warn p-4">
+              <h4 id={`${id}-draft-${rule.id}`} className="font-bold"><Localized text={rule.name} locale={locale} /></h4>
+              {rule.sourceText && (
+                <div className="space-y-1">
+                  <p className="text-sm font-semibold">{t("drafts.described")}</p>
+                  <blockquote lang={rule.sourceLanguage ?? undefined} dir="auto" className="border-s-4 border-line ps-3">{rule.sourceText}</blockquote>
+                </div>
+              )}
+              <RuleDiagram id={`${id}-draft-diagram-${rule.id}`} rule={toRuleInput(rule)} choices={choices} />
+              {rule.unmapped.length > 0 && (
+                <div className="space-y-1" data-testid="rule-unmapped">
+                  <p className="font-semibold">{t("drafts.unmapped")}</p>
+                  <ul className="list-disc ps-5" lang="en" dir="ltr">
+                    {rule.unmapped.map((u, i) => <li key={i}>{u}</li>)}
+                  </ul>
+                </div>
+              )}
+              <div className="flex flex-wrap gap-2">
+                <button type="button" className={primaryButton} onClick={() => void approve(rule)}>{t("drafts.approve")}</button>
+                <button type="button" className={secondaryButton} onClick={() => { setProblems([]); setEditing(rule); }}>{t("drafts.edit")}</button>
+                <button type="button" className={secondaryButton}
+                  onClick={() => void run(async () => { await deleteRequest(`/v1/workflow-rules/${rule.id}`, csrfToken); setRules((l) => l.filter((r) => r.id !== rule.id)); })}>
+                  {t("drafts.discard")}</button>
+              </div>
+            </article>
+          ))}
+        </section>
+      )}
+      <p aria-live="polite" className={approved ? "font-semibold text-ok" : "sr-only"}>{approved ? t("drafts.approved") : ""}</p>
       {editing ? (
         <RuleEditor key={editing === "new" ? "new" : editing.id} initial={editing === "new" ? blankRule() : toRuleInput(editing)} choices={choices}
           busy={busy} problems={problems} onSubmit={(r) => void save(r)} onCancel={() => { setEditing(null); setProblems([]); }} />
@@ -321,7 +408,11 @@ export function WorkflowRulesPanel({ initialRules, choices, csrfToken }: { initi
             {rules.map((rule, i) => (
               <li key={rule.id} className="flex flex-wrap items-center justify-between gap-2 rounded-md border border-line p-3">
                 <div>
-                  <p className="font-semibold"><Localized text={rule.name} locale={locale} />{!rule.active && <span className="ms-2 text-sm text-ink-muted">{t("inactive")}</span>}</p>
+                  <p className="font-semibold">
+                    <Localized text={rule.name} locale={locale} />
+                    {rule.draft && <span className="ms-2 rounded border border-warn px-1 text-sm">{t("drafts.badge")}</span>}
+                    {!rule.active && <span className="ms-2 text-sm text-ink-muted">{t("inactive")}</span>}
+                  </p>
                   <p className="text-sm text-ink-muted">
                     {t("summary", {
                       trigger: t(`triggers.${rule.trigger}`),
@@ -330,6 +421,10 @@ export function WorkflowRulesPanel({ initialRules, choices, csrfToken }: { initi
                       actions: rule.actions.map((a) => t(`actionTypes.${a.type}`)).join(", "),
                     })}
                   </p>
+                  <details className="mt-2">
+                    <summary className="cursor-pointer text-sm underline">{t("diagram.show", { name: textOf(rule.name, locale) })}</summary>
+                    <div className="mt-2"><RuleDiagram id={`${id}-diagram-${rule.id}`} rule={toRuleInput(rule)} choices={choices} /></div>
+                  </details>
                 </div>
                 <div className="flex flex-wrap gap-2">
                   <button type="button" className={smallButton} disabled={i === 0 || busy} onClick={() => void move(i, -1)}>
@@ -351,7 +446,7 @@ export function WorkflowRulesPanel({ initialRules, choices, csrfToken }: { initi
       <section aria-labelledby={`${id}-test`} className="space-y-2 rounded-lg border border-line p-4">
         <h3 id={`${id}-test`} className="text-lg font-semibold">{t("tryRules")}</h3>
         <form className="flex flex-wrap items-end gap-2"
-          onSubmit={(e) => { e.preventDefault(); void run(async () => setTested(await postJson<RuleTestResult[]>("/v1/workflow-rules/test", { number: testNumber, trigger: testTrigger }, csrfToken))); }}>
+          onSubmit={(e) => { e.preventDefault(); void run(async () => setTested(await postJson<RuleTestResult[]>("/v1/workflow-rules/test", { number: testNumber, trigger: testTrigger, includeDrafts: drafts.length > 0 }, csrfToken))); }}>
           <div className="space-y-1">
             <label htmlFor={`${id}-number`} className="block text-sm">{t("ticketNumber")}</label>
             <input id={`${id}-number`} dir="ltr" required className={inputClass} value={testNumber} maxLength={30} onChange={(e) => setTestNumber(e.target.value)} />
@@ -369,7 +464,7 @@ export function WorkflowRulesPanel({ initialRules, choices, csrfToken }: { initi
             {tested.length === 0 && <li>{t("noRulesForTrigger")}</li>}
             {tested.map((r) => (
               <li key={r.id}>
-                <Localized text={r.name} locale={locale} />: {r.holds ? t("holds", { actions: r.actions.map((a) => t(`actionTypes.${a}`)).join(", ") }) : t("doesNotHold")}
+                <Localized text={r.name} locale={locale} />{r.draft ? ` (${t("drafts.badge")})` : ""}: {r.holds ? t("holds", { actions: r.actions.map((a) => t(`actionTypes.${a}`)).join(", ") }) : t("doesNotHold")}
               </li>
             ))}
           </ul>

@@ -25,6 +25,7 @@ export interface SettingsSection {
     | "fieldSets"
     | "catalog"
     | "customerVoice"
+    | "wellbeing"
     | "knowledge"
     | "notifications"
     | "cannedResponses"
@@ -88,6 +89,8 @@ export const settingsSections: readonly SettingsSection[] = [
   { key: "payments", href: "/settings/payments", permission: "payments.manage" },
   // Task F5: the privacy notice, consent purposes and retention periods (UAE PDPL).
   { key: "privacy", href: "/settings/privacy", permission: "privacy.manage" },
+  // Task K4: agent wellbeing, off by default (UAE PDPL).
+  { key: "wellbeing", href: "/settings/wellbeing", permission: "wellbeing.manage" },
   { key: "knowledge", href: "/settings/knowledge", permission: "settings.manage" },
   { key: "notifications", href: "/settings/notifications", permission: "notifications.manage" },
   // Task B4: everyone who works on incidents keeps their own; leads and administrators share them.

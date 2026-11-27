@@ -113,3 +113,7 @@ No new permissions: the features use `incidents.read`, `incidents.edit`, `incide
 ## Voice-note transcription (task E3)
 
 The ninth feature, `transcription` (product owner decision 2026-11-25), turns WhatsApp voice notes into text. It is **off by default** and has its own provider and model in Settings → AI → Features: OpenAI, Azure OpenAI and OpenAI-compatible servers (for example a self-hosted Whisper) through `audio/transcriptions`, Gemini through `generateContent` with the audio inline; Anthropic is refused (its API takes no audio). The audio **cannot be masked** and goes to the provider as it is, which Settings says; the AI log keeps the transcript with personal data masked, and every later AI use of the transcript masks it like any text. The worker's AI job `Transcription` waits until ClamAV found the recording clean, calls `IAiGateway.TranscribeAsync` (monthly limit, AI log, audit, telemetry as for every call) and stores the transcript with the voice note (`voice_notes`), shown in the conversation to staff and the requester. See `messaging.md`.
+
+## Rule builder (task K1)
+
+The tenth feature, `ruleBuilder` (module 20, product owner decisions 2026-11-26), turns an administrator's plain-language description of a workflow rule into a draft of the C3 builder, which goes live only after the administrator approves it. It is **off until set up**. The tenant's lists go to the provider by reference and the answer is checked against the rule schema, so nothing unknown is accepted. See `workflows.md` (Plain-language rules).

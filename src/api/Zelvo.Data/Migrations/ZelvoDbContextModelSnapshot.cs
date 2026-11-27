@@ -9252,6 +9252,198 @@ namespace Zelvo.Data.Migrations
                         });
                 });
 
+            modelBuilder.Entity("Zelvo.Data.Wellbeing.WellbeingAlert", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<DateTimeOffset?>("EndedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("ended_at");
+
+                    b.Property<Guid>("GroupId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("group_id");
+
+                    b.Property<string>("Kind")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("character varying(20)")
+                        .HasColumnName("kind");
+
+                    b.Property<DateTimeOffset>("RaisedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("raised_at");
+
+                    b.Property<Guid>("TenantId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("tenant_id");
+
+                    b.Property<int>("Threshold")
+                        .HasColumnType("integer")
+                        .HasColumnName("threshold");
+
+                    b.Property<DateTimeOffset>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("updated_at");
+
+                    b.Property<Guid>("UserId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("user_id");
+
+                    b.Property<int>("Value")
+                        .HasColumnType("integer")
+                        .HasColumnName("value");
+
+                    b.HasKey("Id")
+                        .HasName("pk_wellbeing_alerts");
+
+                    b.HasIndex("GroupId")
+                        .HasDatabaseName("ix_wellbeing_alerts_group_id");
+
+                    b.HasIndex("UserId")
+                        .HasDatabaseName("ix_wellbeing_alerts_user_id");
+
+                    b.HasIndex("TenantId", "GroupId", "RaisedAt")
+                        .HasDatabaseName("ix_wellbeing_alerts_tenant_id_group_id_raised_at");
+
+                    b.HasIndex(new[] { "TenantId", "UserId", "GroupId", "Kind" }, "ix_wellbeing_alerts_open")
+                        .IsUnique()
+                        .HasDatabaseName("ix_wellbeing_alerts_tenant_id_user_id_group_id_kind")
+                        .HasFilter("ended_at IS NULL");
+
+                    b.ToTable("wellbeing_alerts", null, t =>
+                        {
+                            t.HasCheckConstraint("ck_wellbeing_alerts_kind", "kind IN ('Workload', 'NewAssignments', 'AfterHours', 'Difficult')");
+                        });
+                });
+
+            modelBuilder.Entity("Zelvo.Data.Wellbeing.WellbeingDay", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<int>("Actions")
+                        .HasColumnType("integer")
+                        .HasColumnName("actions");
+
+                    b.Property<int>("AfterHoursActions")
+                        .HasColumnType("integer")
+                        .HasColumnName("after_hours_actions");
+
+                    b.Property<int>("AfterHoursHours")
+                        .HasColumnType("integer")
+                        .HasColumnName("after_hours_hours");
+
+                    b.Property<DateTimeOffset>("ComputedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("computed_at");
+
+                    b.Property<DateOnly>("Day")
+                        .HasColumnType("date")
+                        .HasColumnName("day");
+
+                    b.Property<int>("DifficultTickets")
+                        .HasColumnType("integer")
+                        .HasColumnName("difficult_tickets");
+
+                    b.Property<int>("HandledTickets")
+                        .HasColumnType("integer")
+                        .HasColumnName("handled_tickets");
+
+                    b.Property<int>("NewAssignments")
+                        .HasColumnType("integer")
+                        .HasColumnName("new_assignments");
+
+                    b.Property<int>("OpenAssigned")
+                        .HasColumnType("integer")
+                        .HasColumnName("open_assigned");
+
+                    b.Property<Guid>("TenantId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("tenant_id");
+
+                    b.Property<Guid>("UserId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("user_id");
+
+                    b.Property<int>("WeightedLoad")
+                        .HasColumnType("integer")
+                        .HasColumnName("weighted_load");
+
+                    b.HasKey("Id")
+                        .HasName("pk_wellbeing_days");
+
+                    b.HasIndex("UserId")
+                        .HasDatabaseName("ix_wellbeing_days_user_id");
+
+                    b.HasIndex("TenantId", "Day")
+                        .HasDatabaseName("ix_wellbeing_days_tenant_id_day");
+
+                    b.HasIndex("TenantId", "UserId", "Day")
+                        .IsUnique()
+                        .HasDatabaseName("ix_wellbeing_days_tenant_id_user_id_day");
+
+                    b.ToTable("wellbeing_days", (string)null);
+                });
+
+            modelBuilder.Entity("Zelvo.Data.Wellbeing.WellbeingThreshold", b =>
+                {
+                    b.Property<Guid>("GroupId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("group_id");
+
+                    b.Property<int?>("MaxAfterHoursHours")
+                        .HasColumnType("integer")
+                        .HasColumnName("max_after_hours_hours");
+
+                    b.Property<int?>("MaxDifficultPercent")
+                        .HasColumnType("integer")
+                        .HasColumnName("max_difficult_percent");
+
+                    b.Property<int?>("MaxNewPerDay")
+                        .HasColumnType("integer")
+                        .HasColumnName("max_new_per_day");
+
+                    b.Property<int?>("MaxWeightedLoad")
+                        .HasColumnType("integer")
+                        .HasColumnName("max_weighted_load");
+
+                    b.Property<Guid>("TenantId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("tenant_id");
+
+                    b.Property<DateTimeOffset>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("updated_at");
+
+                    b.Property<Guid?>("UpdatedById")
+                        .HasColumnType("uuid")
+                        .HasColumnName("updated_by_id");
+
+                    b.HasKey("GroupId")
+                        .HasName("pk_wellbeing_thresholds");
+
+                    b.HasIndex("TenantId")
+                        .HasDatabaseName("ix_wellbeing_thresholds_tenant_id");
+
+                    b.HasIndex("UpdatedById")
+                        .HasDatabaseName("ix_wellbeing_thresholds_updated_by_id");
+
+                    b.ToTable("wellbeing_thresholds", null, t =>
+                        {
+                            t.HasCheckConstraint("ck_wellbeing_thresholds_difficult", "max_difficult_percent IS NULL OR max_difficult_percent BETWEEN 1 AND 100");
+
+                            t.HasCheckConstraint("ck_wellbeing_thresholds_hours", "max_after_hours_hours IS NULL OR max_after_hours_hours BETWEEN 0 AND 168");
+
+                            t.HasCheckConstraint("ck_wellbeing_thresholds_load", "max_weighted_load IS NULL OR max_weighted_load BETWEEN 1 AND 1000");
+
+                            t.HasCheckConstraint("ck_wellbeing_thresholds_new", "max_new_per_day IS NULL OR max_new_per_day BETWEEN 1 AND 500");
+                        });
+                });
+
             modelBuilder.Entity("Zelvo.Data.Workflows.ApprovalDecision", b =>
                 {
                     b.Property<Guid>("Id")
@@ -9440,6 +9632,18 @@ namespace Zelvo.Data.Migrations
                         .HasColumnType("boolean")
                         .HasColumnName("active");
 
+                    b.Property<long?>("AiCallId")
+                        .HasColumnType("bigint")
+                        .HasColumnName("ai_call_id");
+
+                    b.Property<DateTimeOffset?>("ApprovedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("approved_at");
+
+                    b.Property<Guid?>("ApprovedById")
+                        .HasColumnType("uuid")
+                        .HasColumnName("approved_by_id");
+
                     b.Property<string>("Conditions")
                         .IsRequired()
                         .HasColumnType("jsonb")
@@ -9452,6 +9656,10 @@ namespace Zelvo.Data.Migrations
                     b.Property<Guid?>("CreatedById")
                         .HasColumnType("uuid")
                         .HasColumnName("created_by_id");
+
+                    b.Property<bool>("IsDraft")
+                        .HasColumnType("boolean")
+                        .HasColumnName("is_draft");
 
                     b.Property<string>("Match")
                         .IsRequired()
@@ -9468,6 +9676,16 @@ namespace Zelvo.Data.Migrations
                         .HasColumnType("character varying(30)")
                         .HasColumnName("record_type");
 
+                    b.Property<string>("SourceLanguage")
+                        .HasMaxLength(2)
+                        .HasColumnType("character varying(2)")
+                        .HasColumnName("source_language");
+
+                    b.Property<string>("SourceText")
+                        .HasMaxLength(2000)
+                        .HasColumnType("character varying(2000)")
+                        .HasColumnName("source_text");
+
                     b.Property<bool>("StopProcessing")
                         .HasColumnType("boolean")
                         .HasColumnName("stop_processing");
@@ -9481,6 +9699,13 @@ namespace Zelvo.Data.Migrations
                         .HasMaxLength(30)
                         .HasColumnType("character varying(30)")
                         .HasColumnName("trigger");
+
+                    b.Property<string>("Unmapped")
+                        .IsRequired()
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("jsonb")
+                        .HasColumnName("unmapped")
+                        .HasDefaultValueSql("'[]'::jsonb");
 
                     b.Property<DateTimeOffset>("UpdatedAt")
                         .HasColumnType("timestamp with time zone")
@@ -9524,6 +9749,9 @@ namespace Zelvo.Data.Migrations
 
                     b.HasKey("Id")
                         .HasName("pk_workflow_rules");
+
+                    b.HasIndex("ApprovedById")
+                        .HasDatabaseName("ix_workflow_rules_approved_by_id");
 
                     b.HasIndex("CreatedById")
                         .HasDatabaseName("ix_workflow_rules_created_by_id");
@@ -12074,6 +12302,70 @@ namespace Zelvo.Data.Migrations
                         .HasConstraintName("fk_happiness_ratings_users_user_id");
                 });
 
+            modelBuilder.Entity("Zelvo.Data.Wellbeing.WellbeingAlert", b =>
+                {
+                    b.HasOne("Zelvo.Data.Directory.SupportGroup", null)
+                        .WithMany()
+                        .HasForeignKey("GroupId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired()
+                        .HasConstraintName("fk_wellbeing_alerts_support_groups_group_id");
+
+                    b.HasOne("Zelvo.Data.Tenancy.Tenant", null)
+                        .WithMany()
+                        .HasForeignKey("TenantId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired()
+                        .HasConstraintName("fk_wellbeing_alerts_tenants_tenant_id");
+
+                    b.HasOne("Zelvo.Data.Identity.UserAccount", null)
+                        .WithMany()
+                        .HasForeignKey("UserId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired()
+                        .HasConstraintName("fk_wellbeing_alerts_users_user_id");
+                });
+
+            modelBuilder.Entity("Zelvo.Data.Wellbeing.WellbeingDay", b =>
+                {
+                    b.HasOne("Zelvo.Data.Tenancy.Tenant", null)
+                        .WithMany()
+                        .HasForeignKey("TenantId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired()
+                        .HasConstraintName("fk_wellbeing_days_tenants_tenant_id");
+
+                    b.HasOne("Zelvo.Data.Identity.UserAccount", null)
+                        .WithMany()
+                        .HasForeignKey("UserId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired()
+                        .HasConstraintName("fk_wellbeing_days_users_user_id");
+                });
+
+            modelBuilder.Entity("Zelvo.Data.Wellbeing.WellbeingThreshold", b =>
+                {
+                    b.HasOne("Zelvo.Data.Directory.SupportGroup", null)
+                        .WithMany()
+                        .HasForeignKey("GroupId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired()
+                        .HasConstraintName("fk_wellbeing_thresholds_support_groups_group_id");
+
+                    b.HasOne("Zelvo.Data.Tenancy.Tenant", null)
+                        .WithMany()
+                        .HasForeignKey("TenantId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired()
+                        .HasConstraintName("fk_wellbeing_thresholds_tenants_tenant_id");
+
+                    b.HasOne("Zelvo.Data.Identity.UserAccount", null)
+                        .WithMany()
+                        .HasForeignKey("UpdatedById")
+                        .OnDelete(DeleteBehavior.SetNull)
+                        .HasConstraintName("fk_wellbeing_thresholds_users_updated_by_id");
+                });
+
             modelBuilder.Entity("Zelvo.Data.Workflows.ApprovalDecision", b =>
                 {
                     b.HasOne("Zelvo.Data.Identity.UserAccount", null)
@@ -12130,6 +12422,12 @@ namespace Zelvo.Data.Migrations
 
             modelBuilder.Entity("Zelvo.Data.Workflows.WorkflowRule", b =>
                 {
+                    b.HasOne("Zelvo.Data.Identity.UserAccount", null)
+                        .WithMany()
+                        .HasForeignKey("ApprovedById")
+                        .OnDelete(DeleteBehavior.SetNull)
+                        .HasConstraintName("fk_workflow_rules_users_approved_by_id");
+
                     b.HasOne("Zelvo.Data.Identity.UserAccount", null)
                         .WithMany()
                         .HasForeignKey("CreatedById")

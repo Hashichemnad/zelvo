@@ -106,6 +106,11 @@
       "heading": "Privacy",
       "intro": "The privacy notice, what you agree to, a copy of your data and your privacy requests.",
       "link": "Manage your privacy"
+    },
+    "workload": {
+      "heading": "My workload",
+      "intro": "When your organisation turns on workload balancing, you can see the same figures your team leads see about you.",
+      "link": "See my workload"
     }
   },
   "signInProblem": {
@@ -316,6 +321,10 @@
       "updates": {
         "title": "Updates",
         "description": "Offline update packages, maintenance windows and the update history."
+      },
+      "wellbeing": {
+        "title": "Wellbeing",
+        "description": "Turn the workload-balancing dashboard on or off and set the default thresholds."
       }
     },
     "missingWarning": "{count, plural, one {# text is} other {# texts are}} missing a translation.",
@@ -550,7 +559,9 @@
         "privacy_manage": "Set the privacy notice, consent purposes and retention periods",
         "privacy_requests": "Handle privacy requests: copies of people's data and erasure",
         "privacy_consents_read": "Read people's consent to the optional purposes",
-        "installation_manage": "Manage the installation's license and update packages"
+        "installation_manage": "Manage the installation's license and update packages",
+        "wellbeing_read": "See the wellbeing dashboard: team leads their groups' agents, others group totals",
+        "wellbeing_manage": "Turn agent wellbeing on or off and set its default thresholds"
       },
       "events": {
         "user_created": "A user was created",
@@ -806,7 +817,8 @@
         "articleDrafts": "Article drafts",
         "test": "Connection test",
         "unknown": "Other",
-        "transcription": "Voice-note transcription"
+        "transcription": "Voice-note transcription",
+        "ruleBuilder": "Rule builder"
       },
       "errors": {
         "provider-auth-failed": "The provider refused the API key. Check the key and the account.",
@@ -910,7 +922,8 @@
           "sentiment": "Detects frustrated customers so they can be escalated.",
           "virtualAgent": "Answers questions in the portal and chat from the knowledge base and hands over to a person.",
           "articleDrafts": "Drafts knowledge articles from resolved tickets for review.",
-          "transcription": "Turns WhatsApp voice notes into text. The recording is sent to the provider without masking, because audio cannot be masked; the text is masked like any other for later AI use. Not available with Anthropic."
+          "transcription": "Turns WhatsApp voice notes into text. The recording is sent to the provider without masking, because audio cannot be masked; the text is masked like any other for later AI use. Not available with Anthropic.",
+          "ruleBuilder": "Turns a rule described in plain English or Arabic into a draft workflow rule from your own lists. The administrator checks and approves the draft before it runs."
         },
         "provider": "Provider",
         "noProvider": "None",
@@ -1919,7 +1932,8 @@
         "proactive": "Proactive services",
         "payments": "Payments",
         "privacy": "Privacy",
-        "installation": "Installation"
+        "installation": "Installation",
+        "wellbeing": "Agent wellbeing"
       },
       "tenant_manage": "Change the organisation's name",
       "translations_read": "See missing translations",
@@ -1975,7 +1989,9 @@
       "privacy_manage": "Set the privacy notice, consent purposes and retention periods",
       "privacy_requests": "Handle privacy requests: copies of people's data and erasure",
       "privacy_consents_read": "Read people's consent to the optional purposes",
-      "installation_manage": "Manage the installation's license and update packages"
+      "installation_manage": "Manage the installation's license and update packages",
+      "wellbeing_read": "See the wellbeing dashboard: team leads their groups' agents, others group totals",
+      "wellbeing_manage": "Turn agent wellbeing on or off and set its default thresholds"
     },
     "assignment": {
       "intro": "The rules are checked in order and the first that matches decides where a new ticket goes. They run when a ticket is created and when an agent chooses \"Route again\"; they never move a ticket on their own later.",
@@ -2536,7 +2552,8 @@
       "privacy_request_rejected": "Your privacy request could not be carried out",
       "privacy_request_new": "A new privacy request is waiting",
       "workflow_rule": "A workflow rule's notification",
-      "malware_definitions_outdated": "Malware definitions are out of date"
+      "malware_definitions_outdated": "Malware definitions are out of date",
+      "wellbeing_enabled": "Workload balancing is now on"
     },
     "audiences": {
       "Requester": "Your incidents",
@@ -5004,7 +5021,8 @@
       "requesterLanguage": "Requester's language",
       "priority": "Priority (1 is highest)",
       "fee": "Service fee",
-      "answer": "Form answer"
+      "answer": "Form answer",
+      "requesterCustomerGroup": "Requester's customer group (for example VIP)"
     },
     "operators": {
       "in": "is one of",
@@ -5160,7 +5178,54 @@
     "chooseConnector": "Choose a connector",
     "operation": "Operation",
     "chooseOperation": "Choose an operation",
-    "connectorHint": "The call goes out after the change is saved, with retries; the values it reads from the answer are added to the ticket as an internal note."
+    "connectorHint": "The call goes out after the change is saved, with retries; the values it reads from the answer are added to the ticket as an internal note.",
+    "groupLeadsOf": "Team leads of {name}",
+    "alsoBy": "Also by",
+    "channelsHint": "WhatsApp and SMS reach people who turned them on for their phone under Account → Notifications; Teams reaches people linked to your Teams app. The channel must be set up in Settings → Messaging.",
+    "plainLanguage": {
+      "title": "Describe a rule in your own words",
+      "intro": "Write what should happen in English or Arabic. Zelvo's AI builds a draft from your own groups, services and lists. The draft does not run until you check it and approve it.",
+      "label": "What should the rule do?",
+      "hint": "For example: when a VIP raises a critical incident, notify the IT manager on WhatsApp.",
+      "build": "Build the rule",
+      "building": "Building the rule…",
+      "off": "Plain-language rules are off. An administrator turns on \"Rule builder\" in Settings → AI → Features.",
+      "limitReached": "The monthly AI limit is reached. Rules can still be built step by step below.",
+      "errors": {
+        "rule-not-understood": "No rule could be built from the description. Say what should happen, for example who to tell or which group to assign. What the AI could not use:",
+        "ai-off": "Plain-language rules are off. An administrator turns on \"Rule builder\" in Settings → AI → Features.",
+        "limit-reached": "The monthly AI limit is reached.",
+        "failed": "The AI gave no usable answer. Try again, or build the rule step by step."
+      }
+    },
+    "drafts": {
+      "title": "Drafts waiting for your approval",
+      "intro": "Check what the AI built. Drafts do not run until you approve them; you can change them in the builder first.",
+      "described": "You described:",
+      "unmapped": "Not included (add it in the builder if you need it):",
+      "approve": "Approve and turn on",
+      "edit": "Change in the builder",
+      "discard": "Discard the draft",
+      "badge": "Draft, not running",
+      "approved": "The rule is approved and now runs."
+    },
+    "diagram": {
+      "caption": "The rule as a diagram: when, if, then",
+      "show": "Show {name} as a diagram",
+      "always": "Always (no conditions)",
+      "or": " or ",
+      "and": ", ",
+      "inApp": "in the app",
+      "byEmail": "by email",
+      "assign": "Assign to {group} ({method})",
+      "notify": "Tell {recipients}: {how}",
+      "approval": "Ask for approval {stage}: {levels, plural, one {# level} other {# levels}}",
+      "connector": "Call {connector}: {operation}",
+      "stops": "Later rules are not tried.",
+      "answerField": "Form answer \"{key}\"",
+      "namedPerson": "A named person",
+      "unknownItem": "(no longer exists)"
+    }
   },
   "approvals": {
     "title": "My approvals",
@@ -6549,6 +6614,98 @@
       "definitions-sign-unmatched": "A signature file does not belong to a database in this import or to one Zelvo has.",
       "inbox-file-not-found": "That file is no longer in the updates inbox.",
       "other": "The files could not be imported. Please try again."
+    }
+  },
+  "wellbeing": {
+    "nav": "Wellbeing",
+    "title": "Agent wellbeing",
+    "noAccess": "You may not see the wellbeing dashboard.",
+    "unavailable": "The wellbeing figures cannot be shown right now. Please try again shortly.",
+    "off": "Workload balancing is off. An administrator turns it on in Settings → Wellbeing.",
+    "notForRanking": "These figures help you balance work before anyone is overloaded. They are not for ranking or scoring people: agents are listed by name only, and the figures are not exported or reported elsewhere. Every view of a person's figures is recorded.",
+    "noGroups": "There are no active groups.",
+    "group": "Group",
+    "youLead": "you lead",
+    "period": "Period",
+    "lastDays": "Last {days} days",
+    "totalsOnly": "You see this group's totals only. Its team leads see each agent.",
+    "agentsLabel": "Agents of the group, by name",
+    "unavailableForAssignment": "not available for assignment",
+    "suggestFor": "Suggest reassignment for {name}",
+    "figures": {
+      "open": "Open work now",
+      "openValue": "{open} tickets, weighted {weighted}",
+      "newPerDay": "New assignments per day (last {days} days)",
+      "afterHours": "After-hours work (last {days} days)",
+      "afterHoursValue": "{hours} hours with work, {actions} changes",
+      "difficult": "Angry or escalated tickets (last {days} days)",
+      "difficultValue": "{percent} % ({difficult} of {handled} tickets)",
+      "none": "No tickets handled"
+    },
+    "alerts": {
+      "none": "No alerts.",
+      "kinds": {
+        "Workload": "Open work weighted {value}, above the group's {threshold}",
+        "NewAssignments": "{value} new assignments a day this week, above the group's {threshold}",
+        "AfterHours": "{value} after-hours hours this week, above the group's {threshold}",
+        "Difficult": "{value} % angry or escalated tickets this week, above the group's {threshold} %"
+      }
+    },
+    "totals": {
+      "agents": "Agents",
+      "open": "Open work now",
+      "openValue": "{open} tickets, weighted {weighted}",
+      "newPerAgent": "New assignments per agent and day",
+      "afterHours": "After-hours hours",
+      "difficult": "Angry or escalated tickets"
+    },
+    "thresholds": {
+      "groupLegend": "This group's thresholds",
+      "maxWeightedLoad": "Most weighted open work per agent",
+      "maxNewPerDay": "Most new assignments per day (7-day average)",
+      "maxAfterHoursHours": "Most after-hours hours in 7 days",
+      "maxDifficultPercent": "Highest share of angry or escalated tickets (%)",
+      "save": "Save the thresholds",
+      "saved": "The thresholds are saved.",
+      "failed": "The thresholds could not be saved."
+    },
+    "suggestions": {
+      "intro": "Tickets not started yet, with available members who have the least work. Nothing moves until you choose.",
+      "loading": "Looking for tickets to move…",
+      "none": "No tickets could be moved.",
+      "nobody": "Nobody available can take it.",
+      "give": "Give {number} to {name}",
+      "moved": "{number} was given to {name}.",
+      "failed": "The ticket could not be moved."
+    },
+    "mine": {
+      "title": "My workload",
+      "unavailable": "Your figures cannot be shown right now. Please try again shortly.",
+      "off": "Workload balancing is off in your organisation, so nothing is recorded about your workload.",
+      "intro": "These are the figures your team leads see about you, and the alerts they see. They help balance work; they are not used to rank or score you.",
+      "figures": "Your figures (last {days} days)",
+      "alerts": "Alerts about you",
+      "noFigures": "Nothing has been recorded about you yet.",
+      "groups": "Your groups' thresholds",
+      "groupThresholds": "{group}: weighted work {load}, {perDay} new a day, {hours} after-hours hours a week, {percent} % angry or escalated",
+      "recordedHeading": "What is recorded and why",
+      "recorded": "Once a day: the open tickets assigned to you weighted by priority, new assignments, your changes in Zelvo outside your team's working hours (replies, state changes and work on tasks) and the share of angry or escalated tickets you handle. Nothing about your presence or typing. The figures are kept for 90 days, every view of them is recorded, and they are part of the copy of your data you can ask for under Account → Privacy."
+    },
+    "settings": {
+      "intro": "The wellbeing dashboard helps team leads balance work before anyone is overloaded. It is off by default. Under the UAE Personal Data Protection Law, tell staff what is recorded and why before turning it on; Zelvo then notifies every agent in the app and by email.",
+      "isOn": "Wellbeing is on",
+      "isOff": "Wellbeing is off",
+      "onHint": "Team leads will see each agent of the groups they lead; executives and administrators see group totals only; every agent sees their own figures.",
+      "offHint": "Turning it off stops recording and removes every figure and alert recorded so far.",
+      "staffInformed": "I confirm that staff were told what is recorded, why, who sees it and for how long, as the privacy notice's staff section says.",
+      "turnOn": "Turn wellbeing on and notify agents",
+      "turnOff": "Turn wellbeing off and remove the figures",
+      "defaultsLegend": "Default thresholds (team leads can set their own groups')",
+      "turnedOn": "Wellbeing is on. Every agent is being notified.",
+      "turnedOff": "Wellbeing is off and its figures are removed.",
+      "saved": "Saved.",
+      "failed": "The settings could not be saved.",
+      "privacyHint": "Add a staff section to the privacy notice in Settings → Privacy that explains the wellbeing figures."
     }
   },
   "app": {

@@ -18,6 +18,7 @@ using Zelvo.Api.Integrations;
 using Zelvo.Api.Catalog;
 using Zelvo.Api.Payments;
 using Zelvo.Api.Privacy;
+using Zelvo.Api.Wellbeing;
 using Zelvo.Api.Portal;
 using Zelvo.Api.Voice;
 using Zelvo.Api.Knowledge;
@@ -111,6 +112,8 @@ builder.Services.AddZelvoCatalog();
 // Online payments (module 15, task E8).
 builder.Services.AddZelvoPayments(builder.Configuration);
 builder.Services.AddZelvoPrivacy();
+// Agent wellbeing (module 21, task K4).
+builder.Services.AddZelvoWellbeing();
 builder.Services.AddZelvoCustomerVoice();
 builder.Services.AddZelvoApiWorkflows();
 builder.Services.AddZelvoMcpServer();
@@ -180,6 +183,8 @@ v1.MapFormUploadEndpoints();
 // Task F5: UAE privacy law (GOV-5) applies whatever the license includes.
 v1.MapPrivacyEndpoints();
 v1.MapDataSubjectRequestEndpoints();
+// Task K4: agent wellbeing (module 21; not a licensed module yet, like the other Phase 2 modules).
+v1.MapWellbeingEndpoints();
 v1.MapZelvoWorkflowEndpoints();
 v1.MapNotificationEndpoints();
 v1.MapSetupEndpoints();

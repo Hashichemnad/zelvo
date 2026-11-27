@@ -7,7 +7,7 @@ namespace Zelvo.Api.Workflows;
 
 /// <summary>
 /// Checks that what rules and approval levels refer to exists (task C3): services, categories,
-/// locations, groups, departments, users and roles. The shape is checked by <see cref="RuleDocuments"/>.
+/// locations, groups, departments, customer groups (task K1), users and roles. The shape is checked by <see cref="RuleDocuments"/>.
 /// </summary>
 internal static class WorkflowReferences
 {
@@ -34,6 +34,7 @@ internal static class WorkflowReferences
                 RuleFields.Category => db.Categories.Select(s => s.Id),
                 RuleFields.Location => db.Locations.Select(s => s.Id),
                 RuleFields.Group => db.SupportGroups.Select(s => s.Id),
+                RuleFields.RequesterCustomerGroup => db.CustomerGroups.Select(s => s.Id),
                 _ => db.Departments.Select(s => s.Id),
             };
             if (await known.CountAsync(k => ids.Contains(k), cancellationToken) != ids.Count)
@@ -94,6 +95,7 @@ internal static class WorkflowReferences
                         {
                             { } r when r.StartsWith("user:", StringComparison.Ordinal) && Guid.TryParse(r[5..], out var u) => await db.Users.AnyAsync(x => x.Id == u, cancellationToken),
                             { } r when r.StartsWith("group:", StringComparison.Ordinal) && Guid.TryParse(r[6..], out var g) => await db.SupportGroups.AnyAsync(x => x.Id == g, cancellationToken),
+                            { } r when r.StartsWith("groupLeads:", StringComparison.Ordinal) && Guid.TryParse(r[11..], out var l) => await db.SupportGroups.AnyAsync(x => x.Id == l, cancellationToken),
                             { } r when r.StartsWith("role:", StringComparison.Ordinal) => await db.Roles.AnyAsync(x => x.Key == r.Substring(5), cancellationToken),
                             _ => true,
                         };

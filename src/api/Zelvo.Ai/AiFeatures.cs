@@ -41,8 +41,15 @@ public static class AiFeatures
     /// </summary>
     public const string Transcription = "transcription";
 
+    /// <summary>
+    /// Task K1 (module 20): turn an administrator's plain-language description of a workflow rule,
+    /// in English or Arabic, into a draft of the rule builder. Off until set up; a draft goes live
+    /// only after the administrator approves it (product owner decision 2026-11-26).
+    /// </summary>
+    public const string RuleBuilder = "ruleBuilder";
+
     /// <summary>Every feature, in the order Settings shows them.</summary>
-    public static IReadOnlyList<string> All { get; } = [Triage, Summary, Reply, Translation, Duplicates, Sentiment, VirtualAgent, ArticleDrafts, Transcription];
+    public static IReadOnlyList<string> All { get; } = [Triage, Summary, Reply, Translation, Duplicates, Sentiment, VirtualAgent, ArticleDrafts, Transcription, RuleBuilder];
 
     /// <summary>Whether <paramref name="key"/> is a feature of <see cref="All"/>.</summary>
     public static bool IsFeature(string? key) => key is not null && All.Contains(key, StringComparer.Ordinal);

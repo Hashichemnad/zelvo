@@ -58,6 +58,8 @@ export default async function AccountPage({ params }: PageProps<"/[locale]/accou
     );
   }
 
+  // Task K4: staff (anyone with a permission) see their own workload; requesters have none.
+  const isStaff = user.permissions.length > 0;
   return (
     <section className="space-y-8" aria-labelledby="account-heading">
       <h1 id="account-heading" className="text-3xl font-bold text-brand">
@@ -99,6 +101,14 @@ export default async function AccountPage({ params }: PageProps<"/[locale]/accou
         />
       </section>
 
+      {/* Task K4: the agent's own wellbeing figures. */}
+      {isStaff && (
+        <section aria-labelledby="workload-heading" className="space-y-2">
+          <h2 id="workload-heading" className="text-xl font-bold">{t("workload.heading")}</h2>
+          <p className="max-w-2xl text-ink-muted">{t("workload.intro")}</p>
+          <Link href="/account/workload" className="font-semibold text-brand underline" data-testid="account-workload-link">{t("workload.link")}</Link>
+        </section>
+      )}
       {/* Task F5: the privacy notice, consent, a copy of one's data and privacy requests. */}
       <section aria-labelledby="privacy-heading" className="space-y-2">
         <h2 id="privacy-heading" className="text-xl font-bold">{t("privacy.heading")}</h2>

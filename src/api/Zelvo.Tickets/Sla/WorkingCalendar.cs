@@ -77,6 +77,9 @@ public sealed class WorkingCalendar
     /// <summary>Whether <paramref name="date"/> (local) has working time: a working day of the week and not a holiday.</summary>
     public bool IsWorkingDay(DateOnly date) => !_holidays.Contains(date) && _week[(int)date.DayOfWeek].Length > 0;
 
+    /// <summary>Task K4: whether <paramref name="at"/> falls in working time (a working period of a working day).</summary>
+    public bool IsWorkingTime(DateTimeOffset at) => SecondsBetween(at, at.AddSeconds(1)) > 0;
+
     /// <summary>Business seconds between two instants (0 when <paramref name="to"/> is not later).</summary>
     public long SecondsBetween(DateTimeOffset from, DateTimeOffset to)
     {

@@ -114,9 +114,10 @@ public sealed partial class NotificationProcessor(
             }
         }
 
-        // Task E3: WhatsApp, SMS and Teams.
+        // Task E3: WhatsApp, SMS and Teams; task K1: a rule names its own channels.
+        var ruleChannels = rule ? MessagingNotifications.RuleChannels(values.GetValueOrDefault(Placeholders.RuleChannels)?.Text) : null;
         await new MessagingNotifications(db).QueueAsync(notification, recipient, definition, setting, rendered, format.Language,
-            composer.LinksFor(notification.EventType, format.Language, notification.LinkPath), now, cancellationToken).ConfigureAwait(false);
+            composer.LinksFor(notification.EventType, format.Language, notification.LinkPath), now, cancellationToken, ruleChannels).ConfigureAwait(false);
 
         // B3 recorded the alert; it counts as delivered once its first notification is out.
         if (notification.SlaAlertId is { } alertId

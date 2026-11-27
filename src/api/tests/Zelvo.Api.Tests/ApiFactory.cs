@@ -29,6 +29,8 @@ public class ApiFactory : WebApplicationFactory<Program>
         ["Privacy:Jobs:Enabled"] = "false",
         // Task M1: tests run the malware definitions job themselves.
         ["MalwareDefinitions:JobsEnabled"] = "false",
+        // Task K4: tests run the wellbeing jobs themselves.
+        ["Wellbeing:Jobs:Enabled"] = "false",
     };
 
     private readonly List<Action<IServiceCollection>> _services = [];

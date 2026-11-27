@@ -48,6 +48,9 @@ internal sealed class PersonalDataExport(ZelvoDbContext db, IAttachmentStore att
         var payments = await db.Payments.AsNoTracking().Where(p => p.TicketId != null && ticketIds.Contains(p.TicketId.Value)).OrderBy(p => p.CreatedAt).ToListAsync(cancellationToken);
         var decisions = await db.ApprovalDecisions.AsNoTracking().Where(d => d.ApproverId == personId).OrderBy(d => d.CreatedAt).ToListAsync(cancellationToken);
         var requests = await db.DataSubjectRequests.AsNoTracking().Where(r => r.SubjectId == personId).OrderBy(r => r.ReceivedAt).ToListAsync(cancellationToken);
+        // Task K4: the person's daily wellbeing figures and alerts (while wellbeing is on, 90 days).
+        var wellbeingDays = await db.WellbeingDays.AsNoTracking().Where(d => d.UserId == personId).OrderBy(d => d.Day).ToListAsync(cancellationToken);
+        var wellbeingAlerts = await db.WellbeingAlerts.AsNoTracking().Where(a => a.UserId == personId).OrderBy(a => a.RaisedAt).ToListAsync(cancellationToken);
         var groups = await db.SupportGroupMembers.AsNoTracking().Where(m => m.UserId == personId)
             .Join(db.SupportGroups.AsNoTracking(), m => m.GroupId, g => g.Id, (m, g) => new { g.Name, m.IsLead }).ToListAsync(cancellationToken);
 
@@ -144,6 +147,29 @@ internal sealed class PersonalDataExport(ZelvoDbContext db, IAttachmentStore att
                 ["details"] = r.Details,
                 ["resolution"] = r.Resolution,
             })]),
+            ["wellbeing"] = new JsonObject
+            {
+                ["days"] = new JsonArray([.. wellbeingDays.Select(d => (JsonNode)new JsonObject
+                {
+                    ["day"] = d.Day.ToString("yyyy-MM-dd", System.Globalization.CultureInfo.InvariantCulture),
+                    ["openAssigned"] = d.OpenAssigned,
+                    ["weightedLoad"] = d.WeightedLoad,
+                    ["newAssignments"] = d.NewAssignments,
+                    ["actions"] = d.Actions,
+                    ["afterHoursActions"] = d.AfterHoursActions,
+                    ["afterHoursHours"] = d.AfterHoursHours,
+                    ["handledTickets"] = d.HandledTickets,
+                    ["difficultTickets"] = d.DifficultTickets,
+                })]),
+                ["alerts"] = new JsonArray([.. wellbeingAlerts.Select(a => (JsonNode)new JsonObject
+                {
+                    ["kind"] = a.Kind.ToString(),
+                    ["value"] = a.Value,
+                    ["threshold"] = a.Threshold,
+                    ["raisedAt"] = a.RaisedAt,
+                    ["endedAt"] = a.EndedAt,
+                })]),
+            },
         };
 
         var fileList = new JsonArray();

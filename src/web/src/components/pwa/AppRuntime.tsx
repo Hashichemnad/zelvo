@@ -129,7 +129,8 @@ export function AppRuntime({ userId, csrfToken, offlineData }: AppRuntimeProps) 
   const bar = "mx-auto flex max-w-5xl flex-wrap items-center gap-3 px-4 py-2 text-sm";
   return (
     <>
-      <div role="status" aria-live="polite" className="sr-only" data-testid="app-message">
+      {/* A live region without role="status", so pages keep their own status message as the only one. */}
+      <div aria-live="polite" aria-atomic="true" className="sr-only" data-testid="app-message">
         {message}
       </div>
       {!online && !offlinePage && (

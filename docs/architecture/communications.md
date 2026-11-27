@@ -80,7 +80,7 @@ Every row goes through the outgoing-request policy above, except the ones Keyclo
 | Feature | From | To (examples) | Protocol | TLS | Authentication | Policy |
 | --- | --- | --- | --- | --- | --- | --- |
 | Outgoing webhooks (E1) | Worker | Receiver URLs | HTTPS 443 | Required, TLS 1.2–1.3 | Standard Webhooks HMAC signature | `Integrations:Webhooks:*` |
-| AI providers (E4, E5) | API, worker | `api.anthropic.com`, `api.openai.com`, Azure OpenAI, `generativelanguage.googleapis.com`, OpenAI-compatible or self-hosted endpoints | HTTPS | Required, TLS 1.2–1.3 | Provider API key | `Ai:*` |
+| AI providers (E4, E5; K1 rule builder) | API, worker | `api.anthropic.com`, `api.openai.com`, Azure OpenAI, `generativelanguage.googleapis.com`, OpenAI-compatible or self-hosted endpoints | HTTPS | Required, TLS 1.2–1.3 | Provider API key | `Ai:*` |
 | Voice-note transcription (E3) | Worker | OpenAI, Azure OpenAI, Gemini or OpenAI-compatible | HTTPS | Required | Provider API key | `Ai:*` |
 | Customers' MCP servers (E6) | API, worker | Streamable HTTP addresses | HTTPS | Required, TLS 1.2–1.3 | Stored credential | `Ai:*` |
 | Mailboxes (E2) | Worker (`MailJob`), API (test) | IMAP 993/143, SMTP 465/587; `graph.microsoft.com`, `login.microsoftonline.com`; `gmail.googleapis.com`, `oauth2.googleapis.com` | IMAP, SMTP, HTTPS | IMAP and SMTP require TLS unless "No TLS" is chosen; HTTPS | Password, client secret, service-account JWT or refresh token | `Channels:Network:*` |

@@ -8,6 +8,7 @@ using Zelvo.Api.Identity;
 using Zelvo.Api.ServiceDesk;
 using Zelvo.Api.Tenancy;
 using Zelvo.Data;
+using Zelvo.Data.Auditing;
 using Zelvo.Data.Localization;
 using Zelvo.Data.Tickets;
 using Zelvo.Data.Workflows;
@@ -42,6 +43,9 @@ internal static class WorkflowRuleEndpoints
             .WithSummary("Replace a rule. If-Match is checked when sent. Audited.").Produces<WorkflowRuleResponse>().ProducesValidationProblem();
         rules.MapDelete("/{id:guid}", DeleteAsync).WithName("DeleteWorkflowRule")
             .WithSummary("Delete a rule. What it already did stays. Audited.").Produces(StatusCodes.Status204NoContent);
+        rules.MapPost("/{id:guid}/approve", ApproveAsync).WithName("ApproveWorkflowRule")
+            .WithSummary("Task K1: approve a draft made from a plain-language description, so it goes live. Checked again first; If-Match is checked when sent. Audited with the original text.")
+            .Produces<WorkflowRuleResponse>().ProducesValidationProblem();
         return group;
     }
 
@@ -168,15 +172,16 @@ internal static class WorkflowRuleEndpoints
         }
 
         var facts = await RuleFacts.LoadAsync(db, ticket, cancellationToken);
+        var drafts = request.IncludeDrafts ?? false;
         var rules = await db.WorkflowRules.AsNoTracking()
-            .Where(r => r.Active && r.Trigger == request.Trigger!.Value && (r.RecordType == null || r.RecordType == ticket.Type))
+            .Where(r => r.Active && (drafts || !r.IsDraft) && r.Trigger == request.Trigger!.Value && (r.RecordType == null || r.RecordType == ticket.Type))
             .OrderBy(r => r.Position).ThenBy(r => r.Id).ToListAsync(cancellationToken);
         var results = new List<RuleTestResult>();
         foreach (var rule in rules)
         {
             var holds = RuleDocuments.Holds(RuleDocuments.ReadConditions(rule.Conditions), rule.Match, facts.Subject);
             results.Add(new RuleTestResult(rule.Id, LocalizedTextDto.From(rule.Name), holds,
-                holds ? [.. RuleDocuments.ReadActions(rule.Actions).Select(TypeOf)] : []));
+                holds ? [.. RuleDocuments.ReadActions(rule.Actions).Select(TypeOf)] : [], rule.IsDraft));
             if (holds && rule.StopProcessing)
             {
                 break;
@@ -185,6 +190,73 @@ internal static class WorkflowRuleEndpoints
 
         return TypedResults.Ok(results);
     }
+
+    internal static async Task<IResult> ApproveAsync(Guid id, HttpContext http, ZelvoDbContext db, CurrentUser user, IAuditLog audit, CancellationToken cancellationToken)
+    {
+        var rule = await db.WorkflowRules.SingleOrDefaultAsync(r => r.Id == id, cancellationToken);
+        if (rule is null)
+        {
+            return FormsCommon.NotFound("workflow-rule");
+        }
+
+        if (!rule.IsDraft)
+        {
+            return ApiProblem.Create(StatusCodes.Status409Conflict, "not-a-draft", "The rule is already live.");
+        }
+
+        if (IfMatchProblem(http, db, rule) is { } versionProblem)
+        {
+            return versionProblem;
+        }
+
+        // What the draft refers to may have changed since the AI made it: check it like any rule.
+        var input = new WorkflowRuleInput
+        {
+            Name = new LocalizedTextInput { En = rule.Name.En, Ar = rule.Name.Ar },
+            Description = new LocalizedTextInput { En = rule.Description.En, Ar = rule.Description.Ar },
+            Active = rule.Active,
+            Trigger = rule.Trigger,
+            RecordType = rule.RecordType,
+            Match = rule.Match,
+            Conditions = JsonNode.Parse(rule.Conditions) as JsonArray,
+            Actions = JsonNode.Parse(rule.Actions) as JsonArray,
+            StopProcessing = rule.StopProcessing,
+        };
+        var (_, problem) = await ParseAsync(input, db, cancellationToken);
+        if (problem is not null)
+        {
+            return problem;
+        }
+
+        var now = DateTimeOffset.UtcNow;
+        rule.IsDraft = false;
+        rule.ApprovedById = user.Account?.Id;
+        rule.ApprovedAt = now;
+        rule.UpdatedAt = now;
+        audit.Add(AuditCategory.Admin, "workflows.rule.approved", "workflow-rule", rule.Id.ToString(), new Dictionary<string, object?>(StringComparer.Ordinal)
+        {
+            ["sourceText"] = rule.SourceText,
+            ["sourceLanguage"] = rule.SourceLanguage,
+            ["aiCallId"] = rule.AiCallId,
+            ["unmapped"] = RuleUnmapped(rule),
+        });
+        try
+        {
+            await db.SaveChangesAsync(cancellationToken);
+        }
+        catch (DbUpdateConcurrencyException)
+        {
+            return FormsCommon.VersionMismatch();
+        }
+
+        var saved = await db.WorkflowRules.AsNoTracking().SingleAsync(r => r.Id == id, cancellationToken);
+        http.Response.Headers.ETag = $"\"{saved.Version}\"";
+        return TypedResults.Ok(Response(saved));
+    }
+
+    /// <summary>What the AI could not map, as stored on the draft.</summary>
+    internal static IReadOnlyList<string> RuleUnmapped(WorkflowRule rule) =>
+        JsonSerializer.Deserialize<List<string>>(string.IsNullOrWhiteSpace(rule.Unmapped) ? "[]" : rule.Unmapped) ?? [];
 
     // ---- helpers ----
 
@@ -235,7 +307,7 @@ internal static class WorkflowRuleEndpoints
         }
         catch (Exception e) when (e is JsonException or NotSupportedException)
         {
-            problems.Add(new("actions", "actions-invalid", "Each action has a known type (assign, notify or approval) and the fields of that type."));
+            problems.Add(new("actions", "actions-invalid", "Each action has a known type (assign, notify, approval or connector) and the fields of that type."));
         }
 
         RuleDocuments.CheckConditions(conditions, "conditions", problems);
@@ -320,10 +392,10 @@ internal static class WorkflowRuleEndpoints
         rule.StopProcessing = parsed.StopProcessing;
     }
 
-    private static WorkflowRuleResponse Response(WorkflowRule r) => new(
+    internal static WorkflowRuleResponse Response(WorkflowRule r) => new(
         r.Id, LocalizedTextDto.From(r.Name), LocalizedTextDto.From(r.Description), r.Position, r.Active, r.Trigger, r.RecordType, r.Match,
         JsonNode.Parse(r.Conditions) ?? new JsonArray(), JsonNode.Parse(r.Actions) ?? new JsonArray(), r.StopProcessing,
-        $"\"{r.Version}\"", r.CreatedAt, r.UpdatedAt);
+        $"\"{r.Version}\"", r.CreatedAt, r.UpdatedAt, r.IsDraft, r.SourceText, r.SourceLanguage, RuleUnmapped(r), r.ApprovedAt);
 
     private static string TypeOf(WorkflowAction action) => action switch
     {
@@ -403,12 +475,19 @@ internal sealed class RuleTestRequest
     /// <summary>The trigger to try.</summary>
     [Required]
     public WorkflowTrigger? Trigger { get; init; }
+
+    /// <summary>Task K1: also try drafts waiting for approval (they never run on their own).</summary>
+    public bool? IncludeDrafts { get; init; }
 }
 
-/// <summary>A workflow rule.</summary>
+/// <summary>
+/// A workflow rule. Task K1: <c>draft</c> rules were made by the AI from <c>sourceText</c> and do
+/// not run until approved; <c>unmapped</c> lists what the AI could not express with the builder.
+/// </summary>
 internal sealed record WorkflowRuleResponse(
     Guid Id, LocalizedTextDto Name, LocalizedTextDto Description, int Position, bool Active, WorkflowTrigger Trigger, TicketType? RecordType,
-    ConditionMatch Match, JsonNode Conditions, JsonNode Actions, bool StopProcessing, string Etag, DateTimeOffset CreatedAt, DateTimeOffset UpdatedAt);
+    ConditionMatch Match, JsonNode Conditions, JsonNode Actions, bool StopProcessing, string Etag, DateTimeOffset CreatedAt, DateTimeOffset UpdatedAt,
+    bool Draft, string? SourceText, string? SourceLanguage, IReadOnlyList<string> Unmapped, DateTimeOffset? ApprovedAt);
 
-/// <summary>Whether a rule holds for the tested ticket, and the actions it would run.</summary>
-internal sealed record RuleTestResult(Guid Id, LocalizedTextDto Name, bool Holds, IReadOnlyList<string> Actions);
+/// <summary>Whether a rule holds for the tested ticket, and the actions it would run (task K1: whether it is a draft).</summary>
+internal sealed record RuleTestResult(Guid Id, LocalizedTextDto Name, bool Holds, IReadOnlyList<string> Actions, bool Draft);
