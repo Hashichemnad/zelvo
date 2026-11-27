@@ -76,10 +76,7 @@ internal static class ProblemEndpoints
         problems.MapGet("/{id:guid}/articles", ArticlesAsync).WithName("ListProblemArticles")
             .WithSummary("Knowledge articles linked to the problem. Needs problems.read.")
             .RequirePermission(Permissions.ProblemsRead).Produces<IReadOnlyList<ProblemArticleResponse>>();
-        problems.MapPost("/{id:guid}/articles", async (Guid id, LinkArticleRequest request, ZelvoDbContext db, CurrentUser user, IAuditLog audit, CancellationToken ct) =>
-                await db.KbArticles.AsNoTracking().Where(a => a.Number == request.Number!.Trim().ToUpper()).Select(a => (Guid?)a.Id).SingleOrDefaultAsync(ct) is { } articleId
-                    ? await LinkArticleAsync(id, articleId, db, user, audit, ct)
-                    : FormsCommon.NotFound("article"))
+        problems.MapPost("/{id:guid}/articles", LinkArticleByNumberAsync)
             .WithName("LinkProblemArticleByNumber")
             .WithSummary("Link a knowledge article by its number (KB-000123). Needs problems.edit; audited.")
             .RequirePermission(Permissions.ProblemsEdit).Produces<IReadOnlyList<ProblemArticleResponse>>();
@@ -646,6 +643,15 @@ internal static class ProblemEndpoints
         }
 
         return TypedResults.Ok(await LinkedArticlesAsync(db, id, cancellationToken));
+    }
+
+    internal static async Task<IResult> LinkArticleByNumberAsync(
+        Guid id, LinkArticleRequest request, ZelvoDbContext db, CurrentUser user, IAuditLog audit, CancellationToken cancellationToken)
+    {
+        var number = request.Number!.Trim().ToUpperInvariant();
+        return await db.KbArticles.AsNoTracking().Where(a => a.Number == number).Select(a => (Guid?)a.Id).SingleOrDefaultAsync(cancellationToken) is { } articleId
+            ? await LinkArticleAsync(id, articleId, db, user, audit, cancellationToken)
+            : FormsCommon.NotFound("article");
     }
 
     internal static async Task<IResult> UnlinkArticleAsync(Guid id, Guid articleId, ZelvoDbContext db, IAuditLog audit, CancellationToken cancellationToken)

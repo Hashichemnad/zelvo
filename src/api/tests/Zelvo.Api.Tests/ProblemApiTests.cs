@@ -130,6 +130,12 @@ public sealed class ProblemApiTests(DatabaseFixture database) : IAsyncDisposable
         Assert.Equal("External", (string)article["article"]!["visibility"]!);
         Assert.Equal("article-exists", (await (await admin.SendAsync(HttpMethod.Post, $"/api/v1/known-errors/{error.Id()}/article")).ProblemAsync()).Code);
         Assert.Single(await agent.ArrayAsync($"/api/v1/problems/{problem}/articles"));
+        // Linking by number: unknown numbers are not found, a known one is linked once.
+        Assert.Equal("article-not-found", (await (await agent.SendAsync(HttpMethod.Post, $"/api/v1/problems/{problem}/articles", new { number = "KB-999999" })).ProblemAsync()).Code);
+        var number = (string)article["article"]!["number"]!;
+        using var linked = await agent.SendAsync(HttpMethod.Post, $"/api/v1/problems/{problem}/articles", new { number = number.ToLowerInvariant() });
+        Assert.Equal(HttpStatusCode.OK, linked.StatusCode);
+        Assert.Single(await agent.ArrayAsync($"/api/v1/problems/{problem}/articles"));
 
         // Retired known errors are no longer offered.
         await admin.SendOkAsync(HttpMethod.Post, $"/api/v1/known-errors/{error.Id()}/retire");
