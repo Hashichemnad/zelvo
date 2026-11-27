@@ -595,7 +595,10 @@ internal static partial class SlaEndpoints
             ? await db.Users.AsNoTracking().Where(u => u.Id == requesterId).Select(u => u.Email).SingleOrDefaultAsync(cancellationToken)
             : null;
         var customerGroups = request.RequesterId is { } r ? setup.CustomerGroupsOf(r, email) : [];
-        var subject = new SlaSubject(request.RecordType ?? TicketType.Incident, request.Priority ?? 3, setup.CategoryAncestry(request.CategoryId), customerGroups);
+        var subject = new SlaSubject(request.RecordType ?? TicketType.Incident, request.Priority ?? 3, setup.CategoryAncestry(request.CategoryId), customerGroups)
+        {
+            CustomRecordTypeId = request.RecordType == TicketType.Custom ? request.CustomRecordTypeId : null,
+        };
         var policy = SlaMatcher.FirstMatch(setup.Policies, subject);
         var calendarId = setup.CalendarIdFor(request.GroupId, policy);
         var calendar = setup.Calendar(calendarId);
@@ -640,6 +643,7 @@ internal static partial class SlaEndpoints
     {
         policy.Active = request.Active ?? true;
         policy.RecordType = request.RecordType;
+        policy.CustomRecordTypeId = request.RecordType == TicketType.Custom ? request.CustomRecordTypeId : null;
         policy.CategoryId = request.CategoryId;
         policy.CustomerGroupId = request.CustomerGroupId;
         policy.CalendarId = request.CalendarId;
@@ -699,6 +703,12 @@ internal static partial class SlaEndpoints
         if (request.RecordType is { } type && !Enum.IsDefined(type))
         {
             return UserEndpoints.Validation("recordType", "Use a known record type.");
+        }
+
+        // Task K2: a policy for custom records may name one custom record type.
+        if (request.RecordType == TicketType.Custom && request.CustomRecordTypeId is { } customType && !await db.RecordTypes.AnyAsync(t => t.Id == customType, cancellationToken))
+        {
+            return UserEndpoints.Validation("customRecordTypeId", "Choose a custom record type that exists.");
         }
 
         if (request.CategoryId is { } category && category != existing?.CategoryId && !await TreeEndpoints.IsSelectableAsync(db.Categories, category, cancellationToken))
@@ -789,7 +799,7 @@ internal static partial class SlaEndpoints
         var customerGroups = await db.CustomerGroups.AsNoTracking().ToDictionaryAsync(g => g.Id, g => g.Name, cancellationToken);
         NamedRef? Named(Dictionary<Guid, LocalizedText> names, Guid? id) => id is { } i && names.TryGetValue(i, out var n) ? NamedRef.From(i, n) : null;
         return [.. policies.Select(p => new PolicyResponse(
-            p.Id, LocalizedTextDto.From(p.Name), p.Position, p.Active, p.RecordType,
+            p.Id, LocalizedTextDto.From(p.Name), p.Position, p.Active, p.RecordType, p.CustomRecordTypeId,
             refs.Categories.RefOf(p.CategoryId), Named(customerGroups, p.CustomerGroupId), Named(calendars, p.CalendarId),
             [.. p.Targets.OrderBy(t => t.Priority).Select(t => new TargetDto { Priority = t.Priority, ResponseMinutes = t.ResponseMinutes, ResolutionMinutes = t.ResolutionMinutes })],
             [.. p.Escalations.OrderBy(e => e.Percent).ThenBy(e => e.Metric).Select(e => new EscalationResponse(
@@ -955,6 +965,9 @@ public sealed class PolicyInput
     /// <summary>Only this record type; null: any.</summary>
     public TicketType? RecordType { get; init; }
 
+    /// <summary>With record type Custom: only this custom record type (task K2); null: every custom type.</summary>
+    public Guid? CustomRecordTypeId { get; init; }
+
     /// <summary>Only this category or below; null: any.</summary>
     public Guid? CategoryId { get; init; }
 
@@ -988,6 +1001,9 @@ public sealed class SlaTestRequest
 {
     /// <summary>Record type (default Incident).</summary>
     public TicketType? RecordType { get; init; }
+
+    /// <summary>With record type Custom: the custom record type (task K2).</summary>
+    public Guid? CustomRecordTypeId { get; init; }
 
     /// <summary>Priority 1–5 (default 3).</summary>
     public int? Priority { get; init; }
@@ -1046,7 +1062,7 @@ internal sealed record EscalationResponse(Guid Id, SlaMetric? Metric, int Percen
 
 /// <summary>An SLA policy.</summary>
 internal sealed record PolicyResponse(
-    Guid Id, LocalizedTextDto Name, int Position, bool Active, TicketType? RecordType, NodeRef? Category, NamedRef? CustomerGroup, NamedRef? Calendar,
+    Guid Id, LocalizedTextDto Name, int Position, bool Active, TicketType? RecordType, Guid? CustomRecordTypeId, NodeRef? Category, NamedRef? CustomerGroup, NamedRef? Calendar,
     IReadOnlyList<TargetDto> Targets, IReadOnlyList<EscalationResponse> Escalations, DateTimeOffset UpdatedAt, uint Version);
 
 /// <summary>A target and when it would fall due if the ticket were logged now.</summary>

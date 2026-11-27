@@ -28,7 +28,7 @@ internal static class PortalEndpoints
     /// <summary>Most hits per group in the portal search.</summary>
     public const int HitsPerGroup = 5;
 
-    private static readonly string[] TicketTypes = [IncidentSearch.Type, RequestSearch.Type, VoiceSearch.Type];
+    private static readonly string[] TicketTypes = [IncidentSearch.Type, RequestSearch.Type, VoiceSearch.Type, RecordSearch.Type];
 
     public static RouteGroupBuilder MapPortalEndpoints(this RouteGroupBuilder group)
     {
@@ -63,7 +63,7 @@ internal static class PortalEndpoints
                 // Only the caller's own tickets: their user reader, not the roles staff search with.
                 var hits = await search.SearchAsync(new SearchQuery(q, TicketTypes, [SearchReaders.User(me.Id)], null, 1, HitsPerGroup * 2), cancellationToken);
                 var ids = hits.Items.Select(h => Guid.TryParse(h.Id, out var id) ? id : Guid.Empty).Where(id => id != Guid.Empty).ToList();
-                var rows = await db.Tickets.AsNoTracking().Include(t => t.Voice).Where(t => ids.Contains(t.Id) && t.RequesterId == me.Id).ToListAsync(cancellationToken);
+                var rows = await db.Tickets.AsNoTracking().Include(t => t.Voice).Where(t => ids.Contains(t.Id) && t.RequesterId == me.Id && t.Type != TicketType.Problem).ToListAsync(cancellationToken);
                 var context = await PortalTicketContext.LoadAsync(db, rows, cancellationToken);
                 // In the order search ranked them; open ones first.
                 tickets = [.. ids.Select(id => rows.FirstOrDefault(r => r.Id == id)).OfType<Ticket>()
@@ -87,7 +87,9 @@ internal static class PortalEndpoints
         var me = user.Account!.Id;
         // Task C5: parts of a bundle are followed on the bundle's page.
         var tickets = db.Tickets.AsNoTracking().Include(t => t.Voice)
-            .Where(t => t.RequesterId == me && !(t.Type == TicketType.ServiceRequest && t.ParentId != null));
+            .Where(t => t.RequesterId == me && !(t.Type == TicketType.ServiceRequest && t.ParentId != null)
+                // Task H1: a problem's requester is the staff member who raised it; problems are not their own requests.
+                && t.Type != TicketType.Problem);
         if (query.Open == true)
         {
             tickets = tickets.Where(t => t.State != TicketState.Resolved && t.State != TicketState.Closed);
@@ -143,7 +145,10 @@ internal sealed record PortalProgress(IReadOnlyList<PortalStep> Steps, int Curre
 /// </summary>
 internal sealed record PortalTicket(
     Guid Id, string Number, TicketType Type, string Title, TicketState State, bool Open, NamedRef? Team, ServiceRefResponse? Service,
-    PortalProgress Progress, string Path, DateTimeOffset CreatedAt, DateTimeOffset UpdatedAt);
+    PortalProgress Progress, string Path, DateTimeOffset CreatedAt, DateTimeOffset UpdatedAt, PortalRecordType? RecordType = null);
+
+/// <summary>The custom record type of a custom record (task K2).</summary>
+internal sealed record PortalRecordType(string Key, LocalizedTextDto Name);
 
 /// <summary>What portal tickets need, loaded once for a page.</summary>
 internal sealed class PortalTicketContext
@@ -152,6 +157,7 @@ internal sealed class PortalTicketContext
     public static IReadOnlyList<string> GenericSteps { get; } = ["received", "handling", "resolved", "closed"];
 
     private Dictionary<Guid, (CatalogService Service, ServiceCard Card)> _services = [];
+    private Dictionary<Guid, Data.Records.RecordType> _recordTypes = [];
     private DirectoryRefs _refs = null!;
 
     public static async Task<PortalTicketContext> LoadAsync(ZelvoDbContext db, IReadOnlyList<Ticket> tickets, CancellationToken cancellationToken)
@@ -175,7 +181,10 @@ internal sealed class PortalTicketContext
             map[t.Id] = (services[t.Voice!.ServiceId!.Value], new ServiceCard());
         }
 
-        return new PortalTicketContext { _services = map, _refs = await DirectoryRefs.LoadAsync(db, cancellationToken).ConfigureAwait(false) };
+        // Task K2: custom records show their type's name and open on the record page.
+        var typeIds = tickets.Select(t => t.RecordTypeId).OfType<Guid>().Distinct().ToList();
+        var recordTypes = typeIds.Count == 0 ? [] : await db.RecordTypes.AsNoTracking().Where(r => typeIds.Contains(r.Id)).ToDictionaryAsync(r => r.Id, cancellationToken).ConfigureAwait(false);
+        return new PortalTicketContext { _services = map, _recordTypes = recordTypes, _refs = await DirectoryRefs.LoadAsync(db, cancellationToken).ConfigureAwait(false) };
     }
 
     public PortalTicket From(Ticket t)
@@ -203,17 +212,20 @@ internal sealed class PortalTicketContext
             progress = new PortalProgress([.. GenericSteps.Select(k => new PortalStep(k, null))], GenericStepOf(t.State));
         }
 
+        var recordType = t.RecordTypeId is { } typeId ? _recordTypes.GetValueOrDefault(typeId) : null;
         var path = t.Type switch
         {
             TicketType.Incident => $"/my-incidents/{t.Id}",
             TicketType.ServiceRequest => $"/my-requests/{t.Id}",
+            TicketType.Custom => $"/records/{recordType?.Key}/{t.Id}",
             _ => $"/my-voice/{t.Id}",
         };
         return new PortalTicket(
             t.Id, t.Number, t.Type, t.Title, t.State, TicketWorkflow.IsOpen(t.State),
             _refs.Group(t.GroupId),
             service is null ? null : new ServiceRefResponse(service.Id, service.Code, LocalizedTextDto.From(card.Name.HasAnyValue ? card.Name : service.Name)),
-            progress, path, t.CreatedAt, t.UpdatedAt);
+            progress, path, t.CreatedAt, t.UpdatedAt,
+            recordType is null ? null : new PortalRecordType(recordType.Key, LocalizedTextDto.From(recordType.Name)));
     }
 
     /// <summary>Step of the generic journey for a state.</summary>

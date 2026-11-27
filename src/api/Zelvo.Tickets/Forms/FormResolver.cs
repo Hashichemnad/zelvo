@@ -79,9 +79,10 @@ public static class FormResolver
     /// the binding of the category or the nearest category above it, else the record type's
     /// default. Bindings to forms that are not published are skipped.
     /// </summary>
-    public static async Task<ResolvedForm?> ForTicketAsync(ZelvoDbContext db, TicketType recordType, Guid? categoryId, CancellationToken cancellationToken)
+    public static async Task<ResolvedForm?> ForTicketAsync(ZelvoDbContext db, TicketType recordType, Guid? categoryId, CancellationToken cancellationToken, Guid? customRecordTypeId = null)
     {
-        var bindings = await db.FormBindings.AsNoTracking().Where(b => b.RecordType == recordType)
+        // Task K2: a custom record type has bindings of its own.
+        var bindings = await db.FormBindings.AsNoTracking().Where(b => b.RecordType == recordType && b.CustomRecordTypeId == customRecordTypeId)
             .Join(db.Forms.Where(f => f.State == FormState.Published), b => b.FormId, f => f.Id, (b, f) => new { b.CategoryId, b.FormId })
             .ToListAsync(cancellationToken).ConfigureAwait(false);
         if (bindings.Count == 0)

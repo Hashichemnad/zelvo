@@ -1,6 +1,7 @@
 using Zelvo.Api.Assets;
 using Zelvo.Api.Cmdb;
 using Zelvo.Api.Problems;
+using Zelvo.Api.Records;
 using Zelvo.Workflows;
 using Zelvo.Workflows.Engine;
 using Zelvo.Api.ServiceDesk;
@@ -114,6 +115,7 @@ builder.Services.AddZelvoKnowledge();
 builder.Services.AddZelvoCmdb();
 builder.Services.AddZelvoAssets();
 builder.Services.AddZelvoProblems();
+builder.Services.AddZelvoRecords();
 builder.Services.AddZelvoCatalog();
 // Online payments (module 15, task E8).
 builder.Services.AddZelvoPayments(builder.Configuration);
@@ -204,6 +206,7 @@ v1.MapMalwareDefinitionEndpoints();
 v1.MapZelvoCmdbEndpoints();
 v1.MapZelvoAssetEndpoints();
 v1.MapZelvoProblemEndpoints();
+v1.MapZelvoRecordEndpoints();
 app.MapMalwareDefinitionMirror();
 v1.ForModule(LicensedModules.Incidents).MapIncidentEndpoints();
 v1.ForModule(LicensedModules.Incidents).MapIncidentSettingsEndpoints();

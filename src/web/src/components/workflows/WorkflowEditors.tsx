@@ -37,6 +37,8 @@ export interface WorkflowChoices {
   roles: Role[];
   /** Task K1: customer groups (B3), for example VIP (optional). */
   customerGroups?: { id: string; name: { en: string | null; ar: string | null }; active: boolean }[];
+  /** Task K2: custom record types (optional). */
+  customTypes?: { id: string; name: { en: string | null; ar: string | null } }[];
   /** Task E7: REST connectors and their operations (optional). */
   connectors?: import("@/lib/workflows").RestConnectorOperations[];
 }

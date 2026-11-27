@@ -76,7 +76,8 @@ public sealed class WorkflowRuleInterceptor(ITenantContext tenantContext, Pendin
             var now = DateTimeOffset.UtcNow;
             foreach (var (ticket, trigger) in work)
             {
-                var candidates = rules.Where(r => r.Trigger == trigger && (r.RecordType is null || r.RecordType == ticket.Type)).ToList();
+                var candidates = rules.Where(r => r.Trigger == trigger && (r.RecordType is null || r.RecordType == ticket.Type)
+                    && (r.CustomRecordTypeId is null || r.CustomRecordTypeId == ticket.RecordTypeId)).ToList();
                 if (candidates.Count == 0)
                 {
                     continue;
@@ -344,7 +345,9 @@ public sealed record RuleFacts(RuleSubject Subject, UserAccount? Requester, Data
         var priority = db.ChangeTracker.Entries<Incident>().FirstOrDefault(e => e.Entity.TicketId == ticket.Id)?.Entity.Priority
             ?? (ticket.Type == TicketType.Incident
                 ? await db.Incidents.AsNoTracking().Where(i => i.TicketId == ticket.Id).Select(i => (int?)i.Priority).FirstOrDefaultAsync(cancellationToken).ConfigureAwait(false)
-                : null);
+                : null)
+            // Tasks H1 and K2: problems and custom records carry their own priority.
+            ?? ticket.Custom?.Priority ?? ticket.Problem?.Priority;
 
         Guid? serviceId = null;
         decimal? fee = null;

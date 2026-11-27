@@ -308,7 +308,7 @@ function ApiClientForm({
                 checked={scopes.includes(scope)}
                 onChange={(e) => setScopes(e.target.checked ? [...scopes, scope] : scopes.filter((s) => s !== scope))}
               />
-              <span>{t(`permissions.${permissionKey(scope)}`)}</span>
+              <span>{t.has(`permissions.${permissionKey(scope)}`) ? t(`permissions.${permissionKey(scope)}`) : scope}</span>
               <code dir="ltr" lang="en" className="text-xs text-ink-muted">{scope}</code>
             </label>
           ))

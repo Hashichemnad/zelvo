@@ -190,6 +190,9 @@ public sealed class SlaPolicy : ITenantOwned, IAuditedEntity
     /// <summary>Matches tickets of this record type; <see langword="null"/>: any.</summary>
     public TicketType? RecordType { get; set; }
 
+    /// <summary>The custom record type when <see cref="RecordType"/> is <c>Custom</c> (task K2); none means every custom type.</summary>
+    public Guid? CustomRecordTypeId { get; set; }
+
     /// <summary>Matches tickets in this category or below it; <see langword="null"/>: any.</summary>
     public Guid? CategoryId { get; set; }
 

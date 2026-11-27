@@ -372,7 +372,7 @@ internal static class FormEndpoints
         if (user.Account is null && query.RequesterId is null)
         {
             // Integrations get the form without defaults.
-            var form = await FormResolver.ForTicketAsync(db, recordType, query.CategoryId, cancellationToken);
+            var form = await FormResolver.ForTicketAsync(db, recordType, query.CategoryId, cancellationToken, query.CustomRecordTypeId);
             return TypedResults.Ok(await ResolvedResponseAsync(db, form, [], query.Language, cancellationToken));
         }
 
@@ -391,7 +391,7 @@ internal static class FormEndpoints
             }
         }
 
-        var resolved = await FormResolver.ForTicketAsync(db, recordType, query.CategoryId, cancellationToken);
+        var resolved = await FormResolver.ForTicketAsync(db, recordType, query.CategoryId, cancellationToken, recordType == TicketType.Custom ? query.CustomRecordTypeId : null);
         var defaults = resolved is null ? [] : await FormSubmission.DefaultsForAsync(db, user, audit, resolved.PlainFields, requester, query.Language, cancellationToken);
         return TypedResults.Ok(await ResolvedResponseAsync(db, resolved, defaults, query.Language, cancellationToken));
     }
@@ -471,6 +471,9 @@ public sealed class ResolveFormQuery
 
     /// <summary>The ticket's category.</summary>
     public Guid? CategoryId { get; init; }
+
+    /// <summary>The custom record type when the record type is Custom (task K2).</summary>
+    public Guid? CustomRecordTypeId { get; init; }
 
     /// <summary>Staff: the person the ticket is for (default: the caller).</summary>
     public Guid? RequesterId { get; init; }

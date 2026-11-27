@@ -159,9 +159,9 @@ internal static class FormSubmission
     /// </summary>
     public static async Task<(PreparedFormResponse? Prepared, IResult? Problem)> PrepareAsync(
         ZelvoDbContext db, CurrentUser user, IAuditLog audit, TicketType recordType, Guid? categoryId, Guid requesterId,
-        Guid? formVersionId, JsonObject? submitted, Tickets.AttachmentPolicy policy, CancellationToken cancellationToken)
+        Guid? formVersionId, JsonObject? submitted, Tickets.AttachmentPolicy policy, CancellationToken cancellationToken, Guid? customRecordTypeId = null)
     {
-        var form = await FormResolver.ForTicketAsync(db, recordType, categoryId, cancellationToken);
+        var form = await FormResolver.ForTicketAsync(db, recordType, categoryId, cancellationToken, customRecordTypeId);
         return await PrepareAsync(db, user, audit, form, requesterId, formVersionId, submitted, policy, cancellationToken);
     }
 

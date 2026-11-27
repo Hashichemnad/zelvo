@@ -42,7 +42,8 @@ export default async function FormsPage({ params }: PageProps<"/[locale]/setting
           <FormsPanel initial={forms} csrfToken={session.data.csrfToken} />
           <section aria-labelledby="bindings-heading" className="space-y-3">
             <h3 id="bindings-heading" className="text-xl font-semibold">{t("bindingsTitle")}</h3>
-            <FormBindingsPanel initial={bindings} forms={forms} categories={categories ?? []} csrfToken={session.data.csrfToken} />
+            <FormBindingsPanel initial={bindings} forms={forms} categories={categories ?? []} csrfToken={session.data.csrfToken}
+              customTypes={(await getJsonAs<{ id: string; name: { en: string | null; ar: string | null } }[]>("/api/v1/record-types", token, tenant)) ?? []} />
           </section>
         </>
       )}

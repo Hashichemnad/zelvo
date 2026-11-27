@@ -85,7 +85,8 @@
     "asset.contractKind.Support": "عقد دعم",
     "asset.contractKind.Maintenance": "عقد صيانة",
     "asset.contractKind.Lease": "عقد إيجار",
-    "ticket.type.Problem": "مشكلة"
+    "ticket.type.Problem": "مشكلة",
+    "ticket.type.Custom": "سجل"
   },
   "templates": {
     "incident.received": {
@@ -387,6 +388,36 @@
       "inApp": "تم حل المشكلة «{{ticket.title}}».",
       "body": "تحية طيبة، {{recipient.name}}\n\nتم حل المشكلة رقم {{ticket.number}} بعنوان «{{ticket.title}}»:\n\n{{ticket.resolutionNotes}}\n\nمع خالص التحية،\n{{tenant.name}}",
       "action": "فتح المشكلة"
+    },
+    "record.received": {
+      "subject": "رقم {{ticket.number}}: تم استلام طلبكم",
+      "inApp": "تم استلام {{ticket.type}} «{{ticket.title}}».",
+      "body": "تحية طيبة، {{recipient.name}}\n\nتم استلام {{ticket.type}} رقم {{ticket.number}} بعنوان «{{ticket.title}}» بتاريخ {{ticket.createdAt}}، وسيتولى الفريق المختص دراسته وإفادتكم بالمستجدات.\n\nيمكنكم متابعة الحالة وإضافة المعلومات في أي وقت.\n\nمع خالص التحية،\n{{tenant.name}}",
+      "action": "عرض التفاصيل"
+    },
+    "record.replied": {
+      "subject": "رقم {{ticket.number}}: رد جديد",
+      "inApp": "ردّ {{comment.author}} على «{{ticket.title}}»: {{comment.text}}",
+      "body": "تحية طيبة، {{recipient.name}}\n\nردّ {{comment.author}} على {{ticket.type}} رقم {{ticket.number}} بعنوان «{{ticket.title}}»:\n\n{{comment.text}}\n\nيمكنكم الرد من صفحته.\n\nمع خالص التحية،\n{{tenant.name}}",
+      "action": "العرض والرد"
+    },
+    "record.resolved": {
+      "subject": "تم إنجاز رقم {{ticket.number}}",
+      "inApp": "تم إنجاز {{ticket.type}} «{{ticket.title}}».",
+      "body": "تحية طيبة، {{recipient.name}}\n\nتم إنجاز {{ticket.type}} رقم {{ticket.number}} بعنوان «{{ticket.title}}»:\n\n{{ticket.resolutionNotes}}\n\nوفي حال وجود ما لم يُستكمل، يمكنكم إعادة فتحه من صفحته.\n\nمع خالص التحية،\n{{tenant.name}}",
+      "action": "عرض التفاصيل"
+    },
+    "record.assigned": {
+      "subject": "تم إسناد رقم {{ticket.number}} إليكم",
+      "inApp": "{{ticket.type}}: «{{ticket.title}}» من {{requester.name}}.",
+      "body": "تحية طيبة، {{recipient.name}}\n\nتم إسناد {{ticket.type}} رقم {{ticket.number}} بعنوان «{{ticket.title}}» إليكم.\n\nالفريق: {{ticket.group}}\nمن: {{requester.name}}\n\nمع خالص التحية،\n{{tenant.name}}",
+      "action": "فتح التفاصيل"
+    },
+    "record.queued": {
+      "subject": "{{ticket.type}} جديد لدى {{ticket.group}}: {{ticket.number}}",
+      "inApp": "{{ticket.type}} جديد لدى {{ticket.group}}: «{{ticket.title}}».",
+      "body": "تحية طيبة، {{recipient.name}}\n\nيوجد {{ticket.type}} جديد رقم {{ticket.number}} بعنوان «{{ticket.title}}» بانتظار المعالجة لدى {{ticket.group}}.\n\nمن: {{requester.name}}\n\nمع خالص التحية،\n{{tenant.name}}",
+      "action": "فتح التفاصيل"
     }
   },
   "samples": {

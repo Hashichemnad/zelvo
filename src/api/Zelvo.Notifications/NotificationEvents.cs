@@ -111,6 +111,21 @@ public static class NotificationEvents
     /// <summary>A problem was resolved; the assignees of its incidents and the person who raised it hear about it (task H1).</summary>
     public const string ProblemResolved = "problem.resolved";
 
+    /// <summary>A requester's custom record was received (task K2).</summary>
+    public const string RecordReceived = "record.received";
+
+    /// <summary>Staff replied publicly on a requester's custom record (task K2).</summary>
+    public const string RecordReplied = "record.replied";
+
+    /// <summary>A requester's custom record was resolved (task K2).</summary>
+    public const string RecordResolved = "record.resolved";
+
+    /// <summary>A custom record was assigned to someone (not by themselves; task K2).</summary>
+    public const string RecordAssigned = "record.assigned";
+
+    /// <summary>A custom record arrived in a group's queue without an assignee (task K2).</summary>
+    public const string RecordQueued = "record.queued";
+
     /// <summary>An approver is asked to decide on a request (task C3); the email has Approve and Reject buttons.</summary>
     public const string ApprovalRequested = "approval.requested";
 
@@ -271,6 +286,12 @@ public static class NotificationEvents
         new(ProblemKnownError, NotificationAudience.Staff, true,
             [Placeholders.TicketNumber, Placeholders.TicketTitle, Placeholders.ProblemNumber, Placeholders.KnownErrorNumber, Placeholders.KnownErrorTitle]),
         new(ProblemResolved, NotificationAudience.Staff, true, [Placeholders.TicketNumber, Placeholders.TicketTitle, Placeholders.TicketResolutionNotes]),
+        // Task K2: custom records, with the type's own name as {{ticket.type}}.
+        new(RecordReceived, NotificationAudience.Requester, true, [Placeholders.TicketNumber, Placeholders.TicketTitle, Placeholders.TicketType, Placeholders.TicketCreatedAt]),
+        new(RecordReplied, NotificationAudience.Requester, true, [Placeholders.TicketNumber, Placeholders.TicketTitle, Placeholders.TicketType, Placeholders.CommentText, Placeholders.CommentAuthor]),
+        new(RecordResolved, NotificationAudience.Requester, true, [Placeholders.TicketNumber, Placeholders.TicketTitle, Placeholders.TicketType, Placeholders.TicketResolutionNotes]),
+        new(RecordAssigned, NotificationAudience.Staff, true, [Placeholders.TicketNumber, Placeholders.TicketTitle, Placeholders.TicketType, Placeholders.TicketGroup, Placeholders.RequesterName]),
+        new(RecordQueued, NotificationAudience.Staff, true, [Placeholders.TicketNumber, Placeholders.TicketTitle, Placeholders.TicketType, Placeholders.TicketGroup, Placeholders.RequesterName]),
         // Task K4: agents are told when wellbeing is turned on (UAE PDPL).
         new(WellbeingEnabled, NotificationAudience.Staff, false, []),
         // Task M1: the scanner's definitions are out of date.

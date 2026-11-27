@@ -453,6 +453,7 @@ public sealed partial class ZelvoDbContext(DbContextOptions<ZelvoDbContext> opti
         ConfigureConnectors(modelBuilder);
         ConfigureCmdb(modelBuilder);
         ConfigureProblems(modelBuilder);
+        ConfigureRecords(modelBuilder);
 
         modelBuilder.Entity<TenantDataKey>(key =>
         {
@@ -637,7 +638,8 @@ public sealed partial class ZelvoDbContext(DbContextOptions<ZelvoDbContext> opti
             binding.HasOne<Form>().WithMany().HasForeignKey(b => b.FormId).OnDelete(DeleteBehavior.Cascade);
             binding.HasOne<Category>().WithMany().HasForeignKey(b => b.CategoryId).OnDelete(DeleteBehavior.Cascade);
             binding.Property(b => b.RecordType).HasConversion<string>().HasMaxLength(20);
-            binding.HasIndex(b => new { b.TenantId, b.RecordType, b.CategoryId }).IsUnique().AreNullsDistinct(false);
+            binding.HasOne<Records.RecordType>().WithMany().HasForeignKey(b => b.CustomRecordTypeId).OnDelete(DeleteBehavior.Cascade);
+            binding.HasIndex(b => new { b.TenantId, b.RecordType, b.CustomRecordTypeId, b.CategoryId }).IsUnique().AreNullsDistinct(false);
             binding.HasIndex(b => b.FormId);
             binding.HasIndex(b => b.CategoryId);
         });
@@ -889,6 +891,7 @@ public sealed partial class ZelvoDbContext(DbContextOptions<ZelvoDbContext> opti
             ticket.ToTable("tickets", table =>
             {
                 table.HasCheckConstraint("ck_tickets_type", EnumCheck("type", Enum.GetNames<TicketType>()));
+                table.HasCheckConstraint("ck_tickets_record_type", "(type = 'Custom') = (record_type_id IS NOT NULL)");
                 table.HasCheckConstraint("ck_tickets_state", EnumCheck("state", Enum.GetNames<TicketState>()));
                 table.HasCheckConstraint("ck_tickets_channel", EnumCheck("channel", Enum.GetNames<TicketChannel>()));
                 table.HasCheckConstraint("ck_tickets_on_hold_reason", "(state = 'OnHold') = (on_hold_reason IS NOT NULL)");
@@ -917,8 +920,11 @@ public sealed partial class ZelvoDbContext(DbContextOptions<ZelvoDbContext> opti
             ticket.HasOne(t => t.Incident).WithOne().HasForeignKey<Incident>(i => i.TicketId).OnDelete(DeleteBehavior.Cascade);
             ticket.HasOne(t => t.Voice).WithOne().HasForeignKey<Voice.CustomerVoiceRecord>(v => v.TicketId).OnDelete(DeleteBehavior.Cascade);
             ticket.HasOne(t => t.Problem).WithOne().HasForeignKey<Problems.ProblemRecord>(p => p.TicketId).OnDelete(DeleteBehavior.Cascade);
+            // Task K2: custom records of one type share a series; tickets of other types have no record type.
+            ticket.HasOne(t => t.Custom).WithOne().HasForeignKey<Records.CustomRecord>(r => r.TicketId).OnDelete(DeleteBehavior.Cascade);
+            ticket.HasOne<Records.RecordType>().WithMany().HasForeignKey(t => t.RecordTypeId).OnDelete(DeleteBehavior.Restrict);
             ticket.HasIndex(t => new { t.TenantId, t.Number }).IsUnique();
-            ticket.HasIndex(t => new { t.TenantId, t.Type, t.Sequence }).IsUnique();
+            ticket.HasIndex(t => new { t.TenantId, t.Type, t.RecordTypeId, t.Sequence }).IsUnique().AreNullsDistinct(false);
             ticket.HasIndex(t => new { t.TenantId, t.RequesterId, t.CreatedAt });
             ticket.HasIndex(t => new { t.TenantId, t.AssigneeId });
             ticket.HasIndex(t => new { t.TenantId, t.ParentId });
@@ -1118,6 +1124,7 @@ public sealed partial class ZelvoDbContext(DbContextOptions<ZelvoDbContext> opti
             rule.Property(r => r.Version).IsRowVersion();
             rule.HasIndex(r => new { r.TenantId, r.Trigger, r.Position });
             rule.HasIndex(r => r.CreatedById);
+            rule.HasOne<Records.RecordType>().WithMany().HasForeignKey(r => r.CustomRecordTypeId).OnDelete(DeleteBehavior.Cascade);
             // Task K1: plain-language drafts.
             rule.Property(r => r.SourceText).HasMaxLength(Workflows.WorkflowRule.SourceTextMaxLength);
             rule.Property(r => r.SourceLanguage).HasMaxLength(2);
@@ -1417,6 +1424,7 @@ public sealed partial class ZelvoDbContext(DbContextOptions<ZelvoDbContext> opti
             policy.HasMany(p => p.Targets).WithOne().HasForeignKey(t => t.PolicyId).OnDelete(DeleteBehavior.Cascade);
             policy.HasMany(p => p.Escalations).WithOne().HasForeignKey(e => e.PolicyId).OnDelete(DeleteBehavior.Cascade);
             policy.HasIndex(p => new { p.TenantId, p.Position });
+            policy.HasOne<Records.RecordType>().WithMany().HasForeignKey(p => p.CustomRecordTypeId).OnDelete(DeleteBehavior.Cascade);
         });
 
         modelBuilder.Entity<SlaPolicyTarget>(target =>

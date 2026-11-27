@@ -337,6 +337,10 @@
       "problems": {
         "title": "Problems",
         "description": "The known error number prefix and the fishbone template's categories."
+      },
+      "recordTypes": {
+        "title": "Record types",
+        "description": "Your own record types: names, number prefixes, states and the portal entry."
       }
     },
     "missingWarning": "{count, plural, one {# text is} other {# texts are}} missing a translation.",
@@ -581,7 +585,8 @@
         "assets_manage": "Manage assets and their lifecycle, contracts, warranties and licences; change Settings → Assets",
         "problems_read": "See problems, their analysis and links, and the known error database",
         "problems_edit": "Raise problems, write the analysis and known errors, link incidents, items and articles",
-        "problems_manage": "Problem manager: assign, record known errors, resolve and close problems, publish and retire known errors; change Settings → Problems"
+        "problems_manage": "Problem manager: assign, record known errors, resolve and close problems, publish and retire known errors; change Settings → Problems",
+        "recordtypes_manage": "Make and change record types in Settings → Record types"
       },
       "events": {
         "user_created": "A user was created",
@@ -1745,7 +1750,8 @@
       "validation-failed": "Check the values you entered.",
       "forbidden": "You do not have permission to do this.",
       "status-404": "It no longer exists. Reload the page.",
-      "version-mismatch": "Someone else changed this in the meantime. Reload the page and repeat your change."
+      "version-mismatch": "Someone else changed this in the meantime. Reload the page and repeat your change.",
+      "prefix-taken": "Another record type already uses this prefix."
     },
     "languages": {
       "en": "English",
@@ -1956,7 +1962,9 @@
         "cmdb": "CMDB",
         "wellbeing": "Agent wellbeing",
         "assets": "Assets",
-        "problems": "Problems"
+        "problems": "Problems",
+        "recordtypes": "Record types",
+        "records": "Custom records"
       },
       "tenant_manage": "Change the organisation's name",
       "translations_read": "See missing translations",
@@ -2022,7 +2030,11 @@
       "assets_manage": "Manage assets and their lifecycle, contracts, warranties and licences; change Settings → Assets",
       "problems_read": "See problems, their analysis and links, and the known error database",
       "problems_edit": "Raise problems, write the analysis and known errors, link incidents, items and articles",
-      "problems_manage": "Problem manager: assign, record known errors, resolve and close problems, publish and retire known errors; change Settings → Problems"
+      "problems_manage": "Problem manager: assign, record known errors, resolve and close problems, publish and retire known errors; change Settings → Problems",
+      "recordtypes_manage": "Make and change record types in Settings → Record types",
+      "records_read": "{type}: see every record",
+      "records_edit": "{type}: work on records",
+      "records_assign": "{type}: assign records"
     },
     "assignment": {
       "intro": "The rules are checked in order and the first that matches decides where a new ticket goes. They run when a ticket is created and when an agent chooses \"Route again\"; they never move a ticket on their own later.",
@@ -2496,8 +2508,12 @@
         "ServiceRequest": "Service requests",
         "Complaint": "Complaints",
         "Inquiry": "Inquiries",
-        "Suggestion": "Suggestions"
-      }
+        "Suggestion": "Suggestions",
+        "Problem": "Problems",
+        "Custom": "Custom records"
+      },
+      "customRecordType": "Custom record type",
+      "anyCustomRecordType": "Every custom record type"
     }
   },
   "aiApprovals": {
@@ -2590,7 +2606,12 @@
       "problem_assigned": "A problem is assigned to you",
       "problem_queued": "A new problem arrives in your group's queue",
       "problem_known_error": "A workaround is recorded for a problem your incident is linked to",
-      "problem_resolved": "A problem your incident is linked to is resolved"
+      "problem_resolved": "A problem your incident is linked to is resolved",
+      "record_received": "Your request is received",
+      "record_replied": "A reply on your request",
+      "record_resolved": "Your request is done",
+      "record_assigned": "A record is assigned to you",
+      "record_queued": "A new record arrives in your group's queue"
     },
     "audiences": {
       "Requester": "Your incidents",
@@ -2966,7 +2987,8 @@
         "ServiceRequest": "service requests",
         "Complaint": "complaints",
         "Inquiry": "inquiries",
-        "Suggestion": "suggestions"
+        "Suggestion": "suggestions",
+        "Custom": "custom records"
       },
       "createForm": "Create a form",
       "createFieldSet": "Create a field set",
@@ -2991,7 +3013,8 @@
         "ServiceRequest": "Service requests",
         "Complaint": "Complaints",
         "Inquiry": "Inquiries",
-        "Suggestion": "Suggestions"
+        "Suggestion": "Suggestions",
+        "Custom": "Custom records"
       }
     },
     "details": {
@@ -4932,7 +4955,8 @@
         "ServiceRequest": "Service request",
         "Complaint": "Complaint",
         "Inquiry": "Inquiry",
-        "Suggestion": "Suggestion"
+        "Suggestion": "Suggestion",
+        "Custom": "Record"
       },
       "steps": {
         "received": "Received",
@@ -5193,7 +5217,8 @@
       "ServiceRequest": "Service requests",
       "Complaint": "Complaints",
       "Inquiry": "Inquiries",
-      "Suggestion": "Suggestions"
+      "Suggestion": "Suggestions",
+      "Custom": "Custom records"
     },
     "if": "If",
     "match": "Conditions",
@@ -5276,7 +5301,9 @@
       "answerField": "Form answer \"{key}\"",
       "namedPerson": "A named person",
       "unknownItem": "(no longer exists)"
-    }
+    },
+    "customRecordType": "Custom record type",
+    "anyCustomRecordType": "Every custom record type"
   },
   "approvals": {
     "title": "My approvals",
@@ -7939,6 +7966,142 @@
         "forbidden": "You may not do this.",
         "article-not-found": "No article has that number."
       }
+    }
+  },
+  "records": {
+    "nav": "Records",
+    "categories": {
+      "New": "New",
+      "InProgress": "In progress",
+      "OnHold": "On hold",
+      "Resolved": "Resolved",
+      "Closed": "Closed"
+    },
+    "index": {
+      "title": "Records",
+      "intro": "Requests of the kinds your organisation set up, such as facilities or HR requests.",
+      "none": "There are no record types yet.",
+      "raise": "Raise one",
+      "all": "See all",
+      "mine": "See mine"
+    },
+    "list": {
+      "back": "All record types",
+      "raise": "Raise one",
+      "filters": "Filter records",
+      "state": "State",
+      "anyState": "Any state",
+      "assignee": "Assignee",
+      "anyone": "Anyone",
+      "me": "Assigned to me",
+      "nobody": "Nobody",
+      "openOnly": "Open only",
+      "apply": "Apply",
+      "count": "{count, plural, =0 {No records} one {# record} other {# records}}",
+      "number": "Number",
+      "titleColumn": "Title",
+      "group": "Team",
+      "unavailable": "The records could not be loaded."
+    },
+    "form": {
+      "heading": "New",
+      "title": "Title",
+      "description": "Details",
+      "category": "Category",
+      "notSure": "Not sure",
+      "priority": "Priority",
+      "defaultPriority": "The type's priority (P{priority})",
+      "send": "Send",
+      "notAllowed": "You cannot raise records of this type.",
+      "status": {
+        "saving": "Sending…",
+        "invalid": "Give a title of at least 3 characters.",
+        "failed": "It could not be sent. Try again.",
+        "formInvalid": "Check the highlighted answers.",
+        "formChanged": "The form changed meanwhile; check your answers and send again.",
+        "rateLimited": "Too many requests. Wait a moment and try again."
+      }
+    },
+    "detail": {
+      "facts": "Details",
+      "state": "State",
+      "team": "Team",
+      "assignee": "Assignee",
+      "requester": "For",
+      "priority": "Priority",
+      "category": "Category",
+      "created": "Raised",
+      "none": "None",
+      "nobody": "Nobody",
+      "awaitingApproval": "Waiting for approval before it reaches the team.",
+      "resolution": "How it was done"
+    },
+    "work": {
+      "heading": "Work on it",
+      "move": "Move to another state",
+      "moveTo": "Move to {state}",
+      "reason": "On-hold reason",
+      "notes": "How was it done?",
+      "confirm": "Confirm",
+      "assignment": "Assignment",
+      "group": "Team",
+      "assignee": "Assignee",
+      "noGroup": "No team",
+      "nobody": "Nobody",
+      "assign": "Save assignment",
+      "route": "Route again",
+      "noMoves": "Nothing can be changed now.",
+      "awaitingApproval": "It waits for approval."
+    },
+    "conversation": {
+      "heading": "Conversation",
+      "none": "No messages yet.",
+      "by": "{name}, {date}",
+      "internal": "Internal note",
+      "reply": "Reply",
+      "note": "Internal note",
+      "internalNote": "Internal note (staff only)",
+      "send": "Send"
+    },
+    "settings": {
+      "intro": "Record types of your own on the shared ticket core, for example facilities or HR requests. Each state is mapped onto a state of the core, so SLAs, reports and auto-close work.",
+      "none": "No record types yet.",
+      "new": "New record type",
+      "edit": "Change {name}",
+      "editing": "Change {name}",
+      "inactive": "Inactive",
+      "inPortal": "In the portal",
+      "key": "Key",
+      "keyHint": "Lower-case letters, digits and hyphens; used in addresses and permissions and never changes.",
+      "prefix": "Number prefix",
+      "nameEn": "Name (English)",
+      "nameAr": "Name (Arabic)",
+      "descriptionEn": "Description (English)",
+      "descriptionAr": "Description (Arabic)",
+      "priority": "Priority of new records",
+      "portalEntry": "Requesters raise them in the portal",
+      "active": "Active",
+      "states": "States",
+      "statesHint": "In order. Records start in the first New state. Each state belongs to a category of the ticket core; states in use keep their category and cannot be removed.",
+      "stateKey": "State {n}: key",
+      "moveUp": "Move {key} up",
+      "moveDown": "Move {key} down",
+      "removeState": "Remove {key}",
+      "inUse": "In use",
+      "addState": "Add a state",
+      "problems": {
+        "count": "Give 3 to 20 states.",
+        "fields": "Each state needs a key and a name.",
+        "unique": "State keys must be different.",
+        "categories": "Give at least one New, one Resolved and one Closed state."
+      },
+      "grantsHint": "Agents, team leads and administrators get its permissions; change them in Settings → Roles.",
+      "save": "Save",
+      "cancel": "Cancel",
+      "noAccess": "You do not have access to these settings.",
+      "stateNameEn": "State {n}: name (English)",
+      "stateNameAr": "State {n}: name (Arabic)",
+      "stateCategory": "State {n}: category"
     }
   }
 }

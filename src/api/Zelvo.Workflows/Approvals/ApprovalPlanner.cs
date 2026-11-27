@@ -45,7 +45,8 @@ public static class ApprovalPlanner
         ArgumentNullException.ThrowIfNull(facts);
         var definitions = new List<ApprovalLevelDefinition>(serviceLevels);
         var rules = await db.WorkflowRules.AsNoTracking()
-            .Where(r => r.Active && r.Trigger == WorkflowTrigger.TicketCreated && (r.RecordType == null || r.RecordType == ticket.Type))
+            .Where(r => r.Active && r.Trigger == WorkflowTrigger.TicketCreated && (r.RecordType == null || r.RecordType == ticket.Type)
+                && (r.CustomRecordTypeId == null || r.CustomRecordTypeId == ticket.RecordTypeId))
             .OrderBy(r => r.Position).ThenBy(r => r.Id).ToListAsync(cancellationToken).ConfigureAwait(false);
         foreach (var rule in rules)
         {

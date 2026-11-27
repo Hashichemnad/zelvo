@@ -116,6 +116,9 @@ public static partial class TicketNumbers
             [TicketType.Problem] = "PRB",
         };
 
+    /// <summary>Record types with a prefix of their own in the tenant setting: every one except custom records (task K2), whose types carry theirs.</summary>
+    public static IReadOnlyList<TicketType> BuiltInTypes { get; } = [.. Enum.GetValues<TicketType>().Where(t => t != TicketType.Custom)];
+
     /// <summary>The number shown to people: prefix, a hyphen and at least six digits.</summary>
     public static string Format(string prefix, long sequence) =>
         $"{prefix}-{sequence.ToString("D6", System.Globalization.CultureInfo.InvariantCulture)}";
@@ -133,12 +136,12 @@ public static partial class TicketNumbers
     /// </summary>
     public static bool AreValid(IReadOnlyDictionary<TicketType, string>? prefixes)
     {
-        if (prefixes is null || prefixes.Count == 0 || prefixes.Any(p => !Enum.IsDefined(p.Key) || p.Value is null || !PrefixPattern().IsMatch(p.Value)))
+        if (prefixes is null || prefixes.Count == 0 || prefixes.Any(p => !Enum.IsDefined(p.Key) || p.Key == TicketType.Custom || p.Value is null || !PrefixPattern().IsMatch(p.Value)))
         {
             return false;
         }
 
-        var all = Enum.GetValues<TicketType>().Select(t => PrefixOf(prefixes, t)).ToList();
+        var all = BuiltInTypes.Select(t => PrefixOf(prefixes, t)).ToList();
         return all.Distinct(StringComparer.Ordinal).Count() == all.Count;
     }
 

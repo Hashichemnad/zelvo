@@ -239,6 +239,12 @@ internal static class Permissions
     /// </summary>
     public const string ProblemsManage = Zelvo.Tickets.ProblemPermissions.Manage;
 
+    /// <summary>
+    /// Task K2 (module 20): Settings → Record types, the custom record types of the tenant. Making a
+    /// type makes its permissions (<c>records.&lt;key&gt;.read</c>, <c>.edit</c>, <c>.assign</c>) and grants them.
+    /// </summary>
+    public const string RecordTypesManage = "recordtypes.manage";
+
     /// <summary>Task G1 (module 18): see configuration items, their relationships, map, impact and history.</summary>
     public const string CmdbRead = "cmdb.read";
 
@@ -366,6 +372,7 @@ internal static class PermissionCatalog
         Permissions.ProblemsRead,
         Permissions.ProblemsEdit,
         Permissions.ProblemsManage,
+        Permissions.RecordTypesManage,
     ];
 
     /// <summary>
@@ -413,6 +420,8 @@ internal static class PermissionCatalog
         // credentials and the vCenter password (pushing records through the discovery API needs
         // only cmdb.manage, which integrations may hold).
         Permissions.CmdbDiscoveryManage,
+        // Task K2, for the product owner's approval: making a record type grants permissions to roles.
+        Permissions.RecordTypesManage,
     };
 
     /// <summary>Permissions an integration may be given as scopes.</summary>
@@ -497,7 +506,16 @@ internal static class PermissionCatalog
     public static IReadOnlySet<string> TenantAdminLocked { get; } =
         new HashSet<string>(StringComparer.Ordinal) { Permissions.UsersManage, Permissions.RolesManage };
 
-    public static bool IsPermission(string key) => All.Contains(key, StringComparer.Ordinal);
+    /// <summary>
+    /// Whether <paramref name="key"/> is a permission: one of the catalog's, or one made per custom
+    /// record type (task K2, <c>records.&lt;key&gt;.read</c>, <c>.edit</c>, <c>.assign</c>). Whether such a type
+    /// exists in the tenant is checked where permissions are granted.
+    /// </summary>
+    public static bool IsPermission(string key) => All.Contains(key, StringComparer.Ordinal) || Zelvo.Tickets.RecordPermissions.Parse(key) is not null;
+
+    /// <summary>Whether an integration may be given <paramref name="key"/> as a scope (per-type record permissions may).</summary>
+    public static bool IsIntegrationScope(string key) =>
+        IntegrationScopes.Contains(key, StringComparer.Ordinal) || Zelvo.Tickets.RecordPermissions.Parse(key) is not null;
 
     /// <summary>
     /// The licensed module a permission belongs to (task F3): without the module in the license the

@@ -1,10 +1,11 @@
 "use client";
 
 import { useId, useState } from "react";
-import { useTranslations } from "next-intl";
+import { useLocale, useTranslations } from "next-intl";
 import { useRouter } from "@/i18n/navigation";
 import { deleteRequest, patchJson, putJson } from "@/lib/client-api";
 import { fieldAccessLevels, permissionArea, toInput, type FieldAccess, type PermissionCatalog, type Role } from "@/lib/directory";
+import { inLanguage, type Locale } from "@/lib/incidents";
 import { BilingualInputs, SaveStatusLine, cellClass, dangerButton, inputClass, primaryButton, tableClass, useSaver } from "./common";
 
 /** Roles that always need a second factor (A2 guards); the switch is shown but locked. */
@@ -27,7 +28,14 @@ export function RoleEditForm({ initial, catalog, csrfToken }: { initial: Role; c
   );
   const saver = useSaver();
   const areas = [...new Set(catalog.permissions.map(permissionArea))];
-  const label = (key: string) => (tPermissions.has(key.replaceAll(".", "_")) ? tPermissions(key.replaceAll(".", "_")) : key);
+  const locale = useLocale() as Locale;
+  // Task K2: per-type record permissions are labelled with their type's name.
+  const records = new Map((catalog.recordPermissions ?? []).map((r) => [r.permission, r]));
+  const label = (key: string) => {
+    const record = records.get(key);
+    if (record) return tPermissions(`records_${record.action}`, { type: inLanguage(record.recordTypeName, locale).value || record.recordType });
+    return tPermissions.has(key.replaceAll(".", "_")) ? tPermissions(key.replaceAll(".", "_")) : key;
+  };
 
   async function save(event: React.FormEvent) {
     event.preventDefault();

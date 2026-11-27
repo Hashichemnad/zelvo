@@ -148,6 +148,7 @@ public sealed partial class TicketAutoCloseJob(IServiceScopeFactory scopes, ILog
         await db.Incidents.Where(i => ids.Contains(i.TicketId)).LoadAsync(cancellationToken).ConfigureAwait(false);
         await db.CustomerVoiceRecords.Where(v => ids.Contains(v.TicketId)).LoadAsync(cancellationToken).ConfigureAwait(false);
         await db.Problems.Where(p => ids.Contains(p.TicketId)).LoadAsync(cancellationToken).ConfigureAwait(false);
+        await db.CustomRecords.Where(r => ids.Contains(r.TicketId)).LoadAsync(cancellationToken).ConfigureAwait(false);
 
         var staff = await IncidentSearch.StaffRolesAsync(db, cancellationToken).ConfigureAwait(false);
         IReadOnlyList<string>? voiceStaff = null;
@@ -164,6 +165,10 @@ public sealed partial class TicketAutoCloseJob(IServiceScopeFactory scopes, ILog
             {
                 requestStaff ??= await RequestSearch.StaffRolesAsync(db, cancellationToken).ConfigureAwait(false);
                 indexer.Upsert(RequestSearch.Document(ticket, requestStaff));
+            }
+            else if (ticket.Type == TicketType.Custom)
+            {
+                await RecordSearch.IndexAsync(db, indexer, [ticket], cancellationToken).ConfigureAwait(false);
             }
             else if (ticket.Type == TicketType.Problem)
             {
@@ -391,6 +396,9 @@ public static class TicketServiceCollectionExtensions
         services.AddScoped<ISearchDocumentSource, RequestSearchSource>();
         services.AddScoped<ISearchDocumentSource, ProblemSearchSource>();
         services.AddScoped<ISearchDocumentSource, KnownErrorSearchSource>();
+        // Task K2: custom records' search documents and their states following the ticket core.
+        services.AddScoped<ISearchDocumentSource, RecordSearchSource>();
+        services.AddZelvoSaveChangesInterceptor<CustomRecordStateInterceptor>();
         services.TryAddScoped<Sla.SlaTracker>();
         services.TryAddScoped<IncidentIntake>();
         if (!services.Any(d => d.ImplementationType == typeof(Sla.SlaWebhookEvents)))
@@ -403,6 +411,7 @@ public static class TicketServiceCollectionExtensions
         services.AddSearchType(RequestSearch.Type, null);
         services.AddSearchType(ProblemSearch.Type, ProblemPermissions.Read);
         services.AddSearchType(ProblemSearch.KnownErrorType, ProblemPermissions.Read);
+        services.AddSearchType(RecordSearch.Type, null);
         // Task F1: DNS lookups of the guided domain checks.
         services.TryAddSingleton<Branding.IDnsLookup, Branding.SystemDnsLookup>();
         return services;

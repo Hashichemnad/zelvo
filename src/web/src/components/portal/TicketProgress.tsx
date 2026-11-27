@@ -32,7 +32,7 @@ export function TicketProgressCard({ ticket, display }: { ticket: PortalTicket; 
         <div className="min-w-0 space-y-1">
           <p className="text-sm text-ink-muted">
             <span className="font-mono" dir="ltr">{ticket.number}</span>
-            <span className="ms-2">{t(`types.${ticket.type}`)}</span>
+            <span className="ms-2">{ticket.recordType ? <Localized text={ticket.recordType.name} locale={locale} /> : t(`types.${ticket.type}`)}</span>
           </p>
           <h3 id={`${id}-title`} className="text-lg font-semibold">
             <Link href={ticket.path} className="text-brand underline-offset-4 hover:underline" dir="auto">{ticket.title}</Link>

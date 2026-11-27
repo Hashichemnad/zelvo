@@ -27,6 +27,7 @@ export interface SettingsSection {
     | "cmdb"
     | "assets"
     | "problems"
+    | "recordTypes"
     | "customerVoice"
     | "wellbeing"
     | "knowledge"
@@ -91,6 +92,8 @@ export const settingsSections: readonly SettingsSection[] = [
   { key: "assets", href: "/settings/assets", permission: "assets.manage" },
   // Task H1: the known error prefix and the fishbone template (module 16).
   { key: "problems", href: "/settings/problems", permission: "problems.manage" },
+  // Task K2: custom record types on the ticket core (module 20).
+  { key: "recordTypes", href: "/settings/record-types", permission: "recordtypes.manage" },
   { key: "customerVoice", href: "/settings/customer-voice", permission: "voice.manage" },
   // Task C3: the no-code builder for assignment, approval and notification rules.
   { key: "workflows", href: "/settings/workflows", permission: "workflows.manage" },

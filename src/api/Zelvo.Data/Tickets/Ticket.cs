@@ -164,6 +164,12 @@ public sealed class Ticket : ITenantOwned, IAuditedEntity
     /// <summary>Problem details of problems (task H1).</summary>
     public Problems.ProblemRecord? Problem { get; set; }
 
+    /// <summary>The custom record type of a ticket of type <see cref="TicketType.Custom"/> (task K2).</summary>
+    public Guid? RecordTypeId { get; init; }
+
+    /// <summary>Details of a custom record (task K2): its state of the type and priority.</summary>
+    public Records.CustomRecord? Custom { get; set; }
+
     /// <summary>Optimistic concurrency token (PostgreSQL <c>xmin</c>).</summary>
     public uint Version { get; init; }
 }
@@ -188,6 +194,9 @@ public enum TicketType
 
     /// <summary>The cause of one or more incidents, investigated by problem management (module 16, task H1).</summary>
     Problem,
+
+    /// <summary>A record of a type an administrator made (module 20, task K2); <see cref="Ticket.RecordTypeId"/> names it.</summary>
+    Custom,
 }
 
 /// <summary>Ticket states (module 1).</summary>

@@ -34,6 +34,8 @@ export default async function SlaPoliciesPage({ params }: PageProps<"/[locale]/s
     get<IncidentSettings>("/api/v1/settings/incidents"),
     getDisplayFormat(),
   ]);
+  // Task K2: policies for one custom record type.
+  const customTypes = allowed ? (await get<{ id: string; name: { en: string | null; ar: string | null } }[]>("/api/v1/record-types")) ?? [] : [];
 
   return (
     <section aria-labelledby="sla-policies-heading" className="space-y-4">
@@ -51,6 +53,7 @@ export default async function SlaPoliciesPage({ params }: PageProps<"/[locale]/s
               calendars: calendars ?? [],
               groups: groups ?? [],
               priorities: settings?.priorityMatrix.priorities ?? [],
+              customTypes: customTypes.map((c) => ({ id: c.id, name: c.name })),
             }}
             csrfToken={session.data.csrfToken}
             canManage={user!.permissions.includes("sla.manage")}
