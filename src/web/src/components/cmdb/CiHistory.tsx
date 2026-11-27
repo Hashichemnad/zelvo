@@ -30,7 +30,7 @@ export function CiHistory({ entries, display }: { entries: HistoryEntry[]; displ
     const key = entry.action.replaceAll(".", "_").replaceAll("-", "_");
     const d = entry.details ?? {};
     const params = {
-      relation: String(d.typeName ?? d.type ?? ""),
+      relation: String((locale === "ar" ? d.typeNameAr : undefined) ?? d.typeName ?? d.type ?? ""),
       source: String(d.source ?? ""),
       target: String(d.target ?? ""),
       ticket: String(d.ticket ?? ""),

@@ -534,6 +534,7 @@ internal static class CmdbItemEndpoints
             ["relationshipId"] = r.Id,
             ["type"] = type.Key,
             ["typeName"] = type.OutgoingName.En ?? type.OutgoingName.Ar,
+            ["typeNameAr"] = type.OutgoingName.Ar ?? type.OutgoingName.En,
             ["source"] = sourceLabel,
             ["target"] = targetLabel,
         };
