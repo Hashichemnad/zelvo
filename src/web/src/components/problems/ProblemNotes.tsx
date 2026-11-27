@@ -64,18 +64,20 @@ export function ProblemTimeline({ entries, display }: { entries: TimelineEntry[]
       <h2 id={`${id}-heading`} className="text-lg font-semibold">{t("heading")}</h2>
       {entries.length === 0 ? <p>{t("none")}</p> : (
         <ol className="space-y-1 border-s-2 border-line ps-4">
-          {entries.map((e, i) => (
+          {entries.map((e, i) => {
+            // Message keys cannot hold dots: problem.known-error is problem_known_error.
+            const label = t(`kinds.${e.kind.replace(/[.-]/g, "_")}`, { number: e.ticket.number, reference: e.reference ?? "" });
+            return (
             <li key={i}>
               <time dateTime={e.at} className="text-sm text-ink-muted">{formatDateTime(new Date(e.at), display)}</time>{" "}
               {e.ticket.type === "Incident" ? (
-                <Link href={`/incidents/${e.ticket.id}`} className="text-brand underline-offset-4 hover:underline">
-                  {t(`kinds.${e.kind}`, { number: e.ticket.number, reference: e.reference ?? "" })}
-                </Link>
+                <Link href={`/incidents/${e.ticket.id}`} className="text-brand underline-offset-4 hover:underline">{label}</Link>
               ) : (
-                <span>{t(`kinds.${e.kind}`, { number: e.ticket.number, reference: e.reference ?? "" })}</span>
+                <span>{label}</span>
               )}
             </li>
-          ))}
+            );
+          })}
         </ol>
       )}
     </section>

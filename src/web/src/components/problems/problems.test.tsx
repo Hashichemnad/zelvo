@@ -5,6 +5,7 @@ import en from "../../../messages/en.json";
 import { composeInsertEvent, type KnownError, type MatchingKnownError, type Problem } from "@/lib/problems";
 import { IncidentKnownErrors } from "./IncidentKnownErrors";
 import { ProblemAnalysisEditor } from "./ProblemAnalysisEditor";
+import { ProblemTimeline } from "./ProblemNotes";
 import { ProblemWorkPanel } from "./ProblemWorkPanel";
 
 const refresh = vi.fn();
@@ -120,5 +121,22 @@ describe("known errors on an incident", () => {
     withIntl(<IncidentKnownErrors incidentId="i2" canInsert={false} canSeeProblems={false} canRaise />, "ar");
     expect(await screen.findByText("لا يوجد خطأ معروف يطابق هذا البلاغ.")).toBeInTheDocument();
     expect(screen.getByRole("link", { name: "إنشاء مشكلة من هذا البلاغ" })).toHaveAttribute("href", "/problems/new?incidents=i2");
+  });
+});
+
+describe("problem timeline", () => {
+  it("names each entry in both languages", () => {
+    const display = { locale: "en", calendar: "gregory", digits: "latn", timeZone: "Asia/Dubai" } as const;
+    const at = new Date().toISOString();
+    const entries = [
+      { at, kind: "incident.linked" as const, ticket: { id: "i1", number: "INC-000001", type: "Incident", title: "Portal down" }, reference: null },
+      { at, kind: "problem.known-error" as const, ticket: { id: "p1", number: "PRB-000001", type: "Problem", title: "Portal" }, reference: "KE-000001" },
+    ];
+    const { unmount } = withIntl(<ProblemTimeline entries={entries} display={display} />);
+    expect(screen.getByRole("link", { name: "Incident INC-000001 linked" })).toHaveAttribute("href", "/incidents/i1");
+    expect(screen.getByText("Known error KE-000001 recorded")).toBeInTheDocument();
+    unmount();
+    withIntl(<ProblemTimeline entries={entries} display={{ ...display, locale: "ar" }} />, "ar");
+    expect(screen.getByText("تسجيل الخطأ المعروف KE-000001")).toBeInTheDocument();
   });
 });

@@ -7855,14 +7855,14 @@
       "heading": "التسلسل الزمني",
       "none": "لا يوجد شيء بعد.",
       "kinds": {
-        "problem.created": "إنشاء المشكلة",
-        "problem.known-error": "تسجيل الخطأ المعروف {reference}",
-        "problem.resolved": "حل المشكلة",
-        "problem.closed": "إغلاق المشكلة",
-        "incident.created": "إنشاء البلاغ {number}",
-        "incident.linked": "ربط البلاغ {number}",
-        "incident.resolved": "حل البلاغ {number}",
-        "incident.closed": "إغلاق البلاغ {number}"
+        "problem_created": "إنشاء المشكلة",
+        "problem_known_error": "تسجيل الخطأ المعروف {reference}",
+        "problem_resolved": "حل المشكلة",
+        "problem_closed": "إغلاق المشكلة",
+        "incident_created": "إنشاء البلاغ {number}",
+        "incident_linked": "ربط البلاغ {number}",
+        "incident_resolved": "حل البلاغ {number}",
+        "incident_closed": "إغلاق البلاغ {number}"
       }
     },
     "notes": {

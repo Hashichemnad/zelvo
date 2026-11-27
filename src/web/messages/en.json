@@ -7855,14 +7855,14 @@
       "heading": "Timeline",
       "none": "Nothing yet.",
       "kinds": {
-        "problem.created": "Problem raised",
-        "problem.known-error": "Known error {reference} recorded",
-        "problem.resolved": "Problem resolved",
-        "problem.closed": "Problem closed",
-        "incident.created": "Incident {number} raised",
-        "incident.linked": "Incident {number} linked",
-        "incident.resolved": "Incident {number} resolved",
-        "incident.closed": "Incident {number} closed"
+        "problem_created": "Problem raised",
+        "problem_known_error": "Known error {reference} recorded",
+        "problem_resolved": "Problem resolved",
+        "problem_closed": "Problem closed",
+        "incident_created": "Incident {number} raised",
+        "incident_linked": "Incident {number} linked",
+        "incident_resolved": "Incident {number} resolved",
+        "incident_closed": "Incident {number} closed"
       }
     },
     "notes": {
