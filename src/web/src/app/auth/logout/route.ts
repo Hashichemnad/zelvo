@@ -2,7 +2,7 @@ import { NextResponse, type NextRequest } from "next/server";
 import { authConfigFor } from "@/lib/auth/config";
 import { getOidcConfiguration, oidc } from "@/lib/auth/oidc";
 import { isSameOriginRequest, localeOf, secretsMatch } from "@/lib/auth/security";
-import { deleteSession, getSession, sessionCookieName } from "@/lib/auth/session";
+import { deleteSession, getSession, sessionCookieName, teamsCookieOptions, teamsSessionCookieName } from "@/lib/auth/session";
 
 /**
  * Signs out: a POST from this site with the session's CSRF token. Ends the Zelvo session, then
@@ -29,9 +29,12 @@ export async function POST(request: NextRequest) {
   }
 
   await deleteSession(session.id, config);
-  let target = home;
+  // Task J4: inside the Teams tab, come back to the tab (the only page Teams may frame without a session).
+  const inTeams = request.cookies.has(teamsSessionCookieName(config)) && !request.cookies.has(sessionCookieName(config));
+  const signedOutPage = inTeams ? new URL(`/${locale}/teams/tab`, config.appUrl) : home;
+  let target = signedOutPage;
   const afterKeycloak =
-    session.data.identityProvider === "uaepass" ? new URL(`/auth/signed-out/uae-pass?locale=${locale}`, config.appUrl) : home;
+    session.data.identityProvider === "uaepass" && !inTeams ? new URL(`/auth/signed-out/uae-pass?locale=${locale}`, config.appUrl) : signedOutPage;
   try {
     target = oidc.buildEndSessionUrl(await getOidcConfiguration(config), {
       post_logout_redirect_uri: afterKeycloak.href,
@@ -43,5 +46,9 @@ export async function POST(request: NextRequest) {
 
   const response = NextResponse.redirect(target, 303);
   response.cookies.delete(sessionCookieName(config));
+  // Task J4: signing out in the Teams tab also ends its partitioned cookie.
+  if (request.cookies.has(teamsSessionCookieName(config))) {
+    response.cookies.set(teamsSessionCookieName(config), "", teamsCookieOptions(0));
+  }
   return response;
 }

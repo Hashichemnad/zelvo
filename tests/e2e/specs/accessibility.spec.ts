@@ -50,7 +50,7 @@ type Target = string | { from: string; link: RegExp; name: string; optional?: bo
 const pages: Record<Persona, Target[]> = {
   // Task J1: the installed app's offline page (shown online here; the audit checks its layout and wording);
   // task M2: the setup link page (without a link it says the link does not work).
-  visitor: ["", "/help", "/catalog", "/contact", "/track", "/status", "/privacy", "/sign-in-problem", "/no-such-page", "/offline", "/account-setup",
+  visitor: ["", "/help", "/catalog", "/contact", "/track", "/status", "/privacy", "/sign-in-problem", "/no-such-page", "/offline", "/account-setup", "/teams/tab",
     { from: "/help", link: /\/help\/articles\/[0-9a-f-]{36}$/, name: "/help/articles/[id]" },
     { from: "/catalog", link: /\/catalog\/[0-9a-f-]{36}$/, name: "/catalog/[id]" }],
   requester: ["", "/account", "/records", "/records/facilities/new", "/account/privacy", "/account/security", "/my-tickets", "/my-assets", "/my-incidents", "/my-incidents/new", "/my-requests", "/my-voice",

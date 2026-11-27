@@ -56,7 +56,7 @@ Gaps against the time frames (ASVS V15.2.1): `ci.yml` has no schedule, so a new 
 | Area | Components and versions |
 | --- | --- |
 | .NET backend | .NET 10 (SDK and ASP.NET Core images `mcr.microsoft.com/dotnet/*:10.0`), ASP.NET Core OpenAPI 10.0.15, Microsoft.Extensions.Hosting 11.0.0, EF Core 10.0.15, Npgsql 11.0.0, Npgsql.EntityFrameworkCore.PostgreSQL 10.0.4, EFCore.NamingConventions 10.0.1, StackExchange.Redis 3.4.35, RabbitMQ.Client 7.3.0, Microsoft.IdentityModel 8.23.0, OpenTelemetry 1.21.0, AspNetCore.HealthChecks 9.0.0, DistributedLock.Postgres 1.3.2, Scalar.AspNetCore 3.2.1 (API explorer, off in production) |
-| Web app | Node.js 24 LTS (`node:24-alpine`), Next.js 16.4, React 19.3, next-intl 4.15, openid-client 6.9, redis 6.3, @microsoft/signalr 10.0.11, react-markdown 10.1.0 with remark-gfm 4.0.1 (no raw HTML), dnd-kit (core 6.3.1, sortable 10.0.0), @vercel/otel 2.3 with OpenTelemetry JS, bundled @fontsource fonts (OFL-1.1) |
+| Web app | Node.js 24 LTS (`node:24-alpine`), Next.js 16.4, React 19.3, next-intl 4.15, openid-client 6.9, redis 6.3, @microsoft/signalr 10.0.11, @microsoft/teams-js 2.59.0 (J4, MIT; the Teams tab only), react-markdown 10.1.0 with remark-gfm 4.0.1 (no raw HTML), dnd-kit (core 6.3.1, sortable 10.0.0), @vercel/otel 2.3 with OpenTelemetry JS, bundled @fontsource fonts (OFL-1.1) |
 | Keycloak extension | Java, `org.keycloak` 26.8.2 SPI libraries, built with Maven on Eclipse Temurin |
 | Data and messaging services | PostgreSQL 17 with pgvector (`pgvector/pgvector:pg17`), Valkey 9.2, RabbitMQ 4.4, OpenSearch 3.10.0 with the ICU plugin (`zelvo/opensearch`) |
 | Observability | OpenTelemetry Collector 0.165.0, Prometheus 3.16.0, Tempo 3.1.1, Loki 3.7.10, Grafana 13.3.1 |

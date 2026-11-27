@@ -63,6 +63,6 @@ The header's links fold behind a **Menu** button below the `sm` width (`aria-exp
 ## Not in J1
 
 - **Chat attachments**: chats have no file upload yet, so they have no camera button (a chat file API is needed first).
-- Web push (J2, see `notifications.md`), passkeys (J3), Teams tab (J4), barcode scanning (G3).
+- Web push (J2, see `notifications.md`), passkeys (J3, see `identity-access.md`), the Teams tab (J4, see `messaging.md`), barcode scanning (G3).
 - Phase 2 modules are not yet separate license modules; the app follows the licensed modules of each page.
 - Not tried on real iOS and Android devices yet (Chromium with a phone profile only).

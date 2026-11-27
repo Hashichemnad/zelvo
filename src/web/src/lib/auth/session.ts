@@ -34,6 +34,27 @@ export function sessionCookieName(config: AuthConfig): string {
   return config.secureCookies ? "__Host-zelvo-session" : "zelvo-session";
 }
 
+/**
+ * Task J4: the session cookie of the Zelvo tab inside Microsoft Teams. The tab is a frame on
+ * Teams' own site, so the cookie is SameSite=None and partitioned (CHIPS): it belongs to this site
+ * only when framed by Teams, and the browser's first-party session cookie is never sent there.
+ */
+export function teamsSessionCookieName(config: AuthConfig): string {
+  return config.secureCookies ? "__Host-zelvo-teams" : "zelvo-teams";
+}
+
+/** Task J4: options of the Teams tab's partitioned session cookie (Secure is required with SameSite=None; browsers allow it on localhost). */
+export function teamsCookieOptions(maxAgeSeconds: number) {
+  return {
+    httpOnly: true,
+    secure: true,
+    sameSite: "none" as const,
+    partitioned: true,
+    path: "/",
+    maxAge: maxAgeSeconds,
+  };
+}
+
 export function signInCookieName(config: AuthConfig): string {
   return config.secureCookies ? "__Host-zelvo-signin" : "zelvo-signin";
 }
@@ -85,7 +106,9 @@ export async function createSession(
  */
 export async function getSession(requestConfig?: AuthConfig): Promise<Session | null> {
   const config = requestConfig ?? (await getRequestAuthConfig());
-  const id = (await cookies()).get(sessionCookieName(config))?.value;
+  const jar = await cookies();
+  // Task J4: inside the Teams tab only the partitioned Teams cookie is there.
+  const id = jar.get(sessionCookieName(config))?.value ?? jar.get(teamsSessionCookieName(config))?.value;
   if (!id) {
     return null;
   }

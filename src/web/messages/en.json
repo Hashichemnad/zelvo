@@ -8175,5 +8175,15 @@
       "stateNameAr": "State {n}: name (Arabic)",
       "stateCategory": "State {n}: category"
     }
+  },
+  "teams": {
+    "tab": {
+      "title": "Zelvo in Teams",
+      "intro": "Sign in once to see your tickets, your work and your approvals here in Microsoft Teams.",
+      "signIn": "Sign in",
+      "outsideTeams": "This page is the Zelvo tab of Microsoft Teams. Open it from the Teams app.",
+      "failed": "Signing in did not finish. Please try again.",
+      "finishing": "Finishing sign-in…"
+    }
   }
 }
