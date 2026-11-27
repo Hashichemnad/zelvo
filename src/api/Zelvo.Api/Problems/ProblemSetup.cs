@@ -7,17 +7,22 @@ using Zelvo.Tickets;
 
 namespace Zelvo.Api.Problems;
 
-/// <summary>Registers problem management (module 16, task H1) in the API.</summary>
+/// <summary>Registers problem management (module 16, tasks H1 and H2) in the API.</summary>
 internal static class ProblemSetup
 {
     public static IServiceCollection AddZelvoProblems(this IServiceCollection services)
     {
         services.AddSingleton<IMissingTranslationSource, ProblemMissingTranslations>();
+
+        // Task H2: problem detection (similar incidents and trends), suggestions only.
+        services.AddScoped<ProblemDetector>();
+        services.AddSingleton<ProblemDetectionJobs>();
+        services.AddHostedService(sp => sp.GetRequiredService<ProblemDetectionJobs>());
         return services;
     }
 
     public static RouteGroupBuilder MapZelvoProblemEndpoints(this RouteGroupBuilder group) =>
-        group.MapProblemEndpoints().MapKnownErrorEndpoints().MapProblemSettingsEndpoints();
+        group.MapProblemEndpoints().MapKnownErrorEndpoints().MapProblemSettingsEndpoints().MapProblemSuggestionEndpoints();
 }
 
 /// <summary>Known errors and fishbone categories that miss a language (LANG-5).</summary>

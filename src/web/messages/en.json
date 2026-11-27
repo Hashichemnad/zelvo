@@ -843,7 +843,8 @@
         "test": "Connection test",
         "unknown": "Other",
         "transcription": "Voice-note transcription",
-        "ruleBuilder": "Rule builder"
+        "ruleBuilder": "Rule builder",
+        "problemDetection": "Problem detection"
       },
       "errors": {
         "provider-auth-failed": "The provider refused the API key. Check the key and the account.",
@@ -948,7 +949,8 @@
           "virtualAgent": "Answers questions in the portal and chat from the knowledge base and hands over to a person.",
           "articleDrafts": "Drafts knowledge articles from resolved tickets for review.",
           "transcription": "Turns WhatsApp voice notes into text. The recording is sent to the provider without masking, because audio cannot be masked; the text is masked like any other for later AI use. Not available with Anthropic.",
-          "ruleBuilder": "Turns a rule described in plain English or Arabic into a draft workflow rule from your own lists. The administrator checks and approves the draft before it runs."
+          "ruleBuilder": "Turns a rule described in plain English or Arabic into a draft workflow rule from your own lists. The administrator checks and approves the draft before it runs.",
+          "problemDetection": "Judges whether a group of similar incidents, found by Zelvo, shares one cause, so the problem managers get a suggested problem. Zelvo never raises a problem by itself."
         },
         "provider": "Provider",
         "noProvider": "None",
@@ -7752,7 +7754,8 @@
       "incidents": "Incidents",
       "group": "Group",
       "noAccess": "You do not have access to problems.",
-      "unavailable": "Problems could not be loaded."
+      "unavailable": "Problems could not be loaded.",
+      "suggestions": "{count, plural, =0 {Suggested problems} other {Suggested problems (#)}}"
     },
     "new": {
       "title": "Raise a problem",
@@ -7966,8 +7969,72 @@
         "version-mismatch": "Someone changed it meanwhile. Reload the page.",
         "validation-failed": "Check the fields and try again.",
         "forbidden": "You may not do this.",
-        "article-not-found": "No article has that number."
+        "article-not-found": "No article has that number.",
+        "suggestion-decided": "Someone already raised or dismissed this suggestion. Reload the page.",
+        "detection-running": "Zelvo is already looking for problems. Try again in a minute."
       }
+    },
+    "suggestions": {
+      "title": "Suggested problems",
+      "intro": "Zelvo looks for incidents that keep coming back: groups of similar incidents, judged by the AI, and categories, configuration items or services whose incidents rise well above their usual level. It only suggests: raise the problem with the incidents linked, or dismiss the suggestion with a reason so it is not suggested again.",
+      "back": "All problems",
+      "statuses": "Suggestions by status",
+      "status": {
+        "Open": "Waiting",
+        "Accepted": "Raised",
+        "Dismissed": "Dismissed"
+      },
+      "count": "{count, plural, =0 {No suggestions} one {# suggestion} other {# suggestions}}",
+      "kinds": {
+        "SimilarIncidents": "Similar incidents",
+        "Trend": "Rising trend"
+      },
+      "dimensions": {
+        "Category": "Category",
+        "ConfigurationItem": "Configuration item",
+        "Service": "Business service"
+      },
+      "similarFacts": "{count, plural, one {# similar incident} other {# similar incidents}} raised between {from} and {to}.",
+      "confidence": "AI confidence: {value} %.",
+      "aiNote": "Suggested by AI from Zelvo's comparison of the incidents. Check the incidents before raising the problem.",
+      "trendSubject": "Incidents of:",
+      "trendFacts": "{recent} incidents in the last 30 days; usually {usual} per 30 days over the three periods before.",
+      "incidents": "{count, plural, one {The incident} other {The incidents}}",
+      "showAll": "Show all {count}",
+      "showFewer": "Show fewer",
+      "acceptLabel": "Raise the problem",
+      "problemTitle": "Title of the problem",
+      "accept": "Raise the problem",
+      "dismissLabel": "Dismiss the suggestion",
+      "dismissReason": "Reason for dismissing",
+      "dismissHelp": "The reason is kept, and the same incidents or trend are not suggested again.",
+      "dismiss": "Dismiss",
+      "accepted": "Raised as <link></link> by {name} on {date}.",
+      "dismissed": "Dismissed by {name} on {date}:",
+      "detectNow": "Look now",
+      "detected": "{count, plural, =0 {Nothing new found.} one {# new suggestion.} other {# new suggestions.}}",
+      "similarOff": "Similar incidents are not compared until the AI feature for problem detection is set up.",
+      "similarLimit": "Similar incidents were not compared: the monthly AI limit is reached.",
+      "noAccess": "Only problem managers see suggested problems.",
+      "unavailable": "Suggested problems could not be loaded."
+    },
+    "detection": {
+      "title": "Problem detection",
+      "intro": "Zelvo suggests problems to the problem managers; it never raises one by itself.",
+      "similar": "Similar incidents",
+      "similarEnabled": "Suggest problems from groups of similar incidents",
+      "aiOff": "Set up the AI feature “Problem detection” in <link>Settings → AI → Features</link> first; until then only trends are suggested.",
+      "aiLimit": "The monthly AI limit is reached; similar incidents are compared again next month or when the limit is raised in <link>Settings → AI</link>.",
+      "windowDays": "Days compared (30–90)",
+      "windowDaysHelp": "Incidents raised in this many days that are not yet linked to a problem.",
+      "minimumIncidents": "Fewest similar incidents (3–100)",
+      "trends": "Rising trends",
+      "trendsEnabled": "Suggest problems from rising trends per category, configuration item and business service",
+      "trendMinimum": "Fewest incidents in 30 days (2–10,000)",
+      "trendMinimumHelp": "10 by default.",
+      "trendFactor": "Times the usual level (1.1–10)",
+      "trendFactorHelp": "The average per 30 days of the three periods before; 2 by default.",
+      "save": "Save"
     }
   },
   "records": {

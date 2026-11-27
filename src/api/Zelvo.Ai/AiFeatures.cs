@@ -48,8 +48,15 @@ public static class AiFeatures
     /// </summary>
     public const string RuleBuilder = "ruleBuilder";
 
+    /// <summary>
+    /// Task H2 (module 16): judge whether a group of similar incidents, shortlisted on Zelvo's side,
+    /// shares one underlying cause, so a problem can be suggested to the problem managers. Off until
+    /// set up; it only suggests, never raises a problem.
+    /// </summary>
+    public const string ProblemDetection = "problemDetection";
+
     /// <summary>Every feature, in the order Settings shows them.</summary>
-    public static IReadOnlyList<string> All { get; } = [Triage, Summary, Reply, Translation, Duplicates, Sentiment, VirtualAgent, ArticleDrafts, Transcription, RuleBuilder];
+    public static IReadOnlyList<string> All { get; } = [Triage, Summary, Reply, Translation, Duplicates, Sentiment, VirtualAgent, ArticleDrafts, Transcription, RuleBuilder, ProblemDetection];
 
     /// <summary>Whether <paramref name="key"/> is a feature of <see cref="All"/>.</summary>
     public static bool IsFeature(string? key) => key is not null && All.Contains(key, StringComparer.Ordinal);

@@ -76,7 +76,8 @@ const pages: Record<Persona, Target[]> = {
     { from: "/problems", link: /\/problems\/[0-9a-f-]{36}$/, name: "/problems/[id]" },
     // Task K2: the demo's facilities record type and one of its records.
     { from: "/records/facilities", link: /\/records\/facilities\/[0-9a-f-]{36}$/, name: "/records/[type]/[id]" }],
-  lead: ["/knowledge/review", "/reports", "/reports/agents", "/settings/canned-responses"],
+  // Task H2: the problem managers' queue of suggested problems (team leads are problem managers).
+  lead: ["/knowledge/review", "/reports", "/reports/agents", "/settings/canned-responses", "/problems/suggestions"],
   // Detail pages marked optional depend on sample data the demo may not have at that moment
   // (an approval waiting for this approver, a webhook, a paid receipt); they are listed as skipped.
   approver: ["/approvals", { from: "/approvals", link: /\/approvals\/[0-9a-f-]{36}$/, name: "/approvals/[id]", optional: true }],

@@ -1,4 +1,6 @@
 using Microsoft.EntityFrameworkCore;
+using Zelvo.Data.Cmdb;
+using Zelvo.Data.Directory;
 using Zelvo.Data.Identity;
 using Zelvo.Data.Knowledge;
 using Zelvo.Data.Localization;
@@ -25,6 +27,12 @@ public sealed partial class ZelvoDbContext
 
     /// <summary>Knowledge articles linked to problems.</summary>
     public DbSet<ProblemArticle> ProblemArticles => Set<ProblemArticle>();
+
+    /// <summary>Suggested problems (task H2): similar incidents and trends.</summary>
+    public DbSet<ProblemSuggestion> ProblemSuggestions => Set<ProblemSuggestion>();
+
+    /// <summary>Incidents named by suggested problems.</summary>
+    public DbSet<ProblemSuggestionIncident> ProblemSuggestionIncidents => Set<ProblemSuggestionIncident>();
 
     private static void ConfigureProblems(ModelBuilder modelBuilder)
     {
@@ -99,6 +107,50 @@ public sealed partial class ZelvoDbContext
             link.HasOne<KbArticle>().WithMany().HasForeignKey(l => l.ArticleId).OnDelete(DeleteBehavior.Cascade);
             link.HasOne<UserAccount>().WithMany().HasForeignKey(l => l.LinkedById).OnDelete(DeleteBehavior.SetNull);
             link.HasIndex(l => new { l.TenantId, l.ArticleId });
+        });
+
+        modelBuilder.Entity<ProblemSuggestion>(suggestion =>
+        {
+            suggestion.ToTable("problem_suggestions", table =>
+            {
+                table.HasCheckConstraint("ck_problem_suggestions_kind", EnumCheck("kind", Enum.GetNames<ProblemSuggestionKind>()));
+                table.HasCheckConstraint("ck_problem_suggestions_status", EnumCheck("status", Enum.GetNames<ProblemSuggestionStatus>()));
+                table.HasCheckConstraint("ck_problem_suggestions_dimension", "dimension IS NULL OR " + EnumCheck("dimension", Enum.GetNames<ProblemTrendDimension>()));
+                table.HasCheckConstraint("ck_problem_suggestions_trend", "(kind = 'Trend') = (dimension IS NOT NULL)");
+                table.HasCheckConstraint("ck_problem_suggestions_confidence", "confidence IS NULL OR confidence BETWEEN 0 AND 100");
+                table.HasCheckConstraint("ck_problem_suggestions_count", "incident_count >= 0");
+                table.HasCheckConstraint("ck_problem_suggestions_language", "language IS NULL OR language IN ('en', 'ar')");
+                table.HasCheckConstraint("ck_problem_suggestions_accepted", "(status = 'Accepted') = (problem_id IS NOT NULL)");
+                table.HasCheckConstraint("ck_problem_suggestions_dismissed", "status <> 'Dismissed' OR length(btrim(dismiss_reason)) > 0");
+            });
+            suggestion.HasKey(s => s.Id);
+            suggestion.Property(s => s.Id).ValueGeneratedNever();
+            suggestion.HasOne<Tenant>().WithMany().HasForeignKey(s => s.TenantId).OnDelete(DeleteBehavior.Restrict);
+            suggestion.HasOne<Category>().WithMany().HasForeignKey(s => s.CategoryId).OnDelete(DeleteBehavior.SetNull);
+            suggestion.HasOne<ConfigurationItem>().WithMany().HasForeignKey(s => s.ConfigurationItemId).OnDelete(DeleteBehavior.Cascade);
+            suggestion.HasOne<Ticket>().WithMany().HasForeignKey(s => s.ProblemId).OnDelete(DeleteBehavior.Restrict);
+            suggestion.HasOne<UserAccount>().WithMany().HasForeignKey(s => s.DecidedById).OnDelete(DeleteBehavior.SetNull);
+            suggestion.Property(s => s.Kind).HasConversion<string>().HasMaxLength(30);
+            suggestion.Property(s => s.Status).HasConversion<string>().HasMaxLength(20);
+            suggestion.Property(s => s.Dimension).HasConversion<string>().HasMaxLength(30);
+            suggestion.Property(s => s.Title).HasMaxLength(ProblemSuggestion.TitleMaxLength);
+            suggestion.Property(s => s.Reason).HasMaxLength(ProblemSuggestion.ReasonMaxLength);
+            suggestion.Property(s => s.DismissReason).HasMaxLength(ProblemSuggestion.ReasonMaxLength);
+            suggestion.Property(s => s.Language).HasMaxLength(2);
+            suggestion.Property(s => s.Version).IsRowVersion();
+            suggestion.HasIndex(s => new { s.TenantId, s.Status, s.CreatedAt });
+            suggestion.HasIndex(s => new { s.TenantId, s.Kind, s.Dimension, s.CategoryId, s.ConfigurationItemId });
+            suggestion.HasIndex(s => s.ProblemId);
+        });
+
+        modelBuilder.Entity<ProblemSuggestionIncident>(link =>
+        {
+            link.ToTable("problem_suggestion_incidents");
+            link.HasKey(l => new { l.SuggestionId, l.IncidentId });
+            link.HasOne<Tenant>().WithMany().HasForeignKey(l => l.TenantId).OnDelete(DeleteBehavior.Restrict);
+            link.HasOne<ProblemSuggestion>().WithMany().HasForeignKey(l => l.SuggestionId).OnDelete(DeleteBehavior.Cascade);
+            link.HasOne<Ticket>().WithMany().HasForeignKey(l => l.IncidentId).OnDelete(DeleteBehavior.Cascade);
+            link.HasIndex(l => new { l.TenantId, l.IncidentId });
         });
     }
 }

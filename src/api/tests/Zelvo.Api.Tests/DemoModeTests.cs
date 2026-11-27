@@ -157,8 +157,14 @@ public sealed class DemoModeTests(DatabaseFixture database) : IAsyncDisposable
         Assert.Contains("b5-notifications", ran);
         Assert.Contains("b4-workspace", ran);
         Assert.Contains("c1-forms", ran);
+        Assert.Contains("h2-problem-detection", ran);
         await using var db = TestData.AppContext(database, tenant);
         Assert.True(await db.TicketSlas.AnyAsync(Ct));
+
+        // Task H2: a group of similar incidents and the trend Zelvo's own detection finds in their category.
+        var suggestions = await db.ProblemSuggestions.Where(s => s.Status == Data.Problems.ProblemSuggestionStatus.Open).ToListAsync(Ct);
+        Assert.Contains(suggestions, s => s.Kind == Data.Problems.ProblemSuggestionKind.SimilarIncidents && s.IncidentCount == 6);
+        Assert.Contains(suggestions, s => s.Kind == Data.Problems.ProblemSuggestionKind.Trend && s.Dimension == Data.Problems.ProblemTrendDimension.Category && s.IncidentCount >= 10);
         // Task B5: migrate has no notification interceptor; the seeder queues one "received" per sample incident
         // (service requests of C2 get their notifications with C3 and C4; F2's history has no creator and no notifications).
         Assert.Equal(await db.Tickets.CountAsync(t => t.Type == Data.Tickets.TicketType.Incident && t.CreatedById != null, Ct),

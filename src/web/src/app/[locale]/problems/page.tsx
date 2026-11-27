@@ -6,7 +6,7 @@ import { cellClass, tableClass } from "@/components/settings/integrations/ui";
 import { Link } from "@/i18n/navigation";
 import { getJsonAs } from "@/lib/api";
 import type { Locale } from "@/lib/incidents";
-import { problemStages, type ProblemPage } from "@/lib/problems";
+import { problemStages, type ProblemPage, type ProblemSuggestionPage } from "@/lib/problems";
 import { requireSignedIn } from "@/lib/signed-in";
 
 export async function generateMetadata({ params }: PageProps<"/[locale]/problems">) {
@@ -43,7 +43,11 @@ export default async function ProblemsPage({ params, searchParams }: PageProps<"
   if (["me", "none"].includes(value("assignee"))) query.assignee = value("assignee");
   const pageNumber = Number(value("page"));
   const page = Number.isInteger(pageNumber) && pageNumber > 0 && pageNumber < 10000 ? pageNumber : 1;
-  const problems = await getJsonAs<ProblemPage>(`/api/v1/problems?${new URLSearchParams({ ...query, page: String(page), pageSize: "25" })}`, session.data.accessToken, tenant);
+  const canManage = permissions.includes("problems.manage");
+  const [problems, suggestions] = await Promise.all([
+    getJsonAs<ProblemPage>(`/api/v1/problems?${new URLSearchParams({ ...query, page: String(page), pageSize: "25" })}`, session.data.accessToken, tenant),
+    canManage ? getJsonAs<ProblemSuggestionPage>("/api/v1/problem-suggestions?pageSize=1", session.data.accessToken, tenant) : Promise.resolve(null),
+  ]);
   const l = locale as Locale;
 
   return (
@@ -51,6 +55,11 @@ export default async function ProblemsPage({ params, searchParams }: PageProps<"
       <div className="flex flex-wrap items-center justify-between gap-4">
         <h1 id="problems-heading" className="text-3xl font-bold text-brand">{t("title")}</h1>
         <div className="flex flex-wrap gap-3">
+          {canManage && (
+            <Link href="/problems/suggestions" className="px-2 py-2 font-semibold text-brand underline-offset-4 hover:underline">
+              {t("suggestions", { count: suggestions?.totalCount ?? 0 })}
+            </Link>
+          )}
           <Link href="/known-errors" className="px-2 py-2 font-semibold text-brand underline-offset-4 hover:underline">{t("knownErrors")}</Link>
           {permissions.includes("problems.edit") && (
             <Link href="/problems/new" className="rounded-md bg-brand px-4 py-2 font-semibold text-surface">{t("new")}</Link>

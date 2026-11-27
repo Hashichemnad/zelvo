@@ -117,3 +117,8 @@ The ninth feature, `transcription` (product owner decision 2026-11-25), turns Wh
 ## Rule builder (task K1)
 
 The tenth feature, `ruleBuilder` (module 20, product owner decisions 2026-11-26), turns an administrator's plain-language description of a workflow rule into a draft of the C3 builder, which goes live only after the administrator approves it. It is **off until set up**. The tenant's lists go to the provider by reference and the answer is checked against the rule schema, so nothing unknown is accepted. See `workflows.md` (Plain-language rules).
+
+## Problem detection (task H2)
+
+The eleventh feature, `problemDetection` (module 16), judges whether a group of similar incidents that Zelvo found on its own side (E5's word forms, extended from one new incident against 14 days to groups across 30–90 days) shares one underlying cause, so the problem managers get a suggested problem. It is **off until set up**; with it off, problem detection still finds trends, which need no AI. The AI only judges: it never raises a problem, and a problem manager accepts or dismisses each suggestion. See `problems.md` (Problem detection).
+
