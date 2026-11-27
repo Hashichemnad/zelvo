@@ -16,5 +16,6 @@ How Zelvo supports the obligations of **Federal Decree-Law No. 45 of 2021 on the
 | Right to restrict and to stop processing; automated processing | Art. 16–18 | Restriction and Objection request types, handled by the officer with a recorded resolution; AI suggestions are never applied without a person except when an administrator turns automatic triage on | Privacy requests, Settings → AI | `docs/architecture/ai-features.md` |
 | Cross-border transfer | Art. 22–23 | Self-hosted in the UAE (GOV-4); AI calls go only to the provider the customer chooses, with personal data masked | Operator, Settings → AI | `docs/architecture/ai-gateway.md` |
 | Records of processing | Art. 7 | Audit log of every create, change, admin action and view of personal data | — | `docs/architecture/data-tenancy-audit.md` |
+| Employee monitoring and workload data (K4) | Art. 4–7, 13–15 | Agent wellbeing off by default; turned on only after the administrator confirms staff were told, every agent notified; daily figures from existing Zelvo activity only, kept 90 days; individuals only for their team leads, totals for executives; every view audited; in the person's copy and erased with them; not for ranking | Settings → Wellbeing | `docs/architecture/wellbeing.md`, `docs/security/wellbeing-dpia.md` |
 
 Deadline for requests: 30 days by default (Settings → Privacy, 1–90 days).

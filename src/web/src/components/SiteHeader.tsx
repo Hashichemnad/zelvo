@@ -32,6 +32,7 @@ export async function SiteHeader() {
   const tPortal = await getTranslations("portal.nav");
   const tReports = await getTranslations("reports.nav");
   const tCmdb = await getTranslations("cmdb");
+  const tWellbeing = await getTranslations("wellbeing");
   const config = await getRequestAuthConfig();
   const locale = await getLocale();
   // Task F1: the tenant's product name and logos (light and dark mode) instead of Zelvo's.
@@ -183,6 +184,14 @@ export async function SiteHeader() {
                     <li>
                       <Link href="/reports" className="text-brand underline-offset-4 hover:underline" data-testid="nav-reports">
                         {seesDashboards(user.permissions) ? tReports("reports") : tReports("myPerformance")}
+                      </Link>
+                    </li>
+                  )}
+                  {/* Task K4: the wellbeing dashboard for team leads and above. */}
+                  {user.permissions.includes("wellbeing.read") && (
+                    <li>
+                      <Link href="/wellbeing" className="text-brand underline-offset-4 hover:underline" data-testid="nav-wellbeing">
+                        {tWellbeing("nav")}
                       </Link>
                     </li>
                   )}

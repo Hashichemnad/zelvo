@@ -200,6 +200,45 @@ Requesting a laptop as the sample requester starts a real approval.
 ## Not in C3
 
 - (Done in E3: approvals in Teams, which decide there, and WhatsApp and SMS messages with the approval links; see `messaging.md`.) Reminders and expiry of waiting approvals, delegation while an approver is away.
-- Plain-language rules built by AI and a visual view (module 20, Phase 2).
+- (Done in K1: plain-language rules built by AI and the visual view; see below.)
 - (Done in E7: the action *Call a connector*, which queues a REST connector's operation with the change for the worker; see `connectors.md`.)
 - Fulfilment tasks, the service's own group and SLAs, and the journey (task C4).
+
+## Plain-language rules and the visual view (task K1, module 20)
+
+Covers module 20's **plain-language rules**: "an admin describes a rule in English or Arabic; Zelvo's AI builds the workflow and shows it visually for review; it only goes live after the admin approves it", and the story "when a VIP raises a critical incident, notify the IT manager on WhatsApp".
+
+Product owner decisions (2026-11-26):
+
+- **The administrator who wrote the rule approves it** (no second person); the AI feature is **off until set up** in Settings → AI.
+- **VIP** is a B3 customer group, not a new flag.
+
+**The AI feature `ruleBuilder`.** A tenth AI feature in Settings → AI → Features, with its own provider and model, through the E4 gateway like every call (personal data masked, prompt-injection guards, monthly limit, AI log, audit). The key follows the other features' camelCase (`ruleBuilder`; the plan wrote `rule-builder`).
+
+**Turning words into a draft** (`POST /workflow-rules/plain-language`, `workflows.manage`):
+
+1. The administrator's text (up to 2,000 characters, English or Arabic) goes to the AI as data, with the tenant's own active lists, each item under a reference: services `s1`, categories `c1`, locations `l1`, support groups `g1`, departments `d1`, customer groups `v1`, roles `r1` (up to 300 of each). No ids or people's names are sent; people cannot be named as recipients.
+2. The instructions describe the rule schema: triggers, record types, condition fields and operators, the `assign` and `notify` actions, recipients and channels, and the placeholders the wording may use. Anything the AI cannot express goes to `unmapped`.
+3. The answer is untrusted. `RuleDraftMapper` (`src/api/Zelvo.Workflows/Rules/RuleDraftMapper.cs`) reads it field by field: references are resolved only from the lists sent; every condition and action is checked with the builder's own checks (`RuleDocuments`); anything unknown (a reference that was not offered, a field or operator the builder lacks, form-answer conditions, approvals, connectors, named people, a channel other than WhatsApp, SMS or Teams, wording with unknown placeholders) is **left out and listed** in `unmapped`, never accepted. A missing or unknown trigger becomes "a ticket is created", with a note.
+4. With at least one action left, the rule is saved as a **draft** (`workflow_rules.is_draft`) with the original text (`source_text`, `source_language`), what was left out (`unmapped`) and the AI call (`ai_call_id`), audited `workflows.rule.drafted` with the text. Without any action, 422 `rule-not-understood` lists the reasons (audited `workflows.rule.not-understood`). AI off or the limit reached answer 409 `ai-off` or `limit-reached`; provider failures 502.
+
+`GET /workflow-rules/plain-language` says whether the feature can be used now (`available`, `reason`).
+
+**Drafts never run.** `WorkflowRuleInterceptor` tries only active rules that are not drafts. "Try the rules" includes drafts when asked (`includeDrafts`), marked as drafts, so a draft can be tried on a real ticket before it is approved. Drafts can be changed in the builder (`PUT`, still a draft) or deleted.
+
+**Approval** (`POST /workflow-rules/{id}/approve`, If-Match checked when sent): the draft is checked again like any rule (what it refers to may have changed), then goes live; `approved_by_id` and `approved_at` are set and `workflows.rule.approved` is audited with the original text, the AI call and what was left out. Approving a live rule answers 409 `not-a-draft`.
+
+**What the builder gained for the story:**
+
+- the condition **`requesterCustomerGroup`** (`in` / `notIn` customer groups): the requester is in the group by hand or by email domain (B3's rule, `SlaMatcher.InDomain`), active groups only;
+- the recipient **`groupLeads:<group id>`**: the team leads of a named group (besides `groupLeads`, the ticket's own group's);
+- **notify by WhatsApp, SMS or Teams** (`channels` on the notify action, E3): the rule decides the channels instead of the event's setting. People are reached where Zelvo can: WhatsApp and SMS to the phone of those who turned them on under Account → Notifications (their phone and their consent), Teams to those linked to the tenant's Teams app; WhatsApp outside the 24-hour window needs the event's template as before. Rules made before K1 have no `channels` and keep following each person's choices.
+
+**The visual view.** Settings → Workflow rules shows each draft as a read-only **when → if → then** diagram (`RuleDiagram`) with the administrator's words and the list of what was left out, and buttons to approve, change in the builder or discard; every existing rule can be shown the same way ("Show … as a diagram"). The diagram is built from headings and lists, so it reads in order with a screen reader; boxes stack on phones and the arrows follow the reading direction in Arabic.
+
+**Demo data.** Seeder `k1-plain-language-rules` (order 270) adds the story as a draft in each sample organisation, in its language (Arabic for the government entity, English for the company): sample VIP customer group, P1, the service desk's team leads, in the app, by email and by WhatsApp. The development `ai-mock` answers `ruleBuilder` with a rule built from the words it recognises.
+
+**Tests.**
+
+- Integration (`PlainLanguageRuleTests`): off until set up; the lists sent by reference; only what fits taken, the rest listed (unknown references, fields, channels, recipients, approvals); a draft never runs; "Try the rules" with drafts; approval audited with the text, twice refused; live, a VIP's P1 tells the IT desk's team lead in the app and on WhatsApp while other P1s and VIP P3s do not; a description without any action refused with the reasons; agents refused.
+- Web (`workflows.test.tsx`): a draft from a description shown as a diagram with what was left out, approved with If-Match; the reasons when nothing could be built; the feature off in Arabic; the diagram in Arabic.

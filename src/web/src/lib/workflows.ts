@@ -27,6 +27,7 @@ export type ConditionField =
   | "location"
   | "group"
   | "requesterDepartment"
+  | "requesterCustomerGroup"
   | "channel"
   | "state"
   | "requesterLanguage"
@@ -34,7 +35,7 @@ export type ConditionField =
   | "fee"
   | "answer";
 
-export const idListFields: ConditionField[] = ["service", "category", "location", "group", "requesterDepartment"];
+export const idListFields: ConditionField[] = ["service", "category", "location", "group", "requesterDepartment", "requesterCustomerGroup"];
 export const nameListFields: ConditionField[] = ["channel", "state", "requesterLanguage"];
 export const numberFields: ConditionField[] = ["priority", "fee"];
 export const conditionFields: ConditionField[] = [...idListFields, ...nameListFields, ...numberFields, "answer"];
@@ -72,12 +73,18 @@ export interface AssignAction {
   assigneeId: string | null;
 }
 
+/** Task K1: messaging channels a rule can also notify by (E3). */
+export type MessagingKind = "WhatsApp" | "Sms" | "Teams";
+export const messagingKinds: MessagingKind[] = ["WhatsApp", "Sms", "Teams"];
+
 export interface NotifyAction {
   type: "notify";
   recipients: string[];
   subject: Bilingual;
   body: Bilingual;
   email: boolean;
+  /** Task K1: also by WhatsApp, SMS or Teams; null for rules made before K1 (each person's own choice). */
+  channels?: MessagingKind[] | null;
 }
 
 export interface ApprovalAction {
@@ -118,6 +125,19 @@ export interface WorkflowRule {
   etag: string;
   createdAt: string;
   updatedAt: string;
+  /** Task K1: made by the AI from `sourceText`; does not run until approved. */
+  draft: boolean;
+  sourceText: string | null;
+  sourceLanguage: "en" | "ar" | null;
+  /** What the AI could not express with the builder. */
+  unmapped: string[];
+  approvedAt: string | null;
+}
+
+/** Whether plain-language rules can be made now (task K1). */
+export interface PlainLanguageAvailability {
+  available: boolean;
+  reason: string | null;
 }
 
 export interface WorkflowRuleInput {
@@ -137,6 +157,7 @@ export interface RuleTestResult {
   name: Bilingual;
   holds: boolean;
   actions: string[];
+  draft?: boolean;
 }
 
 /** A problem the API found in a rule or a card. */
@@ -258,7 +279,7 @@ export function emptyAction(type: WorkflowAction["type"]): WorkflowAction {
     case "assign":
       return { type, groupId: null, method: "GroupQueue", assigneeId: null };
     case "notify":
-      return { type, recipients: ["requester"], subject: { en: null, ar: null }, body: { en: null, ar: null }, email: true };
+      return { type, recipients: ["requester"], subject: { en: null, ar: null }, body: { en: null, ar: null }, email: true, channels: [] };
     case "connector":
       return { type, connectorId: null, operation: null };
     default:

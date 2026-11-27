@@ -35,6 +35,8 @@ export interface WorkflowChoices {
   groups: GroupSummary[];
   departments: Department[];
   roles: Role[];
+  /** Task K1: customer groups (B3), for example VIP (optional). */
+  customerGroups?: { id: string; name: { en: string | null; ar: string | null }; active: boolean }[];
   /** Task E7: REST connectors and their operations (optional). */
   connectors?: import("@/lib/workflows").RestConnectorOperations[];
 }
@@ -63,6 +65,8 @@ function useOptions(field: ConditionField, choices: WorkflowChoices) {
       return choices.groups.map((g) => ({ value: g.id, label: textOf(g.name, locale) }));
     case "requesterDepartment":
       return choices.departments.map((d) => ({ value: d.id, label: textOf(d.name, locale) }));
+    case "requesterCustomerGroup":
+      return (choices.customerGroups ?? []).map((g) => ({ value: g.id, label: textOf(g.name, locale) }));
     case "channel":
       return channelValues.map((c) => ({ value: c, label: t(`channels.${c}`) }));
     case "state":
