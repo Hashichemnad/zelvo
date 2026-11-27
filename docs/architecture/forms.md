@@ -14,7 +14,7 @@ The same builder customises incident forms now. Requests (C2) and complaints, in
 
 Product owner decisions (2026-11-24):
 
-- **Deferred field types.** The asset picker comes with the CMDB (module 18, Phase 2). Lookups from other systems come with the REST connector builder (E7). The field model has room for both.
+- **Deferred field types.** The asset picker comes with the CMDB (module 18, Phase 2; done in G1 as the configuration item picker, see `cmdb.md`). Lookups from other systems come with the REST connector builder (E7). The field model has room for both.
 - **Profile fields are added to users.** Users now have a department, a manager, a location, an employee number and a phone.
   - Departments are a bilingual list in Settings → Departments. C2 reuses it for the department that owns a service.
   - Administrators set the profile fields on the user page and through bulk import. Identity connectors (E7) can fill them later.
@@ -84,6 +84,7 @@ A form has a key (`laptop-problem`), a bilingual name and description, a state a
 | Signature | `{"attachmentId"}` or `{"typedName", "confirmed": true}` | Drawn PNG or typed name |
 | Table rows | list of rows | Columns are text, number, date, dropdown or checkbox; fewest and most rows (at most 100) |
 | Rich text | Markdown | Shown with the knowledge base's Markdown viewer, never as HTML, without images |
+| Configuration item (task G1) | item id, or a list with `multiple` (at most 20) | Items of the field's classes (`configurationItemClasses`, with the classes below them); requesters only find active items of classes marked for them; picked items are linked to the ticket (`cmdb.md`) |
 
 - Every field has a bilingual label and can have help text and a placeholder. Keys are camelCase and unique in the form, field sets included.
 - **Personal data.** Fields can be marked as personal data. Their answers are stored apart (`personal_answers`, masked in the audit log) and are replaced with placeholders before any text goes to AI (the gateway masks them; E5 sends title, description and comments, not form answers).
