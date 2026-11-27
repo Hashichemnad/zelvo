@@ -70,7 +70,7 @@ internal static partial class BrandingEndpoints
             .Produces<PublicBrandingResponse>();
         branding.MapGet("/images/{slot}", ImageAsync)
             .WithName("GetBrandingImage")
-            .WithSummary("A published branding image (LogoLight, LogoDark, Favicon, LoginImage) once scanned clean. Anyone. With draft=true, the draft's image for branding.manage (live preview).")
+            .WithSummary("A published branding image (LogoLight, LogoDark, Favicon, LoginImage, AppIcon) once scanned clean. Anyone. With draft=true, the draft's image for branding.manage (live preview).")
             .AllowAnonymousAccess();
 
         var settings = group.MapGroup("/settings/branding").WithTags("Branding").RequireTenant();
@@ -87,7 +87,7 @@ internal static partial class BrandingEndpoints
             .ProducesValidationProblem();
         settings.MapPost("/images/{slot}", UploadImageAsync)
             .WithName("UploadBrandingImage")
-            .WithSummary("Puts an image in the draft: PNG, JPEG or WebP up to 2 MB (the favicon also ICO, up to 256 KB). The content must match the type; it is scanned for malware before it can be published. SVG is not accepted. Needs branding.manage; audited.")
+            .WithSummary("Puts an image in the draft: PNG, JPEG or WebP up to 2 MB (the favicon also ICO, up to 256 KB; the app icon a square PNG of at least 512 × 512 pixels, which the server resizes for phones). The content must match the type; it is scanned for malware before it can be published. SVG is not accepted. Needs branding.manage; audited.")
             .RequirePermission(Permissions.BrandingManage)
             .DisableAntiforgery()
             .Produces<BrandingSettingsResponse>()
@@ -313,7 +313,12 @@ internal static partial class BrandingEndpoints
 
         var name = FileTypes.CleanFileName(file.FileName);
         var type = FileTypes.Find(FileTypes.ExtensionOf(name));
-        var allowed = which == BrandingSlot.Favicon ? [.. ImageTypes, "ico"] : ImageTypes;
+        string[] allowed = which switch
+        {
+            BrandingSlot.Favicon => [.. ImageTypes, "ico"],
+            BrandingSlot.AppIcon => ["png"],
+            _ => ImageTypes,
+        };
         if (name.Length == 0 || type is null || !allowed.Contains(type.Extension, StringComparer.Ordinal))
         {
             return ApiProblem.Create(StatusCodes.Status422UnprocessableEntity, "file-type-not-allowed", $"Accepted image types: {string.Join(", ", allowed)}.");
@@ -330,6 +335,12 @@ internal static partial class BrandingEndpoints
         if (!type.Check(content))
         {
             return ApiProblem.Create(StatusCodes.Status422UnprocessableEntity, "file-content-mismatch", "The file's content does not match its type.");
+        }
+
+        // Task J1: the app icon is resized by the server, so it must be a square PNG it can read, large enough for 512 pixels.
+        if (which == BrandingSlot.AppIcon && AppIcons.Check(content) is { } iconProblem)
+        {
+            return ApiProblem.Create(StatusCodes.Status422UnprocessableEntity, iconProblem.Code, iconProblem.Message);
         }
 
         var row = await RowAsync(db, cancellationToken);

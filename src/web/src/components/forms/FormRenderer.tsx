@@ -1,5 +1,6 @@
 "use client";
 
+import { CameraButtons } from "@/components/pwa/CameraButtons";
 import { useState } from "react";
 import { useTranslations } from "next-intl";
 import { MarkdownView } from "@/components/knowledge/MarkdownView";
@@ -425,6 +426,13 @@ function FileControl(props: ControlProps) {
             if (added.length > 0) set([...ids, ...added]);
           }}
           className="block text-sm" />
+      )}
+      {/* Task J1: a photo or video straight from the phone's camera, through the same upload. */}
+      {!state.readOnly && !preview && ids.length < maxFiles && (
+        <CameraButtons allowed={field.validation?.fileTypes} onFile={async (file) => {
+          const id = await upload(file, file.name);
+          if (id) set([...ids, id]);
+        }} />
       )}
       <p id={`${control.id}-limits`} className="text-sm text-ink-muted">
         {t("fileLimits", { count: maxFiles, types: field.validation?.fileTypes?.join(", ") || t("fileAnyType") })}

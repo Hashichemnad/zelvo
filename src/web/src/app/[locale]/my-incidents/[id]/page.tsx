@@ -9,7 +9,9 @@ import { TicketRatingBlock } from "@/components/voice/TicketRatingBlock";
 import { Composer, ConversationList } from "@/components/workspace/Conversation";
 import { ExportPdfButton } from "@/components/ExportPdfButton";
 import { Link } from "@/i18n/navigation";
-import { getJsonAs } from "@/lib/api";
+import { getAppInfo, getJsonAs } from "@/lib/api";
+import { formatDateTime } from "@/lib/format";
+import { RememberTicket } from "@/components/pwa/RememberTicket";
 import { isId, loadIncident } from "@/lib/incident-pages";
 import { requireSignedIn } from "@/lib/signed-in";
 import type { Comment } from "@/lib/workspace";
@@ -24,8 +26,10 @@ export async function generateMetadata({ params }: PageProps<"/[locale]/my-incid
  * One of the requester's incidents: progress, the conversation with staff (public replies, task B4),
  * updates meant for them, their files, reopen or follow up.
  */
-export default async function MyIncidentPage({ params }: PageProps<"/[locale]/my-incidents/[id]">) {
+export default async function MyIncidentPage({ params, searchParams }: PageProps<"/[locale]/my-incidents/[id]">) {
   const { locale, id } = await params;
+  // Task J1: files added with the report that the upload refused (type, size).
+  const filesRefused = Math.min(10, Number((await searchParams).filesRefused) || 0);
   setRequestLocale(locale);
   if (!isId(id)) notFound();
   const { session, tenant } = await requireSignedIn(locale, `/${locale}/my-incidents/${id}`);
@@ -51,9 +55,25 @@ export default async function MyIncidentPage({ params }: PageProps<"/[locale]/my
     );
   }
   const closed = incident.state === "Closed";
+  // Task J1: kept on the device for the offline page, as the requester sees it now.
+  const app = await getAppInfo(tenant);
+  const when = (iso: string) => formatDateTime(new Date(iso), display);
+  const offline = {
+    id: incident.id,
+    number: incident.number,
+    title: incident.title ?? incident.number,
+    state: t(`states.${incident.state}`),
+    team: null,
+    description: incident.description ?? null,
+    href: `/${locale}/my-incidents/${incident.id}`,
+    messages: (comments ?? []).filter((c) => c.visibility === "Public").slice(-20)
+      .map((c) => ({ author: c.author.displayName ?? "", text: c.body, at: when(c.createdAt) })),
+    updated: when(incident.updatedAt),
+  };
 
   return (
     <article aria-labelledby="incident-heading" className="space-y-8">
+      <RememberTicket ticket={offline} enabled={app?.offlineData ?? true} />
       <Link href="/my-incidents" className="text-sm font-semibold text-brand underline-offset-4 hover:underline">
         {t("backToMine")}
       </Link>
@@ -67,6 +87,7 @@ export default async function MyIncidentPage({ params }: PageProps<"/[locale]/my
       </header>
       {/* Task F1: a branded PDF in the page's language. */}
       <ExportPdfButton path={`/incidents/${incident.id}`} csrfToken={session.data.csrfToken} />
+      {filesRefused > 0 && <p role="alert" className="rounded-md border border-line bg-surface-muted p-3">{t("attachments.someRefused", { count: filesRefused })}</p>}
       <IncidentFacts incident={incident} settings={settings} display={display} basePath="/my-incidents" />
       {form && <FormAnswersView view={form} attachmentBase={`/bff/api/v1/incidents/${incident.id}/attachments`} />}
       {(incident.state === "Resolved" || closed) && (
@@ -90,7 +111,7 @@ export default async function MyIncidentPage({ params }: PageProps<"/[locale]/my
         {closed ? (
           <p className="text-ink-muted">{tConversation("closed")}</p>
         ) : (
-          <Composer incidentId={incident.id} csrfToken={session.data.csrfToken} staff={false} responses={[]} people={[]} />
+          <Composer incidentId={incident.id} csrfToken={session.data.csrfToken} staff={false} responses={[]} people={[]} ticketNumber={incident.number} />
         )}
       </section>
       {updates.length > 0 && (

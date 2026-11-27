@@ -4,6 +4,8 @@ import { useEffect, useId, useRef, useState } from "react";
 import { useLocale, useTranslations } from "next-intl";
 import { useRouter } from "@/i18n/navigation";
 import { ApiError, postJson } from "@/lib/client-api";
+import { offlineWorkAllowed } from "@/lib/pwa/app-state";
+import { isConnectionFailure, queueWork } from "@/lib/pwa/offline-store";
 import { formatDateTime, type DateDisplayOptions } from "@/lib/format";
 import { inLanguage, type Locale, type Person } from "@/lib/incidents";
 import type { CannedResponse, Comment, CommentVisibility, RenderedResponse } from "@/lib/workspace";
@@ -117,6 +119,8 @@ export interface ComposerProps {
   disabled?: boolean;
   /** AI features available now (task E5): suggested replies and translation of the draft. */
   ai?: { reply: boolean; translation: boolean };
+  /** Task J1: the ticket's number, to name a reply kept on the device without a connection. */
+  ticketNumber?: string;
 }
 
 /**
@@ -126,7 +130,7 @@ export interface ComposerProps {
  * knowledge base, and translates the draft into the chosen language, so the requester reads it in
  * theirs (LANG-7); the agent reviews and sends it.
  */
-export function Composer({ incidentId, csrfToken, staff, requesterLanguage, responses, people, disabled, ai }: ComposerProps) {
+export function Composer({ incidentId, csrfToken, staff, requesterLanguage, responses, people, disabled, ai, ticketNumber }: ComposerProps) {
   const t = useTranslations("workspace.composer");
   const tLanguages = useTranslations("display.languages");
   const tCommon = useTranslations("common");
@@ -139,7 +143,7 @@ export function Composer({ incidentId, csrfToken, staff, requesterLanguage, resp
   const [body, setBody] = useState("");
   const [cannedResponseId, setCannedResponseId] = useState<string | null>(null);
   const [mentions, setMentions] = useState<Person[]>([]);
-  const [status, setStatus] = useState<{ kind: "idle" | "sending" | "sent" } | { kind: "failed"; message: string }>({ kind: "idle" });
+  const [status, setStatus] = useState<{ kind: "idle" | "sending" | "sent" | "queued" } | { kind: "failed"; message: string }>({ kind: "idle" });
   const [aiBusy, setAiBusy] = useState(false);
   const [sources, setSources] = useState<AiReply["articles"]>([]);
   const tAi = useTranslations("ai.assist");
@@ -235,6 +239,16 @@ export function Composer({ incidentId, csrfToken, staff, requesterLanguage, resp
       setStatus({ kind: "sent" });
       router.refresh();
     } catch (error) {
+      // Task J1: a requester's reply without a connection waits on the device and goes when it is back.
+      if (!staff && isConnectionFailure(error) && offlineWorkAllowed()) {
+        await queueWork({ kind: "reply", path: `/v1/incidents/${incidentId}/comments`, body: { body, visibility: "Public", language }, summary: body.slice(0, 200), ticketNumber })
+          .then(() => {
+            setBody("");
+            setStatus({ kind: "queued" });
+          })
+          .catch(() => setStatus({ kind: "failed", message: failure(error) }));
+        return;
+      }
       setStatus({ kind: "failed", message: failure(error) });
     }
   }
@@ -327,7 +341,7 @@ export function Composer({ incidentId, csrfToken, staff, requesterLanguage, resp
           </button>
         )}
         <p aria-live="polite" className={status.kind === "failed" ? "text-bad" : "text-ink-muted"}>
-          {status.kind === "sending" ? t("sending") : status.kind === "sent" ? t("sent") : status.kind === "failed" ? status.message : ""}
+          {status.kind === "sending" ? t("sending") : status.kind === "sent" ? t("sent") : status.kind === "queued" ? t("queued") : status.kind === "failed" ? status.message : ""}
         </p>
       </div>
       {sources.length > 0 && (

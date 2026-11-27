@@ -48,7 +48,8 @@ type Persona = "visitor" | "requester" | "agent" | "lead" | "approver" | "admin"
 type Target = string | { from: string; link: RegExp; name: string; optional?: boolean };
 
 const pages: Record<Persona, Target[]> = {
-  visitor: ["", "/help", "/catalog", "/contact", "/track", "/status", "/privacy", "/sign-in-problem", "/no-such-page",
+  // Task J1: the installed app's offline page (shown online here; the audit checks its layout and wording).
+  visitor: ["", "/help", "/catalog", "/contact", "/track", "/status", "/privacy", "/sign-in-problem", "/no-such-page", "/offline",
     { from: "/help", link: /\/help\/articles\/[0-9a-f-]{36}$/, name: "/help/articles/[id]" },
     { from: "/catalog", link: /\/catalog\/[0-9a-f-]{36}$/, name: "/catalog/[id]" }],
   requester: ["", "/account", "/account/privacy", "/my-tickets", "/my-incidents", "/my-incidents/new", "/my-requests", "/my-voice",

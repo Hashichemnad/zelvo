@@ -209,6 +209,8 @@ v1.ForModule(LicensedModules.Omnichannel).MapZelvoChannels();
 // Task E7: identity, CRM and REST connectors and monitoring alerts (module 14).
 v1.ForModule(LicensedModules.Integrations).MapConnectorEndpoints();
 app.MapBrandingEndpoints(v1);
+// Task J1: the installable web app (module 19): app icon sizes and offline data.
+v1.MapAppEndpoints();
 
 await app.RunAsync();
 return 0;

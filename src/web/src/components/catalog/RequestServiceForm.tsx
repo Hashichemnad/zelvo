@@ -1,5 +1,6 @@
 "use client";
 
+import { CameraButtons } from "@/components/pwa/CameraButtons";
 import { useEffect, useId, useState } from "react";
 import { useLocale, useTranslations } from "next-intl";
 import { useRouter } from "@/i18n/navigation";
@@ -236,6 +237,8 @@ export function RequestServiceForm({ service, initialForm, csrfToken, locations,
                     e.target.value = "";
                     if (file) void upload(d.key, file);
                   }} className="block text-sm" />
+                {/* Task J1: a photo or video of the document straight from the phone's camera. */}
+                <CameraButtons allowed={d.fileTypes} onFile={(file) => void upload(d.key, file)} />
                 <ul className="space-y-1">
                   {(uploads[d.key] ?? []).map((u) => (
                     <li key={u.id} className="flex items-center gap-2 text-sm">

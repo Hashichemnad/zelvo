@@ -8817,7 +8817,7 @@ namespace Zelvo.Data.Migrations
 
                     b.ToTable("ticket_attachments", null, t =>
                         {
-                            t.HasCheckConstraint("ck_ticket_attachments_branding_slot", "branding_slot IS NULL OR branding_slot IN ('LogoLight', 'LogoDark', 'Favicon', 'LoginImage')");
+                            t.HasCheckConstraint("ck_ticket_attachments_branding_slot", "branding_slot IS NULL OR branding_slot IN ('LogoLight', 'LogoDark', 'Favicon', 'LoginImage', 'AppIcon')");
 
                             t.HasCheckConstraint("ck_ticket_attachments_comment", "comment_id IS NULL OR ticket_id IS NOT NULL");
 

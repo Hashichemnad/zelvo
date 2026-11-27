@@ -29,7 +29,7 @@ Settings → Branding (`branding.manage`, tenant administrators) edits a **draft
 - the product name in English and Arabic (up to 80 characters each), shown instead of "Zelvo" in the header, the browser tab (`%s · <product>`), emails, PDFs, the chat widget and the sign-in pages;
 - the brand colour for light mode and for dark mode (`#rrggbb`);
 - a font from the bundled list, each with Arabic and Latin letters and working offline: IBM Plex Sans Arabic (default), Cairo, Tajawal, Almarai (`@fontsource`, OFL-1.1);
-- images: logo for light and for dark backgrounds, favicon, sign-in image.
+- images: logo for light and for dark backgrounds, favicon, sign-in image, and from task J1 the installable app's icon (a square PNG of at least 512 pixels that Zelvo resizes; see `installable-app.md`).
 
 **Contrast checks** (WCAG 2.2 AA, 4.5:1), computed the same way in C# (`BrandingValue.Checks`) and in the browser as the administrator types (`contrastChecks`): the brand colour as text on the light surface (`#ffffff`) and the surface colour as button text on the brand colour, and the same for dark mode (surface `#141a20`). **Publishing is refused** (`409 branding-not-ready`) while a check fails or an image is not scanned clean, and the problems are listed.
 
