@@ -31,6 +31,8 @@ public class ApiFactory : WebApplicationFactory<Program>
         ["MalwareDefinitions:JobsEnabled"] = "false",
         // Task K4: tests run the wellbeing jobs themselves.
         ["Wellbeing:Jobs:Enabled"] = "false",
+        // Task G2: tests run the CMDB discovery jobs themselves.
+        ["Cmdb:Discovery:Jobs:Enabled"] = "false",
     };
 
     private readonly List<Action<IServiceCollection>> _services = [];

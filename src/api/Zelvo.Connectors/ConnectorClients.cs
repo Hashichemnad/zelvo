@@ -80,11 +80,12 @@ public interface IConnectorClients
 /// and LDAP connection follows the connectors' outgoing-request policy
 /// (<c>Connectors:Network:AllowedPrivateNetworks</c>): internal addresses only when the operator allows them.
 /// </summary>
-public sealed class ConnectorClients : IConnectorClients, IDisposable
+public sealed partial class ConnectorClients : IConnectorClients, IDisposable
 {
     private const int MaxBody = 1024 * 1024;
     private readonly HttpClient _http;
     private readonly ConnectorOptions _options;
+    private readonly HttpMessageHandler? _testHandler;
     private readonly ConcurrentDictionary<string, (string Token, string? Instance, DateTimeOffset Expires)> _tokens = new(StringComparer.Ordinal);
 
     /// <summary>Creates the clients.</summary>
@@ -107,6 +108,7 @@ public sealed class ConnectorClients : IConnectorClients, IDisposable
     /// <summary>Tests only: sends through <paramref name="handler"/>.</summary>
     internal ConnectorClients(ConnectorOptions options, OutboundAddressPolicy policy, HttpMessageHandler handler)
     {
+        _testHandler = handler;
         _options = options;
         Policy = policy;
         _http = new HttpClient(handler) { Timeout = options.Timeout };
@@ -771,7 +773,8 @@ public sealed class ConnectorClients : IConnectorClients, IDisposable
         }
     }
 
-    private async Task<(int Status, string? Type, string Body, int Duration)> SendAsync(HttpRequestMessage request, string? requestBody, ExchangeLog log, CancellationToken cancellationToken)
+    private async Task<(int Status, string? Type, string Body, int Duration)> SendAsync(
+        HttpRequestMessage request, string? requestBody, ExchangeLog log, CancellationToken cancellationToken, HttpClient? client = null)
     {
         if (request.RequestUri is not { } url || url.Scheme != Uri.UriSchemeHttps && !_options.Network.AllowInsecureHttp)
         {
@@ -781,7 +784,7 @@ public sealed class ConnectorClients : IConnectorClients, IDisposable
         var watch = Stopwatch.StartNew();
         try
         {
-            using var response = await _http.SendAsync(request, HttpCompletionOption.ResponseHeadersRead, cancellationToken);
+            using var response = await (client ?? _http).SendAsync(request, HttpCompletionOption.ResponseHeadersRead, cancellationToken);
             var bytes = await response.Content.ReadAsByteArrayAsync(cancellationToken);
             var body = Encoding.UTF8.GetString(bytes, 0, Math.Min(bytes.Length, MaxBody));
             var type = response.Content.Headers.ContentType?.MediaType;

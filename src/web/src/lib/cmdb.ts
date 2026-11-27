@@ -56,6 +56,10 @@ export interface CiClass {
   selectable: boolean;
   itemCount: number;
   etag: string;
+  /** Task G2: the class's own identification rules (null: inherited). */
+  identificationRules: string[][] | null;
+  /** The rules that apply to its items. */
+  effectiveIdentificationRules: string[][];
 }
 
 export interface CiRelationshipType {
@@ -80,6 +84,8 @@ export interface CiRelationshipTypeRef {
 
 export interface CmdbSettings {
   numberPrefix: string;
+  /** Task G2: precedence of values people set, 1 (most trusted) to 100. */
+  manualPriority: number;
 }
 
 interface NamedRef {
@@ -100,6 +106,8 @@ export interface CiSummary {
   ownerGroup: NamedRef | null;
   location: NodeRef | null;
   updatedAt: string;
+  /** Task G2: since when no discovery source reports it. */
+  missingSince: string | null;
 }
 
 export interface CiPage {
@@ -133,6 +141,10 @@ export interface ConfigurationItem {
   createdAt: string;
   updatedAt: string;
   etag: string;
+  /** Task G2: since when no discovery source reports it. */
+  missingSince: string | null;
+  /** Task G2: the item it was merged into. */
+  mergedIntoId: string | null;
 }
 
 /** An item to pick (lookup, tickets). */
@@ -290,4 +302,140 @@ export function classesByFamily(classes: CiClass[]): { family: CiFamily; classes
 export function classFields(ciClass: CiClass | undefined): FormField[] {
   if (!ciClass) return [];
   return [...ciClass.inheritedAttributes.map((a) => a.field), ...(ciClass.attributes ?? [])];
+}
+
+// --- Task G2: import, discovery and reconciliation ---
+
+export type DiscoverySourceKind = "DiscoveryApi" | "Intune" | "EntraDevices" | "Azure" | "ActiveDirectory" | "VCenter";
+export const discoverySourceKinds: readonly DiscoverySourceKind[] = ["DiscoveryApi", "Intune", "EntraDevices", "Azure", "ActiveDirectory", "VCenter"];
+
+/** The E7 connector kind a source of each kind uses (none for the discovery API and vCenter). */
+export const connectorKindOf: Record<DiscoverySourceKind, "EntraId" | "Ldap" | null> = {
+  DiscoveryApi: null,
+  Intune: "EntraId",
+  EntraDevices: "EntraId",
+  Azure: "EntraId",
+  ActiveDirectory: "Ldap",
+  VCenter: null,
+};
+
+export interface ReconcileStats {
+  received: number;
+  created: number;
+  updated: number;
+  unchanged: number;
+  linked: number;
+  review: number;
+  duplicates: number;
+  missing: number;
+  unknownClass: number;
+  skipped: number;
+  valuesRefused: number;
+  software: number;
+  relationships: number;
+}
+
+export interface DiscoverySettings {
+  classMap?: Record<string, string>;
+  includeApps?: boolean;
+  subscriptionIds?: string[];
+  resourceTypes?: string[];
+  baseDn?: string | null;
+  computerFilter?: string;
+  url?: string | null;
+  username?: string | null;
+  certificateThumbprint?: string | null;
+}
+
+export interface DiscoverySource {
+  id: string;
+  name: string;
+  kind: DiscoverySourceKind;
+  connectorId: string | null;
+  connectorName: string | null;
+  settings: DiscoverySettings;
+  hasCredential: boolean;
+  credentialSetAt: string | null;
+  active: boolean;
+  priority: number;
+  attributePriorities: Record<string, number>;
+  syncMinutes: number;
+  nextSyncAt: string | null;
+  lastSyncAt: string | null;
+  lastSyncSucceeded: boolean | null;
+  lastSyncStats: ReconcileStats | null;
+  lastError: string | null;
+  recordCount: number;
+  missingCount: number;
+  reviewCount: number;
+  etag: string;
+}
+
+export interface DiscoveryTest {
+  ok: boolean;
+  error: string | null;
+  count: number;
+  classes: Record<string, number>;
+  sample: { id: string; class: string; name: string; attributes: Record<string, JsonValue> }[];
+}
+
+export interface DiscoverySourceRef {
+  id: string;
+  name: string;
+  kind: DiscoverySourceKind;
+}
+
+export interface CiDiscovery {
+  missingSince: string | null;
+  mergedInto: { id: string; number: string; name: string; status: CiStatus } | null;
+  records: { source: DiscoverySourceRef | null; externalId: string; name: string; firstSeenAt: string; lastSeenAt: string; missingSince: string | null }[];
+  valueSetters: Record<string, { manual: boolean; source: DiscoverySourceRef | null }>;
+  software: { name: string; publisher: string | null; version: string | null; source: DiscoverySourceRef | null; lastSeenAt: string }[];
+}
+
+export type CiReviewKind = "PossibleDuplicate" | "Ambiguous";
+export type CiReviewState = "Open" | "Merged" | "KeptApart" | "Linked" | "Created" | "Closed";
+
+export interface CiReviewSide {
+  id: string;
+  number: string;
+  name: string;
+  status: CiStatus;
+  class: { id: string; key: string; family: CiFamily; path: Bilingual } | null;
+  attributes: Record<string, JsonValue> | null;
+  ticketCount: number;
+  sources: string[];
+}
+
+export interface CiReview {
+  id: string;
+  kind: CiReviewKind;
+  state: CiReviewState;
+  matchedOn: string;
+  matchedValue: string | null;
+  items: CiReviewSide[];
+  record: { source: string; externalId: string; name: string; class: { key: string; path: Bilingual } | null; attributes: Record<string, JsonValue> | null } | null;
+  createdAt: string;
+  decidedAt: string | null;
+  decidedBy: string | null;
+}
+
+export interface CiReviewPage {
+  items: CiReview[];
+  page: number;
+  pageSize: number;
+  totalCount: number;
+}
+
+/** Identification rules as text: one rule per line, keys joined by "+". */
+export function rulesToText(rules: string[][] | null | undefined): string {
+  return (rules ?? []).map((rule) => rule.join(" + ")).join("\n");
+}
+
+/** Rules typed as text back to lists (empty lines left out). */
+export function textToRules(text: string): string[][] {
+  return text
+    .split(/\r?\n/)
+    .map((line) => line.split("+").map((key) => key.trim()).filter((key) => key.length > 0))
+    .filter((rule) => rule.length > 0);
 }

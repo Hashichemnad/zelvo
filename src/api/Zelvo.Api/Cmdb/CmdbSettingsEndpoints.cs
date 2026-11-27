@@ -171,6 +171,13 @@ internal static class CmdbSettingsEndpoints
             return FormsCommon.Problems("attributes-invalid", "The attributes have problems.", problems);
         }
 
+        // Task G2: identification rules over the class's own and inherited attributes.
+        var ruleKeys = inherited.Union(fields.Select(f => f.Key)).ToHashSet(StringComparer.Ordinal);
+        if (request.IdentificationRules is { } newRules && CmdbIdentification.Problem(newRules, ruleKeys) is { } ruleProblem)
+        {
+            return RulesProblem(ruleProblem);
+        }
+
         var ciClass = new CiClass
         {
             Key = request.Key,
@@ -183,6 +190,7 @@ internal static class CmdbSettingsEndpoints
             RequesterVisible = request.RequesterVisible ?? false,
             Active = request.Active ?? true,
             Position = siblings.Count == 0 ? 0 : siblings.Max(s => s.Position) + 1,
+            IdentificationRules = CmdbIdentification.Write(request.IdentificationRules),
         };
         db.CiClasses.Add(ciClass);
         await db.SaveChangesAsync(cancellationToken);
@@ -253,6 +261,24 @@ internal static class CmdbSettingsEndpoints
 
             // Values of removed attributes stay on items until they are next changed, then are dropped.
             ciClass.Attributes = CmdbAttributes.Write(fields);
+        }
+
+        if (request.IdentificationRules is { } rules)
+        {
+            // An empty list goes back to the class above's rules (or Zelvo's defaults).
+            var keys = index.Attributes(id).Select(a => a.Field.Key).ToHashSet(StringComparer.Ordinal);
+            if (request.Attributes is not null)
+            {
+                keys = (ciClass.ParentId is { } p ? index.Attributes(p).Select(a => a.Field.Key) : [])
+                    .Union(CmdbAttributes.Read(ciClass.Attributes).Select(f => f.Key)).ToHashSet(StringComparer.Ordinal);
+            }
+
+            if (CmdbIdentification.Problem(rules, keys) is { } ruleProblem)
+            {
+                return RulesProblem(ruleProblem);
+            }
+
+            ciClass.IdentificationRules = CmdbIdentification.Write(rules);
         }
 
         if (request.RequesterVisible is { } visible)
@@ -467,7 +493,8 @@ internal static class CmdbSettingsEndpoints
     // --- Settings ---
 
     internal static async Task<Ok<CmdbSettingsResponse>> GetSettingsAsync(TenantSettingsStore settings, CancellationToken cancellationToken) =>
-        TypedResults.Ok(new CmdbSettingsResponse(await settings.GetAsync(CmdbSettings.NumberPrefix, cancellationToken)));
+        TypedResults.Ok(new CmdbSettingsResponse(
+            await settings.GetAsync(CmdbSettings.NumberPrefix, cancellationToken), await settings.GetAsync(CmdbReconciliationSettings.ManualPriority, cancellationToken)));
 
     internal static async Task<Results<Ok<CmdbSettingsResponse>, ValidationProblem>> PutSettingsAsync(
         CmdbSettingsRequest request, TenantSettingsStore settings, ZelvoDbContext db, CancellationToken cancellationToken)
@@ -477,12 +504,30 @@ internal static class CmdbSettingsEndpoints
             return UserEndpoints.Validation("numberPrefix", "1 to 10 capital letters or digits, starting with a letter.");
         }
 
+        if (request.ManualPriority is { } manual && !CmdbReconciliationSettings.ManualPriority.IsValid(manual))
+        {
+            return UserEndpoints.Validation("manualPriority", "A number from 1 (most trusted) to 100.");
+        }
+
         await settings.SetAsync(CmdbSettings.NumberPrefix, request.NumberPrefix!, cancellationToken);
+        if (request.ManualPriority is { } priority)
+        {
+            await settings.SetAsync(CmdbReconciliationSettings.ManualPriority, priority, cancellationToken);
+        }
+
         await db.SaveChangesAsync(cancellationToken);
-        return TypedResults.Ok(new CmdbSettingsResponse(request.NumberPrefix!));
+        return TypedResults.Ok(new CmdbSettingsResponse(request.NumberPrefix!, await settings.GetAsync(CmdbReconciliationSettings.ManualPriority, cancellationToken)));
     }
 
     // --- Helpers ---
+
+    private static ProblemHttpResult RulesProblem(string code) =>
+        (ProblemHttpResult)ApiProblem.Create(StatusCodes.Status409Conflict, code, code switch
+        {
+            "too-many-rules" => $"A class has at most {CmdbIdentification.MaxRules} identification rules.",
+            "rule-key-unknown" => "Rules use the class's attributes or name.",
+            _ => $"Each rule names 1 to {CmdbIdentification.MaxKeys} different attributes.",
+        });
 
     private static int BuiltInOrder(string key) => key switch
     {
@@ -582,6 +627,9 @@ public sealed class CreateCiClassRequest
 
     /// <summary>Active (default yes).</summary>
     public bool? Active { get; init; }
+
+    /// <summary>Task G2: identification rules, each 1–3 attribute keys (or <c>name</c>), tried in order; left out: the class above's.</summary>
+    public List<List<string>>? IdentificationRules { get; init; }
 }
 
 /// <summary>Changes to a class; what is left out stays.</summary>
@@ -605,6 +653,9 @@ public sealed class UpdateCiClassRequest
     /// <summary>New place among its siblings (0 first).</summary>
     [Range(0, 1000)]
     public int? Position { get; init; }
+
+    /// <summary>Task G2: identification rules (all of them); an empty list goes back to the class above's.</summary>
+    public List<List<string>>? IdentificationRules { get; init; }
 }
 
 /// <summary>A class with what an item of it has.</summary>
@@ -613,9 +664,12 @@ public sealed class UpdateCiClassRequest
 /// <param name="Selectable">New items can be added (the class and those above are active).</param>
 /// <param name="ItemCount">Items of exactly this class.</param>
 /// <param name="Etag">Send as If-Match with changes.</param>
+/// <param name="IdentificationRules">Task G2: the class's own rules (null: inherited).</param>
+/// <param name="EffectiveIdentificationRules">The rules that apply to its items.</param>
 internal sealed record CiClassResponse(
     Guid Id, string Key, Guid? ParentId, int Depth, CiFamily Family, LocalizedTextDto Name, LocalizedTextDto Description, LocalizedTextDto Path,
-    JsonNode? Attributes, IReadOnlyList<InheritedAttribute> InheritedAttributes, bool RequesterVisible, bool Active, bool Selectable, int ItemCount, string Etag)
+    JsonNode? Attributes, IReadOnlyList<InheritedAttribute> InheritedAttributes, bool RequesterVisible, bool Active, bool Selectable, int ItemCount, string Etag,
+    IReadOnlyList<IReadOnlyList<string>>? IdentificationRules, IReadOnlyList<IReadOnlyList<string>> EffectiveIdentificationRules)
 {
     public static CiClassResponse From(CiClass c, CiClassIndex index, int itemCount) => new(
         c.Id, c.Key, c.ParentId, c.Depth, c.Family, LocalizedTextDto.From(c.Name), LocalizedTextDto.From(c.Description), LocalizedTextDto.From(index.Path(c.Id)),
@@ -623,7 +677,8 @@ internal sealed record CiClassResponse(
         c.ParentId is { } p
             ? [.. index.Attributes(p).Select(a => new InheritedAttribute(a.ClassId, LocalizedTextDto.From(index.Find(a.ClassId)!.Name), System.Text.Json.JsonSerializer.SerializeToNode(a.Field, FormJson.Options)))]
             : [],
-        c.RequesterVisible, c.Active, index.Selectable(c.Id), itemCount, $"\"{c.Version}\"");
+        c.RequesterVisible, c.Active, index.Selectable(c.Id), itemCount, $"\"{c.Version}\"",
+        CmdbIdentification.Read(c.IdentificationRules), CmdbIdentification.RulesFor(index, c.Id));
 }
 
 /// <summary>An attribute an item gets from a class above its own.</summary>
@@ -677,7 +732,8 @@ internal sealed record CiRelationshipTypeResponse(
 }
 
 /// <summary>CMDB settings.</summary>
-internal sealed record CmdbSettingsResponse(string NumberPrefix);
+/// <param name="ManualPriority">Task G2: precedence of values people set, 1 (most trusted) to 100.</param>
+internal sealed record CmdbSettingsResponse(string NumberPrefix, int ManualPriority);
 
 /// <summary>New CMDB settings.</summary>
 public sealed class CmdbSettingsRequest
@@ -685,4 +741,7 @@ public sealed class CmdbSettingsRequest
     /// <summary>Prefix of new item numbers: 1–10 capital letters or digits, starting with a letter.</summary>
     [Required, StringLength(10)]
     public string? NumberPrefix { get; init; }
+
+    /// <summary>Task G2: precedence of values people set (1–100; left out: unchanged).</summary>
+    public int? ManualPriority { get; init; }
 }

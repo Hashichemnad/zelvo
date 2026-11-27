@@ -1,12 +1,13 @@
 import { notFound } from "next/navigation";
 import { getTranslations, setRequestLocale } from "next-intl/server";
 import { CiHistory } from "@/components/cmdb/CiHistory";
+import { CiDiscoveryPanel } from "@/components/cmdb/CiDiscoveryPanel";
 import { CiItemView } from "@/components/cmdb/CiItemView";
 import { CiRelationsArea } from "@/components/cmdb/CiRelationsArea";
 import { CiTickets } from "@/components/cmdb/CiTickets";
 import { Link } from "@/i18n/navigation";
 import { getJsonAs } from "@/lib/api";
-import type { CiClass, CiRelationshipType, CiTicket, ConfigurationItem } from "@/lib/cmdb";
+import type { CiClass, CiDiscovery, CiRelationshipType, CiTicket, ConfigurationItem } from "@/lib/cmdb";
 import { getDisplayFormat } from "@/lib/display";
 import { loadDirectoryChoices } from "@/lib/directory-pages";
 import { isId } from "@/lib/incident-pages";
@@ -35,7 +36,7 @@ export default async function CiPage({ params }: PageProps<"/[locale]/cmdb/[id]"
   }
   const token = session.data.accessToken;
   const get = <T,>(path: string) => getJsonAs<T>(path, token, tenant);
-  const [item, classes, types, tickets, history, choices, format] = await Promise.all([
+  const [item, classes, types, tickets, history, choices, format, discovery] = await Promise.all([
     get<ConfigurationItem>(`/api/v1/cmdb/items/${id}`),
     get<CiClass[]>("/api/v1/cmdb/classes"),
     get<CiRelationshipType[]>("/api/v1/cmdb/relationship-types"),
@@ -43,6 +44,7 @@ export default async function CiPage({ params }: PageProps<"/[locale]/cmdb/[id]"
     get<HistoryEntry[]>(`/api/v1/cmdb/items/${id}/history`),
     loadDirectoryChoices(token, tenant, permissions),
     getDisplayFormat(),
+    get<CiDiscovery>(`/api/v1/cmdb/items/${id}/discovery`),
   ]);
   if (!item) notFound();
   const display = { locale, ...format };
@@ -58,6 +60,7 @@ export default async function CiPage({ params }: PageProps<"/[locale]/cmdb/[id]"
       <CiItemView initial={item} classes={classes ?? []} groups={choices.groups} locations={choices.locations} display={display}
         canManage={canManage} csrfToken={session.data.csrfToken} />
       <CiRelationsArea itemId={item.id} types={types ?? []} classes={classes ?? []} canManage={canManage} csrfToken={session.data.csrfToken} digits={display.digits} />
+      {discovery && <CiDiscoveryPanel discovery={discovery} attributes={item.attributes} display={display} />}
       <CiTickets tickets={tickets ?? []} display={display} />
       <CiHistory entries={history ?? []} display={display} />
     </article>

@@ -299,6 +299,7 @@ public static class ConnectorsServiceCollectionExtensions
         services.TryAddSingleton(TimeProvider.System);
         services.TryAddSingleton(sp => new ConnectorClients(sp.GetRequiredService<ConnectorOptions>(), new OutboundAddressPolicy(sp.GetRequiredService<ConnectorOptions>().Network)));
         services.TryAddSingleton<IConnectorClients>(sp => sp.GetRequiredService<ConnectorClients>());
+        services.TryAddSingleton<IDiscoveryClients>(sp => sp.GetRequiredService<ConnectorClients>());
         services.TryAddScoped<DirectorySync>();
         services.TryAddScoped<CrmSync>();
         services.TryAddScoped<RestRunner>();

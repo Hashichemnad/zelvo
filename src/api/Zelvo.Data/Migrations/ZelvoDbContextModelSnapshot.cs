@@ -3138,6 +3138,10 @@ namespace Zelvo.Data.Migrations
                         .HasColumnType("character varying(20)")
                         .HasColumnName("family");
 
+                    b.Property<string>("IdentificationRules")
+                        .HasColumnType("jsonb")
+                        .HasColumnName("identification_rules");
+
                     b.Property<string>("Key")
                         .IsRequired()
                         .HasMaxLength(50)
@@ -3227,6 +3231,192 @@ namespace Zelvo.Data.Migrations
 
                             t.HasCheckConstraint("ck_ci_classes_parent", "(depth = 1) = (parent_id IS NULL)");
                         });
+                });
+
+            modelBuilder.Entity("Zelvo.Data.Cmdb.CiDiscoverySource", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<bool>("Active")
+                        .HasColumnType("boolean")
+                        .HasColumnName("active");
+
+                    b.Property<string>("AttributePriorities")
+                        .IsRequired()
+                        .HasColumnType("jsonb")
+                        .HasColumnName("attribute_priorities");
+
+                    b.Property<Guid?>("ConnectorId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("connector_id");
+
+                    b.Property<DateTimeOffset>("CreatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("created_at");
+
+                    b.Property<string>("CredentialCiphertext")
+                        .HasColumnType("text")
+                        .HasColumnName("credential_ciphertext");
+
+                    b.Property<DateTimeOffset?>("CredentialSetAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("credential_set_at");
+
+                    b.Property<string>("Kind")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("character varying(20)")
+                        .HasColumnName("kind");
+
+                    b.Property<string>("LastError")
+                        .HasMaxLength(1000)
+                        .HasColumnType("character varying(1000)")
+                        .HasColumnName("last_error");
+
+                    b.Property<DateTimeOffset?>("LastSyncAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("last_sync_at");
+
+                    b.Property<string>("LastSyncStats")
+                        .HasColumnType("jsonb")
+                        .HasColumnName("last_sync_stats");
+
+                    b.Property<bool?>("LastSyncSucceeded")
+                        .HasColumnType("boolean")
+                        .HasColumnName("last_sync_succeeded");
+
+                    b.Property<DateTimeOffset?>("LeaseUntil")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("lease_until");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)")
+                        .HasColumnName("name");
+
+                    b.Property<DateTimeOffset?>("NextSyncAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("next_sync_at");
+
+                    b.Property<int>("Priority")
+                        .HasColumnType("integer")
+                        .HasColumnName("priority");
+
+                    b.Property<string>("Settings")
+                        .IsRequired()
+                        .HasColumnType("jsonb")
+                        .HasColumnName("settings");
+
+                    b.Property<int>("SyncMinutes")
+                        .HasColumnType("integer")
+                        .HasColumnName("sync_minutes");
+
+                    b.Property<Guid>("TenantId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("tenant_id");
+
+                    b.Property<DateTimeOffset>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("updated_at");
+
+                    b.Property<uint>("Version")
+                        .IsConcurrencyToken()
+                        .ValueGeneratedOnAddOrUpdate()
+                        .HasColumnType("xid")
+                        .HasColumnName("xmin");
+
+                    b.HasKey("Id")
+                        .HasName("pk_ci_discovery_sources");
+
+                    b.HasIndex("ConnectorId")
+                        .HasDatabaseName("ix_ci_discovery_sources_connector_id");
+
+                    b.HasIndex("TenantId", "Name")
+                        .IsUnique()
+                        .HasDatabaseName("ix_ci_discovery_sources_tenant_id_name");
+
+                    b.HasIndex("TenantId", "NextSyncAt")
+                        .HasDatabaseName("ix_ci_discovery_sources_tenant_id_next_sync_at");
+
+                    b.ToTable("ci_discovery_sources", null, t =>
+                        {
+                            t.HasCheckConstraint("ck_ci_discovery_sources_kind", "kind IN ('DiscoveryApi', 'Intune', 'EntraDevices', 'Azure', 'ActiveDirectory', 'VCenter')");
+
+                            t.HasCheckConstraint("ck_ci_discovery_sources_priorities", "jsonb_typeof(attribute_priorities) = 'object'");
+
+                            t.HasCheckConstraint("ck_ci_discovery_sources_priority", "priority BETWEEN 1 AND 100");
+
+                            t.HasCheckConstraint("ck_ci_discovery_sources_settings", "jsonb_typeof(settings) = 'object'");
+
+                            t.HasCheckConstraint("ck_ci_discovery_sources_sync_minutes", "sync_minutes BETWEEN 15 AND 10080");
+                        });
+                });
+
+            modelBuilder.Entity("Zelvo.Data.Cmdb.CiInstalledSoftware", b =>
+                {
+                    b.Property<long>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bigint")
+                        .HasColumnName("id");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityAlwaysColumn(b.Property<long>("Id"));
+
+                    b.Property<Guid>("ConfigurationItemId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("configuration_item_id");
+
+                    b.Property<DateTimeOffset>("LastSeenAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("last_seen_at");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(300)
+                        .HasColumnType("character varying(300)")
+                        .HasColumnName("name");
+
+                    b.Property<string>("ProductKey")
+                        .IsRequired()
+                        .HasMaxLength(300)
+                        .HasColumnType("character varying(300)")
+                        .HasColumnName("product_key");
+
+                    b.Property<string>("Publisher")
+                        .HasMaxLength(300)
+                        .HasColumnType("character varying(300)")
+                        .HasColumnName("publisher");
+
+                    b.Property<Guid>("SourceId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("source_id");
+
+                    b.Property<Guid>("TenantId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("tenant_id");
+
+                    b.Property<string>("Version")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)")
+                        .HasColumnName("version");
+
+                    b.HasKey("Id")
+                        .HasName("pk_ci_installed_software");
+
+                    b.HasIndex("SourceId")
+                        .HasDatabaseName("ix_ci_installed_software_source_id");
+
+                    b.HasIndex("TenantId", "ProductKey")
+                        .HasDatabaseName("ix_ci_installed_software_tenant_id_product_key");
+
+                    b.HasIndex("ConfigurationItemId", "SourceId", "ProductKey", "Version")
+                        .IsUnique()
+                        .HasDatabaseName("ix_ci_installed_software_configuration_item_id_source_id_produ");
+
+                    b.ToTable("ci_installed_software", (string)null);
                 });
 
             modelBuilder.Entity("Zelvo.Data.Cmdb.CiNumberSequence", b =>
@@ -3424,11 +3614,200 @@ namespace Zelvo.Data.Migrations
                         });
                 });
 
+            modelBuilder.Entity("Zelvo.Data.Cmdb.CiReviewItem", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<string>("Candidates")
+                        .IsRequired()
+                        .HasColumnType("jsonb")
+                        .HasColumnName("candidates");
+
+                    b.Property<Guid?>("ConfigurationItemId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("configuration_item_id");
+
+                    b.Property<DateTimeOffset>("CreatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("created_at");
+
+                    b.Property<DateTimeOffset?>("DecidedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("decided_at");
+
+                    b.Property<Guid?>("DecidedById")
+                        .HasColumnType("uuid")
+                        .HasColumnName("decided_by_id");
+
+                    b.Property<string>("Kind")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("character varying(20)")
+                        .HasColumnName("kind");
+
+                    b.Property<string>("MatchedOn")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)")
+                        .HasColumnName("matched_on");
+
+                    b.Property<string>("MatchedValue")
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)")
+                        .HasColumnName("matched_value");
+
+                    b.Property<Guid?>("OtherItemId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("other_item_id");
+
+                    b.Property<Guid?>("SourceRecordId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("source_record_id");
+
+                    b.Property<string>("State")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("character varying(20)")
+                        .HasColumnName("state");
+
+                    b.Property<Guid>("TenantId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("tenant_id");
+
+                    b.HasKey("Id")
+                        .HasName("pk_ci_review_items");
+
+                    b.HasIndex("DecidedById")
+                        .HasDatabaseName("ix_ci_review_items_decided_by_id");
+
+                    b.HasIndex("OtherItemId")
+                        .HasDatabaseName("ix_ci_review_items_other_item_id");
+
+                    b.HasIndex("SourceRecordId")
+                        .IsUnique()
+                        .HasDatabaseName("ix_ci_review_items_source_record_id")
+                        .HasFilter("kind = 'Ambiguous' AND state = 'Open'");
+
+                    b.HasIndex("ConfigurationItemId", "OtherItemId")
+                        .IsUnique()
+                        .HasDatabaseName("ix_ci_review_items_configuration_item_id_other_item_id")
+                        .HasFilter("kind = 'PossibleDuplicate'");
+
+                    b.HasIndex("TenantId", "State", "CreatedAt")
+                        .HasDatabaseName("ix_ci_review_items_tenant_id_state_created_at");
+
+                    b.ToTable("ci_review_items", null, t =>
+                        {
+                            t.HasCheckConstraint("ck_ci_review_items_candidates", "jsonb_typeof(candidates) = 'array'");
+
+                            t.HasCheckConstraint("ck_ci_review_items_ends", "(kind = 'PossibleDuplicate' AND configuration_item_id IS NOT NULL AND other_item_id IS NOT NULL) OR (kind = 'Ambiguous' AND source_record_id IS NOT NULL)");
+
+                            t.HasCheckConstraint("ck_ci_review_items_kind", "kind IN ('PossibleDuplicate', 'Ambiguous')");
+
+                            t.HasCheckConstraint("ck_ci_review_items_state", "state IN ('Open', 'Merged', 'KeptApart', 'Linked', 'Created', 'Closed')");
+                        });
+                });
+
+            modelBuilder.Entity("Zelvo.Data.Cmdb.CiSourceRecord", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<string>("Attributes")
+                        .IsRequired()
+                        .HasColumnType("jsonb")
+                        .HasColumnName("attributes");
+
+                    b.Property<Guid>("ClassId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("class_id");
+
+                    b.Property<Guid?>("ConfigurationItemId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("configuration_item_id");
+
+                    b.Property<string>("ExternalId")
+                        .IsRequired()
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)")
+                        .HasColumnName("external_id");
+
+                    b.Property<DateTimeOffset>("FirstSeenAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("first_seen_at");
+
+                    b.Property<DateTimeOffset>("LastSeenAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("last_seen_at");
+
+                    b.Property<DateTimeOffset?>("MissingSince")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("missing_since");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)")
+                        .HasColumnName("name");
+
+                    b.Property<string>("PrimaryUser")
+                        .HasMaxLength(320)
+                        .HasColumnType("character varying(320)")
+                        .HasColumnName("primary_user");
+
+                    b.Property<Guid>("SourceId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("source_id");
+
+                    b.Property<string>("State")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("character varying(20)")
+                        .HasColumnName("state");
+
+                    b.Property<Guid>("TenantId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("tenant_id");
+
+                    b.HasKey("Id")
+                        .HasName("pk_ci_source_records");
+
+                    b.HasIndex("ClassId")
+                        .HasDatabaseName("ix_ci_source_records_class_id");
+
+                    b.HasIndex("ConfigurationItemId")
+                        .HasDatabaseName("ix_ci_source_records_configuration_item_id");
+
+                    b.HasIndex("SourceId", "ExternalId")
+                        .IsUnique()
+                        .HasDatabaseName("ix_ci_source_records_source_id_external_id");
+
+                    b.HasIndex("TenantId", "ConfigurationItemId")
+                        .HasDatabaseName("ix_ci_source_records_tenant_id_configuration_item_id");
+
+                    b.ToTable("ci_source_records", null, t =>
+                        {
+                            t.HasCheckConstraint("ck_ci_source_records_attributes", "jsonb_typeof(attributes) = 'object'");
+
+                            t.HasCheckConstraint("ck_ci_source_records_linked", "(state = 'Linked') = (configuration_item_id IS NOT NULL)");
+
+                            t.HasCheckConstraint("ck_ci_source_records_state", "state IN ('Linked', 'Review')");
+                        });
+                });
+
             modelBuilder.Entity("Zelvo.Data.Cmdb.ConfigurationItem", b =>
                 {
                     b.Property<Guid>("Id")
                         .HasColumnType("uuid")
                         .HasColumnName("id");
+
+                    b.Property<string>("AttributeSources")
+                        .IsRequired()
+                        .HasColumnType("jsonb")
+                        .HasColumnName("attribute_sources");
 
                     b.Property<string>("Attributes")
                         .IsRequired()
@@ -3446,6 +3825,14 @@ namespace Zelvo.Data.Migrations
                     b.Property<Guid?>("LocationId")
                         .HasColumnType("uuid")
                         .HasColumnName("location_id");
+
+                    b.Property<Guid?>("MergedIntoId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("merged_into_id");
+
+                    b.Property<DateTimeOffset?>("MissingSince")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("missing_since");
 
                     b.Property<string>("Name")
                         .IsRequired()
@@ -3511,8 +3898,14 @@ namespace Zelvo.Data.Migrations
                     b.HasIndex("LocationId")
                         .HasDatabaseName("ix_configuration_items_location_id");
 
+                    b.HasIndex("MergedIntoId")
+                        .HasDatabaseName("ix_configuration_items_merged_into_id");
+
                     b.HasIndex("OwnerGroupId")
                         .HasDatabaseName("ix_configuration_items_owner_group_id");
+
+                    b.HasIndex("TenantId", "MissingSince")
+                        .HasDatabaseName("ix_configuration_items_tenant_id_missing_since");
 
                     b.HasIndex("TenantId", "Name")
                         .HasDatabaseName("ix_configuration_items_tenant_id_name");
@@ -11220,6 +11613,46 @@ namespace Zelvo.Data.Migrations
                         .HasConstraintName("fk_ci_classes_tenants_tenant_id");
                 });
 
+            modelBuilder.Entity("Zelvo.Data.Cmdb.CiDiscoverySource", b =>
+                {
+                    b.HasOne("Zelvo.Data.Connectors.Connector", null)
+                        .WithMany()
+                        .HasForeignKey("ConnectorId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .HasConstraintName("fk_ci_discovery_sources_connectors_connector_id");
+
+                    b.HasOne("Zelvo.Data.Tenancy.Tenant", null)
+                        .WithMany()
+                        .HasForeignKey("TenantId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired()
+                        .HasConstraintName("fk_ci_discovery_sources_tenants_tenant_id");
+                });
+
+            modelBuilder.Entity("Zelvo.Data.Cmdb.CiInstalledSoftware", b =>
+                {
+                    b.HasOne("Zelvo.Data.Cmdb.ConfigurationItem", null)
+                        .WithMany()
+                        .HasForeignKey("ConfigurationItemId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired()
+                        .HasConstraintName("fk_ci_installed_software_configuration_items_configuration_ite");
+
+                    b.HasOne("Zelvo.Data.Cmdb.CiDiscoverySource", null)
+                        .WithMany()
+                        .HasForeignKey("SourceId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired()
+                        .HasConstraintName("fk_ci_installed_software_ci_discovery_sources_source_id");
+
+                    b.HasOne("Zelvo.Data.Tenancy.Tenant", null)
+                        .WithMany()
+                        .HasForeignKey("TenantId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired()
+                        .HasConstraintName("fk_ci_installed_software_tenants_tenant_id");
+                });
+
             modelBuilder.Entity("Zelvo.Data.Cmdb.CiNumberSequence", b =>
                 {
                     b.HasOne("Zelvo.Data.Tenancy.Tenant", null)
@@ -11294,6 +11727,70 @@ namespace Zelvo.Data.Migrations
                         .HasConstraintName("fk_ci_relationship_types_tenants_tenant_id");
                 });
 
+            modelBuilder.Entity("Zelvo.Data.Cmdb.CiReviewItem", b =>
+                {
+                    b.HasOne("Zelvo.Data.Cmdb.ConfigurationItem", null)
+                        .WithMany()
+                        .HasForeignKey("ConfigurationItemId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .HasConstraintName("fk_ci_review_items_configuration_items_configuration_item_id");
+
+                    b.HasOne("Zelvo.Data.Identity.UserAccount", null)
+                        .WithMany()
+                        .HasForeignKey("DecidedById")
+                        .OnDelete(DeleteBehavior.SetNull)
+                        .HasConstraintName("fk_ci_review_items_users_decided_by_id");
+
+                    b.HasOne("Zelvo.Data.Cmdb.ConfigurationItem", null)
+                        .WithMany()
+                        .HasForeignKey("OtherItemId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .HasConstraintName("fk_ci_review_items_configuration_items_other_item_id");
+
+                    b.HasOne("Zelvo.Data.Cmdb.CiSourceRecord", null)
+                        .WithMany()
+                        .HasForeignKey("SourceRecordId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .HasConstraintName("fk_ci_review_items_ci_source_records_source_record_id");
+
+                    b.HasOne("Zelvo.Data.Tenancy.Tenant", null)
+                        .WithMany()
+                        .HasForeignKey("TenantId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired()
+                        .HasConstraintName("fk_ci_review_items_tenants_tenant_id");
+                });
+
+            modelBuilder.Entity("Zelvo.Data.Cmdb.CiSourceRecord", b =>
+                {
+                    b.HasOne("Zelvo.Data.Cmdb.CiClass", null)
+                        .WithMany()
+                        .HasForeignKey("ClassId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired()
+                        .HasConstraintName("fk_ci_source_records_ci_classes_class_id");
+
+                    b.HasOne("Zelvo.Data.Cmdb.ConfigurationItem", null)
+                        .WithMany()
+                        .HasForeignKey("ConfigurationItemId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .HasConstraintName("fk_ci_source_records_configuration_items_configuration_item_id");
+
+                    b.HasOne("Zelvo.Data.Cmdb.CiDiscoverySource", null)
+                        .WithMany()
+                        .HasForeignKey("SourceId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired()
+                        .HasConstraintName("fk_ci_source_records_ci_discovery_sources_source_id");
+
+                    b.HasOne("Zelvo.Data.Tenancy.Tenant", null)
+                        .WithMany()
+                        .HasForeignKey("TenantId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired()
+                        .HasConstraintName("fk_ci_source_records_tenants_tenant_id");
+                });
+
             modelBuilder.Entity("Zelvo.Data.Cmdb.ConfigurationItem", b =>
                 {
                     b.HasOne("Zelvo.Data.Cmdb.CiClass", null)
@@ -11308,6 +11805,12 @@ namespace Zelvo.Data.Migrations
                         .HasForeignKey("LocationId")
                         .OnDelete(DeleteBehavior.Restrict)
                         .HasConstraintName("fk_configuration_items_locations_location_id");
+
+                    b.HasOne("Zelvo.Data.Cmdb.ConfigurationItem", null)
+                        .WithMany()
+                        .HasForeignKey("MergedIntoId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .HasConstraintName("fk_configuration_items_configuration_items_merged_into_id");
 
                     b.HasOne("Zelvo.Data.Directory.SupportGroup", null)
                         .WithMany()

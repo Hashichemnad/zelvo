@@ -234,6 +234,12 @@ internal static class Permissions
     public const string CmdbManage = "cmdb.manage";
 
     /// <summary>
+    /// Task G2 (module 18): discovery sources (Intune, Entra ID devices, Azure, Active Directory,
+    /// vCenter and the discovery API), which read other systems with connectors' credentials.
+    /// </summary>
+    public const string CmdbDiscoveryManage = "cmdb.discovery.manage";
+
+    /// <summary>
     /// The wellbeing dashboard (module 21, task K4; product owner decision 2026-11-26): team leads
     /// see each agent of the groups they lead, others with this permission only group totals.
     /// Every agent sees their own figures without it.
@@ -334,6 +340,7 @@ internal static class PermissionCatalog
         Permissions.InstallationManage,
         Permissions.CmdbRead,
         Permissions.CmdbManage,
+        Permissions.CmdbDiscoveryManage,
         Permissions.WellbeingRead,
         Permissions.WellbeingManage,
     ];
@@ -379,6 +386,10 @@ internal static class PermissionCatalog
         // (UAE PDPL) and are for the people who balance work, never for other systems.
         Permissions.WellbeingRead,
         Permissions.WellbeingManage,
+        // Task G2, for the product owner's approval: discovery sources use connectors' stored
+        // credentials and the vCenter password (pushing records through the discovery API needs
+        // only cmdb.manage, which integrations may hold).
+        Permissions.CmdbDiscoveryManage,
     };
 
     /// <summary>Permissions an integration may be given as scopes.</summary>

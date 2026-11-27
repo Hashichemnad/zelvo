@@ -8,7 +8,7 @@ Covers the first part of module 18 in `docs/requirements.md`:
 - impact traversal ("what depends on this item"), used later by problems (H1) and changes (H3, H5);
 - configuration items on incidents and service requests, and the CI picker field that C1 deferred.
 
-Import, discovery and reconciliation come with G2. Assets, contracts, licences and labels come with G3.
+Import, discovery and reconciliation came with G2 (below, "Import, discovery and reconciliation"). Assets, contracts, licences and labels come with G3.
 
 Product owner decisions that shape it (2026-11-26, Phase 2 plan):
 
@@ -170,9 +170,97 @@ Seeder `g1-cmdb` (order 270) gives both sample organisations Zelvo's standard cl
 - **Who uses the services.** The main service is "used by" the customer happiness or sales department and by the VIP customer group. Email or billing is used by finance.
 - **Tickets.** Sample incidents are linked to the items they are about: the portal outage, the printer, the email delay, the invoices, the VPN and the docking station.
 
+## Import, discovery and reconciliation (task G2)
+
+Covers module 18's "import and sync from Excel, the API and discovery tools; duplicate detection and reconciliation". Product owner decision 4 of 2026-11-26: the discovery sources are a **discovery API**, **Microsoft Intune**, **Azure**, **Active Directory and Entra ID computers** and **VMware vCenter**; **AWS is deferred** until a customer asks.
+
+### Code
+
+| Piece | Where |
+| --- | --- |
+| Tables `ci_discovery_sources`, `ci_source_records`, `ci_installed_software`, `ci_review_items`; columns `configuration_items.attribute_sources`, `missing_since`, `merged_into_id` and the database-kept `identifiers`; `ci_classes.identification_rules` (row-level security; migration `CmdbDiscovery`) | `src/api/Zelvo.Data/Cmdb/DiscoveryEntities.cs`, `ZelvoDbContext.Cmdb.cs` |
+| Discovery clients (Intune, Entra ID devices, Azure Resource Graph, Active Directory computers, vCenter) and their settings | `src/api/Zelvo.Connectors/DiscoveryClients.cs` (`IDiscoveryClients`, part of `ConnectorClients`) |
+| Identification rules, precedence, reconciliation, duplicates, merging | `src/api/Zelvo.Api/Cmdb/CmdbReconciliation.cs` |
+| Sources, the discovery API, records, the review queue | `CmdbDiscoveryEndpoints.cs` |
+| The scheduled sync | `CmdbDiscoveryJobs.cs` (`CmdbDiscoveryRunner`, `CmdbDiscoveryJobs`) |
+| CSV and Excel | `ConfigurationItemsBulkType.cs` (bulk type `configuration-items`) |
+| Demo seeder `g2-discovery` | `src/api/Zelvo.Api/Demo/DemoDiscoverySeeder.cs` |
+| Pages: Settings → CMDB (Discovery, Import and export, identification rules on classes, precedence of people's values), `/cmdb/review`, the Discovery panel on `/cmdb/[id]`, "No longer reported" on `/cmdb` | `src/web/src/components/cmdb/DiscoverySources.tsx`, `CiImportExport.tsx`, `ReviewQueue.tsx`, `CiDiscoveryPanel.tsx` |
+
+### Sources
+
+| Kind | Reads | Uses | Classes it reports |
+| --- | --- | --- | --- |
+| Discovery API | Nothing: a tool pushes `POST /cmdb/discovery/sources/{id}/records` (up to 1,000 records a call) with an API key or OAuth client holding `cmdb.manage` | — | Whatever the tool names (class keys) |
+| Microsoft Intune | Graph `deviceManagement/managedDevices` and, optionally, `detectedApps` with their devices (at most 2,000 apps per sync) | An Entra ID connector's app (`DeviceManagementManagedDevices.Read.All`) | `computer` (Windows, macOS; host name, serial, MAC, model, OS), `mobile-device` (iOS, iPadOS, Android; IMEI) |
+| Entra ID devices | Graph `devices` (disabled ones left out) | An Entra ID connector's app (`Device.Read.All`) | `computer`, `mobile-device` |
+| Azure | Resource Graph (`2022-10-01`), the chosen subscriptions (or all the app may read) and resource types | An Entra ID connector's app with the Reader role | `virtual-machine`, `cloud-database`, `storage`, `cloud-resource` (resource id, region, provider) |
+| Active Directory computers | LDAP search with the source's base DN and filter (`(objectCategory=computer)`); disabled accounts left out | An LDAP connector's read-only connection | `server` (a server operating system), `computer` |
+| VMware vCenter | `api/session`, `api/vcenter/cluster`, `host`, `vm` per host and each VM's `guest/identity` (VMware Tools; errors ignored) | Its own address, read-only account and password (encrypted with `Zelvo.Secrets`, needed again for a new address or account), optionally a SHA-256 certificate fingerprint for an untrusted certificate | `virtualisation-cluster` (new standard class), `server` (hosts), `virtual-machine` (CPU, memory, guest host name and system); a VM *runs on* its host, a cluster *depends on* its hosts |
+
+- **Class keys** are Zelvo's standard keys; a source's `classMap` maps them to a tenant's own keys. Records of a class the tenant does not have are counted (`unknownClass`) and left out.
+- **Schedule.** Pull sources sync every 15 minutes to 7 days (default daily) in the API (`CmdbDiscoveryJobs`, every minute, `FOR UPDATE SKIP LOCKED` lease per source, tenants from `zelvo_cmdb_discovery_tenants()`), because numbering, checks and search documents live there. "Sync now" makes a source due at once; "Test" reads it and shows the counts per class and the first records without changing anything.
+- **Every call** of a sync or test goes to the integration log (`cmdb.discovery.<kind>.sync` or `.test`, at most 200 exchanges a sync, bodies masked; the vCenter session id is never kept). Each sync is audited (`cmdb.discovery.synced` with its counts), as are pushes (`cmdb.discovery.pushed`), completed snapshots and "Sync now".
+- Every connection follows the connectors' outgoing-request policy (`Connectors:Network:AllowedPrivateNetworks`; `Connectors:ManagementUrl` for sovereign clouds).
+
+### Reconciliation
+
+- **Identification rules** per class: a list of rules, each 1–3 attribute keys (or `name`), tried in order, for example `serialNumber`, then `hostName + macAddress`. A class without rules takes the nearest class above's, and at the top Zelvo's defaults: serial number, cloud resource id, MAC address, host name, IMEI. Administrators set them on the class (Settings → CMDB → Classes).
+- **Matching.** A record is found by its source's own id first (`ci_source_records`). Otherwise the rules are tried among items under the same top class (a "computer" from Active Directory matches a "laptop" entered by hand), not retired and not merged. Comparison ignores case and surrounding spaces; MAC addresses are normalised to `AA:BB:CC:DD:EE:FF` by the clients. The database keeps every item's identifying values (`identifiers`, `key=value` in lower case, by a trigger whoever writes the item) behind one GIN index, so matching stays fast with hundreds of thousands of items.
+  - One match: the record is linked to it.
+  - None: a new item is made (`CI-…` number, status Active).
+  - Several: the record waits in the **review queue** (*Ambiguous*) and is not applied until a person links it or makes a new item.
+- **Precedence.** Each value remembers who set it last (`attribute_sources`: a source or `manual` for people, imports and the API). A source overwrites a value only when its priority for that key (per attribute where set, else the source's own, 1 most trusted to 100) is the same or better than the last setter's. People's values have the tenant setting `cmdb.manualPriority` (default 10; sources default to 50), so corrections stay unless an administrator ranks a source above people for that value. The name works the same way (`name`). Sources never clear values; values that fail the class's C1 checks are left out and counted (`valuesRefused`); user and location values are never taken from sources.
+- **Missing, never deleted.** A pull sync is a complete list: the source's records it no longer saw are marked (`missing_since`), and an item none of whose records is still reported is marked "No longer reported" (`configuration_items.missing_since`, list filter `missing=true`). Reported again, both marks go. A tool that pushes a full snapshot in several calls ends it with `POST …/snapshot-complete {startedAt}`.
+- **Installed software** (Intune's detected apps, the discovery API's `software`) is kept per item and source with a normalised product key (`publisher|name`), replaced at each report, for G3's licence compliance.
+- **Relationships** a source reports (vCenter, the discovery API's `relationships` by the other record's id) are added when missing, never removed.
+- **Duplicates.** When a linked item's values change, other items under the same top class that share the values of one of its rules (names alone never count) are raised as a *possible duplicate*. A pair is raised once, whatever was decided.
+
+### Review queue
+
+`/cmdb/review` (`cmdb.manage`) shows each question with the values side by side (the keys matched on first), the items' status, tickets and sources.
+
+- **Possible duplicate:** *Merge, keeping …* moves the other item's tickets, relationships (except ones the kept item already has or that would point at itself), source records and software to the one kept, fills the kept item's empty values (with who set them), retires the other and points it at the one kept (`merged_into_id`; the item page shows it); audited `cmdb.items.merged` on both. *They are different* is final for the pair.
+- **Ambiguous record:** *It is …* links it to one of the items it matched and applies its values; *It is a new item* makes one.
+- One decision at a time (row lock); decisions are audited (`cmdb.review.decided`). Questions about an item that was merged away are closed.
+
+### Import and export
+
+The E1 bulk framework's type `configuration-items` (CSV and Excel, Settings → CMDB → Import and export; export `cmdb.read`, import `cmdb.manage`): columns `number`, `class`, `name`, `descriptionEn`, `descriptionAr`, `status`, `ownerGroup` (name), `location` (path), `attributes` (JSON, `null` clears a value) and `attr.<key>` columns (typed by the attribute). A row with a number changes that item; one without is matched by the identification rules (one match: changed, merged over its values; none: new; several: a problem; two rows describing the same item: a problem). Every row is checked with the class's checks first; nothing changes while any row has a problem. Imported values count as set by people. Audited `bulk.configuration-items.exported`, `.imported`.
+
+### API
+
+| Endpoint | Who | Does |
+| --- | --- | --- |
+| `GET`, `POST /cmdb/discovery/sources`, `PATCH`, `DELETE /cmdb/discovery/sources/{id}` | `cmdb.discovery.manage` | Sources (the password is never returned) |
+| `POST …/{id}/test`, `POST …/{id}/sync`, `GET …/{id}/records` | `cmdb.discovery.manage` | Read without changing, sync now, what it reports |
+| `POST …/{id}/records`, `POST …/{id}/snapshot-complete` | `cmdb.manage` | The discovery API |
+| `GET /cmdb/items/{id}/discovery` | `cmdb.read` | Sources, who set each value, software, missing and merged |
+| `GET /cmdb/review`, `POST /cmdb/review/{id}/merge`, `/keep-apart`, `/link`, `/create` | `cmdb.manage` | The review queue |
+| `GET /bulk/configuration-items/export`, `/template`, `POST …/import` | `cmdb.read` / `cmdb.manage` | CSV and Excel |
+
+`cmdb.discovery.manage` belongs to tenant administrators and is **not available to integrations** (for the product owner's approval, like `connectors.manage`: sources use connectors' stored credentials). Problem codes: `source-not-found`, `review-not-found`, `connector-required`, `connector-not-used`, `credential-required`, `credential-not-used`, `not-a-push-source`, `not-a-pull-source`, `source-inactive`, `name-taken`, the settings codes (`url-not-https`, `subscription-invalid`, `resource-type-invalid`, `filter-invalid`, `thumbprint-invalid`, `class-map-invalid`, `priority-invalid`) and the rule codes `rule-invalid`, `rule-key-unknown`, `too-many-rules`.
+
+### Demo
+
+Seeder `g2-discovery` (order 272): a discovery API source in each organisation (*Network scanner*, *Endpoint agent*) whose records were reconciled with the G1 items (servers linked by serial number and host name, new switches, desktops and laptops with Microsoft 365 and other software, a relationship), a record that matched an item and an older hand-made copy (*Ambiguous*), a hand-made item sharing a serial number (*possible duplicate*), an item no longer reported, and an Intune (government entity) or Active Directory (company) source on the E7 connector, turned off like the connector.
+
+### Tests
+
+- Integration against PostgreSQL (`CmdbDiscoveryTests`): the discovery API linking by serial number with people's values winning until a source is ranked above them per attribute, refused values, unknown classes, software and relationships, snapshots marking items missing and reports clearing it, API keys that may push but not manage sources; Intune synced by the job with the connector's credential, the review queue linking an ambiguous record, the next sync raising a possible duplicate and marking an item missing, merging (tickets and relationships move, retired, merged into), keeping apart once only; vCenter's password write-only and needed again for a new address, test and sync, removed sources leaving their items; imports checked first, rows matched by a class's own rules, the same item twice refused, export for `cmdb.read`.
+- Unit (`DiscoveryClientTests`): Intune devices and apps with the app token, Entra devices without disabled ones, Azure across pages with subscriptions and types, vCenter's session, header, hosts and VMs without the session in the log, Active Directory computers, MAC normalisation and settings checks.
+- Web (`discovery.test.tsx`): a source's last sync and test, adding an Intune source on an Entra connector with precedence, the write-only vCenter password in Arabic, the review queue's merge and Arabic link choices, the item's discovery panel.
+
+### Not in G2
+
+- AWS (decision 4), other discovery tools' native formats (they use the discovery API), agent software of Zelvo's own.
+- Writing back to the sources; relationships removed when a source stops reporting them.
+- Sources that change an item's class or status (people decide), and deleting items a source no longer reports (they are marked).
+- Not tried against real Intune, Entra ID, Azure, Active Directory or vCenter systems in this session (no access); the clients follow the documented APIs and are tested against recorded requests. Not run in Docker Compose here (no image builds in this environment).
+
 ## Not in G1
 
-- Import from Excel and CSV, the discovery API and the discovery sources, identification rules, reconciliation and duplicates (G2).
+- Import from Excel and CSV, the discovery API and the discovery sources, identification rules, reconciliation and duplicates (G2, above).
 - Assets, lifecycle, contracts, warranties, licences, labels and scanning (G3).
 - CIs on problems and changes (H1, H3; the table is ready).
 - A separately licensed CMDB module (for the product owner).

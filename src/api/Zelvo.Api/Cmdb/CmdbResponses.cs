@@ -26,10 +26,10 @@ internal sealed record CiClassRef(Guid Id, string Key, CiFamily Family, Localize
 
 /// <summary>An item in a list.</summary>
 internal sealed record CiSummaryResponse(
-    Guid Id, string Number, string Name, CiClassRef Class, CiStatus Status, NamedRef? OwnerGroup, NodeRef? Location, DateTimeOffset UpdatedAt)
+    Guid Id, string Number, string Name, CiClassRef Class, CiStatus Status, NamedRef? OwnerGroup, NodeRef? Location, DateTimeOffset UpdatedAt, DateTimeOffset? MissingSince)
 {
     public static CiSummaryResponse From(ConfigurationItem i, CiClassIndex classes, DirectoryRefs refs) => new(
-        i.Id, i.Number, i.Name, CiClassRef.From(classes, i.ClassId), i.Status, refs.Group(i.OwnerGroupId), refs.Locations.RefOf(i.LocationId), i.UpdatedAt);
+        i.Id, i.Number, i.Name, CiClassRef.From(classes, i.ClassId), i.Status, refs.Group(i.OwnerGroupId), refs.Locations.RefOf(i.LocationId), i.UpdatedAt, i.MissingSince);
 }
 
 /// <summary>An attribute of an item: its definition, the class it comes from and its value.</summary>
@@ -38,9 +38,12 @@ internal sealed record CiAttributeResponse(JsonNode? Field, Guid ClassId, JsonNo
 
 /// <summary>One item with everything about it.</summary>
 /// <param name="Stale">Values of attributes the class no longer has; dropped at the next change.</param>
+/// <param name="MissingSince">Task G2: since when no source reports the item any more.</param>
+/// <param name="MergedIntoId">Task G2: the item it was merged into (it is then retired).</param>
 internal sealed record CiResponse(
     Guid Id, string Number, string Name, LocalizedTextDto Description, CiClassRef Class, CiStatus Status, NamedRef? OwnerGroup, NodeRef? Location,
-    IReadOnlyList<CiAttributeResponse> Attributes, JsonObject Stale, int RelationshipCount, int TicketCount, DateTimeOffset CreatedAt, DateTimeOffset UpdatedAt, string Etag)
+    IReadOnlyList<CiAttributeResponse> Attributes, JsonObject Stale, int RelationshipCount, int TicketCount, DateTimeOffset CreatedAt, DateTimeOffset UpdatedAt, string Etag,
+    DateTimeOffset? MissingSince, Guid? MergedIntoId)
 {
     public static async Task<CiResponse> LoadAsync(ZelvoDbContext db, ConfigurationItem item, CancellationToken cancellationToken)
     {
@@ -77,7 +80,7 @@ internal sealed record CiResponse(
         var tickets = await db.TicketConfigurationItems.CountAsync(l => l.ConfigurationItemId == item.Id, cancellationToken).ConfigureAwait(false);
         return new CiResponse(item.Id, item.Number, item.Name, LocalizedTextDto.From(item.Description), CiClassRef.From(classes, item.ClassId), item.Status,
             refs.Group(item.OwnerGroupId), refs.Locations.RefOf(item.LocationId), attributes, stale, relationships, tickets, item.CreatedAt, item.UpdatedAt,
-            $"\"{item.Version}\"");
+            $"\"{item.Version}\"", item.MissingSince, item.MergedIntoId);
     }
 }
 

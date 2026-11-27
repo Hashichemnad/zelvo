@@ -35,6 +35,9 @@ public sealed class ConnectorOptions
     /// <summary>HubSpot's API.</summary>
     public Uri HubSpotUrl { get; set; } = new("https://api.hubapi.com/");
 
+    /// <summary>Azure Resource Manager (task G2: Azure Resource Graph), for sovereign clouds or tests.</summary>
+    public Uri ManagementUrl { get; set; } = new("https://management.azure.com/");
+
     /// <summary>Salesforce REST API version.</summary>
     public string SalesforceApiVersion { get; set; } = "v62.0";
 
@@ -57,6 +60,7 @@ public sealed class ConnectorOptions
         options.MicrosoftLoginUrl = BaseUrl(section["MicrosoftLoginUrl"]) ?? options.MicrosoftLoginUrl;
         options.GraphUrl = BaseUrl(section["GraphUrl"]) ?? options.GraphUrl;
         options.HubSpotUrl = BaseUrl(section["HubSpotUrl"]) ?? options.HubSpotUrl;
+        options.ManagementUrl = BaseUrl(section["ManagementUrl"]) ?? options.ManagementUrl;
         options.SalesforceApiVersion = section["SalesforceApiVersion"] is { Length: > 0 } version ? version : options.SalesforceApiVersion;
         options.WebUrl = BaseUrl(section["WebUrl"] ?? configuration["Notifications:WebUrl"]) ?? options.WebUrl;
         var delays = section.GetSection("RetryDelays").GetChildren().Select(c => Time(c.Value)).Where(t => t is not null).Select(t => t!.Value).ToList();
