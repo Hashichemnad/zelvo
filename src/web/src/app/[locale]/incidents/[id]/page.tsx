@@ -8,6 +8,7 @@ import { IncidentHistory } from "@/components/incidents/IncidentHistory";
 import { IncidentWorkPanel } from "@/components/incidents/IncidentWorkPanel";
 import { MajorTimeline } from "@/components/incidents/MajorTimeline";
 import { TicketCiPanel } from "@/components/cmdb/TicketCiPanel";
+import { IncidentKnownErrors } from "@/components/problems/IncidentKnownErrors";
 import { CreateArticleFromIncident } from "@/components/knowledge/NewArticle";
 import { ExportPdfButton } from "@/components/ExportPdfButton";
 import { Link } from "@/i18n/navigation";
@@ -77,6 +78,9 @@ export default async function IncidentPage({ params }: PageProps<"/[locale]/inci
       {/* Task G1: the configuration items the incident is about. */}
       <TicketCiPanel ticketId={incident.id} kind="incidents" canEdit={permissions.includes("incidents.edit")} canOpenItems={permissions.includes("cmdb.read")} canScan={permissions.includes("assets.read")}
         csrfToken={session.data.csrfToken} />
+      {/* Task H1: known errors that match the incident and the problems it is linked to. */}
+      <IncidentKnownErrors incidentId={incident.id} canInsert={false} canSeeProblems={permissions.includes("problems.read")}
+        canRaise={permissions.includes("problems.edit")} />
       {(incident.state === "Resolved" || closed) && permissions.includes("knowledge.write") && (
         <CreateArticleFromIncident incidentId={incident.id} csrfToken={session.data.csrfToken} withAi={articleDraftsOn} />
       )}

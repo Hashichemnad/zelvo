@@ -1,8 +1,8 @@
 /** The self-service portal (module 4, task D2): search-first home and "My tickets", as the API returns them. */
 import type { Bilingual, TicketState } from "./incidents";
 
-export type PortalTicketType = "Incident" | "ServiceRequest" | "Complaint" | "Inquiry" | "Suggestion";
-export const portalTicketTypes: PortalTicketType[] = ["Incident", "ServiceRequest", "Complaint", "Inquiry", "Suggestion"];
+export type PortalTicketType = "Incident" | "ServiceRequest" | "Complaint" | "Inquiry" | "Suggestion" | "Custom";
+export const portalTicketTypes: PortalTicketType[] = ["Incident", "ServiceRequest", "Complaint", "Inquiry", "Suggestion", "Custom"];
 
 export interface PortalStep {
   /** A generic step: received, handling, resolved, closed. */
@@ -26,6 +26,8 @@ export interface PortalTicket {
   path: string;
   createdAt: string;
   updatedAt: string;
+  /** Task K2: the custom record type of a custom record, whose name stands in for the type. */
+  recordType?: { key: string; name: Bilingual } | null;
 }
 
 export interface PortalTicketPage {

@@ -23,6 +23,8 @@ internal static class CmdbTicketEndpoints
     [
         new("incidents", "Incidents", TicketType.Incident, Permissions.IncidentsRead, Permissions.IncidentsEdit),
         new("service-requests", "Service requests", TicketType.ServiceRequest, Permissions.RequestsRead, Permissions.RequestsEdit),
+        // Task H1: configuration items a problem is about.
+        new("problems", "Problems", TicketType.Problem, Permissions.ProblemsRead, Permissions.ProblemsEdit),
     ];
 
     public static RouteGroupBuilder MapCmdbTicketEndpoints(this RouteGroupBuilder group)
@@ -30,7 +32,7 @@ internal static class CmdbTicketEndpoints
         foreach (var kind in Kinds)
         {
             var links = group.MapGroup($"/{kind.Path}/{{id:guid}}/configuration-items").WithTags(kind.Tag).RequireTenant();
-            var singular = kind.Type == TicketType.Incident ? "Incident" : "ServiceRequest";
+            var singular = kind.Type.ToString();
 
             links.MapGet("/", (Guid id, ZelvoDbContext db, CancellationToken ct) => ListAsync(kind.Type, id, db, ct))
                 .WithName($"List{singular}ConfigurationItems")
@@ -73,6 +75,11 @@ internal static class CmdbTicketEndpoints
         if (user.Has(Permissions.VoiceRead))
         {
             types.UnionWith([TicketType.Complaint, TicketType.Inquiry, TicketType.Suggestion]);
+        }
+
+        if (user.Has(Permissions.ProblemsRead))
+        {
+            types.Add(TicketType.Problem);
         }
 
         return types;

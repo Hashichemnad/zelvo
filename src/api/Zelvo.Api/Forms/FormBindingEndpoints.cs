@@ -60,10 +60,17 @@ internal static class FormBindingEndpoints
         }
 
         var recordType = request.RecordType ?? TicketType.Incident;
-        var binding = await db.FormBindings.SingleOrDefaultAsync(b => b.RecordType == recordType && b.CategoryId == request.CategoryId, cancellationToken);
+        // Task K2: bindings of a custom record type name the type.
+        var customType = recordType == TicketType.Custom ? request.CustomRecordTypeId : null;
+        if (recordType == TicketType.Custom && (customType is not { } typeId || !await db.RecordTypes.AnyAsync(t => t.Id == typeId, cancellationToken)))
+        {
+            return UserEndpoints.Validation("customRecordTypeId", "Choose the custom record type.");
+        }
+
+        var binding = await db.FormBindings.SingleOrDefaultAsync(b => b.RecordType == recordType && b.CustomRecordTypeId == customType && b.CategoryId == request.CategoryId, cancellationToken);
         if (binding is null)
         {
-            binding = new FormBinding { RecordType = recordType, CategoryId = request.CategoryId, FormId = form.Id };
+            binding = new FormBinding { RecordType = recordType, CustomRecordTypeId = customType, CategoryId = request.CategoryId, FormId = form.Id };
             db.FormBindings.Add(binding);
         }
         else
@@ -91,7 +98,7 @@ internal static class FormBindingEndpoints
     }
 
     private static FormBindingResponse Response(FormBinding binding, Form form, TreeIndex<Category> categories) =>
-        new(binding.Id, binding.RecordType, categories.RefOf(binding.CategoryId),
+        new(binding.Id, binding.RecordType, binding.CustomRecordTypeId, categories.RefOf(binding.CategoryId),
             new FormUseRef(form.Id, form.Key, LocalizedTextDto.From(form.Name), form.State));
 }
 
@@ -100,6 +107,9 @@ public sealed class SetFormBindingRequest
 {
     /// <summary>The record type (default Incident).</summary>
     public TicketType? RecordType { get; init; }
+
+    /// <summary>The custom record type when the record type is Custom (task K2).</summary>
+    public Guid? CustomRecordTypeId { get; init; }
 
     /// <summary>The category; leave out for the record type's default.</summary>
     public Guid? CategoryId { get; init; }
@@ -110,4 +120,4 @@ public sealed class SetFormBindingRequest
 }
 
 /// <summary>A form used for a record type and category.</summary>
-internal sealed record FormBindingResponse(Guid Id, TicketType RecordType, NodeRef? Category, FormUseRef Form);
+internal sealed record FormBindingResponse(Guid Id, TicketType RecordType, Guid? CustomRecordTypeId, NodeRef? Category, FormUseRef Form);

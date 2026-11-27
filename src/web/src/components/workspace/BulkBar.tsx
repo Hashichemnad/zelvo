@@ -7,6 +7,7 @@ import { selectableNodes, textOf, type GroupSummary, type TreeNode } from "@/lib
 import { inLanguage, levelName, type IncidentSettings, type Locale, type Person } from "@/lib/incidents";
 import type { BulkAction, BulkResult } from "@/lib/workspace";
 import { inputClass, secondaryButtonClass } from "@/components/incidents/ReportIncidentForm";
+import { Link } from "@/i18n/navigation";
 
 export interface BulkBarProps {
   selected: string[];
@@ -34,6 +35,7 @@ export function BulkBar({ selected, numbers, csrfToken, permissions, settings, a
   const locale = useLocale() as Locale;
   const id = useId();
   const mayAssign = permissions.includes("incidents.assign");
+  const tProblems = useTranslations("problems.bulk");
   const actions: BulkAction[] = [...(mayAssign ? ["Assign", "Assignment", "Route"] as const : []), "Transition", "Priority", "Category", "Location", "Reply"];
   const [action, setAction] = useState<BulkAction>(actions[0]!);
   const [assigneeId, setAssigneeId] = useState("");
@@ -170,6 +172,10 @@ export function BulkBar({ selected, numbers, csrfToken, permissions, settings, a
           {t("apply")}
         </button>
         <button type="button" onClick={onClear} className={secondaryButtonClass}>{t("clear")}</button>
+        {/* Task H1: one problem from the selected incidents (problems.edit). */}
+        {permissions.includes("problems.edit") && (
+          <Link href={`/problems/new?incidents=${selected.join(",")}`} className={secondaryButtonClass} data-testid="bulk-raise-problem">{tProblems("create")}</Link>
+        )}
       </div>
       <div aria-live="polite">
         {status.kind === "working" && <p>{t("working")}</p>}

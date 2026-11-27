@@ -49,10 +49,31 @@ internal static partial class RoleEndpoints
         return group;
     }
 
-    internal static PermissionCatalogResponse GetCatalog() => new(
-        PermissionCatalog.All,
-        [.. PermissionCatalog.Resources.Select(r => new ResourceResponse(r.Key, r.ReadPermission, r.EditPermission,
-            [.. r.Fields.Select(f => new FieldResponse(f.Key, f.Sensitive, f.Writable))]))]);
+    internal static async Task<PermissionCatalogResponse> GetCatalog(ZelvoDbContext db, CancellationToken cancellationToken)
+    {
+        // Task K2: the permissions made per custom record type, with the type's name for their labels.
+        var types = await db.RecordTypes.AsNoTracking().OrderBy(t => t.Key).Select(t => new { t.Key, t.Name }).ToListAsync(cancellationToken);
+        var records = types.SelectMany(t => Zelvo.Tickets.RecordPermissions.Actions.Select(a =>
+            new RecordPermissionResponse($"records.{t.Key}.{a}", t.Key, LocalizedTextDto.From(t.Name), a))).ToList();
+        return new(
+            [.. PermissionCatalog.All, .. records.Select(r => r.Permission)],
+            [.. PermissionCatalog.Resources.Select(r => new ResourceResponse(r.Key, r.ReadPermission, r.EditPermission,
+                [.. r.Fields.Select(f => new FieldResponse(f.Key, f.Sensitive, f.Writable))]))],
+            records);
+    }
+
+    /// <summary>The per-type record permissions in <paramref name="wanted"/> whose type does not exist.</summary>
+    internal static async Task<List<string>> UnknownRecordPermissionsAsync(ZelvoDbContext db, IEnumerable<string> wanted, CancellationToken cancellationToken)
+    {
+        var keys = wanted.Select(p => Zelvo.Tickets.RecordPermissions.Parse(p)).OfType<(string Key, string Action)>().Select(p => p.Key).Distinct().ToList();
+        if (keys.Count == 0)
+        {
+            return [];
+        }
+
+        var known = await db.RecordTypes.AsNoTracking().Where(t => keys.Contains(t.Key)).Select(t => t.Key).ToListAsync(cancellationToken);
+        return [.. wanted.Where(p => Zelvo.Tickets.RecordPermissions.Parse(p) is { } parsed && !known.Contains(parsed.Key))];
+    }
 
     internal static async Task<Ok<List<RoleResponse>>> ListAsync(ZelvoDbContext db, CancellationToken cancellationToken)
     {
@@ -159,6 +180,7 @@ internal static partial class RoleEndpoints
     {
         var wanted = request.Permissions!.Distinct(StringComparer.Ordinal).ToList();
         var unknown = wanted.Where(p => !PermissionCatalog.IsPermission(p)).ToList();
+        unknown.AddRange(await UnknownRecordPermissionsAsync(db, wanted, cancellationToken));
         if (unknown.Count > 0)
         {
             return UserEndpoints.Validation("permissions", $"Unknown permissions: {string.Join(", ", unknown)}.");
@@ -251,7 +273,10 @@ internal static partial class RoleEndpoints
 }
 
 /// <summary>Everything that can be granted.</summary>
-internal sealed record PermissionCatalogResponse(IReadOnlyList<string> Permissions, IReadOnlyList<ResourceResponse> Resources);
+internal sealed record PermissionCatalogResponse(IReadOnlyList<string> Permissions, IReadOnlyList<ResourceResponse> Resources, IReadOnlyList<RecordPermissionResponse> RecordPermissions);
+
+/// <summary>A permission made per custom record type (task K2): its type and action (read, edit, assign).</summary>
+internal sealed record RecordPermissionResponse(string Permission, string RecordType, LocalizedTextDto RecordTypeName, string Action);
 
 /// <summary>A resource with field-level access control.</summary>
 internal sealed record ResourceResponse(string Key, string ReadPermission, string EditPermission, IReadOnlyList<FieldResponse> Fields);

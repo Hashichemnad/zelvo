@@ -275,6 +275,8 @@ internal sealed class PersonalDataEraser(
             {
                 TicketType.Incident => IncidentSearch.Type,
                 TicketType.ServiceRequest => RequestSearch.Type,
+                TicketType.Problem => ProblemSearch.Type,
+                TicketType.Custom => RecordSearch.Type,
                 _ => VoiceSearch.Type,
             }, t.Id.ToString());
         }

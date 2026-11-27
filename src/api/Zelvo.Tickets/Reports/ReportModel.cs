@@ -71,6 +71,18 @@ public static class ReportPermissions
             types.UnionWith([TicketType.Complaint, TicketType.Inquiry, TicketType.Suggestion]);
         }
 
+        if (permissions.Contains(ProblemPermissions.Read))
+        {
+            types.Add(TicketType.Problem);
+        }
+
+        // Task K2: custom records count together as one record type, for people who see the
+        // whole tenant's reports (per-type read permissions are not reflected in dashboards yet).
+        if (permissions.Contains(All))
+        {
+            types.Add(TicketType.Custom);
+        }
+
         return types;
     }
 }

@@ -174,7 +174,8 @@ internal static class WorkflowRuleEndpoints
         var facts = await RuleFacts.LoadAsync(db, ticket, cancellationToken);
         var drafts = request.IncludeDrafts ?? false;
         var rules = await db.WorkflowRules.AsNoTracking()
-            .Where(r => r.Active && (drafts || !r.IsDraft) && r.Trigger == request.Trigger!.Value && (r.RecordType == null || r.RecordType == ticket.Type))
+            .Where(r => r.Active && (drafts || !r.IsDraft) && r.Trigger == request.Trigger!.Value && (r.RecordType == null || r.RecordType == ticket.Type)
+                && (r.CustomRecordTypeId == null || r.CustomRecordTypeId == ticket.RecordTypeId))
             .OrderBy(r => r.Position).ThenBy(r => r.Id).ToListAsync(cancellationToken);
         var results = new List<RuleTestResult>();
         foreach (var rule in rules)
@@ -262,7 +263,7 @@ internal static class WorkflowRuleEndpoints
 
     private sealed record ParsedRule(
         LocalizedText Name, LocalizedText Description, bool Active, WorkflowTrigger Trigger, TicketType? RecordType, ConditionMatch Match,
-        IReadOnlyList<WorkflowCondition> Conditions, IReadOnlyList<WorkflowAction> Actions, bool StopProcessing);
+        IReadOnlyList<WorkflowCondition> Conditions, IReadOnlyList<WorkflowAction> Actions, bool StopProcessing, Guid? CustomRecordTypeId = null);
 
     private static async Task<(ParsedRule? Rule, IResult? Problem)> ParseAsync(WorkflowRuleInput request, ZelvoDbContext db, CancellationToken cancellationToken)
     {
@@ -288,6 +289,13 @@ internal static class WorkflowRuleEndpoints
         if (!Enum.IsDefined(trigger) || (request.RecordType is { } rt && !Enum.IsDefined(rt)) || (request.Match is { } m && !Enum.IsDefined(m)))
         {
             problems.Add(new("trigger", "value-invalid", "Choose a known trigger, record type and match."));
+        }
+
+        // Task K2: a rule on custom records may name one custom record type.
+        var customType = request.RecordType == TicketType.Custom ? request.CustomRecordTypeId : null;
+        if (customType is { } typeId && !await db.RecordTypes.AnyAsync(t => t.Id == typeId, cancellationToken))
+        {
+            problems.Add(new("customRecordTypeId", "value-invalid", "Choose a custom record type that exists."));
         }
 
         List<WorkflowCondition> conditions = [];
@@ -339,9 +347,9 @@ internal static class WorkflowRuleEndpoints
 
                     break;
                 case ApprovalAction approval:
-                    if (request.RecordType != TicketType.ServiceRequest || trigger != WorkflowTrigger.TicketCreated)
+                    if (request.RecordType is not (TicketType.ServiceRequest or TicketType.Custom) || trigger != WorkflowTrigger.TicketCreated)
                     {
-                        problems.Add(new(at, "approval-not-allowed", "Approvals are asked for by rules on service requests when they are submitted."));
+                        problems.Add(new(at, "approval-not-allowed", "Approvals are asked for by rules on service requests and custom records when they are submitted."));
                     }
 
                     if (approval.Levels.Count == 0)
@@ -369,7 +377,7 @@ internal static class WorkflowRuleEndpoints
         }
 
         return (new ParsedRule(name, description, request.Active ?? true, trigger, request.RecordType, request.Match ?? ConditionMatch.All,
-            conditions, actions, request.StopProcessing ?? false), null);
+            conditions, actions, request.StopProcessing ?? false, customType), null);
     }
 
     /// <summary>A 400 answer listing every problem, by field.</summary>
@@ -386,6 +394,7 @@ internal static class WorkflowRuleEndpoints
         rule.Active = parsed.Active;
         rule.Trigger = parsed.Trigger;
         rule.RecordType = parsed.RecordType;
+        rule.CustomRecordTypeId = parsed.CustomRecordTypeId;
         rule.Match = parsed.Match;
         rule.Conditions = RuleDocuments.Write(parsed.Conditions);
         rule.Actions = RuleDocuments.Write(parsed.Actions);
@@ -393,7 +402,7 @@ internal static class WorkflowRuleEndpoints
     }
 
     internal static WorkflowRuleResponse Response(WorkflowRule r) => new(
-        r.Id, LocalizedTextDto.From(r.Name), LocalizedTextDto.From(r.Description), r.Position, r.Active, r.Trigger, r.RecordType, r.Match,
+        r.Id, LocalizedTextDto.From(r.Name), LocalizedTextDto.From(r.Description), r.Position, r.Active, r.Trigger, r.RecordType, r.CustomRecordTypeId, r.Match,
         JsonNode.Parse(r.Conditions) ?? new JsonArray(), JsonNode.Parse(r.Actions) ?? new JsonArray(), r.StopProcessing,
         $"\"{r.Version}\"", r.CreatedAt, r.UpdatedAt, r.IsDraft, r.SourceText, r.SourceLanguage, RuleUnmapped(r), r.ApprovedAt);
 
@@ -440,8 +449,11 @@ internal sealed class WorkflowRuleInput
     [Required]
     public WorkflowTrigger? Trigger { get; init; }
 
-    /// <summary>Incident, ServiceRequest, or null for both.</summary>
+    /// <summary>Incident, ServiceRequest, another record type, or null for all.</summary>
     public TicketType? RecordType { get; init; }
+
+    /// <summary>With record type Custom: the custom record type (task K2); none for every custom type.</summary>
+    public Guid? CustomRecordTypeId { get; init; }
 
     /// <summary>All (default) or Any.</summary>
     public ConditionMatch? Match { get; init; }
@@ -486,7 +498,7 @@ internal sealed class RuleTestRequest
 /// </summary>
 internal sealed record WorkflowRuleResponse(
     Guid Id, LocalizedTextDto Name, LocalizedTextDto Description, int Position, bool Active, WorkflowTrigger Trigger, TicketType? RecordType,
-    ConditionMatch Match, JsonNode Conditions, JsonNode Actions, bool StopProcessing, string Etag, DateTimeOffset CreatedAt, DateTimeOffset UpdatedAt,
+    Guid? CustomRecordTypeId, ConditionMatch Match, JsonNode Conditions, JsonNode Actions, bool StopProcessing, string Etag, DateTimeOffset CreatedAt, DateTimeOffset UpdatedAt,
     bool Draft, string? SourceText, string? SourceLanguage, IReadOnlyList<string> Unmapped, DateTimeOffset? ApprovedAt);
 
 /// <summary>Whether a rule holds for the tested ticket, and the actions it would run (task K1: whether it is a draft).</summary>

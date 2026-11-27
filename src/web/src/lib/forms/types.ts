@@ -227,6 +227,8 @@ export interface FieldSetDetail {
 export interface FormBinding {
   id: string;
   recordType: string;
+  /** Task K2: the custom record type of a binding for custom records. */
+  customRecordTypeId?: string | null;
   category: NodeRef | null;
   form: FormUseRef;
 }

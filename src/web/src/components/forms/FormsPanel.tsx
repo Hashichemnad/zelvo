@@ -96,7 +96,14 @@ export function FormsPanel({ initial, csrfToken }: { initial: FormSummary[]; csr
 const bindableTypes = ["Incident", "Complaint", "Inquiry", "Suggestion"] as const;
 
 /** Which form each category uses (module 2: "each category can ask its own questions"). */
-export function FormBindingsPanel({ initial, forms, categories, csrfToken }: { initial: FormBinding[]; forms: FormSummary[]; categories: TreeNode[]; csrfToken: string }) {
+export function FormBindingsPanel({ initial, forms, categories, csrfToken, customTypes = [] }: {
+  initial: FormBinding[];
+  forms: FormSummary[];
+  categories: TreeNode[];
+  csrfToken: string;
+  /** Task K2: the tenant's custom record types, which have forms of their own. */
+  customTypes?: { id: string; name: { en: string | null; ar: string | null } }[];
+}) {
   const t = useTranslations("forms.bindings");
   const tList = useTranslations("forms.list");
   const locale = useLocale() as Locale;
@@ -105,7 +112,11 @@ export function FormBindingsPanel({ initial, forms, categories, csrfToken }: { i
   const [categoryId, setCategoryId] = useState("");
   const [formId, setFormId] = useState("");
   // Task C6: complaints, inquiries and suggestions have their own forms per category too.
-  const [recordType, setRecordType] = useState<(typeof bindableTypes)[number]>("Incident");
+  // Task K2: a custom record type is chosen as "custom:<id>".
+  const [recordType, setRecordType] = useState<string>("Incident");
+  const customOf = (value: string) => (value.startsWith("custom:") ? value.slice("custom:".length) : null);
+  const typeName = (type: string, customId?: string | null) =>
+    type === "Custom" ? textOf(customTypes.find((c) => c.id === customId)?.name, locale) || type : tList(`recordTypes.${type}`);
   const { status, run, busy } = useSaver();
   const usable = forms.filter((f) => f.state !== "Retired");
   const nodes = selectableNodes(categories);
@@ -129,10 +140,10 @@ export function FormBindingsPanel({ initial, forms, categories, csrfToken }: { i
             </thead>
             <tbody>
               {bindings.map((b) => {
-                const where = b.category ? textOf(b.category.path, locale) : tList("defaultFor", { type: tList(`recordTypes.${b.recordType}`) });
+                const where = b.category ? textOf(b.category.path, locale) : tList("defaultFor", { type: typeName(b.recordType, b.customRecordTypeId) });
                 return (
                   <tr key={b.id}>
-                    <td className={cellClass}>{t(`recordTypeNames.${b.recordType}`)}</td>
+                    <td className={cellClass}>{b.recordType === "Custom" ? typeName(b.recordType, b.customRecordTypeId) : t(`recordTypeNames.${b.recordType}`)}</td>
                     <td className={cellClass}>{where}</td>
                     <td className={cellClass}>
                       <Localized text={b.form.name} locale={locale} />
@@ -155,20 +166,22 @@ export function FormBindingsPanel({ initial, forms, categories, csrfToken }: { i
         onSubmit={(e) => {
           e.preventDefault();
           void run(async () => {
-            await putJson("/v1/form-bindings", { recordType, categoryId: categoryId || null, formId }, csrfToken);
+            const custom = customOf(recordType);
+            await putJson("/v1/form-bindings", { recordType: custom ? "Custom" : recordType, customRecordTypeId: custom, categoryId: categoryId || null, formId }, csrfToken);
             await reload();
           });
         }}>
         <div className="space-y-1">
           <label htmlFor={`${id}-type`} className="block font-semibold">{t("recordType")}</label>
-          <select id={`${id}-type`} value={recordType} onChange={(e) => setRecordType(e.target.value as (typeof bindableTypes)[number])} className={fieldInput}>
+          <select id={`${id}-type`} value={recordType} onChange={(e) => setRecordType(e.target.value)} className={fieldInput}>
             {bindableTypes.map((type) => <option key={type} value={type}>{tList(`recordTypes.${type}`)}</option>)}
+            {customTypes.map((c) => <option key={c.id} value={`custom:${c.id}`}>{textOf(c.name, locale)}</option>)}
           </select>
         </div>
         <div className="space-y-1">
           <label htmlFor={`${id}-category`} className="block font-semibold">{t("category")}</label>
           <select id={`${id}-category`} value={categoryId} onChange={(e) => setCategoryId(e.target.value)} className={fieldInput}>
-            <option value="">{tList("defaultFor", { type: tList(`recordTypes.${recordType}`) })}</option>
+            <option value="">{tList("defaultFor", { type: customOf(recordType) ? typeName("Custom", customOf(recordType)) : tList(`recordTypes.${recordType}`) })}</option>
             {nodes.map((n) => <option key={n.id} value={n.id}>{textOf(n.path, locale) || textOf(n.name, locale)}</option>)}
           </select>
         </div>

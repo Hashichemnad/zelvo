@@ -122,7 +122,9 @@ public sealed class DemoModeTests(DatabaseFixture database) : IAsyncDisposable
             var calendars = await db.BusinessCalendars.Include(c => c.Holidays).ToListAsync(Ct);
             Assert.Equal(2, calendars.Count);
             Assert.Contains(calendars, c => c.IsDefault && c.Holidays.Any(h => h.StartDate == new DateOnly(2026, 12, 2)));
-            Assert.Equal(2, await db.SlaPolicies.CountAsync(Ct));
+            // Task K2: the facilities record type has a policy of its own.
+            Assert.Equal(3, await db.SlaPolicies.CountAsync(Ct));
+            Assert.Equal(1, await db.SlaPolicies.CountAsync(p => p.CustomRecordTypeId != null, Ct));
             Assert.Single(await db.CustomerGroupMembers.ToListAsync(Ct));
             Assert.True(await db.SupportGroups.AnyAsync(g => g.CalendarId != null, Ct));
             // Task C6: the closed sample complaints, inquiries and suggestions of past months have no clocks.

@@ -185,6 +185,10 @@ internal sealed class ApprovalService(ZelvoDbContext db, IApprovalEngine engine,
         ticket.UpdatedAt = now;
         switch (process.Stage, process.State)
         {
+            case (ApprovalStage.BeforeAssignment, ApprovalProcessState.Approved) when ticket.Type == TicketType.Custom:
+                // Task K2: an approved custom record goes to the service desk by the assignment rules.
+                await Incidents.IncidentEndpoints.RouteAsync(db, settings, ticket, now, cancellationToken);
+                break;
             case (ApprovalStage.BeforeAssignment, ApprovalProcessState.Approved):
                 // Task E8: a fee due after approval is paid before the request reaches the service desk.
                 var card = await Catalog.ServiceRequestEndpoints.CardOfAsync(db, ticket.Id, cancellationToken);

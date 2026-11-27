@@ -145,6 +145,9 @@ public static class NotificationSamples
             [Placeholders.LicenseName] = PlaceholderValue.OfText("Microsoft 365 Apps for enterprise"),
             [Placeholders.LicenseQuantity] = new PlaceholderValue { Number = 250 },
             [Placeholders.LicenseEndsOn] = PlaceholderValue.OfText(now.AddDays(30).ToString("yyyy-MM-dd", System.Globalization.CultureInfo.InvariantCulture)),
+            [Placeholders.ProblemNumber] = PlaceholderValue.OfText("PRB-000042"),
+            [Placeholders.KnownErrorNumber] = PlaceholderValue.OfText("KE-000007"),
+            [Placeholders.KnownErrorTitle] = Both(Placeholders.KnownErrorTitle),
         };
     }
 }

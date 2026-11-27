@@ -39,6 +39,8 @@ internal static class DemoServiceCollectionExtensions
         services.AddDemoSeeder<DemoAssetsSeeder>();
         services.AddDemoSeeder<DemoPlainLanguageRulesSeeder>();
         services.AddDemoSeeder<DemoWellbeingSeeder>();
+        services.AddDemoSeeder<DemoProblemsSeeder>();
+        services.AddDemoSeeder<DemoRecordTypesSeeder>();
         return services;
     }
 

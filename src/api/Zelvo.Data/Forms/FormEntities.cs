@@ -193,6 +193,9 @@ public sealed class FormBinding : ITenantOwned, IAuditedEntity
     /// <summary>The record type, for example incidents.</summary>
     public TicketType RecordType { get; init; }
 
+    /// <summary>The custom record type when <see cref="RecordType"/> is <c>Custom</c> (task K2).</summary>
+    public Guid? CustomRecordTypeId { get; init; }
+
     /// <summary>The category (and the ones below it); <see langword="null"/>: the record type's default.</summary>
     public Guid? CategoryId { get; init; }
 

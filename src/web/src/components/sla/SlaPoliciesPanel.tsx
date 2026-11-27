@@ -5,7 +5,7 @@ import { useLocale, useTranslations } from "next-intl";
 import { deleteRequest, getJson, postJson, putJson } from "@/lib/client-api";
 import { selectableNodes, textOf, toInput, type GroupSummary, type TreeNode } from "@/lib/directory";
 import { formatDateTime, type DateDisplayOptions } from "@/lib/format";
-import { levelName, type IncidentSettings, type Locale } from "@/lib/incidents";
+import { inLanguage, levelName, type Bilingual, type IncidentSettings, type Locale } from "@/lib/incidents";
 import {
   formatDuration,
   priorityLevels,
@@ -31,6 +31,8 @@ export interface SlaChoices {
   calendars: BusinessCalendar[];
   groups: GroupSummary[];
   priorities: IncidentSettings["priorityMatrix"]["priorities"];
+  /** Task K2: the tenant's custom record types. */
+  customTypes?: { id: string; name: Bilingual }[];
 }
 
 type TargetRow = { priority: number; responseHours: string; responseMinutes: string; resolutionHours: string; resolutionMinutes: string };
@@ -69,6 +71,7 @@ function PolicyForm({ policy, choices, onSubmit, onCancel, busy }: {
   const [categoryId, setCategoryId] = useState(policy?.category?.id ?? "");
   // Task C6: complaints, inquiries and suggestions have their own SLAs.
   const [recordType, setRecordType] = useState<SlaRecordType | "">(policy ? (policy.recordType ?? "") : "Incident");
+  const [customTypeId, setCustomTypeId] = useState(policy?.customRecordTypeId ?? "");
   const [customerGroupId, setCustomerGroupId] = useState(policy?.customerGroup?.id ?? "");
   const [calendarId, setCalendarId] = useState(policy?.calendar?.id ?? "");
   const [rows, setRows] = useState<TargetRow[]>(toRows(policy?.targets ?? []));
@@ -98,6 +101,7 @@ function PolicyForm({ policy, choices, onSubmit, onCancel, busy }: {
           name: toInput(name.en, name.ar),
           active,
           recordType: recordType || null,
+          customRecordTypeId: recordType === "Custom" ? customTypeId || null : null,
           categoryId: categoryId || null,
           customerGroupId: customerGroupId || null,
           calendarId: calendarId || null,
@@ -121,6 +125,15 @@ function PolicyForm({ policy, choices, onSubmit, onCancel, busy }: {
             {slaRecordTypes.map((type) => <option key={type} value={type}>{t(`recordTypes.${type}`)}</option>)}
           </select>
         </div>
+        {recordType === "Custom" && (
+          <div className="space-y-1">
+            <label htmlFor={`${id}-custom`} className="block text-sm">{t("customRecordType")}</label>
+            <select id={`${id}-custom`} value={customTypeId} onChange={(e) => setCustomTypeId(e.target.value)} className={inputClass}>
+              <option value="">{t("anyCustomRecordType")}</option>
+              {(choices.customTypes ?? []).map((c) => <option key={c.id} value={c.id}>{inLanguage(c.name, locale).value}</option>)}
+            </select>
+          </div>
+        )}
         <div className="space-y-1">
           <label htmlFor={`${id}-category`} className="block text-sm">{t("category")}</label>
           <select id={`${id}-category`} value={categoryId} onChange={(e) => setCategoryId(e.target.value)} className={inputClass}>

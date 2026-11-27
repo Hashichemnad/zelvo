@@ -12,7 +12,11 @@ namespace Zelvo.Tickets.Sla;
 /// <param name="Priority">The ticket's priority, 1 (highest); <see langword="null"/> for record types without one.</param>
 /// <param name="CategoryAncestry">The ticket's category and the categories above it.</param>
 /// <param name="CustomerGroups">Active customer groups the requester belongs to.</param>
-public sealed record SlaSubject(TicketType RecordType, int? Priority, IReadOnlyCollection<Guid> CategoryAncestry, IReadOnlyCollection<Guid> CustomerGroups);
+public sealed record SlaSubject(TicketType RecordType, int? Priority, IReadOnlyCollection<Guid> CategoryAncestry, IReadOnlyCollection<Guid> CustomerGroups)
+{
+    /// <summary>The custom record type of a custom record (task K2).</summary>
+    public Guid? CustomRecordTypeId { get; init; }
+}
 
 /// <summary>
 /// SLA policy matching (module 8, task B3): policies are tried in order and the first active one
@@ -27,6 +31,7 @@ public static class SlaMatcher
         ArgumentNullException.ThrowIfNull(subject);
         return policy.Active
             && (policy.RecordType is not { } type || type == subject.RecordType)
+            && (policy.CustomRecordTypeId is not { } custom || custom == subject.CustomRecordTypeId)
             && (policy.CategoryId is not { } category || subject.CategoryAncestry.Contains(category))
             && (policy.CustomerGroupId is not { } group || subject.CustomerGroups.Contains(group));
     }
@@ -228,8 +233,8 @@ public sealed class SlaTracker(ZelvoDbContext db, IAuditLog audit)
                 continue;
             }
 
-            var subject = new SlaSubject(ticket.Type, ticket.Incident?.Priority ?? ticket.Voice?.Priority, setup.CategoryAncestry(ticket.CategoryId),
-                setup.CustomerGroupsOf(ticket.RequesterId, emails.GetValueOrDefault(ticket.RequesterId)));
+            var subject = new SlaSubject(ticket.Type, ticket.Incident?.Priority ?? ticket.Voice?.Priority ?? ticket.Problem?.Priority ?? ticket.Custom?.Priority, setup.CategoryAncestry(ticket.CategoryId),
+                setup.CustomerGroupsOf(ticket.RequesterId, emails.GetValueOrDefault(ticket.RequesterId))) { CustomRecordTypeId = ticket.RecordTypeId };
             var matched = SlaMatcher.FirstMatch(setup.Policies, subject);
             // Task C4: a service's own ownership and completion targets and escalations replace the policy's.
             var service = services.GetValueOrDefault(ticket.Id);
@@ -299,7 +304,7 @@ public sealed class SlaTracker(ZelvoDbContext db, IAuditLog audit)
 
         // 2. The policy, target and calendar that apply now; the elapsed time is kept.
         clock.PolicyId = serviceTarget is null ? policyId : null;
-        clock.TargetMinutes = serviceTarget ?? SlaMatcher.TargetOf(policy, clock.Metric, ticket.Incident?.Priority ?? ticket.Voice?.Priority);
+        clock.TargetMinutes = serviceTarget ?? SlaMatcher.TargetOf(policy, clock.Metric, ticket.Incident?.Priority ?? ticket.Voice?.Priority ?? ticket.Problem?.Priority ?? ticket.Custom?.Priority);
         clock.CalendarId = calendarId;
         var calendar = setup.Calendar(calendarId);
 

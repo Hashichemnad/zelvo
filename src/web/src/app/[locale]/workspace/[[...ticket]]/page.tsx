@@ -6,6 +6,7 @@ import { IncidentWorkPanel } from "@/components/incidents/IncidentWorkPanel";
 import { MajorTimeline } from "@/components/incidents/MajorTimeline";
 import { Composer, ConversationList } from "@/components/workspace/Conversation";
 import { TicketCiPanel } from "@/components/cmdb/TicketCiPanel";
+import { IncidentKnownErrors } from "@/components/problems/IncidentKnownErrors";
 import { AiAssistantPlaceholder, CustomerPanel } from "@/components/workspace/CustomerPanel";
 import { AiAssistantPanel } from "@/components/ai/AiAssistantPanel";
 import type { AiInsights } from "@/lib/ai-features";
@@ -120,6 +121,9 @@ export default async function WorkspacePage({ params, searchParams }: PageProps<
           </div>
           <TicketCiPanel key={incident.id} ticketId={incident.id} kind="incidents" canEdit={mayEdit} canOpenItems={permissions.includes("cmdb.read")} canScan={permissions.includes("assets.read")}
             csrfToken={session.data.csrfToken} />
+          {/* Task H1: matching known errors, pasted into the reply. */}
+          <IncidentKnownErrors key={`ke-${incident.id}`} incidentId={incident.id} canInsert={mayEdit && !closed}
+            canSeeProblems={permissions.includes("problems.read")} canRaise={permissions.includes("problems.edit")} />
           {(incident.isMajor || updates.length > 0) && (
             <MajorTimeline incidentId={incident.id} updates={updates} canPost={incident.isMajor && !closed && permissions.includes("incidents.major")}
               staff csrfToken={session.data.csrfToken} display={display} />

@@ -7,7 +7,7 @@ import type { Bilingual, Person } from "./incidents";
 import type { TicketState } from "./incidents";
 
 export type WorkflowTrigger = "TicketCreated" | "StateChanged" | "AssignmentChanged" | "ApprovalDecided";
-export type RecordType = "Incident" | "ServiceRequest";
+export type RecordType = "Incident" | "ServiceRequest" | "Custom";
 export type ConditionMatch = "All" | "Any";
 export type ApprovalStage = "BeforeAssignment" | "AfterFulfilment";
 export type ApprovalMode = "Any" | "All";
@@ -17,7 +17,7 @@ export type ApprovalProcessState = "Pending" | "Approved" | "Rejected" | "Cancel
 export type ApprovalLevelState = "Waiting" | "Approved" | "Rejected" | "NotStarted" | "Cancelled";
 
 export const workflowTriggers: WorkflowTrigger[] = ["TicketCreated", "StateChanged", "AssignmentChanged", "ApprovalDecided"];
-export const recordTypes: RecordType[] = ["Incident", "ServiceRequest"];
+export const recordTypes: RecordType[] = ["Incident", "ServiceRequest", "Custom"];
 export const approverKinds: ApproverKind[] = ["RequesterManager", "User", "Group", "GroupLeads", "Role", "AnswerUser"];
 
 /** Fields conditions look at; `answer` stands for `answer.<fieldKey>`. */
@@ -118,6 +118,8 @@ export interface WorkflowRule {
   active: boolean;
   trigger: WorkflowTrigger;
   recordType: RecordType | null;
+  /** Task K2: with record type Custom, one custom record type (null: every custom type). */
+  customRecordTypeId?: string | null;
   match: ConditionMatch;
   conditions: WorkflowCondition[];
   actions: WorkflowAction[];
@@ -146,6 +148,8 @@ export interface WorkflowRuleInput {
   active: boolean;
   trigger: WorkflowTrigger;
   recordType: RecordType | null;
+  /** Task K2: with record type Custom, one custom record type (null: every custom type). */
+  customRecordTypeId?: string | null;
   match: ConditionMatch;
   conditions: WorkflowCondition[];
   actions: WorkflowAction[];
@@ -289,11 +293,12 @@ export function emptyAction(type: WorkflowAction["type"]): WorkflowAction {
 
 /** Approval actions are allowed only on service requests when they are submitted. */
 export function approvalAllowed(trigger: WorkflowTrigger, recordType: RecordType | null): boolean {
-  return trigger === "TicketCreated" && recordType === "ServiceRequest";
+  // Task K2: custom records ask for approval when they are raised, like service requests.
+  return trigger === "TicketCreated" && (recordType === "ServiceRequest" || recordType === "Custom");
 }
 
 /** The rule as the API takes it. */
 export function toRuleInput(rule: WorkflowRule): WorkflowRuleInput {
-  const { name, description, active, trigger, recordType, match, conditions, actions, stopProcessing } = rule;
-  return { name, description, active, trigger, recordType, match, conditions, actions, stopProcessing };
+  const { name, description, active, trigger, recordType, customRecordTypeId, match, conditions, actions, stopProcessing } = rule;
+  return { name, description, active, trigger, recordType, customRecordTypeId, match, conditions, actions, stopProcessing };
 }

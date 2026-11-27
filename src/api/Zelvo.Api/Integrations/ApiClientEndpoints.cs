@@ -81,11 +81,16 @@ internal static partial class ApiClientEndpoints
     {
         var roles = await db.Roles.AsNoTracking().Include(r => r.Permissions).OrderBy(r => r.Key).ToListAsync(cancellationToken);
         return new(licenses.EnvironmentName(), TokenUrl(identity.Value, tenant.Slug!), ApiKeys.HeaderName,
-            PermissionCatalog.IntegrationScopes, WebhookEventTypes.All, (int)options.LogRetention.TotalDays,
+            [.. PermissionCatalog.IntegrationScopes, .. await RecordScopesAsync(db, cancellationToken)], WebhookEventTypes.All, (int)options.LogRetention.TotalDays,
             ApiClient.DefaultRateLimit, ApiClient.MaxRateLimit,
             [.. roles.Select(r => new IntegrationRoleResponse(r.Key, LocalizedTextDto.From(r.Name),
-                [.. r.Permissions.Select(p => p.Permission).Where(p => PermissionCatalog.IntegrationScopes.Contains(p, StringComparer.Ordinal)).Order(StringComparer.Ordinal)]))]);
+                [.. r.Permissions.Select(p => p.Permission).Where(PermissionCatalog.IsIntegrationScope).Order(StringComparer.Ordinal)]))]);
     }
+
+    // Task K2: the per-type permissions of the tenant's custom record types.
+    private static async Task<List<string>> RecordScopesAsync(ZelvoDbContext db, CancellationToken cancellationToken) =>
+        [.. (await db.RecordTypes.AsNoTracking().OrderBy(t => t.Key).Select(t => t.Key).ToListAsync(cancellationToken))
+            .SelectMany(k => Zelvo.Tickets.RecordPermissions.Actions.Select(a => $"records.{k}.{a}"))];
 
     internal static async Task<IResult> ListAsync(
         [AsParameters] PageQuery page, [AsParameters] ApiClientListQuery filter, ZelvoDbContext db,
@@ -326,7 +331,8 @@ internal static partial class ApiClientEndpoints
             return (null, UserEndpoints.Validation("role", $"Unknown role '{roleKey}'."));
         }
 
-        var notAllowed = scopes.Where(s => !PermissionCatalog.IntegrationScopes.Contains(s, StringComparer.Ordinal)).ToList();
+        var notAllowed = scopes.Where(s => !PermissionCatalog.IsIntegrationScope(s)).ToList();
+        notAllowed.AddRange(await RoleEndpoints.UnknownRecordPermissionsAsync(db, scopes, cancellationToken));
         if (notAllowed.Count > 0)
         {
             return (role, UserEndpoints.Validation("scopes", $"These cannot be given to integrations: {string.Join(", ", notAllowed)}."));

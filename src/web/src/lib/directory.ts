@@ -126,6 +126,8 @@ export interface Role {
 /** GET /api/v1/permissions: what can be granted. */
 export interface PermissionCatalog {
   permissions: string[];
+  /** Task K2: permissions made per custom record type, with the type's name for their labels. */
+  recordPermissions?: { permission: string; recordType: string; recordTypeName: Bilingual; action: "read" | "edit" | "assign" }[];
   resources: { key: string; readPermission: string; editPermission: string; fields: { key: string; sensitive: boolean; writable: boolean }[] }[];
 }
 

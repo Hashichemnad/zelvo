@@ -212,6 +212,7 @@ export function RuleEditor({ initial, choices, busy, problems, onSubmit, onCance
   onCancel: () => void;
 }) {
   const t = useTranslations("workflows");
+  const locale = useLocale() as Locale;
   const id = useId();
   const [rule, setRule] = useState(initial);
   const set = (patch: Partial<WorkflowRuleInput>) => setRule((r) => ({ ...r, ...patch }));
@@ -252,6 +253,15 @@ export function RuleEditor({ initial, choices, busy, problems, onSubmit, onCance
             {recordTypes.map((x) => <option key={x} value={x}>{t(`recordTypes.${x}`)}</option>)}
           </select>
         </div>
+        {rule.recordType === "Custom" && (
+          <div className="space-y-1">
+            <label htmlFor={`${id}-custom`} className="block text-sm">{t("customRecordType")}</label>
+            <select id={`${id}-custom`} className={inputClass} value={rule.customRecordTypeId ?? ""} onChange={(e) => set({ customRecordTypeId: e.target.value || null })}>
+              <option value="">{t("anyCustomRecordType")}</option>
+              {(choices.customTypes ?? []).map((c) => <option key={c.id} value={c.id}>{textOf(c.name, locale)}</option>)}
+            </select>
+          </div>
+        )}
       </fieldset>
       <fieldset className="space-y-3">
         <legend className="text-lg font-semibold">{t("if")}</legend>

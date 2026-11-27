@@ -84,7 +84,9 @@
     "asset.contractKind.Warranty": "warranty",
     "asset.contractKind.Support": "support contract",
     "asset.contractKind.Maintenance": "maintenance contract",
-    "asset.contractKind.Lease": "lease"
+    "asset.contractKind.Lease": "lease",
+    "ticket.type.Problem": "problem",
+    "ticket.type.Custom": "record"
   },
   "templates": {
     "incident.received": {
@@ -362,6 +364,60 @@
       "inApp": "The software licence {{license.name}} ({{license.quantity}} entitlements) ends on {{license.endsOn}}.",
       "body": "Dear {{recipient.name}},\n\nThe software licence {{license.name}} with {{license.quantity}} entitlements ends on {{license.endsOn}}.\n\nPlease check how many are in use in Zelvo's licence compliance and renew it in good time, so that the software stays licensed.\n\nKind regards,\n{{tenant.name}}",
       "action": "Open licences"
+    },
+    "problem.assigned": {
+      "subject": "Problem {{ticket.number}} is assigned to you",
+      "inApp": "Problem “{{ticket.title}}” is assigned to you.",
+      "body": "Hello {{recipient.name}},\n\nThe problem {{ticket.number}}, “{{ticket.title}}”, is assigned to you for investigation.\n\nGroup: {{ticket.group}}\n\n{{tenant.name}}",
+      "action": "Open the problem"
+    },
+    "problem.queued": {
+      "subject": "New problem for {{ticket.group}}: {{ticket.number}}",
+      "inApp": "New problem for {{ticket.group}}: “{{ticket.title}}”.",
+      "body": "Hello {{recipient.name}},\n\nThe problem {{ticket.number}}, “{{ticket.title}}”, is waiting in the queue of {{ticket.group}}.\n\n{{tenant.name}}",
+      "action": "Open the problem"
+    },
+    "problem.known-error": {
+      "subject": "{{ticket.number}}: a workaround is available ({{knownError.number}})",
+      "inApp": "A workaround for “{{ticket.title}}” is recorded in {{knownError.number}}: {{knownError.title}}.",
+      "body": "Hello {{recipient.name}},\n\nThe incident {{ticket.number}}, “{{ticket.title}}”, is linked to the problem {{problem.number}}. Its cause is now known and a workaround is recorded in the known error {{knownError.number}}, “{{knownError.title}}”.\n\nYou can open the incident and paste the workaround into your reply.\n\n{{tenant.name}}",
+      "action": "Open the incident"
+    },
+    "problem.resolved": {
+      "subject": "Problem {{ticket.number}} is resolved",
+      "inApp": "Problem “{{ticket.title}}” is resolved.",
+      "body": "Hello {{recipient.name}},\n\nThe problem {{ticket.number}}, “{{ticket.title}}”, is resolved:\n\n{{ticket.resolutionNotes}}\n\n{{tenant.name}}",
+      "action": "Open the problem"
+    },
+    "record.received": {
+      "subject": "{{ticket.number}}: we have received your request",
+      "inApp": "We have received your {{ticket.type}} “{{ticket.title}}”.",
+      "body": "Dear {{recipient.name}},\n\nWe have received your {{ticket.type}} {{ticket.number}}, “{{ticket.title}}”, on {{ticket.createdAt}}. Our team will look into it and keep you informed.\n\nYou can follow its progress and add information at any time.\n\nKind regards,\n{{tenant.name}}",
+      "action": "View it"
+    },
+    "record.replied": {
+      "subject": "{{ticket.number}}: new reply",
+      "inApp": "{{comment.author}} replied on “{{ticket.title}}”: {{comment.text}}",
+      "body": "Dear {{recipient.name}},\n\n{{comment.author}} replied on your {{ticket.type}} {{ticket.number}}, “{{ticket.title}}”:\n\n{{comment.text}}\n\nYou can answer from its page.\n\nKind regards,\n{{tenant.name}}",
+      "action": "View and reply"
+    },
+    "record.resolved": {
+      "subject": "{{ticket.number}} is done",
+      "inApp": "Your {{ticket.type}} “{{ticket.title}}” is done.",
+      "body": "Dear {{recipient.name}},\n\nYour {{ticket.type}} {{ticket.number}}, “{{ticket.title}}”, is done:\n\n{{ticket.resolutionNotes}}\n\nIf something is still missing, you can reopen it from its page.\n\nKind regards,\n{{tenant.name}}",
+      "action": "View it"
+    },
+    "record.assigned": {
+      "subject": "{{ticket.number}} is assigned to you",
+      "inApp": "{{ticket.type}}: “{{ticket.title}}” from {{requester.name}}.",
+      "body": "Hello {{recipient.name}},\n\nThe {{ticket.type}} {{ticket.number}}, “{{ticket.title}}”, is assigned to you.\n\nGroup: {{ticket.group}}\nFrom: {{requester.name}}\n\n{{tenant.name}}",
+      "action": "Open it"
+    },
+    "record.queued": {
+      "subject": "New {{ticket.type}} for {{ticket.group}}: {{ticket.number}}",
+      "inApp": "New {{ticket.type}} for {{ticket.group}}: “{{ticket.title}}”.",
+      "body": "Hello {{recipient.name}},\n\nThe {{ticket.type}} {{ticket.number}}, “{{ticket.title}}”, is waiting in the queue of {{ticket.group}}.\n\nFrom: {{requester.name}}\n\n{{tenant.name}}",
+      "action": "Open it"
     }
   },
   "samples": {
@@ -380,6 +436,7 @@
     "approval.level": "Manager approval",
     "approval.reason": "The budget for this quarter has been used.",
     "task.name": "Prepare the laptop",
-    "privacyRequest.resolution": "Your data was sent to you as a file you can download under Account → Privacy."
+    "privacyRequest.resolution": "Your data was sent to you as a file you can download under Account → Privacy.",
+    "knownError.title": "Users cannot sign in to the HR portal after the password change"
   }
 }

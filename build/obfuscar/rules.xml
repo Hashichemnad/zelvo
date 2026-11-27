@@ -32,4 +32,5 @@
     <SkipType name="Zelvo.Api.Voice.VoiceSettings" skipMethods="true" />
     <SkipType name="Zelvo.Api.Channels.MessagingHooks" skipMethods="true" />
     <SkipType name="Zelvo.Api.Catalog.ServiceTemplates" skipMethods="true" />
+    <SkipType name="Zelvo.Api.Problems.ProblemSettings" skipMethods="true" />
 </Rules>

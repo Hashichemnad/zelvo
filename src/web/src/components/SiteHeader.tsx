@@ -1,3 +1,4 @@
+import { hasRecordPermission } from "@/lib/records";
 import { getLocale, getTranslations } from "next-intl/server";
 import { Link } from "@/i18n/navigation";
 import { getBranding, getCurrentUser, getDemo, getSystemInfo } from "@/lib/api";
@@ -35,6 +36,8 @@ export async function SiteHeader() {
   const tCmdb = await getTranslations("cmdb");
   const tAssets = await getTranslations("assets");
   const tWellbeing = await getTranslations("wellbeing");
+  const tProblems = await getTranslations("problems");
+  const tRecords = await getTranslations("records");
   const config = await getRequestAuthConfig();
   const locale = await getLocale();
   // Task F1: the tenant's product name and logos (light and dark mode) instead of Zelvo's.
@@ -171,6 +174,22 @@ export async function SiteHeader() {
                     <li>
                       <Link href="/assets" className="text-brand underline-offset-4 hover:underline" data-testid="nav-assets">
                         {tAssets("headerNav")}
+                      </Link>
+                    </li>
+                  )}
+                  {/* Task H1: problem management and the known error database. */}
+                  {user.permissions.includes("problems.read") && (
+                    <li>
+                      <Link href="/problems" className="text-brand underline-offset-4 hover:underline" data-testid="nav-problems">
+                        {tProblems("nav")}
+                      </Link>
+                    </li>
+                  )}
+                  {/* Task K2: custom record types, for staff of any type. */}
+                  {hasRecordPermission(user.permissions) && (
+                    <li>
+                      <Link href="/records" className="text-brand underline-offset-4 hover:underline" data-testid="nav-records">
+                        {tRecords("nav")}
                       </Link>
                     </li>
                   )}

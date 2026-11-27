@@ -124,6 +124,8 @@ public sealed partial class SlaTimerJob(IServiceScopeFactory scopes, ILogger<Sla
         var ids = tickets.Select(t => t.Id).ToList();
         await db.Incidents.Where(i => ids.Contains(i.TicketId)).LoadAsync(cancellationToken).ConfigureAwait(false);
         await db.CustomerVoiceRecords.Where(v => ids.Contains(v.TicketId)).LoadAsync(cancellationToken).ConfigureAwait(false);
+        await db.Problems.Where(p => ids.Contains(p.TicketId)).LoadAsync(cancellationToken).ConfigureAwait(false);
+        await db.CustomRecords.Where(r => ids.Contains(r.TicketId)).LoadAsync(cancellationToken).ConfigureAwait(false);
         await tracker.UpdateAsync(tickets, now, cancellationToken).ConfigureAwait(false);
         await db.SaveChangesAsync(cancellationToken).ConfigureAwait(false);
         await transaction.CommitAsync(cancellationToken).ConfigureAwait(false);

@@ -2,6 +2,7 @@ import "server-only";
 import { cookies } from "next/headers";
 import { getAuthConfig, getRequestAuthConfig, type AuthConfig } from "./config";
 import { getOidcConfiguration, oidc } from "./oidc";
+import { refreshSession } from "./refresh";
 import { randomSecret, sessionKey } from "./security";
 import { getSessionStore } from "./store";
 
@@ -101,28 +102,25 @@ export async function getSession(requestConfig?: AuthConfig): Promise<Session | 
   }
 
   if (data.accessTokenExpiresAt - now < 30_000) {
-    if (!data.refreshToken) {
-      await store(config).delete(key);
+    const configuration = await getOidcConfiguration(config);
+    const refreshed = await refreshSession(
+      store(config),
+      key,
+      data,
+      async (refreshToken) => {
+        const tokens = await oidc.refreshTokenGrant(configuration, refreshToken);
+        return { accessToken: tokens.access_token, expiresInSeconds: tokens.expiresIn(), refreshToken: tokens.refresh_token, idToken: tokens.id_token };
+      },
+      (d) => Math.min(config.idleTimeoutSeconds, config.absoluteTimeoutSeconds - (Date.now() - d.createdAt) / 1000),
+    );
+    if (!refreshed) {
       return null;
     }
-    try {
-      const refreshed = await oidc.refreshTokenGrant(await getOidcConfiguration(config), data.refreshToken);
-      data = {
-        ...data,
-        accessToken: refreshed.access_token,
-        accessTokenExpiresAt: now + (refreshed.expiresIn() ?? 60) * 1000,
-        refreshToken: refreshed.refresh_token ?? data.refreshToken,
-        idToken: refreshed.id_token ?? data.idToken,
-      };
-    } catch {
-      // Keycloak ended the session (time-out, sign-out elsewhere, disabled user).
-      await store(config).delete(key);
-      return null;
-    }
+    return { id, data: refreshed };
   }
 
   // Sliding idle time-out, written at most once a minute.
-  if (now - data.lastSeenAt > 60_000 || data.accessTokenExpiresAt !== JSON.parse(raw).accessTokenExpiresAt) {
+  if (now - data.lastSeenAt > 60_000) {
     data = { ...data, lastSeenAt: now };
     const remaining = Math.min(config.idleTimeoutSeconds, config.absoluteTimeoutSeconds - (now - data.createdAt) / 1000);
     await store(config).set(key, JSON.stringify(data), remaining);

@@ -261,7 +261,7 @@ internal static class WellbeingEndpoints
             .Select(t => new
             {
                 t.Id, t.Number, t.Title, t.Type, t.State, t.RequesterId,
-                Priority = t.Incident != null ? (int?)t.Incident.Priority : t.Voice != null ? (int?)t.Voice.Priority : null,
+                Priority = t.Incident != null ? (int?)t.Incident.Priority : t.Voice != null ? (int?)t.Voice.Priority : t.Problem != null ? (int?)t.Problem.Priority : null,
             })
             .ToListAsync(cancellationToken);
         var candidates = await CandidatesAsync(db, calculator, id, userId, today, cancellationToken);
@@ -336,7 +336,7 @@ internal static class WellbeingEndpoints
         var ids = members.Select(m => m.UserId).ToList();
         var load = (await db.Tickets.AsNoTracking()
                 .Where(t => t.AssigneeId != null && ids.Contains(t.AssigneeId.Value) && t.State != TicketState.Resolved && t.State != TicketState.Closed && !t.Held)
-                .Select(t => new { Agent = t.AssigneeId!.Value, Priority = t.Incident != null ? (int?)t.Incident.Priority : t.Voice != null ? (int?)t.Voice.Priority : null })
+                .Select(t => new { Agent = t.AssigneeId!.Value, Priority = t.Incident != null ? (int?)t.Incident.Priority : t.Voice != null ? (int?)t.Voice.Priority : t.Problem != null ? (int?)t.Problem.Priority : null })
                 .ToListAsync(cancellationToken))
             .GroupBy(t => t.Agent).ToDictionary(g => g.Key, g => g.Sum(t => WellbeingCalculator.Weight(t.Priority)));
         _ = today;

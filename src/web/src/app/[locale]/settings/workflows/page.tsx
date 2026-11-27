@@ -49,7 +49,8 @@ export default async function WorkflowsPage({ params }: PageProps<"/[locale]/set
         <>
           <p className="max-w-2xl">{t("intro")}</p>
           <WorkflowRulesPanel initialRules={rules} csrfToken={session.data.csrfToken} plainLanguage={plainLanguage ?? { available: false, reason: "ai-off" }}
-            choices={{ services: services ?? [], categories: categories ?? [], locations: locations ?? [], groups: groups ?? [], departments: departments ?? [], roles: roles ?? [], connectors: connectors ?? [], customerGroups: customerGroups ?? [] }} />
+            choices={{ services: services ?? [], categories: categories ?? [], locations: locations ?? [], groups: groups ?? [], departments: departments ?? [], roles: roles ?? [], connectors: connectors ?? [], customerGroups: customerGroups ?? [],
+              customTypes: (await getJsonAs<{ id: string; name: { en: string | null; ar: string | null } }[]>("/api/v1/record-types", session.data.accessToken, tenant)) ?? [] }} />
         </>
       )}
     </section>

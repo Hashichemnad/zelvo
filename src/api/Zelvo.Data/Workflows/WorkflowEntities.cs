@@ -44,6 +44,9 @@ public sealed class WorkflowRule : ITenantOwned, IAuditedEntity
     /// <summary>The record type it applies to; <see langword="null"/> for every type.</summary>
     public TicketType? RecordType { get; set; }
 
+    /// <summary>The custom record type when <see cref="RecordType"/> is <c>Custom</c> (task K2); none means every custom type.</summary>
+    public Guid? CustomRecordTypeId { get; set; }
+
     /// <summary>Whether all or any of the conditions must hold.</summary>
     public ConditionMatch Match { get; set; } = ConditionMatch.All;
 
