@@ -5,6 +5,7 @@ import { BundleLink, BundleParts, RequestAttachments, RequestFacts, RequestProgr
 import { SlaClocks } from "@/components/sla/SlaClocks";
 import { ExportPdfButton } from "@/components/ExportPdfButton";
 import { CancelApprovalButton, RequestApprovals } from "@/components/workflows/Approvals";
+import { TicketCiPanel } from "@/components/cmdb/TicketCiPanel";
 import { RequestTasksPanel } from "@/components/catalog/RequestTasks";
 import type { RequestTask } from "@/lib/catalog";
 import { PaymentPanel } from "@/components/payments/PaymentPanel";
@@ -68,6 +69,9 @@ export default async function RequestPage({ params }: PageProps<"/[locale]/reque
       {request.sla.length > 0 && <SlaClocks clocks={request.sla} display={display} />}
       {form && <FormAnswersView view={form} attachmentBase={`/bff/api/v1/service-requests/${request.id}/attachments`} />}
       <RequestAttachments requestId={request.id} attachments={attachments} documentNames={documentNames} />
+      {/* Task G1: the configuration items the request is about. */}
+      <TicketCiPanel ticketId={request.id} kind="service-requests" canEdit={permissions.includes("requests.edit")} canOpenItems={permissions.includes("cmdb.read")}
+        csrfToken={session.data.csrfToken} />
       <RequestTasksPanel tasks={tasks ?? []} display={display} csrfToken={session.data.csrfToken} />
       <RequestApprovals processes={approvals} display={display} />
       {request.awaitingApproval && permissions.includes("requests.edit") && (

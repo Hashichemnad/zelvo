@@ -27,6 +27,9 @@ describe("Settings sections", () => {
     expect(sectionsFor(["catalog.manage"]).map((s) => s.key)).toEqual(["catalog"]);
     expect(sectionsFor(["catalog.publish"]).map((s) => s.key)).toEqual(["catalog"]);
     expect(sectionsFor(["voice.manage"]).map((s) => s.key)).toEqual(["customerVoice"]);
+    // Task G1: Settings → CMDB for cmdb.manage only (agents read the CMDB on its own pages).
+    expect(sectionsFor(["cmdb.manage"]).map((s) => s.key)).toEqual(["cmdb"]);
+    expect(sectionsFor(["cmdb.read"]).map((s) => s.key)).toEqual([]);
     // Task F2: the setup wizard first, report targets near the end.
     expect(sectionsFor(["setup.manage", "reports.manage", "translations.read"]).map((s) => s.key)).toEqual(["setup", "reports", "translations"]);
     expect(sectionsFor(["search.manage", "translations.read", "settings.manage"]).map((s) => s.key)).toEqual(["language", "incidents", "attachments", "knowledge", "search", "translations"]);

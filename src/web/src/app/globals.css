@@ -29,6 +29,17 @@
   --color-bad: #b42318;
 }
 
+:root {
+  /* Task G1: CMDB families on the relationship map (borders; shapes also tell them apart). */
+  --color-family-business: #7a3e9d;
+  --color-family-application: #0f5c8a;
+  --color-family-software: #1b6f6a;
+  --color-family-hardware: #4a5560;
+  --color-family-network: #9a5b00;
+  --color-family-cloud: #2457a8;
+  --color-family-people: #1b7a43;
+}
+
 @media (prefers-color-scheme: dark) {
   :root {
     --color-brand: #7cc4f0;
@@ -41,6 +52,13 @@
     --color-ok: #4cc47f;
     --color-warn: #f0a63a;
     --color-bad: #ff7b6e;
+    --color-family-business: #d3a6f0;
+    --color-family-application: #7cc4f0;
+    --color-family-software: #6fd6cc;
+    --color-family-hardware: #aab6c2;
+    --color-family-network: #f0a63a;
+    --color-family-cloud: #9dbcf5;
+    --color-family-people: #4cc47f;
   }
 }
 
