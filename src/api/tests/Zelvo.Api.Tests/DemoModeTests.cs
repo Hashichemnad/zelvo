@@ -128,7 +128,9 @@ public sealed class DemoModeTests(DatabaseFixture database) : IAsyncDisposable
             Assert.Single(await db.CustomerGroupMembers.ToListAsync(Ct));
             Assert.True(await db.SupportGroups.AnyAsync(g => g.CalendarId != null, Ct));
             // Task C6: the closed sample complaints, inquiries and suggestions of past months have no clocks.
-            Assert.Equal(await db.Tickets.CountAsync(t => t.Voice == null || t.State != Data.Tickets.TicketState.Closed, Ct) * 2, await db.TicketSlas.CountAsync(Ct));
+            // Task H3: changes run to their planned window and have no SLA clocks.
+            Assert.Equal(await db.Tickets.CountAsync(t => t.Type != Data.Tickets.TicketType.Change && (t.Voice == null || t.State != Data.Tickets.TicketState.Closed), Ct) * 2,
+                await db.TicketSlas.CountAsync(Ct));
             // Task B5: in the API, saving the sample incidents queued their notifications once.
             Assert.Equal(await db.Tickets.CountAsync(t => t.Type == Data.Tickets.TicketType.Incident, Ct),
                 await db.Notifications.CountAsync(n => n.EventType == Zelvo.Notifications.NotificationEvents.IncidentReceived, Ct));
@@ -315,6 +317,25 @@ public sealed class DemoModeTests(DatabaseFixture database) : IAsyncDisposable
         // Children before parents: role grants go before roles, user roles before users.
         Assert.True(tables.ToList().IndexOf("user_roles") < tables.ToList().IndexOf("users"));
         Assert.True(tables.ToList().IndexOf("user_roles") < tables.ToList().IndexOf("roles"));
+    }
+
+    [Fact]
+    public async Task Sample_organisations_get_changes_templates_and_blackouts()
+    {
+        foreach (var organisation in new[] { DemoCatalog.Government, DemoCatalog.Company })
+        {
+            var tenant = await SeededAsync(organisation);
+            await using var db = TestData.AppContext(database, tenant);
+            // Task H3: the catalog of standard changes, blackouts and changes at each stage.
+            Assert.Equal(2, await db.ChangeTemplates.CountAsync(Ct));
+            Assert.Equal(2, await db.ChangeBlackouts.CountAsync(Ct));
+            var changes = await db.Changes.ToListAsync(Ct);
+            Assert.Contains(changes, c => c.Phase == Data.Changes.ChangePhase.Scheduled && c.RiskLevel == Data.Changes.ChangeRiskLevel.Medium);
+            Assert.Contains(changes, c => c.Phase == Data.Changes.ChangePhase.Planning && c.RiskLevel == Data.Changes.ChangeRiskLevel.High);
+            Assert.Contains(changes, c => c.Outcome == Data.Changes.ChangeOutcome.BackedOut);
+            Assert.True(await db.ChangeLinks.AnyAsync(l => l.Kind == Data.Changes.ChangeLinkKind.Fixes, Ct));
+            Assert.True(await db.RequestTasks.AnyAsync(t => db.Tickets.Any(k => k.Id == t.TicketId && k.Type == Data.Tickets.TicketType.Change), Ct));
+        }
     }
 
     private async Task<Tenant> SeededAsync(DemoOrganisation organisation)

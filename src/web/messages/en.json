@@ -341,6 +341,10 @@
       "recordTypes": {
         "title": "Record types",
         "description": "Your own record types: names, number prefixes, states and the portal entry."
+      },
+      "changes": {
+        "title": "Changes",
+        "description": "The risk questionnaire, approval paths, blackout periods and standard changes."
       }
     },
     "missingWarning": "{count, plural, one {# text is} other {# texts are}} missing a translation.",
@@ -586,7 +590,11 @@
         "problems_read": "See problems, their analysis and links, and the known error database",
         "problems_edit": "Raise problems, write the analysis and known errors, link incidents, items and articles",
         "problems_manage": "Problem manager: assign, record known errors, resolve and close problems, publish and retire known errors; change Settings → Problems",
-        "recordtypes_manage": "Make and change record types in Settings → Record types"
+        "recordtypes_manage": "Make and change record types in Settings → Record types",
+        "changes_read": "See changes, their plans, risk, tasks and the change calendar",
+        "changes_edit": "Raise and plan changes, assess their risk, submit, implement and cancel them",
+        "changes_manage": "Change manager: assign changes, record post-implementation reviews and close them; change Settings → Changes",
+        "changes_approve": "Change advisory board member: approve changes on the board's path"
       },
       "events": {
         "user_created": "A user was created",
@@ -1964,7 +1972,8 @@
         "assets": "Assets",
         "problems": "Problems",
         "recordtypes": "Record types",
-        "records": "Custom records"
+        "records": "Custom records",
+        "changes": "Changes"
       },
       "tenant_manage": "Change the organisation's name",
       "translations_read": "See missing translations",
@@ -2034,7 +2043,11 @@
       "recordtypes_manage": "Make and change record types in Settings → Record types",
       "records_read": "{type}: see every record",
       "records_edit": "{type}: work on records",
-      "records_assign": "{type}: assign records"
+      "records_assign": "{type}: assign records",
+      "changes_read": "See changes, their plans, risk, tasks and the change calendar",
+      "changes_edit": "Raise and plan changes, assess their risk, submit, implement and cancel them",
+      "changes_manage": "Change manager: assign changes, record post-implementation reviews and close them; change Settings → Changes",
+      "changes_approve": "Change advisory board member: approve changes on the board's path"
     },
     "assignment": {
       "intro": "The rules are checked in order and the first that matches decides where a new ticket goes. They run when a ticket is created and when an agent chooses \"Route again\"; they never move a ticket on their own later.",
@@ -2510,7 +2523,8 @@
         "Inquiry": "Inquiries",
         "Suggestion": "Suggestions",
         "Problem": "Problems",
-        "Custom": "Custom records"
+        "Custom": "Custom records",
+        "Change": "Changes"
       },
       "customRecordType": "Custom record type",
       "anyCustomRecordType": "Every custom record type"
@@ -2611,7 +2625,13 @@
       "record_replied": "A reply on your request",
       "record_resolved": "Your request is done",
       "record_assigned": "A record is assigned to you",
-      "record_queued": "A new record arrives in your group's queue"
+      "record_queued": "A new record arrives in your group's queue",
+      "change_assigned": "A change is assigned to you",
+      "change_queued": "A new change arrives in your group's queue",
+      "change_approval_requested": "A change needs your approval",
+      "change_approved": "A change you raised or work on is approved",
+      "change_rejected": "A change you raised or work on is rejected",
+      "change_implemented": "A change is implemented and its review is due"
     },
     "audiences": {
       "Requester": "Your incidents",
@@ -5144,7 +5164,8 @@
       "Group": "Every member of a group",
       "GroupLeads": "The team leads of a group",
       "Role": "Everyone with a role",
-      "AnswerUser": "The person chosen in a form answer"
+      "AnswerUser": "The person chosen in a form answer",
+      "Permission": "Everyone with a permission"
     },
     "recipients": "Who to tell",
     "recipientKinds": {
@@ -5178,7 +5199,8 @@
     "stage": "When",
     "stages": {
       "BeforeAssignment": "Before assignment",
-      "AfterFulfilment": "After fulfilment (sign-off)"
+      "AfterFulfilment": "After fulfilment (sign-off)",
+      "ChangeAuthorisation": "Change approval"
     },
     "levels": "Approval levels",
     "ruleEditor": "Workflow rule",
@@ -5303,7 +5325,13 @@
       "unknownItem": "(no longer exists)"
     },
     "customRecordType": "Custom record type",
-    "anyCustomRecordType": "Every custom record type"
+    "anyCustomRecordType": "Every custom record type",
+    "permission": "Permission",
+    "choosePermission": "Choose a permission",
+    "approverPermissions": {
+      "changes_manage": "Change managers",
+      "changes_approve": "Change advisory board members"
+    }
   },
   "approvals": {
     "title": "My approvals",
@@ -5328,7 +5356,8 @@
     },
     "stages": {
       "BeforeAssignment": "Approval",
-      "AfterFulfilment": "Sign-off"
+      "AfterFulfilment": "Sign-off",
+      "ChangeAuthorisation": "Change approval"
     },
     "processStates": {
       "Pending": "in progress",
@@ -5373,7 +5402,8 @@
     "confirm": "Confirm my decision",
     "askedBy": "Requested by {name}",
     "awaitingRequester": "Your request is waiting for approval. You will be told when it is decided.",
-    "awaitingStaff": "This request is waiting for an approval; it cannot be changed meanwhile."
+    "awaitingStaff": "This request is waiting for an approval; it cannot be changed meanwhile.",
+    "openChange": "Open the change, its plans and conflicts"
   },
   "reports": {
     "title": "Reports",
@@ -5447,6 +5477,7 @@
       "Suggestion": "Suggestions",
       "Problem": "Problems",
       "Custom": "Custom records",
+      "Change": "Changes",
       "Portal": "Portal ratings"
     },
     "channels": {
@@ -7789,7 +7820,8 @@
       "save": "Save",
       "cancel": "Cancel",
       "titleField": "Title",
-      "descriptionField": "Description"
+      "descriptionField": "Description",
+      "raiseChange": "Raise a change to fix it"
     },
     "work": {
       "heading": "Work on the problem",
@@ -7891,7 +7923,12 @@
         "incident_created": "Incident {number} raised",
         "incident_linked": "Incident {number} linked",
         "incident_resolved": "Incident {number} resolved",
-        "incident_closed": "Incident {number} closed"
+        "incident_closed": "Incident {number} closed",
+        "change_created": "Change {number} raised",
+        "change_linked": "Change {number} linked",
+        "change_scheduled": "Change {number} approved and scheduled",
+        "change_implemented": "Change {number} implemented",
+        "change_closed": "Change {number} closed"
       }
     },
     "notes": {
@@ -8104,6 +8141,330 @@
       "stateNameEn": "State {n}: name (English)",
       "stateNameAr": "State {n}: name (Arabic)",
       "stateCategory": "State {n}: category"
+    }
+  },
+  "changes": {
+    "nav": "Changes",
+    "kinds": {
+      "Standard": "Standard",
+      "Normal": "Normal",
+      "Emergency": "Emergency"
+    },
+    "stages": {
+      "New": "New",
+      "Authorisation": "Awaiting approval",
+      "Scheduled": "Scheduled",
+      "Implementation": "Being implemented",
+      "Review": "Review due",
+      "Closed": "Closed"
+    },
+    "outcomes": {
+      "Successful": "Successful",
+      "SuccessfulWithProblems": "Successful with problems",
+      "Failed": "Failed",
+      "BackedOut": "Backed out"
+    },
+    "closures": {
+      "Completed": "Completed",
+      "Rejected": "Rejected",
+      "Cancelled": "Cancelled"
+    },
+    "approvalStates": {
+      "Pending": "Waiting for approval",
+      "Approved": "Approved",
+      "Rejected": "Rejected",
+      "Cancelled": "Stopped"
+    },
+    "actions": {
+      "Submit": "Submit for approval",
+      "Replan": "Back to planning",
+      "StartImplementation": "Start implementation",
+      "Implemented": "Mark implemented",
+      "Review": "Record the review",
+      "Cancel": "Cancel the change"
+    },
+    "risk": {
+      "heading": "Risk and impact",
+      "level": "Risk",
+      "levels": {
+        "Low": "Low",
+        "Medium": "Medium",
+        "High": "High"
+      },
+      "notAssessed": "Not assessed",
+      "score": "(score {score})",
+      "standard": "Standard changes are pre-approved and low risk; they are not assessed.",
+      "live": "Score {score}: {level} risk. {unanswered, plural, =0 {Every question is answered.} one {# question still to answer.} other {# questions still to answer.}}",
+      "save": "Save the answers"
+    },
+    "list": {
+      "title": "Changes",
+      "intro": "Planned changes to services and the items behind them: standard changes from the catalog, normal changes assessed for risk, and emergency changes.",
+      "noAccess": "You do not have access to changes.",
+      "unavailable": "Changes cannot be shown right now.",
+      "new": "Raise a change",
+      "calendar": "Change calendar",
+      "filters": "Filter changes",
+      "stage": "Stage",
+      "anyStage": "Any stage",
+      "kind": "Type",
+      "anyKind": "Any type",
+      "risk": "Risk",
+      "anyRisk": "Any risk",
+      "assignee": "Assignee",
+      "anyone": "Anyone",
+      "me": "Me",
+      "nobody": "Nobody",
+      "openOnly": "Open only",
+      "apply": "Apply",
+      "clear": "Clear",
+      "count": "{count, plural, =0 {No changes} one {# change} other {# changes}}",
+      "number": "Number",
+      "titleColumn": "Title",
+      "window": "Planned start",
+      "group": "Group"
+    },
+    "new": {
+      "title": "Raise a change",
+      "intro": "Choose the type of change. A standard change comes from the catalog of pre-approved changes; normal and emergency changes are planned here and assessed on the change's page.",
+      "kind": "Type of change",
+      "kindHints": {
+        "Standard": "Pre-approved and low risk, from the catalog of standard changes. Scheduled as soon as it is submitted.",
+        "Normal": "Assessed with the risk questionnaire; its risk level decides who approves it.",
+        "Emergency": "Urgent; decided quickly by the emergency path."
+      },
+      "template": "Standard change",
+      "chooseTemplate": "Choose a standard change",
+      "titleField": "Title",
+      "titleOptional": "Title (the standard change's name when left empty)",
+      "description": "What and why",
+      "category": "Category",
+      "noCategory": "No category",
+      "window": "Planned window",
+      "start": "Start",
+      "end": "End",
+      "implementationPlan": "Implementation plan",
+      "testPlan": "Test plan",
+      "backoutPlan": "Back-out plan",
+      "submit": "Raise the change",
+      "sending": "Raising…",
+      "failed": "The change could not be raised.",
+      "fixes": "The change will be linked to {number}, the problem it fixes."
+    },
+    "detail": {
+      "back": "All changes",
+      "approvals": "Approval"
+    },
+    "facts": {
+      "kind": "Type",
+      "stage": "Stage",
+      "risk": "Risk",
+      "template": "Standard change",
+      "category": "Category",
+      "group": "Group",
+      "assignee": "Assignee",
+      "raisedBy": "Raised by",
+      "approval": "Approval",
+      "approvedAt": "Approved",
+      "closure": "Ended",
+      "implementationNotes": "Implementation notes",
+      "reason": "Reason",
+      "outcome": "Review outcome",
+      "reviewNotes": "Review notes"
+    },
+    "work": {
+      "heading": "Next steps",
+      "noActions": "Nothing to do here at this stage.",
+      "actions": "Move the change",
+      "submitConflicts": "{count, plural, one {# conflict is} other {# conflicts are}} listed below; approvers will see {count, plural, one {it} other {them}}.",
+      "cancelReason": "Why is the change cancelled?",
+      "implementedNotes": "How did the implementation go?",
+      "confirm": "Confirm",
+      "outcome": "Outcome",
+      "reviewNotes": "What did the review find? (needed unless successful)",
+      "closeWithReview": "Close with this review",
+      "assignment": "Group and assignee",
+      "group": "Group",
+      "noGroup": "No group",
+      "assignee": "Assignee",
+      "nobody": "Nobody",
+      "assign": "Save the assignment"
+    },
+    "plan": {
+      "heading": "Plans and window",
+      "edit": "Edit",
+      "save": "Save",
+      "cancel": "Cancel",
+      "none": "Not written yet.",
+      "noWindow": "No window planned yet.",
+      "description": "What and why",
+      "window": "Planned window",
+      "actual": "Implemented",
+      "start": "Start",
+      "end": "End",
+      "implementationPlan": "Implementation plan",
+      "testPlan": "Test plan",
+      "backoutPlan": "Back-out plan"
+    },
+    "conflicts": {
+      "heading": "Conflicts",
+      "none": "No other change touches the same items in this window, and no blackout period applies.",
+      "kinds": {
+        "change": "Another change on the same items",
+        "blackout": "Blackout period"
+      },
+      "items": "Items:"
+    },
+    "tasks": {
+      "heading": "Tasks",
+      "none": "No tasks yet.",
+      "stage": "Stage {stage}",
+      "due": "due {date}",
+      "remove": "Remove the task {name}",
+      "removeShort": "Remove",
+      "myTasks": "My tasks",
+      "add": "Add a task",
+      "nameEn": "Name in English",
+      "nameAr": "Name in Arabic",
+      "group": "Group",
+      "changeGroup": "The change's group",
+      "parallel": "Together with the last task",
+      "addButton": "Add the task"
+    },
+    "links": {
+      "heading": "Problems and incidents",
+      "none": "No problems or incidents linked.",
+      "kinds": {
+        "Fixes": "Fixes",
+        "CausedBy": "Caused"
+      },
+      "remove": "Unlink {number}",
+      "removeShort": "Unlink",
+      "number": "Problem or incident number",
+      "link": "Link"
+    },
+    "notes": {
+      "heading": "Notes",
+      "none": "No notes yet.",
+      "by": "{name}, {date}",
+      "add": "Add a note",
+      "submit": "Add the note"
+    },
+    "calendar": {
+      "title": "Change calendar",
+      "intro": "Changes by their planned window. A change is marked when another change touches the same item in an overlapping window, or when a blackout period applies.",
+      "months": "Months",
+      "previous": "Previous month",
+      "next": "Next month",
+      "changes": "Changes",
+      "noChanges": "No changes are planned this month.",
+      "window": "Planned window",
+      "items": "Items",
+      "conflict": "Conflict",
+      "conflictYes": "Yes",
+      "conflictNo": "No",
+      "blackouts": "Blackout periods",
+      "noBlackouts": "No blackout periods this month.",
+      "blackoutItem": "for {name}",
+      "blackoutAll": "for every change"
+    },
+    "settings": {
+      "noAccess": "Only change managers set up change management.",
+      "intro": "The risk and impact questionnaire, who approves each level of risk, blackout periods and the catalog of standard changes.",
+      "questionnaire": "Risk and impact questionnaire",
+      "questionnaireHint": "Each answer adds its weight to the score; the highest score now is {max}.",
+      "questionNumber": "Question {number}",
+      "active": "Asked",
+      "remove": "Remove",
+      "removeQuestion": "Remove question {number}",
+      "question": "Question",
+      "answers": "Answers",
+      "answerNumber": "Answer {number}",
+      "weight": "Weight",
+      "removeAnswer": "Remove answer {number}",
+      "addAnswer": "Add an answer",
+      "addQuestion": "Add a question",
+      "mediumFrom": "Medium risk from a score of",
+      "highFrom": "High risk from a score of",
+      "paths": "Approval paths",
+      "pathsHint": "Who approves a change at each level of risk. Standard changes are pre-approved; a level with nobody to ask goes to the workflow administrators.",
+      "path": {
+        "low": "Low risk",
+        "medium": "Medium risk",
+        "high": "High risk",
+        "emergency": "Emergency changes"
+      },
+      "pathHint": {
+        "low": "By default the change manager.",
+        "medium": "By default the change advisory board.",
+        "high": "By default the board, then an executive.",
+        "emergency": "By default the emergency board."
+      },
+      "save": "Save the settings",
+      "blackouts": {
+        "heading": "Blackout periods",
+        "hint": "Windows in which changes should not run: for every change, or for one item (a business service also covers what it runs on). Standard changes cannot be scheduled in them; others show them to approvers.",
+        "none": "No current or future blackout periods.",
+        "item": "for {name}",
+        "all": "for every change",
+        "remove": "Remove the blackout period {name}",
+        "removeShort": "Remove",
+        "add": "Add a blackout period",
+        "name": "Name",
+        "start": "Start",
+        "end": "End",
+        "itemLabel": "Only for this item (optional)",
+        "allInstead": "For every change instead",
+        "addButton": "Add the period"
+      },
+      "templates": {
+        "heading": "Standard changes",
+        "hint": "Pre-approved changes of a known kind, with their plans and tasks. People pick them when they raise a standard change.",
+        "none": "No standard changes yet.",
+        "summary": "{tasks, plural, =0 {no tasks} one {# task} other {# tasks}}, used {changes, plural, =0 {never} one {once} other {# times}}",
+        "inactive": "not offered",
+        "edit": "Edit {name}",
+        "editShort": "Edit",
+        "add": "Add a standard change",
+        "name": "Name",
+        "description": "Description",
+        "category": "Category",
+        "noCategory": "No category",
+        "group": "Group",
+        "noGroup": "Routed by the assignment rules",
+        "implementationPlan": "Implementation plan",
+        "testPlan": "Test plan",
+        "backoutPlan": "Back-out plan",
+        "tasks": "Tasks",
+        "taskEn": "Task {number} in English",
+        "taskAr": "Task {number} in Arabic",
+        "taskGroup": "Group of task {number}",
+        "changeGroup": "The change's group",
+        "parallel": "Together with the task before",
+        "removeTask": "Remove task {number}",
+        "remove": "Remove",
+        "addTask": "Add a task",
+        "active": "Offered in the catalog",
+        "save": "Save the standard change",
+        "cancel": "Cancel"
+      }
+    },
+    "status": {
+      "saving": "Saving…",
+      "saved": "Saved.",
+      "failed": "That did not work. Try again.",
+      "errors": {
+        "blackout": "The window falls in a blackout period. Plan another window, or raise a normal or emergency change.",
+        "change-not-planning": "The plans, window and risk change only while the change is planned; take it back to planning first.",
+        "assignee-required": "Assign the change before implementing it.",
+        "tasks-open": "Finish the change's tasks first.",
+        "transition-not-allowed": "The change cannot move that way now.",
+        "version-mismatch": "Someone else changed this change. Reload the page.",
+        "standard-change": "Standard changes are not assessed.",
+        "task-opened": "Only tasks that have not opened yet can be removed.",
+        "status-400": "Check what you entered.",
+        "ticket-closed": "The change is closed."
+      }
     }
   }
 }

@@ -389,6 +389,42 @@
       "body": "تحية طيبة، {{recipient.name}}\n\nتم حل المشكلة رقم {{ticket.number}} بعنوان «{{ticket.title}}»:\n\n{{ticket.resolutionNotes}}\n\nمع خالص التحية،\n{{tenant.name}}",
       "action": "فتح المشكلة"
     },
+    "change.assigned": {
+      "subject": "أُسند إليكم التغيير رقم {{ticket.number}}",
+      "inApp": "أُسند إليكم التغيير «{{ticket.title}}».",
+      "body": "تحية طيبة، {{recipient.name}}\n\nأُسند إليكم التغيير رقم {{ticket.number}} بعنوان «{{ticket.title}}».\n\nالفريق: {{ticket.group}}\nالنافذة المخطط لها: {{change.start}} – {{change.end}}\n\nمع خالص التحية،\n{{tenant.name}}",
+      "action": "فتح التغيير"
+    },
+    "change.queued": {
+      "subject": "تغيير جديد لفريق {{ticket.group}}: {{ticket.number}}",
+      "inApp": "تغيير جديد لفريق {{ticket.group}}: «{{ticket.title}}».",
+      "body": "تحية طيبة، {{recipient.name}}\n\nالتغيير رقم {{ticket.number}} بعنوان «{{ticket.title}}» بانتظار المعالجة في قائمة فريق {{ticket.group}}.\n\nالنافذة المخطط لها: {{change.start}} – {{change.end}}\n\nمع خالص التحية،\n{{tenant.name}}",
+      "action": "فتح التغيير"
+    },
+    "change.approval-requested": {
+      "subject": "{{ticket.number}}: تغيير بانتظار اعتمادكم",
+      "inApp": "التغيير «{{ticket.title}}» بانتظار اعتمادكم ({{approval.level}}).",
+      "body": "تحية طيبة، {{recipient.name}}\n\nقدّم {{requester.name}} التغيير رقم {{ticket.number}} بعنوان «{{ticket.title}}»، وهو بانتظار اعتمادكم في مرحلة «{{approval.level}}».\n\nمستوى المخاطر: {{change.risk}}\nالنافذة المخطط لها: {{change.start}} – {{change.end}}\n\nيرجى مراجعة التغيير وخططه وأي تعارضات، ثم اعتماده أو رفضه. سيُطلب منكم تسجيل الدخول قبل تسجيل قراركم.\n\nمع خالص التحية،\n{{tenant.name}}",
+      "action": "مراجعة التغيير"
+    },
+    "change.approved": {
+      "subject": "{{ticket.number}}: تم اعتماد التغيير",
+      "inApp": "تم اعتماد التغيير «{{ticket.title}}» وجدولته.",
+      "body": "تحية طيبة، {{recipient.name}}\n\nتم اعتماد التغيير رقم {{ticket.number}} بعنوان «{{ticket.title}}» وجدولته في الفترة {{change.start}} – {{change.end}}.\n\nمع خالص التحية،\n{{tenant.name}}",
+      "action": "فتح التغيير"
+    },
+    "change.rejected": {
+      "subject": "{{ticket.number}}: تم رفض التغيير",
+      "inApp": "تم رفض التغيير «{{ticket.title}}».",
+      "body": "تحية طيبة، {{recipient.name}}\n\nتم رفض التغيير رقم {{ticket.number}} بعنوان «{{ticket.title}}» وإغلاقه.\n\nالسبب: {{approval.reason}}\n\nمع خالص التحية،\n{{tenant.name}}",
+      "action": "فتح التغيير"
+    },
+    "change.implemented": {
+      "subject": "{{ticket.number}}: تم تنفيذ التغيير وحان موعد مراجعته",
+      "inApp": "تم تنفيذ التغيير «{{ticket.title}}»، وحان موعد مراجعة ما بعد التنفيذ.",
+      "body": "تحية طيبة، {{recipient.name}}\n\nتم تنفيذ التغيير رقم {{ticket.number}} بعنوان «{{ticket.title}}»:\n\n{{ticket.resolutionNotes}}\n\nوقد حان موعد مراجعة ما بعد التنفيذ.\n\nمع خالص التحية،\n{{tenant.name}}",
+      "action": "مراجعة التغيير"
+    },
     "record.received": {
       "subject": "رقم {{ticket.number}}: تم استلام طلبكم",
       "inApp": "تم استلام {{ticket.type}} «{{ticket.title}}».",

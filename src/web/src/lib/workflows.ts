@@ -7,11 +7,11 @@ import type { Bilingual, Person } from "./incidents";
 import type { TicketState } from "./incidents";
 
 export type WorkflowTrigger = "TicketCreated" | "StateChanged" | "AssignmentChanged" | "ApprovalDecided";
-export type RecordType = "Incident" | "ServiceRequest" | "Custom";
+export type RecordType = "Incident" | "ServiceRequest" | "Custom" | "Change";
 export type ConditionMatch = "All" | "Any";
-export type ApprovalStage = "BeforeAssignment" | "AfterFulfilment";
+export type ApprovalStage = "BeforeAssignment" | "AfterFulfilment" | "ChangeAuthorisation";
 export type ApprovalMode = "Any" | "All";
-export type ApproverKind = "RequesterManager" | "User" | "Group" | "GroupLeads" | "Role" | "AnswerUser";
+export type ApproverKind = "RequesterManager" | "User" | "Group" | "GroupLeads" | "Role" | "AnswerUser" | "Permission";
 export type ApprovalDecisionState = "Pending" | "Approved" | "Rejected" | "NotNeeded";
 export type ApprovalProcessState = "Pending" | "Approved" | "Rejected" | "Cancelled";
 export type ApprovalLevelState = "Waiting" | "Approved" | "Rejected" | "NotStarted" | "Cancelled";
@@ -19,6 +19,12 @@ export type ApprovalLevelState = "Waiting" | "Approved" | "Rejected" | "NotStart
 export const workflowTriggers: WorkflowTrigger[] = ["TicketCreated", "StateChanged", "AssignmentChanged", "ApprovalDecided"];
 export const recordTypes: RecordType[] = ["Incident", "ServiceRequest", "Custom"];
 export const approverKinds: ApproverKind[] = ["RequesterManager", "User", "Group", "GroupLeads", "Role", "AnswerUser"];
+
+/** Task H3: who approves a change (the requester's manager and form answers do not apply to changes). */
+export const changeApproverKinds: ApproverKind[] = ["Permission", "User", "Group", "GroupLeads", "Role"];
+
+/** Task H3: the permissions whose holders can be named as approvers. */
+export const approverPermissions = ["changes.manage", "changes.approve"] as const;
 
 /** Fields conditions look at; `answer` stands for `answer.<fieldKey>`. */
 export type ConditionField =

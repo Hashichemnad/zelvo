@@ -170,6 +170,9 @@ public sealed class Ticket : ITenantOwned, IAuditedEntity
     /// <summary>Details of a custom record (task K2): its state of the type and priority.</summary>
     public Records.CustomRecord? Custom { get; set; }
 
+    /// <summary>Change details of changes (task H3).</summary>
+    public Changes.ChangeRecord? Change { get; set; }
+
     /// <summary>Optimistic concurrency token (PostgreSQL <c>xmin</c>).</summary>
     public uint Version { get; init; }
 }
@@ -197,6 +200,9 @@ public enum TicketType
 
     /// <summary>A record of a type an administrator made (module 20, task K2); <see cref="Ticket.RecordTypeId"/> names it.</summary>
     Custom,
+
+    /// <summary>A planned change to the services or the items behind them (module 17, task H3).</summary>
+    Change,
 }
 
 /// <summary>Ticket states (module 1).</summary>

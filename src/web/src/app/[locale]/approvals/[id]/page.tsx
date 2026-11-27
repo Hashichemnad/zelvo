@@ -56,6 +56,10 @@ export default async function ApprovalPage({ params, searchParams }: PageProps<"
         </p>
       </header>
       {detail.description && <p className="whitespace-pre-wrap" dir="auto">{detail.description}</p>}
+      {/* Task H3: approvers of a change open it to see its plans, risk and conflicts. */}
+      {ticket.type === "Change" && (
+        <p><Link href={`/changes/${ticket.id}`} className="font-semibold text-brand underline">{t("openChange")}</Link></p>
+      )}
       {detail.form ? <FormAnswersView view={detail.form as TicketFormView} attachmentBase={`/bff/api/v1/service-requests/${ticket.id}/attachments`} /> : null}
       <ApprovalDecisionForm detail={detail} csrfToken={session.data.csrfToken} fromEmail={decision !== null}
         initialChoice={decision === "approve" ? "Approve" : decision === "reject" ? "Reject" : null} />

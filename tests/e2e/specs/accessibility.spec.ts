@@ -74,6 +74,9 @@ const pages: Record<Persona, Target[]> = {
     { from: "/assets", link: /\/assets\/[0-9a-f-]{36}$/, name: "/assets/[id]" },
     // Task H1: problems, one with its analysis and known error, and the known error database.
     { from: "/problems", link: /\/problems\/[0-9a-f-]{36}$/, name: "/problems/[id]" },
+    // Task H3: changes, the calendar, raising a change and one change with its plans, risk and tasks.
+    "/changes", "/changes/new", "/changes/calendar",
+    { from: "/changes", link: /\/changes\/[0-9a-f-]{36}$/, name: "/changes/[id]" },
     // Task K2: the demo's facilities record type and one of its records.
     { from: "/records/facilities", link: /\/records\/facilities\/[0-9a-f-]{36}$/, name: "/records/[type]/[id]" }],
   lead: ["/knowledge/review", "/reports", "/reports/agents", "/settings/canned-responses"],
@@ -83,7 +86,7 @@ const pages: Record<Persona, Target[]> = {
   admin: ["/settings", "/setup", "/privacy-requests", "/payments", "/reports/schedules", "/reports/schedules/new", "/cmdb/new", "/cmdb/review", "/assets/new",
     "/settings/ai", "/settings/ai/features", "/settings/ai/log", "/settings/ai/mcp", "/settings/ai/mcp-servers", "/settings/ai/prices",
     "/settings/ai/usage", "/settings/assignment", "/settings/attachments", "/settings/branding", "/settings/business-calendars",
-    "/settings/assets", "/settings/catalog", "/settings/categories", "/settings/cmdb", "/settings/problems", "/settings/record-types", "/settings/chat", "/settings/connectors", "/settings/customer-groups",
+    "/settings/assets", "/settings/catalog", "/settings/categories", "/settings/cmdb", "/settings/problems", "/settings/changes", "/settings/record-types", "/settings/chat", "/settings/connectors", "/settings/customer-groups",
     "/settings/customer-voice", "/settings/departments", "/settings/field-sets", "/settings/forms", "/settings/groups",
     "/settings/import-export", "/settings/incidents", "/settings/integrations", "/settings/integrations/log",
     "/settings/integrations/webhooks", "/settings/knowledge", "/settings/language", "/settings/license", "/settings/locations",

@@ -148,6 +148,9 @@ public static class NotificationSamples
             [Placeholders.ProblemNumber] = PlaceholderValue.OfText("PRB-000042"),
             [Placeholders.KnownErrorNumber] = PlaceholderValue.OfText("KE-000007"),
             [Placeholders.KnownErrorTitle] = Both(Placeholders.KnownErrorTitle),
+            [Placeholders.ChangeStart] = PlaceholderValue.OfDate(now.AddDays(3)),
+            [Placeholders.ChangeEnd] = PlaceholderValue.OfDate(now.AddDays(3).AddHours(2)),
+            [Placeholders.ChangeRisk] = new PlaceholderValue { En = "Medium", Ar = "متوسط" },
         };
     }
 }

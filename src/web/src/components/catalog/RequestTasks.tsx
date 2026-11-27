@@ -84,7 +84,7 @@ export function TaskTable({ tasks, display, csrfToken, showRequest, onChanged }:
               </td>
               {showRequest && (
                 <td className={cell}>
-                  <Link href={`/requests/${task.requestId}`} className="font-mono font-semibold text-brand underline" dir="ltr">{task.requestNumber}</Link>
+                  <Link href={task.requestType === "Change" ? `/changes/${task.requestId}` : `/requests/${task.requestId}`} className="font-mono font-semibold text-brand underline" dir="ltr">{task.requestNumber}</Link>
                   <span className="block text-sm" dir="auto">{task.requestTitle}</span>
                 </td>
               )}

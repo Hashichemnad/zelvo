@@ -40,6 +40,7 @@ internal static class DemoServiceCollectionExtensions
         services.AddDemoSeeder<DemoPlainLanguageRulesSeeder>();
         services.AddDemoSeeder<DemoWellbeingSeeder>();
         services.AddDemoSeeder<DemoProblemsSeeder>();
+        services.AddDemoSeeder<DemoChangesSeeder>();
         services.AddDemoSeeder<DemoRecordTypesSeeder>();
         return services;
     }

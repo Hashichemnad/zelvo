@@ -153,7 +153,7 @@ public sealed class IdentityApiTests(DatabaseFixture database) : IAsyncDisposabl
 
         Assert.True(me!.Mfa.Satisfied);
         Assert.False(me.Mfa.Required);
-        Assert.Equal(["assets.read", "chat.handle", "cmdb.read", "directory.read", "incidents.assign", "incidents.create", "incidents.edit", "incidents.read", "knowledge.read", "knowledge.write", "problems.edit", "problems.read", "requests.assign", "requests.edit", "requests.read", "users.read", "voice.assign", "voice.edit", "voice.read"], me.Permissions.Order(StringComparer.Ordinal));
+        Assert.Equal(["assets.read", "changes.edit", "changes.read", "chat.handle", "cmdb.read", "directory.read", "incidents.assign", "incidents.create", "incidents.edit", "incidents.read", "knowledge.read", "knowledge.write", "problems.edit", "problems.read", "requests.assign", "requests.edit", "requests.read", "users.read", "voice.assign", "voice.edit", "voice.read"], me.Permissions.Order(StringComparer.Ordinal));
         Assert.Equal(HttpStatusCode.OK, response.StatusCode);
     }
 

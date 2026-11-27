@@ -389,6 +389,42 @@
       "body": "Hello {{recipient.name}},\n\nThe problem {{ticket.number}}, “{{ticket.title}}”, is resolved:\n\n{{ticket.resolutionNotes}}\n\n{{tenant.name}}",
       "action": "Open the problem"
     },
+    "change.assigned": {
+      "subject": "Change {{ticket.number}} is assigned to you",
+      "inApp": "Change “{{ticket.title}}” is assigned to you.",
+      "body": "Hello {{recipient.name}},\n\nThe change {{ticket.number}}, “{{ticket.title}}”, is assigned to you.\n\nGroup: {{ticket.group}}\nPlanned window: {{change.start}} – {{change.end}}\n\n{{tenant.name}}",
+      "action": "Open the change"
+    },
+    "change.queued": {
+      "subject": "New change for {{ticket.group}}: {{ticket.number}}",
+      "inApp": "New change for {{ticket.group}}: “{{ticket.title}}”.",
+      "body": "Hello {{recipient.name}},\n\nThe change {{ticket.number}}, “{{ticket.title}}”, is waiting in the queue of {{ticket.group}}.\n\nPlanned window: {{change.start}} – {{change.end}}\n\n{{tenant.name}}",
+      "action": "Open the change"
+    },
+    "change.approval-requested": {
+      "subject": "{{ticket.number}}: a change needs your approval",
+      "inApp": "The change “{{ticket.title}}” needs your approval ({{approval.level}}).",
+      "body": "Dear {{recipient.name}},\n\n{{requester.name}} has submitted the change {{ticket.number}}, “{{ticket.title}}”. It needs your approval at the stage “{{approval.level}}”.\n\nRisk: {{change.risk}}\nPlanned window: {{change.start}} – {{change.end}}\n\nPlease review the change, its plans and any conflicts, then approve or reject it. You will be asked to sign in before your decision is recorded.\n\nKind regards,\n{{tenant.name}}",
+      "action": "Review the change"
+    },
+    "change.approved": {
+      "subject": "{{ticket.number}}: the change is approved",
+      "inApp": "The change “{{ticket.title}}” is approved and scheduled.",
+      "body": "Hello {{recipient.name}},\n\nThe change {{ticket.number}}, “{{ticket.title}}”, is approved and scheduled for {{change.start}} – {{change.end}}.\n\n{{tenant.name}}",
+      "action": "Open the change"
+    },
+    "change.rejected": {
+      "subject": "{{ticket.number}}: the change was rejected",
+      "inApp": "The change “{{ticket.title}}” was rejected.",
+      "body": "Hello {{recipient.name}},\n\nThe change {{ticket.number}}, “{{ticket.title}}”, was rejected and closed.\n\nReason: {{approval.reason}}\n\n{{tenant.name}}",
+      "action": "Open the change"
+    },
+    "change.implemented": {
+      "subject": "{{ticket.number}}: the change is implemented; its review is due",
+      "inApp": "The change “{{ticket.title}}” is implemented; its post-implementation review is due.",
+      "body": "Hello {{recipient.name}},\n\nThe change {{ticket.number}}, “{{ticket.title}}”, is implemented:\n\n{{ticket.resolutionNotes}}\n\nIts post-implementation review is now due.\n\n{{tenant.name}}",
+      "action": "Review the change"
+    },
     "record.received": {
       "subject": "{{ticket.number}}: we have received your request",
       "inApp": "We have received your {{ticket.type}} “{{ticket.title}}”.",

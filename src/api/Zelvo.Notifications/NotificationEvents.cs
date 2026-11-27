@@ -111,6 +111,24 @@ public static class NotificationEvents
     /// <summary>A problem was resolved; the assignees of its incidents and the person who raised it hear about it (task H1).</summary>
     public const string ProblemResolved = "problem.resolved";
 
+    /// <summary>A change was assigned to someone (not by themselves; task H3).</summary>
+    public const string ChangeAssigned = "change.assigned";
+
+    /// <summary>A change arrived in a group's queue without an assignee (task H3).</summary>
+    public const string ChangeQueued = "change.queued";
+
+    /// <summary>A change's approval path asks an approver for their decision (task H3).</summary>
+    public const string ChangeApprovalRequested = "change.approval-requested";
+
+    /// <summary>A change was approved (or a standard change scheduled); its requester and assignee hear about it (task H3).</summary>
+    public const string ChangeApproved = "change.approved";
+
+    /// <summary>A change was rejected by its approval path; its requester and assignee hear about it (task H3).</summary>
+    public const string ChangeRejected = "change.rejected";
+
+    /// <summary>A change was implemented and its post-implementation review is due; its requester and the group's team leads hear about it (task H3).</summary>
+    public const string ChangeImplemented = "change.implemented";
+
     /// <summary>A requester's custom record was received (task K2).</summary>
     public const string RecordReceived = "record.received";
 
@@ -286,6 +304,14 @@ public static class NotificationEvents
         new(ProblemKnownError, NotificationAudience.Staff, true,
             [Placeholders.TicketNumber, Placeholders.TicketTitle, Placeholders.ProblemNumber, Placeholders.KnownErrorNumber, Placeholders.KnownErrorTitle]),
         new(ProblemResolved, NotificationAudience.Staff, true, [Placeholders.TicketNumber, Placeholders.TicketTitle, Placeholders.TicketResolutionNotes]),
+        // Task H3: change management.
+        new(ChangeAssigned, NotificationAudience.Staff, true, [Placeholders.TicketNumber, Placeholders.TicketTitle, Placeholders.TicketGroup, Placeholders.ChangeStart, Placeholders.ChangeEnd]),
+        new(ChangeQueued, NotificationAudience.Staff, true, [Placeholders.TicketNumber, Placeholders.TicketTitle, Placeholders.TicketGroup, Placeholders.ChangeStart, Placeholders.ChangeEnd]),
+        new(ChangeApprovalRequested, NotificationAudience.Staff, true,
+            [Placeholders.TicketNumber, Placeholders.TicketTitle, Placeholders.RequesterName, Placeholders.ApprovalLevel, Placeholders.ChangeRisk, Placeholders.ChangeStart, Placeholders.ChangeEnd]),
+        new(ChangeApproved, NotificationAudience.Staff, true, [Placeholders.TicketNumber, Placeholders.TicketTitle, Placeholders.ChangeStart, Placeholders.ChangeEnd]),
+        new(ChangeRejected, NotificationAudience.Staff, true, [Placeholders.TicketNumber, Placeholders.TicketTitle, Placeholders.ApprovalReason]),
+        new(ChangeImplemented, NotificationAudience.Staff, true, [Placeholders.TicketNumber, Placeholders.TicketTitle, Placeholders.TicketResolutionNotes]),
         // Task K2: custom records, with the type's own name as {{ticket.type}}.
         new(RecordReceived, NotificationAudience.Requester, true, [Placeholders.TicketNumber, Placeholders.TicketTitle, Placeholders.TicketType, Placeholders.TicketCreatedAt]),
         new(RecordReplied, NotificationAudience.Requester, true, [Placeholders.TicketNumber, Placeholders.TicketTitle, Placeholders.TicketType, Placeholders.CommentText, Placeholders.CommentAuthor]),
@@ -492,4 +518,13 @@ public static class Placeholders
 
     /// <summary>A known error's title in the recipient's language (task H1).</summary>
     public const string KnownErrorTitle = "knownError.title";
+
+    /// <summary>Start of a change's planned window (task H3), in the recipient's calendar and time zone.</summary>
+    public const string ChangeStart = "change.start";
+
+    /// <summary>End of a change's planned window (task H3).</summary>
+    public const string ChangeEnd = "change.end";
+
+    /// <summary>A change's risk level in the recipient's language (task H3).</summary>
+    public const string ChangeRisk = "change.risk";
 }

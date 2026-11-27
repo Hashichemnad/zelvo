@@ -124,6 +124,8 @@ public sealed partial class TicketAutoCloseJob(IServiceScopeFactory scopes, ILog
                   AND NOT EXISTS (SELECT 1 FROM payments p WHERE p.ticket_id = tickets.id AND p.state = 'AwaitingPayment')
                   -- Task C5: a bundle closes when its parts are closed.
                   AND NOT EXISTS (SELECT 1 FROM service_requests r WHERE r.ticket_id = tickets.id AND r.is_bundle)
+                  -- Task H3: an implemented change closes with its post-implementation review.
+                  AND type <> 'Change'
                 ORDER BY resolved_at
                 LIMIT {BatchSize}
                 FOR UPDATE SKIP LOCKED
@@ -396,6 +398,7 @@ public static class TicketServiceCollectionExtensions
         services.AddScoped<ISearchDocumentSource, RequestSearchSource>();
         services.AddScoped<ISearchDocumentSource, ProblemSearchSource>();
         services.AddScoped<ISearchDocumentSource, KnownErrorSearchSource>();
+        services.AddScoped<ISearchDocumentSource, ChangeSearchSource>();
         // Task K2: custom records' search documents and their states following the ticket core.
         services.AddScoped<ISearchDocumentSource, RecordSearchSource>();
         services.AddZelvoSaveChangesInterceptor<CustomRecordStateInterceptor>();
@@ -411,6 +414,7 @@ public static class TicketServiceCollectionExtensions
         services.AddSearchType(RequestSearch.Type, null);
         services.AddSearchType(ProblemSearch.Type, ProblemPermissions.Read);
         services.AddSearchType(ProblemSearch.KnownErrorType, ProblemPermissions.Read);
+        services.AddSearchType(ChangeSearch.Type, ChangePermissions.Read);
         services.AddSearchType(RecordSearch.Type, null);
         // Task F1: DNS lookups of the guided domain checks.
         services.TryAddSingleton<Branding.IDnsLookup, Branding.SystemDnsLookup>();

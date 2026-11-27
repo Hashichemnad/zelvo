@@ -123,7 +123,9 @@ export interface ProblemComment {
 
 export interface TimelineEntry {
   at: string;
-  kind: "problem.created" | "problem.known-error" | "problem.resolved" | "problem.closed" | "incident.created" | "incident.linked" | "incident.resolved" | "incident.closed";
+  kind: "problem.created" | "problem.known-error" | "problem.resolved" | "problem.closed" | "incident.created" | "incident.linked" | "incident.resolved" | "incident.closed"
+    // Task H3: the changes that fix the problem.
+    | "change.created" | "change.linked" | "change.scheduled" | "change.implemented" | "change.closed";
   ticket: { id: string; number: string; type: string; title: string };
   reference: string | null;
 }

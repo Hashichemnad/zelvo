@@ -138,6 +138,20 @@ public sealed class ApprovalNotificationSource : INotificationSource
 
             var values = Values(ticket);
             values[Placeholders.ApprovalLevel] = PlaceholderValue.OfText(LevelName(process, decision.Level));
+            if (ticket.Type == TicketType.Change)
+            {
+                // Task H3: a change's approver sees its risk and window.
+                var change = db.ChangeTracker.Entries<Data.Changes.ChangeRecord>().FirstOrDefault(e => e.Entity.TicketId == ticket.Id)?.Entity
+                    ?? await db.Changes.AsNoTracking().FirstOrDefaultAsync(c => c.TicketId == ticket.Id, cancellationToken).ConfigureAwait(false);
+                foreach (var (key, value) in ChangeNotificationSource.Values(ticket, change))
+                {
+                    values[key] = value;
+                }
+
+                result.Add(new(NotificationEvents.ChangeApprovalRequested, [decision.ApproverId], values, RequestLookups.ApprovalPath(decision.Id), TicketId: ticket.Id));
+                continue;
+            }
+
             result.Add(new(NotificationEvents.ApprovalRequested, [decision.ApproverId], values, RequestLookups.ApprovalPath(decision.Id), TicketId: ticket.Id));
         }
 

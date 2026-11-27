@@ -123,6 +123,9 @@ public static class ApprovalPlanner
                     _ => new List<Guid>(),
                 };
                 return await active.Where(u => picked.Contains(u.Id)).Select(u => u.Id).ToListAsync(cancellationToken).ConfigureAwait(false);
+            case ApproverKind.Permission when approver.Key is { } permission:
+                return await active.Where(u => u.Roles.Any(r => db.RoleGrants.Any(g => g.RoleId == r.RoleId && g.Permission == permission)))
+                    .Select(u => u.Id).ToListAsync(cancellationToken).ConfigureAwait(false);
             default:
                 return [];
         }
