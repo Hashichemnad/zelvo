@@ -11,7 +11,7 @@ export type RecordType = "Incident" | "ServiceRequest" | "Custom" | "Change";
 export type ConditionMatch = "All" | "Any";
 export type ApprovalStage = "BeforeAssignment" | "AfterFulfilment" | "ChangeAuthorisation";
 export type ApprovalMode = "Any" | "All";
-export type ApproverKind = "RequesterManager" | "User" | "Group" | "GroupLeads" | "Role" | "AnswerUser" | "Permission";
+export type ApproverKind = "RequesterManager" | "User" | "Group" | "GroupLeads" | "Role" | "AnswerUser" | "Permission" | "ChangeBoard" | "EmergencyBoard";
 export type ApprovalDecisionState = "Pending" | "Approved" | "Rejected" | "NotNeeded";
 export type ApprovalProcessState = "Pending" | "Approved" | "Rejected" | "Cancelled";
 export type ApprovalLevelState = "Waiting" | "Approved" | "Rejected" | "NotStarted" | "Cancelled";
@@ -21,7 +21,7 @@ export const recordTypes: RecordType[] = ["Incident", "ServiceRequest", "Custom"
 export const approverKinds: ApproverKind[] = ["RequesterManager", "User", "Group", "GroupLeads", "Role", "AnswerUser"];
 
 /** Task H3: who approves a change (the requester's manager and form answers do not apply to changes). */
-export const changeApproverKinds: ApproverKind[] = ["Permission", "User", "Group", "GroupLeads", "Role"];
+export const changeApproverKinds: ApproverKind[] = ["ChangeBoard", "EmergencyBoard", "Permission", "User", "Group", "GroupLeads", "Role"];
 
 /** Task H3: the permissions whose holders can be named as approvers. */
 export const approverPermissions = ["changes.manage", "changes.approve"] as const;

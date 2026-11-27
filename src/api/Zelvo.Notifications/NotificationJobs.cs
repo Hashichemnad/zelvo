@@ -195,6 +195,16 @@ public sealed partial class NotificationProcessor(
 
         var message = await MessageAsync(delivery.Address, delivery.Language, delivery.Subject, delivery.HtmlBody, delivery.TextBody,
             $"zelvo.{delivery.TenantId:N}.{delivery.Id}", cancellationToken).ConfigureAwait(false);
+        // Task H4: board meeting invitations and cancellations carry the calendar file.
+        if (delivery.EventType is NotificationEvents.CabInvited or NotificationEvents.CabCancelled && delivery.NotificationId is { } notificationId
+            && MeetingInvites.MeetingOf(await db.Notifications.AsNoTracking().Where(n => n.Id == notificationId).Select(n => n.LinkPath)
+                .FirstOrDefaultAsync(cancellationToken).ConfigureAwait(false)) is { } meetingId
+            && await MeetingInvites.AttachmentAsync(db, meetingId, delivery.Address, delivery.Language, delivery.EventType == NotificationEvents.CabCancelled,
+                message.FromAddress ?? options.Smtp.From, time.GetUtcNow(), cancellationToken).ConfigureAwait(false) is { } invite)
+        {
+            message = message with { Attachments = [invite] };
+        }
+
         var result = await sender.SendAsync(message, cancellationToken).ConfigureAwait(false);
 
         var now = time.GetUtcNow();

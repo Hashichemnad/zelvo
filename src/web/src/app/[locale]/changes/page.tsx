@@ -63,6 +63,7 @@ export default async function ChangesPage({ params, searchParams }: PageProps<"/
         <h1 id="changes-heading" className="text-3xl font-bold text-brand">{t("title")}</h1>
         <div className="flex flex-wrap gap-3">
           <Link href="/changes/calendar" className="px-2 py-2 font-semibold text-brand underline-offset-4 hover:underline">{t("calendar")}</Link>
+          <Link href="/changes/board" className="px-2 py-2 font-semibold text-brand underline-offset-4 hover:underline">{t("board")}</Link>
           {permissions.includes("changes.edit") && (
             <Link href="/changes/new" className="rounded-md bg-brand px-4 py-2 font-semibold text-surface">{t("new")}</Link>
           )}

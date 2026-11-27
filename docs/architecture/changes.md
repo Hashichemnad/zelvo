@@ -108,6 +108,50 @@ Seeder `h3-changes` (after `h1-problems`): two standard changes (a scheduled res
 
 ## Not in H3
 
-- The change advisory board, its meetings and the emergency board: H4.
 - The what-if simulation: H5.
 - SLA clocks for changes (they run to their window).
+
+# The change advisory board (task H4)
+
+Decision 8: **votes are advice; the chair records the decision**, and the board's outcome goes **through C3's approval service**.
+
+| Piece | Where |
+| --- | --- |
+| Tables `change_boards`, `change_board_members`, `cab_meetings`, `cab_meeting_members`, `cab_agenda_items`, `cab_votes` (row-level security; migration `ChangeAdvisoryBoard`) | `src/api/Zelvo.Data/Changes/BoardEntities.cs`, `ZelvoDbContext.Changes.cs` |
+| Board approver kinds `ChangeBoard` and `EmergencyBoard`; the board kept on planned levels | `Zelvo.Workflows/Rules/RuleDocuments.cs`, `Approvals/ApprovalPlanner.cs` |
+| API: boards, meetings, agenda, votes, decisions, minutes, a change's board history | `src/api/Zelvo.Api/Changes/ChangeBoardEndpoints.cs` |
+| Invitations with a calendar file (`.ics`) | `src/api/Zelvo.Notifications/MeetingInvites.cs`, `NotificationJobs.SendAsync` |
+| Pages `/changes/board`, `/changes/board/[id]`, the board history on change pages, Settings → Changes → Boards | `src/web/src/components/changes/ChangeBoard.tsx` |
+
+## Boards
+
+Each tenant has two boards (`/change-boards`, made with their default names when first read; changed with `changes.manage` in Settings → Changes → Boards, audited):
+
+- **The change advisory board**: bilingual name, a **chair** and a **deputy chair**, and its members.
+- **The emergency board**: a smaller membership and the **hours within which it decides** (1–168, 4 by default).
+
+Members and chairs are active people whose roles hold `changes.approve` (decision 11: the board member is a permission).
+
+**On the approval paths**, two new C3 approver kinds name the boards: `ChangeBoard` asks the advisory board's **chair and deputy** (the change managers while it has no chair), and `EmergencyBoard` asks the **emergency board's members** (holders of `changes.approve` while it has none). The default paths now use them: medium risk → the board; high → the board, then an executive; emergency → the emergency board. The planned level records which board it is (`PlannedLevel.Board`), so Zelvo knows a change **waits for the board**.
+
+## Meetings
+
+`/cab-meetings` (`changes.read` to see; planning and changing them needs the change manager, `changes.manage`, or the board's chair or deputy):
+
+- **Planning** (`POST`): bilingual title, start and end, room or online address; the chair and members default to the board's (the chair is always a member). **The agenda is built automatically** from the changes waiting at a board level that no other planned meeting has on its agenda yet, soonest window first; `…/agenda/refresh` adds those waiting since and removes undecided ones that no longer wait; an undecided change can be taken off. `GET /cab-meetings/waiting` lists the changes waiting for the board.
+- **Invitations**: members and the chair get `cab.invited` (in the app and by email, which cannot be turned off) with a **calendar file** (`meeting.ics`, iCalendar `METHOD:REQUEST`, the meeting's id as UID, a sequence that grows with each change so calendars update the event, the title in the recipient's language and the agenda's numbers in the description). Changing the time, place or members sends it again; members taken off and everyone when the meeting is called off get `cab.cancelled` with `METHOD:CANCEL`. The person who planned it is invited too, so that it reaches their calendar.
+- **Votes** (`PUT …/agenda/{item}/vote`): each member's Approve, Reject or Abstain with a comment, changed until the chair decides. Only the meeting's members vote. Votes are **advice**: shown with a tally to the chair and everyone reading the meeting.
+- **The chair's decision** (`POST …/agenda/{item}/decision`, the meeting's chair only): **Approved** or **Rejected** (with the reason) is recorded as the chair's own decision on the change's pending board level through `ApprovalService.DecideAsync` (via `cab`): the process moves to its next level or ends, and the change is scheduled or rejected exactly as from My approvals. 409 `chair-not-approver` when the change does not wait for this chair (decided already, or the board's chair is someone else). **Deferred** keeps the change waiting for a later meeting. The decision takes the **minutes about this change**.
+- **Minutes** of the meeting (`PUT …/minutes`, the chair or the change manager), **held** (`…/complete`: undecided changes are deferred) and **called off** (`…/cancel`).
+- **On each change**: `GET /changes/{id}/board` lists every meeting it was on with the votes, the decision and the minutes; the change page shows them, and its facts say when it waits for a board.
+
+Every planning, change, vote, decision, minutes and cancellation is audited.
+
+## The emergency board
+
+Emergency changes go to the emergency board's level: its members decide **without a meeting**, in My approvals or from the email, like any C3 approval. The change's approval summary carries the board and **`decideBy`** (the time the approval was asked plus the board's hours), shown on the change page. Emergency changes are never put on the advisory board's agenda.
+
+## Not in H4
+
+- Reminders or escalation when the emergency board has not decided by its time (the time is shown; for the product owner).
+- Quorum rules for votes: votes are advice by decision 8.

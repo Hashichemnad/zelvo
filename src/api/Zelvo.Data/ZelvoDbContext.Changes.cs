@@ -24,6 +24,24 @@ public sealed partial class ZelvoDbContext
     /// <summary>Problems changes fix and incidents they caused.</summary>
     public DbSet<ChangeLink> ChangeLinks => Set<ChangeLink>();
 
+    /// <summary>The change advisory board and the emergency board (task H4).</summary>
+    public DbSet<ChangeBoard> ChangeBoards => Set<ChangeBoard>();
+
+    /// <summary>Members of the boards.</summary>
+    public DbSet<ChangeBoardMember> ChangeBoardMembers => Set<ChangeBoardMember>();
+
+    /// <summary>Meetings of the change advisory board.</summary>
+    public DbSet<CabMeeting> CabMeetings => Set<CabMeeting>();
+
+    /// <summary>Members invited to meetings.</summary>
+    public DbSet<CabMeetingMember> CabMeetingMembers => Set<CabMeetingMember>();
+
+    /// <summary>Changes on meetings' agendas.</summary>
+    public DbSet<CabAgendaItem> CabAgendaItems => Set<CabAgendaItem>();
+
+    /// <summary>Members' votes.</summary>
+    public DbSet<CabVote> CabVotes => Set<CabVote>();
+
     private static void ConfigureChanges(ModelBuilder modelBuilder)
     {
         modelBuilder.Entity<ChangeRecord>(change =>
@@ -95,6 +113,98 @@ public sealed partial class ZelvoDbContext
             blackout.Property(b => b.Version).IsRowVersion();
             blackout.HasIndex(b => new { b.TenantId, b.StartsAt });
             blackout.HasIndex(b => b.ConfigurationItemId);
+        });
+
+        modelBuilder.Entity<ChangeBoard>(board =>
+        {
+            board.ToTable("change_boards", table =>
+            {
+                table.HasCheckConstraint("ck_change_boards_kind", EnumCheck("kind", Enum.GetNames<ChangeBoardKind>()));
+                table.HasCheckConstraint("ck_change_boards_hours", "decide_within_hours BETWEEN 1 AND 168");
+            });
+            board.HasKey(b => b.Id);
+            board.Property(b => b.Id).ValueGeneratedNever();
+            board.HasOne<Tenant>().WithMany().HasForeignKey(b => b.TenantId).OnDelete(DeleteBehavior.Restrict);
+            board.HasOne<UserAccount>().WithMany().HasForeignKey(b => b.ChairId).OnDelete(DeleteBehavior.SetNull);
+            board.HasOne<UserAccount>().WithMany().HasForeignKey(b => b.DeputyChairId).OnDelete(DeleteBehavior.SetNull);
+            board.HasMany(b => b.Members).WithOne().HasForeignKey(m => m.BoardId).OnDelete(DeleteBehavior.Cascade);
+            board.Property(b => b.Kind).HasConversion<string>().HasMaxLength(20);
+            board.ConfigureLocalizedText(b => b.Name, "name", ChangeBoard.NameMaxLength);
+            board.Property(b => b.Version).IsRowVersion();
+            board.HasIndex(b => new { b.TenantId, b.Kind }).IsUnique();
+            board.HasIndex(b => b.ChairId);
+            board.HasIndex(b => b.DeputyChairId);
+        });
+
+        modelBuilder.Entity<ChangeBoardMember>(member =>
+        {
+            member.ToTable("change_board_members");
+            member.HasKey(m => new { m.BoardId, m.UserId });
+            member.HasOne<Tenant>().WithMany().HasForeignKey(m => m.TenantId).OnDelete(DeleteBehavior.Restrict);
+            member.HasOne<UserAccount>().WithMany().HasForeignKey(m => m.UserId).OnDelete(DeleteBehavior.Cascade);
+            member.HasIndex(m => new { m.TenantId, m.UserId });
+        });
+
+        modelBuilder.Entity<CabMeeting>(meeting =>
+        {
+            meeting.ToTable("cab_meetings", table =>
+            {
+                table.HasCheckConstraint("ck_cab_meetings_state", EnumCheck("state", Enum.GetNames<CabMeetingState>()));
+                table.HasCheckConstraint("ck_cab_meetings_window", "ends_at > starts_at");
+                table.HasCheckConstraint("ck_cab_meetings_title", "coalesce(length(btrim(title_en)), 0) + coalesce(length(btrim(title_ar)), 0) > 0");
+            });
+            meeting.HasKey(m => m.Id);
+            meeting.Property(m => m.Id).ValueGeneratedNever();
+            meeting.HasOne<Tenant>().WithMany().HasForeignKey(m => m.TenantId).OnDelete(DeleteBehavior.Restrict);
+            meeting.HasOne<UserAccount>().WithMany().HasForeignKey(m => m.ChairId).OnDelete(DeleteBehavior.Restrict);
+            meeting.HasOne<UserAccount>().WithMany().HasForeignKey(m => m.CreatedById).OnDelete(DeleteBehavior.SetNull);
+            meeting.ConfigureLocalizedText(m => m.Title, "title", CabMeeting.TitleMaxLength);
+            meeting.Property(m => m.Location).HasMaxLength(CabMeeting.LocationMaxLength);
+            meeting.Property(m => m.Minutes).HasMaxLength(CabMeeting.MinutesMaxLength);
+            meeting.Property(m => m.State).HasConversion<string>().HasMaxLength(20);
+            meeting.Property(m => m.Version).IsRowVersion();
+            meeting.HasIndex(m => new { m.TenantId, m.StartsAt });
+            meeting.HasIndex(m => m.ChairId);
+            meeting.HasIndex(m => m.CreatedById);
+        });
+
+        modelBuilder.Entity<CabMeetingMember>(member =>
+        {
+            member.ToTable("cab_meeting_members");
+            member.HasKey(m => new { m.MeetingId, m.UserId });
+            member.HasOne<Tenant>().WithMany().HasForeignKey(m => m.TenantId).OnDelete(DeleteBehavior.Restrict);
+            member.HasOne<CabMeeting>().WithMany().HasForeignKey(m => m.MeetingId).OnDelete(DeleteBehavior.Cascade);
+            member.HasOne<UserAccount>().WithMany().HasForeignKey(m => m.UserId).OnDelete(DeleteBehavior.Cascade);
+            member.HasIndex(m => new { m.TenantId, m.UserId });
+        });
+
+        modelBuilder.Entity<CabAgendaItem>(item =>
+        {
+            item.ToTable("cab_agenda_items", table => table.HasCheckConstraint("ck_cab_agenda_items_decision", EnumCheck("decision", Enum.GetNames<CabDecision>())));
+            item.HasKey(i => i.Id);
+            item.Property(i => i.Id).ValueGeneratedNever();
+            item.HasOne<Tenant>().WithMany().HasForeignKey(i => i.TenantId).OnDelete(DeleteBehavior.Restrict);
+            item.HasOne<CabMeeting>().WithMany().HasForeignKey(i => i.MeetingId).OnDelete(DeleteBehavior.Cascade);
+            item.HasOne<Ticket>().WithMany().HasForeignKey(i => i.ChangeId).OnDelete(DeleteBehavior.Cascade);
+            item.HasOne<UserAccount>().WithMany().HasForeignKey(i => i.DecidedById).OnDelete(DeleteBehavior.SetNull);
+            item.Property(i => i.Decision).HasConversion<string>().HasMaxLength(20);
+            item.Property(i => i.Comment).HasMaxLength(CabAgendaItem.TextMaxLength);
+            item.Property(i => i.Minutes).HasMaxLength(CabAgendaItem.TextMaxLength);
+            item.HasIndex(i => new { i.MeetingId, i.ChangeId }).IsUnique();
+            item.HasIndex(i => new { i.TenantId, i.ChangeId });
+            item.HasIndex(i => i.DecidedById);
+        });
+
+        modelBuilder.Entity<CabVote>(vote =>
+        {
+            vote.ToTable("cab_votes", table => table.HasCheckConstraint("ck_cab_votes_choice", EnumCheck("choice", Enum.GetNames<CabVoteChoice>())));
+            vote.HasKey(v => new { v.ItemId, v.UserId });
+            vote.HasOne<Tenant>().WithMany().HasForeignKey(v => v.TenantId).OnDelete(DeleteBehavior.Restrict);
+            vote.HasOne<CabAgendaItem>().WithMany().HasForeignKey(v => v.ItemId).OnDelete(DeleteBehavior.Cascade);
+            vote.HasOne<UserAccount>().WithMany().HasForeignKey(v => v.UserId).OnDelete(DeleteBehavior.Cascade);
+            vote.Property(v => v.Choice).HasConversion<string>().HasMaxLength(20);
+            vote.Property(v => v.Comment).HasMaxLength(CabVote.CommentMaxLength);
+            vote.HasIndex(v => new { v.TenantId, v.UserId });
         });
 
         modelBuilder.Entity<ChangeLink>(link =>

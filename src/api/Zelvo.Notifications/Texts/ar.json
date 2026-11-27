@@ -425,6 +425,18 @@
       "body": "تحية طيبة، {{recipient.name}}\n\nتم تنفيذ التغيير رقم {{ticket.number}} بعنوان «{{ticket.title}}»:\n\n{{ticket.resolutionNotes}}\n\nوقد حان موعد مراجعة ما بعد التنفيذ.\n\nمع خالص التحية،\n{{tenant.name}}",
       "action": "مراجعة التغيير"
     },
+    "cab.invited": {
+      "subject": "المجلس الاستشاري للتغيير: {{meeting.title}}",
+      "inApp": "أنتم مدعوون إلى اجتماع المجلس الاستشاري للتغيير «{{meeting.title}}».",
+      "body": "تحية طيبة، {{recipient.name}}\n\nيسرنا دعوتكم إلى اجتماع المجلس الاستشاري للتغيير «{{meeting.title}}».\n\nالموعد: {{meeting.start}} – {{meeting.end}}\nالمكان: {{meeting.location}}\nعدد التغييرات في جدول الأعمال: {{meeting.items}}\n\nيضيف ملف التقويم المرفق الاجتماع إلى تقويمكم. يرجى مراجعة التغييرات وإبداء رأيكم قبل الاجتماع.\n\nمع خالص التحية،\n{{tenant.name}}",
+      "action": "فتح الاجتماع"
+    },
+    "cab.cancelled": {
+      "subject": "إلغاء الاجتماع: {{meeting.title}}",
+      "inApp": "أُلغي اجتماع المجلس الاستشاري للتغيير «{{meeting.title}}» بالنسبة إليكم.",
+      "body": "تحية طيبة، {{recipient.name}}\n\nنحيطكم علمًا بإلغاء اجتماع المجلس الاستشاري للتغيير «{{meeting.title}}» ({{meeting.start}} – {{meeting.end}}) أو بعدم إدراجكم فيه. ويزيل ملف التقويم المرفق الاجتماع من تقويمكم.\n\nمع خالص التحية،\n{{tenant.name}}",
+      "action": "فتح الاجتماع"
+    },
     "record.received": {
       "subject": "رقم {{ticket.number}}: تم استلام طلبكم",
       "inApp": "تم استلام {{ticket.type}} «{{ticket.title}}».",

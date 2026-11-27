@@ -1982,6 +1982,244 @@ namespace Zelvo.Data.Migrations
                         });
                 });
 
+            modelBuilder.Entity("Zelvo.Data.Changes.CabAgendaItem", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<DateTimeOffset>("AddedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("added_at");
+
+                    b.Property<Guid>("ChangeId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("change_id");
+
+                    b.Property<string>("Comment")
+                        .HasMaxLength(4000)
+                        .HasColumnType("character varying(4000)")
+                        .HasColumnName("comment");
+
+                    b.Property<DateTimeOffset?>("DecidedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("decided_at");
+
+                    b.Property<Guid?>("DecidedById")
+                        .HasColumnType("uuid")
+                        .HasColumnName("decided_by_id");
+
+                    b.Property<string>("Decision")
+                        .HasMaxLength(20)
+                        .HasColumnType("character varying(20)")
+                        .HasColumnName("decision");
+
+                    b.Property<Guid>("MeetingId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("meeting_id");
+
+                    b.Property<string>("Minutes")
+                        .HasMaxLength(4000)
+                        .HasColumnType("character varying(4000)")
+                        .HasColumnName("minutes");
+
+                    b.Property<int>("Position")
+                        .HasColumnType("integer")
+                        .HasColumnName("position");
+
+                    b.Property<Guid>("TenantId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("tenant_id");
+
+                    b.HasKey("Id")
+                        .HasName("pk_cab_agenda_items");
+
+                    b.HasIndex("ChangeId")
+                        .HasDatabaseName("ix_cab_agenda_items_change_id");
+
+                    b.HasIndex("DecidedById")
+                        .HasDatabaseName("ix_cab_agenda_items_decided_by_id");
+
+                    b.HasIndex("MeetingId", "ChangeId")
+                        .IsUnique()
+                        .HasDatabaseName("ix_cab_agenda_items_meeting_id_change_id");
+
+                    b.HasIndex("TenantId", "ChangeId")
+                        .HasDatabaseName("ix_cab_agenda_items_tenant_id_change_id");
+
+                    b.ToTable("cab_agenda_items", null, t =>
+                        {
+                            t.HasCheckConstraint("ck_cab_agenda_items_decision", "decision IN ('Approved', 'Rejected', 'Deferred')");
+                        });
+                });
+
+            modelBuilder.Entity("Zelvo.Data.Changes.CabMeeting", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<Guid>("ChairId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("chair_id");
+
+                    b.Property<DateTimeOffset>("CreatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("created_at");
+
+                    b.Property<Guid?>("CreatedById")
+                        .HasColumnType("uuid")
+                        .HasColumnName("created_by_id");
+
+                    b.Property<DateTimeOffset>("EndsAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("ends_at");
+
+                    b.Property<string>("Location")
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)")
+                        .HasColumnName("location");
+
+                    b.Property<string>("Minutes")
+                        .HasMaxLength(20000)
+                        .HasColumnType("character varying(20000)")
+                        .HasColumnName("minutes");
+
+                    b.Property<int>("Sequence")
+                        .HasColumnType("integer")
+                        .HasColumnName("sequence");
+
+                    b.Property<DateTimeOffset>("StartsAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("starts_at");
+
+                    b.Property<string>("State")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("character varying(20)")
+                        .HasColumnName("state");
+
+                    b.Property<Guid>("TenantId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("tenant_id");
+
+                    b.Property<DateTimeOffset>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("updated_at");
+
+                    b.Property<uint>("Version")
+                        .IsConcurrencyToken()
+                        .ValueGeneratedOnAddOrUpdate()
+                        .HasColumnType("xid")
+                        .HasColumnName("xmin");
+
+                    b.ComplexProperty(typeof(Dictionary<string, object>), "Title", "Zelvo.Data.Changes.CabMeeting.Title#LocalizedText", b1 =>
+                        {
+                            b1.IsRequired();
+
+                            b1.Property<string>("Ar")
+                                .HasMaxLength(200)
+                                .HasColumnType("character varying(200)")
+                                .HasColumnName("title_ar");
+
+                            b1.Property<string>("En")
+                                .HasMaxLength(200)
+                                .HasColumnType("character varying(200)")
+                                .HasColumnName("title_en");
+                        });
+
+                    b.HasKey("Id")
+                        .HasName("pk_cab_meetings");
+
+                    b.HasIndex("ChairId")
+                        .HasDatabaseName("ix_cab_meetings_chair_id");
+
+                    b.HasIndex("CreatedById")
+                        .HasDatabaseName("ix_cab_meetings_created_by_id");
+
+                    b.HasIndex("TenantId", "StartsAt")
+                        .HasDatabaseName("ix_cab_meetings_tenant_id_starts_at");
+
+                    b.ToTable("cab_meetings", null, t =>
+                        {
+                            t.HasCheckConstraint("ck_cab_meetings_state", "state IN ('Planned', 'Held', 'Cancelled')");
+
+                            t.HasCheckConstraint("ck_cab_meetings_title", "coalesce(length(btrim(title_en)), 0) + coalesce(length(btrim(title_ar)), 0) > 0");
+
+                            t.HasCheckConstraint("ck_cab_meetings_window", "ends_at > starts_at");
+                        });
+                });
+
+            modelBuilder.Entity("Zelvo.Data.Changes.CabMeetingMember", b =>
+                {
+                    b.Property<Guid>("MeetingId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("meeting_id");
+
+                    b.Property<Guid>("UserId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("user_id");
+
+                    b.Property<Guid>("TenantId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("tenant_id");
+
+                    b.HasKey("MeetingId", "UserId")
+                        .HasName("pk_cab_meeting_members");
+
+                    b.HasIndex("UserId")
+                        .HasDatabaseName("ix_cab_meeting_members_user_id");
+
+                    b.HasIndex("TenantId", "UserId")
+                        .HasDatabaseName("ix_cab_meeting_members_tenant_id_user_id");
+
+                    b.ToTable("cab_meeting_members", (string)null);
+                });
+
+            modelBuilder.Entity("Zelvo.Data.Changes.CabVote", b =>
+                {
+                    b.Property<Guid>("ItemId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("item_id");
+
+                    b.Property<Guid>("UserId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("user_id");
+
+                    b.Property<string>("Choice")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("character varying(20)")
+                        .HasColumnName("choice");
+
+                    b.Property<string>("Comment")
+                        .HasMaxLength(2000)
+                        .HasColumnType("character varying(2000)")
+                        .HasColumnName("comment");
+
+                    b.Property<Guid>("TenantId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("tenant_id");
+
+                    b.Property<DateTimeOffset>("VotedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("voted_at");
+
+                    b.HasKey("ItemId", "UserId")
+                        .HasName("pk_cab_votes");
+
+                    b.HasIndex("UserId")
+                        .HasDatabaseName("ix_cab_votes_user_id");
+
+                    b.HasIndex("TenantId", "UserId")
+                        .HasDatabaseName("ix_cab_votes_tenant_id_user_id");
+
+                    b.ToTable("cab_votes", null, t =>
+                        {
+                            t.HasCheckConstraint("ck_cab_votes_choice", "choice IN ('Approve', 'Reject', 'Abstain')");
+                        });
+                });
+
             modelBuilder.Entity("Zelvo.Data.Changes.ChangeBlackout", b =>
                 {
                     b.Property<Guid>("Id")
@@ -2044,6 +2282,106 @@ namespace Zelvo.Data.Migrations
 
                             t.HasCheckConstraint("ck_change_blackouts_window", "ends_at > starts_at");
                         });
+                });
+
+            modelBuilder.Entity("Zelvo.Data.Changes.ChangeBoard", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<Guid?>("ChairId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("chair_id");
+
+                    b.Property<int>("DecideWithinHours")
+                        .HasColumnType("integer")
+                        .HasColumnName("decide_within_hours");
+
+                    b.Property<Guid?>("DeputyChairId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("deputy_chair_id");
+
+                    b.Property<string>("Kind")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("character varying(20)")
+                        .HasColumnName("kind");
+
+                    b.Property<Guid>("TenantId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("tenant_id");
+
+                    b.Property<DateTimeOffset>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("updated_at");
+
+                    b.Property<uint>("Version")
+                        .IsConcurrencyToken()
+                        .ValueGeneratedOnAddOrUpdate()
+                        .HasColumnType("xid")
+                        .HasColumnName("xmin");
+
+                    b.ComplexProperty(typeof(Dictionary<string, object>), "Name", "Zelvo.Data.Changes.ChangeBoard.Name#LocalizedText", b1 =>
+                        {
+                            b1.IsRequired();
+
+                            b1.Property<string>("Ar")
+                                .HasMaxLength(200)
+                                .HasColumnType("character varying(200)")
+                                .HasColumnName("name_ar");
+
+                            b1.Property<string>("En")
+                                .HasMaxLength(200)
+                                .HasColumnType("character varying(200)")
+                                .HasColumnName("name_en");
+                        });
+
+                    b.HasKey("Id")
+                        .HasName("pk_change_boards");
+
+                    b.HasIndex("ChairId")
+                        .HasDatabaseName("ix_change_boards_chair_id");
+
+                    b.HasIndex("DeputyChairId")
+                        .HasDatabaseName("ix_change_boards_deputy_chair_id");
+
+                    b.HasIndex("TenantId", "Kind")
+                        .IsUnique()
+                        .HasDatabaseName("ix_change_boards_tenant_id_kind");
+
+                    b.ToTable("change_boards", null, t =>
+                        {
+                            t.HasCheckConstraint("ck_change_boards_hours", "decide_within_hours BETWEEN 1 AND 168");
+
+                            t.HasCheckConstraint("ck_change_boards_kind", "kind IN ('Advisory', 'Emergency')");
+                        });
+                });
+
+            modelBuilder.Entity("Zelvo.Data.Changes.ChangeBoardMember", b =>
+                {
+                    b.Property<Guid>("BoardId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("board_id");
+
+                    b.Property<Guid>("UserId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("user_id");
+
+                    b.Property<Guid>("TenantId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("tenant_id");
+
+                    b.HasKey("BoardId", "UserId")
+                        .HasName("pk_change_board_members");
+
+                    b.HasIndex("UserId")
+                        .HasDatabaseName("ix_change_board_members_user_id");
+
+                    b.HasIndex("TenantId", "UserId")
+                        .HasDatabaseName("ix_change_board_members_tenant_id_user_id");
+
+                    b.ToTable("change_board_members", (string)null);
                 });
 
             modelBuilder.Entity("Zelvo.Data.Changes.ChangeLink", b =>
@@ -12460,6 +12798,107 @@ namespace Zelvo.Data.Migrations
                         .HasConstraintName("fk_service_requests_tickets_ticket_id");
                 });
 
+            modelBuilder.Entity("Zelvo.Data.Changes.CabAgendaItem", b =>
+                {
+                    b.HasOne("Zelvo.Data.Tickets.Ticket", null)
+                        .WithMany()
+                        .HasForeignKey("ChangeId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired()
+                        .HasConstraintName("fk_cab_agenda_items_tickets_change_id");
+
+                    b.HasOne("Zelvo.Data.Identity.UserAccount", null)
+                        .WithMany()
+                        .HasForeignKey("DecidedById")
+                        .OnDelete(DeleteBehavior.SetNull)
+                        .HasConstraintName("fk_cab_agenda_items_users_decided_by_id");
+
+                    b.HasOne("Zelvo.Data.Changes.CabMeeting", null)
+                        .WithMany()
+                        .HasForeignKey("MeetingId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired()
+                        .HasConstraintName("fk_cab_agenda_items_cab_meetings_meeting_id");
+
+                    b.HasOne("Zelvo.Data.Tenancy.Tenant", null)
+                        .WithMany()
+                        .HasForeignKey("TenantId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired()
+                        .HasConstraintName("fk_cab_agenda_items_tenants_tenant_id");
+                });
+
+            modelBuilder.Entity("Zelvo.Data.Changes.CabMeeting", b =>
+                {
+                    b.HasOne("Zelvo.Data.Identity.UserAccount", null)
+                        .WithMany()
+                        .HasForeignKey("ChairId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired()
+                        .HasConstraintName("fk_cab_meetings_users_chair_id");
+
+                    b.HasOne("Zelvo.Data.Identity.UserAccount", null)
+                        .WithMany()
+                        .HasForeignKey("CreatedById")
+                        .OnDelete(DeleteBehavior.SetNull)
+                        .HasConstraintName("fk_cab_meetings_users_created_by_id");
+
+                    b.HasOne("Zelvo.Data.Tenancy.Tenant", null)
+                        .WithMany()
+                        .HasForeignKey("TenantId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired()
+                        .HasConstraintName("fk_cab_meetings_tenants_tenant_id");
+                });
+
+            modelBuilder.Entity("Zelvo.Data.Changes.CabMeetingMember", b =>
+                {
+                    b.HasOne("Zelvo.Data.Changes.CabMeeting", null)
+                        .WithMany()
+                        .HasForeignKey("MeetingId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired()
+                        .HasConstraintName("fk_cab_meeting_members_cab_meetings_meeting_id");
+
+                    b.HasOne("Zelvo.Data.Tenancy.Tenant", null)
+                        .WithMany()
+                        .HasForeignKey("TenantId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired()
+                        .HasConstraintName("fk_cab_meeting_members_tenants_tenant_id");
+
+                    b.HasOne("Zelvo.Data.Identity.UserAccount", null)
+                        .WithMany()
+                        .HasForeignKey("UserId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired()
+                        .HasConstraintName("fk_cab_meeting_members_users_user_id");
+                });
+
+            modelBuilder.Entity("Zelvo.Data.Changes.CabVote", b =>
+                {
+                    b.HasOne("Zelvo.Data.Changes.CabAgendaItem", null)
+                        .WithMany()
+                        .HasForeignKey("ItemId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired()
+                        .HasConstraintName("fk_cab_votes_cab_agenda_items_item_id");
+
+                    b.HasOne("Zelvo.Data.Tenancy.Tenant", null)
+                        .WithMany()
+                        .HasForeignKey("TenantId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired()
+                        .HasConstraintName("fk_cab_votes_tenants_tenant_id");
+
+                    b.HasOne("Zelvo.Data.Identity.UserAccount", null)
+                        .WithMany()
+                        .HasForeignKey("UserId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired()
+                        .HasConstraintName("fk_cab_votes_users_user_id");
+                });
+
             modelBuilder.Entity("Zelvo.Data.Changes.ChangeBlackout", b =>
                 {
                     b.HasOne("Zelvo.Data.Cmdb.ConfigurationItem", null)
@@ -12474,6 +12913,52 @@ namespace Zelvo.Data.Migrations
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired()
                         .HasConstraintName("fk_change_blackouts_tenants_tenant_id");
+                });
+
+            modelBuilder.Entity("Zelvo.Data.Changes.ChangeBoard", b =>
+                {
+                    b.HasOne("Zelvo.Data.Identity.UserAccount", null)
+                        .WithMany()
+                        .HasForeignKey("ChairId")
+                        .OnDelete(DeleteBehavior.SetNull)
+                        .HasConstraintName("fk_change_boards_users_chair_id");
+
+                    b.HasOne("Zelvo.Data.Identity.UserAccount", null)
+                        .WithMany()
+                        .HasForeignKey("DeputyChairId")
+                        .OnDelete(DeleteBehavior.SetNull)
+                        .HasConstraintName("fk_change_boards_users_deputy_chair_id");
+
+                    b.HasOne("Zelvo.Data.Tenancy.Tenant", null)
+                        .WithMany()
+                        .HasForeignKey("TenantId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired()
+                        .HasConstraintName("fk_change_boards_tenants_tenant_id");
+                });
+
+            modelBuilder.Entity("Zelvo.Data.Changes.ChangeBoardMember", b =>
+                {
+                    b.HasOne("Zelvo.Data.Changes.ChangeBoard", null)
+                        .WithMany("Members")
+                        .HasForeignKey("BoardId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired()
+                        .HasConstraintName("fk_change_board_members_change_boards_board_id");
+
+                    b.HasOne("Zelvo.Data.Tenancy.Tenant", null)
+                        .WithMany()
+                        .HasForeignKey("TenantId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired()
+                        .HasConstraintName("fk_change_board_members_tenants_tenant_id");
+
+                    b.HasOne("Zelvo.Data.Identity.UserAccount", null)
+                        .WithMany()
+                        .HasForeignKey("UserId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired()
+                        .HasConstraintName("fk_change_board_members_users_user_id");
                 });
 
             modelBuilder.Entity("Zelvo.Data.Changes.ChangeLink", b =>
@@ -15143,6 +15628,11 @@ namespace Zelvo.Data.Migrations
             modelBuilder.Entity("Zelvo.Data.Catalog.ServiceCatalog", b =>
                 {
                     b.Navigation("Editors");
+                });
+
+            modelBuilder.Entity("Zelvo.Data.Changes.ChangeBoard", b =>
+                {
+                    b.Navigation("Members");
                 });
 
             modelBuilder.Entity("Zelvo.Data.Directory.SupportGroup", b =>

@@ -3,13 +3,14 @@ import { getTranslations, setRequestLocale } from "next-intl/server";
 import { ChangePlan, RiskQuestionnaire } from "@/components/changes/ChangePlan";
 import { ChangeConflicts, ChangeLinks, ChangeNotes, ChangeTasks } from "@/components/changes/ChangeRelated";
 import { ChangeWorkPanel } from "@/components/changes/ChangeWork";
+import { ChangeBoardHistory } from "@/components/changes/ChangeBoard";
 import { ChangeFacts } from "@/components/changes/ChangeFacts";
 import { TicketCiPanel } from "@/components/cmdb/TicketCiPanel";
 import { RequestApprovals } from "@/components/workflows/Approvals";
 import { Link } from "@/i18n/navigation";
 import { getJsonAs } from "@/lib/api";
 import type { RequestTask } from "@/lib/catalog";
-import type { Change, ChangeComment, ChangeLink, ChangeSettings } from "@/lib/changes";
+import type { Change, ChangeBoardEntry, ChangeComment, ChangeLink, ChangeSettings } from "@/lib/changes";
 import { getDisplayFormat } from "@/lib/display";
 import { loadDirectoryChoices } from "@/lib/directory-pages";
 import { isId } from "@/lib/incident-pages";
@@ -39,7 +40,7 @@ export default async function ChangePage({ params }: PageProps<"/[locale]/change
   }
   const token = session.data.accessToken;
   const get = <T,>(path: string) => getJsonAs<T>(path, token, tenant);
-  const [change, tasks, links, notes, approvals, settings, choices, format] = await Promise.all([
+  const [change, tasks, links, notes, approvals, settings, choices, format, board] = await Promise.all([
     get<Change>(`/api/v1/changes/${id}`),
     get<RequestTask[]>(`/api/v1/changes/${id}/tasks`),
     get<ChangeLink[]>(`/api/v1/changes/${id}/links`),
@@ -48,6 +49,7 @@ export default async function ChangePage({ params }: PageProps<"/[locale]/change
     get<ChangeSettings>("/api/v1/settings/changes"),
     loadDirectoryChoices(token, tenant, permissions),
     getDisplayFormat(),
+    get<ChangeBoardEntry[]>(`/api/v1/changes/${id}/board`),
   ]);
   if (!change) notFound();
   const display = { locale, ...format };
@@ -73,6 +75,8 @@ export default async function ChangePage({ params }: PageProps<"/[locale]/change
           <RequestApprovals processes={approvals} display={display} />
         </section>
       )}
+      {/* Task H4: the meetings the change was on, with votes, decisions and minutes. */}
+      {(board?.length ?? 0) > 0 || change.approval?.board === "Advisory" ? <ChangeBoardHistory entries={board ?? []} display={display} /> : null}
       <TicketCiPanel ticketId={change.id} kind="changes" canEdit={canEdit && change.stage === "New"} canOpenItems={permissions.includes("cmdb.read")} csrfToken={csrfToken} />
       <ChangeTasks changeId={change.id} initial={tasks ?? []} groups={choices.groups ?? []} canEdit={canEdit && change.stage !== "Review"} csrfToken={csrfToken} display={display} />
       <ChangeLinks changeId={change.id} initial={links ?? []} canEdit={canEdit} csrfToken={csrfToken} />

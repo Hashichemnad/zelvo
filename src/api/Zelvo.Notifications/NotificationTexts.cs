@@ -151,6 +151,11 @@ public static class NotificationSamples
             [Placeholders.ChangeStart] = PlaceholderValue.OfDate(now.AddDays(3)),
             [Placeholders.ChangeEnd] = PlaceholderValue.OfDate(now.AddDays(3).AddHours(2)),
             [Placeholders.ChangeRisk] = new PlaceholderValue { En = "Medium", Ar = "متوسط" },
+            [Placeholders.MeetingTitle] = new PlaceholderValue { En = "Weekly change advisory board", Ar = "الاجتماع الأسبوعي للمجلس الاستشاري للتغيير" },
+            [Placeholders.MeetingStart] = PlaceholderValue.OfDate(now.AddDays(2)),
+            [Placeholders.MeetingEnd] = PlaceholderValue.OfDate(now.AddDays(2).AddHours(1)),
+            [Placeholders.MeetingLocation] = PlaceholderValue.OfText("Meeting room 3"),
+            [Placeholders.MeetingItems] = new PlaceholderValue { Number = 4 },
         };
     }
 }

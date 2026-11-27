@@ -103,7 +103,7 @@ internal sealed class DemoChangesSeeder : IDemoSeeder
             });
         }
 
-        async Task<Ticket> NewAsync(string title, string description, ChangeKind kind, DateTimeOffset at, ChangeTemplate? template = null)
+        async Task<Ticket> NewAsync(string title, string description, ChangeKind kind, DateTimeOffset at, ChangeTemplate? template = null, Guid? raisedBy = null)
         {
             var sequence = await TicketNumbers.NextAsync(db, context.Tenant.Id, TicketType.Change, cancellationToken).ConfigureAwait(false);
             var ticket = new Ticket
@@ -114,8 +114,8 @@ internal sealed class DemoChangesSeeder : IDemoSeeder
                 Title = title,
                 Description = description,
                 Channel = TicketChannel.Portal,
-                RequesterId = lead.Id,
-                CreatedById = lead.Id,
+                RequesterId = raisedBy ?? lead.Id,
+                CreatedById = raisedBy ?? lead.Id,
                 GroupId = groupId,
                 CreatedAt = at,
                 UpdatedAt = at,
@@ -173,7 +173,7 @@ internal sealed class DemoChangesSeeder : IDemoSeeder
         var migration = await NewAsync(
             g ? "نقل نظام إدارة المعاملات إلى مركز البيانات الجديد" : "Move billing to the new data centre",
             g ? "نقل خوادم نظام إدارة المعاملات وقاعدة بياناته إلى مركز البيانات الجديد." : "Move the billing servers and database to the new data centre.",
-            ChangeKind.Normal, now.AddHours(-6)).ConfigureAwait(false);
+            ChangeKind.Normal, now.AddHours(-6), raisedBy: agent?.Id).ConfigureAwait(false);
         Assess(migration.Change!, "organisation", "never", "window", "hard", "partial");
         migration.Change!.ImplementationPlan = g ? "نسخ قاعدة البيانات، ثم نقل الخوادم، ثم تحويل أسماء النطاقات." : "Copy the database, move the servers, then switch DNS.";
         migration.Change.TestPlan = g ? "اختبار المعاملات الرئيسية مع فريق العمليات." : "Run the month-end billing test with finance.";
@@ -244,6 +244,40 @@ internal sealed class DemoChangesSeeder : IDemoSeeder
             g ? "نُفذ وفق الخطة." : "Done as planned.", 25).ConfigureAwait(false);
         await PastAsync(restart.Name.Get(context.Organisation.DefaultLanguage) ?? "Restart", ChangeOutcome.Successful,
             g ? "نُفذ وفق الخطة." : "Done as planned.", 12, restart).ConfigureAwait(false);
+
+        // Task H4: the boards (the team lead chairs, the administrator deputises) and next week's meeting.
+        var adminEmail = context.Organisation.User("admin") is { } ad ? context.Organisation.UsernameOf(ad) : null;
+        var admin = adminEmail is null ? null : await db.Users.AsNoTracking().SingleOrDefaultAsync(u => u.Email == adminEmail, cancellationToken).ConfigureAwait(false);
+        var boardMembers = new[] { (Guid?)lead.Id, admin?.Id }.OfType<Guid>().ToList();
+        var advisory = new ChangeBoard
+        {
+            Kind = ChangeBoardKind.Advisory,
+            Name = T("Change advisory board", "المجلس الاستشاري للتغيير"),
+            ChairId = lead.Id,
+            DeputyChairId = admin?.Id,
+        };
+        var emergencyBoard = new ChangeBoard { Kind = ChangeBoardKind.Emergency, Name = T("Emergency change board", "مجلس التغييرات الطارئة"), DecideWithinHours = 4 };
+        foreach (var member in boardMembers)
+        {
+            advisory.Members.Add(new ChangeBoardMember { BoardId = advisory.Id, UserId = member });
+            emergencyBoard.Members.Add(new ChangeBoardMember { BoardId = emergencyBoard.Id, UserId = member });
+        }
+
+        db.ChangeBoards.AddRange(advisory, emergencyBoard);
+        var meeting = new CabMeeting
+        {
+            Title = T("Weekly change advisory board", "الاجتماع الأسبوعي للمجلس الاستشاري للتغيير"),
+            StartsAt = tonight.AddDays(2).AddHours(-8),
+            EndsAt = tonight.AddDays(2).AddHours(-7),
+            Location = g ? "قاعة الاجتماعات ٣" : "Meeting room 3",
+            ChairId = lead.Id,
+            CreatedById = lead.Id,
+        };
+        db.CabMeetings.Add(meeting);
+        foreach (var member in boardMembers)
+        {
+            db.CabMeetingMembers.Add(new CabMeetingMember { MeetingId = meeting.Id, UserId = member });
+        }
 
         await db.SaveChangesAsync(cancellationToken).ConfigureAwait(false);
         await transaction.CommitAsync(cancellationToken).ConfigureAwait(false);

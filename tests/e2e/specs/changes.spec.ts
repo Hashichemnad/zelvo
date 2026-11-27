@@ -5,8 +5,9 @@ import { expect, test, type Page } from "@playwright/test";
  * Task H3 (module 17): change management against the demo installation (`make demo`, then
  * `make e2e-demo`). The government entity's team lead opens the change calendar, then the sample
  * change that moves the transactions system: high risk, planned and assessed. Submitting it starts
- * the high-risk approval path. Runs after the accessibility audit (project demo-changes), which
- * reads the demo's changes as seeded.
+ * the high-risk approval path; the lead, who chairs the change advisory board (task H4), takes it
+ * up at the week's meeting, votes and records the board's decision. Runs after the accessibility
+ * audit (project demo-changes), which reads the demo's changes as seeded.
  */
 
 const wcag = ["wcag2a", "wcag2aa", "wcag21a", "wcag21aa", "wcag22aa"];
@@ -40,5 +41,21 @@ test.describe("Changes", () => {
 
     await page.getByTestId("change-work").getByRole("button", { name: "تقديم للاعتماد" }).click();
     await expect(page.getByTestId("change-facts")).toContainText("بانتظار الاعتماد");
+    const number = (await page.locator("header p.font-mono").first().textContent())?.trim() ?? "";
+
+    // Task H4: the team lead chairs the board. The week's meeting takes the change on its agenda;
+    // the members' votes are advice and the chair's decision approves the board's level.
+    await page.goto("/ar/changes/board");
+    await expect(page.getByTestId("waiting-changes")).toContainText(number);
+    await page.getByTestId("meeting-table").getByRole("link").first().click();
+    await page.getByRole("button", { name: "تحديث جدول الأعمال" }).click();
+    const item = page.getByTestId("agenda-item").filter({ hasText: number });
+    await expect(item).toBeVisible();
+    expect((await new AxeBuilder({ page }).withTags(wcag).analyze()).violations).toEqual([]);
+    await item.getByTestId("vote-form").getByRole("radio", { name: "موافقة" }).check();
+    await item.getByRole("button", { name: "حفظ صوتي" }).click();
+    await expect(page.getByTestId("agenda-item").filter({ hasText: number })).toContainText("1 موافقة");
+    await page.getByTestId("agenda-item").filter({ hasText: number }).getByRole("button", { name: "تسجيل القرار" }).click();
+    await expect(page.getByTestId("agenda-item").filter({ hasText: number })).toContainText("اعتمده المجلس");
   });
 });

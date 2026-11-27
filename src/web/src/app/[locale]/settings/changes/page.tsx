@@ -1,7 +1,8 @@
 import { getTranslations, setRequestLocale } from "next-intl/server";
+import { BoardsPanel } from "@/components/changes/ChangeBoard";
 import { BlackoutsPanel, ChangeSettingsForm, ChangeTemplatesPanel } from "@/components/changes/ChangeSettingsForm";
 import { getJsonAs } from "@/lib/api";
-import type { Blackout, ChangeSettings, ChangeTemplate } from "@/lib/changes";
+import type { Blackout, ChangeBoard, ChangeSettings, ChangeTemplate } from "@/lib/changes";
 import type { Department, GroupSummary, Role, TreeNode } from "@/lib/directory";
 import { requireSignedIn } from "@/lib/signed-in";
 
@@ -26,7 +27,7 @@ export default async function ChangeSettingsPage({ params }: PageProps<"/[locale
   ]);
   const canManage = (user?.permissions ?? []).includes("changes.manage");
   const get = <T,>(path: string) => getJsonAs<T>(path, session.data.accessToken, tenant);
-  const [settings, blackouts, templates, groups, roles, categories, departments] = canManage
+  const [settings, blackouts, templates, groups, roles, categories, departments, boards] = canManage
     ? await Promise.all([
         get<ChangeSettings>("/api/v1/settings/changes"),
         get<Blackout[]>("/api/v1/change-blackouts?current=true"),
@@ -35,8 +36,9 @@ export default async function ChangeSettingsPage({ params }: PageProps<"/[locale
         get<Role[]>("/api/v1/roles"),
         get<TreeNode[]>("/api/v1/categories"),
         get<Department[]>("/api/v1/departments"),
+        get<ChangeBoard[]>("/api/v1/change-boards"),
       ])
-    : [null, null, null, null, null, null, null];
+    : [null, null, null, null, null, null, null, null];
   const csrfToken = session.data.csrfToken;
 
   return (
@@ -47,6 +49,7 @@ export default async function ChangeSettingsPage({ params }: PageProps<"/[locale
           <p className="max-w-2xl">{t("intro")}</p>
           <ChangeSettingsForm initial={settings} csrfToken={csrfToken}
             choices={{ services: [], categories: categories ?? [], locations: [], groups: groups ?? [], departments: departments ?? [], roles: roles ?? [] }} />
+          <BoardsPanel initial={boards ?? []} csrfToken={csrfToken} />
           <BlackoutsPanel initial={blackouts ?? []} csrfToken={csrfToken} />
           <ChangeTemplatesPanel initial={templates ?? []} groups={groups ?? []} categories={categories ?? []} csrfToken={csrfToken} />
         </>

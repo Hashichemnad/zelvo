@@ -2631,7 +2631,9 @@
       "change_approval_requested": "A change needs your approval",
       "change_approved": "A change you raised or work on is approved",
       "change_rejected": "A change you raised or work on is rejected",
-      "change_implemented": "A change is implemented and its review is due"
+      "change_implemented": "A change is implemented and its review is due",
+      "cab_invited": "You are invited to a change advisory board meeting",
+      "cab_cancelled": "A change advisory board meeting is called off"
     },
     "audiences": {
       "Requester": "Your incidents",
@@ -5165,7 +5167,9 @@
       "GroupLeads": "The team leads of a group",
       "Role": "Everyone with a role",
       "AnswerUser": "The person chosen in a form answer",
-      "Permission": "Everyone with a permission"
+      "Permission": "Everyone with a permission",
+      "ChangeBoard": "The change advisory board (its chair decides in a meeting)",
+      "EmergencyBoard": "The emergency board's members"
     },
     "recipients": "Who to tell",
     "recipientKinds": {
@@ -8222,7 +8226,8 @@
       "number": "Number",
       "titleColumn": "Title",
       "window": "Planned start",
-      "group": "Group"
+      "group": "Group",
+      "board": "Change advisory board"
     },
     "new": {
       "title": "Raise a change",
@@ -8270,7 +8275,13 @@
       "implementationNotes": "Implementation notes",
       "reason": "Reason",
       "outcome": "Review outcome",
-      "reviewNotes": "Review notes"
+      "reviewNotes": "Review notes",
+      "board": "Waiting for",
+      "boards": {
+        "Advisory": "the change advisory board",
+        "Emergency": "the emergency board"
+      },
+      "decideBy": "decision expected by {date}"
     },
     "work": {
       "heading": "Next steps",
@@ -8447,6 +8458,20 @@
         "active": "Offered in the catalog",
         "save": "Save the standard change",
         "cancel": "Cancel"
+      },
+      "boards": {
+        "heading": "Boards",
+        "hint": "Members are people whose roles hold “Change advisory board member”. The chair (or deputy) records the board's decisions; the emergency board's members decide emergency changes in My approvals.",
+        "kinds": {
+          "Advisory": "Change advisory board",
+          "Emergency": "Emergency board"
+        },
+        "name": "Name",
+        "chair": "Chair",
+        "deputy": "Deputy chair",
+        "members": "Members",
+        "hours": "Hours within which it decides",
+        "save": "Save the {name}"
       }
     },
     "status": {
@@ -8463,7 +8488,91 @@
         "standard-change": "Standard changes are not assessed.",
         "task-opened": "Only tasks that have not opened yet can be removed.",
         "status-400": "Check what you entered.",
-        "ticket-closed": "The change is closed."
+        "ticket-closed": "The change is closed.",
+        "chair-not-approver": "The change is not waiting for your decision: it was decided already, or the board's chair is someone else.",
+        "meeting-not-planned": "The meeting is over.",
+        "already-decided": "This was decided already.",
+        "forbidden": "You cannot do this."
+      }
+    },
+    "board": {
+      "title": "Change advisory board",
+      "intro": "The board reviews the changes waiting for it at its meetings. Members vote as advice; the chair records the board's decision, which approves or rejects the change. Emergency changes go to the emergency board, which decides without a meeting.",
+      "chairIs": "Chair: {name}",
+      "decidesWithin": "Decides within {hours, plural, one {# hour} other {# hours}}",
+      "memberCount": "{count, plural, =0 {no members yet} one {# member} other {# members}}",
+      "waiting": "Changes waiting for the board",
+      "noneWaiting": "No change is waiting for the board.",
+      "meetings": "Meetings",
+      "noMeetings": "No meetings yet.",
+      "meeting": "Meeting",
+      "when": "When",
+      "where": "Where",
+      "chair": "Chair",
+      "state": "State",
+      "members": "Members",
+      "agenda": "Agenda",
+      "decidedOf": "{decided} of {count} decided",
+      "states": {
+        "Planned": "Planned",
+        "Held": "Held",
+        "Cancelled": "Called off"
+      },
+      "actions": "Meeting actions",
+      "refresh": "Update the agenda",
+      "complete": "Mark the meeting held",
+      "cancel": "Call the meeting off",
+      "emptyAgenda": "No changes on the agenda. Update it when changes are waiting for the board.",
+      "conflicts": "{count, plural, =0 {no conflicts} one {# conflict} other {# conflicts}}",
+      "notWaiting": "This change no longer waits for the board.",
+      "decide": "The board's decision",
+      "decideHint": "Votes are advice; your decision approves or rejects the change. Deferred keeps it waiting for a later meeting.",
+      "decisionChoices": {
+        "Approved": "Approve",
+        "Rejected": "Reject",
+        "Deferred": "Defer"
+      },
+      "decisions": {
+        "Approved": "Approved by the board",
+        "Rejected": "Rejected by the board",
+        "Deferred": "Deferred to a later meeting"
+      },
+      "reason": "Reason for rejecting",
+      "decisionComment": "Comment (optional)",
+      "itemMinutes": "Minutes",
+      "record": "Record the decision",
+      "removeItem": "Take {number} off the agenda",
+      "minutes": "Minutes",
+      "saveMinutes": "Save the minutes",
+      "noMinutes": "No minutes yet.",
+      "allMeetings": "All meetings",
+      "history": "Change advisory board",
+      "noHistory": "The change has not been on a meeting's agenda yet.",
+      "votes": {
+        "heading": "Votes:",
+        "none": "No votes yet.",
+        "yours": "Your vote",
+        "comment": "Comment (optional)",
+        "submit": "Save my vote",
+        "choices": {
+          "Approve": "Approve",
+          "Reject": "Reject",
+          "Abstain": "Abstain"
+        },
+        "tally": {
+          "Approve": "{count} approve",
+          "Reject": "{count} reject",
+          "Abstain": "{count} abstain"
+        }
+      },
+      "plan": {
+        "heading": "Plan a meeting",
+        "hint": "The agenda is built from the changes waiting for the board, and the board's members are invited with a calendar file.",
+        "title": "Title",
+        "start": "Start",
+        "end": "End",
+        "location": "Room or online address",
+        "submit": "Plan the meeting"
       }
     }
   }

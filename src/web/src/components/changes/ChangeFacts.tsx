@@ -30,6 +30,9 @@ export function ChangeFacts({ change, display }: { change: Change; display: Date
         <>{tApproval(change.approval.state)}{change.approval.state === "Pending" && change.approval.levelName
           ? <> · <Localized text={change.approval.levelName} locale={locale} /> ({change.approval.currentLevel + 1}/{change.approval.levels})</> : null}</>
       ))}
+      {change.approval?.board && row(t("board"), (
+        <>{t(`boards.${change.approval.board}`)}{change.approval.decideBy ? <> · {t("decideBy", { date: formatDateTime(new Date(change.approval.decideBy), display) })}</> : null}</>
+      ))}
       {change.approvedAt && row(t("approvedAt"), formatDateTime(new Date(change.approvedAt), display))}
       {change.closure && row(t("closure"), tClosures(change.closure))}
       {change.resolutionNotes && row(change.closure === "Completed" || change.stage === "Review" ? t("implementationNotes") : t("reason"),

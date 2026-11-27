@@ -425,6 +425,18 @@
       "body": "Hello {{recipient.name}},\n\nThe change {{ticket.number}}, “{{ticket.title}}”, is implemented:\n\n{{ticket.resolutionNotes}}\n\nIts post-implementation review is now due.\n\n{{tenant.name}}",
       "action": "Review the change"
     },
+    "cab.invited": {
+      "subject": "Change advisory board: {{meeting.title}}",
+      "inApp": "You are invited to the change advisory board meeting “{{meeting.title}}”.",
+      "body": "Dear {{recipient.name}},\n\nYou are invited to the change advisory board meeting “{{meeting.title}}”.\n\nWhen: {{meeting.start}} – {{meeting.end}}\nWhere: {{meeting.location}}\nChanges on the agenda: {{meeting.items}}\n\nThe calendar file attached adds the meeting to your calendar. Please review the changes and give your vote before the meeting.\n\nKind regards,\n{{tenant.name}}",
+      "action": "Open the meeting"
+    },
+    "cab.cancelled": {
+      "subject": "Called off: {{meeting.title}}",
+      "inApp": "The change advisory board meeting “{{meeting.title}}” is called off for you.",
+      "body": "Dear {{recipient.name}},\n\nThe change advisory board meeting “{{meeting.title}}” ({{meeting.start}} – {{meeting.end}}) is called off, or you are no longer invited to it. The calendar file attached removes it from your calendar.\n\nKind regards,\n{{tenant.name}}",
+      "action": "Open the meeting"
+    },
     "record.received": {
       "subject": "{{ticket.number}}: we have received your request",
       "inApp": "We have received your {{ticket.type}} “{{ticket.title}}”.",

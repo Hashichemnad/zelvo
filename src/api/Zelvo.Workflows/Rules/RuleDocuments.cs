@@ -257,6 +257,15 @@ public enum ApproverKind
 
     /// <summary>Everyone whose roles grant a permission (<see cref="ApproverRef.Key"/>), for example the change managers (task H3).</summary>
     Permission,
+
+    /// <summary>
+    /// The change advisory board (task H4): its chair and deputy chair, who record the board's
+    /// decision in a meeting (decision 8); the change managers while the board has no chair.
+    /// </summary>
+    ChangeBoard,
+
+    /// <summary>The emergency board's members (task H4), who decide without a meeting; board members while it has none.</summary>
+    EmergencyBoard,
 }
 
 /// <summary>An approver of a level.</summary>
@@ -528,6 +537,7 @@ public static class RuleDocuments
                     ApproverKind.Role => !string.IsNullOrWhiteSpace(approver.Key) && approver.Key.Length <= 60,
                     ApproverKind.AnswerUser => approver.Key is { Length: > 0 and <= 60 } k && k.All(char.IsAsciiLetterOrDigit),
                     ApproverKind.Permission => approver.Key is { Length: > 0 and <= 60 } p && p.All(c => char.IsAsciiLetterLower(c) || c == '.'),
+                    ApproverKind.ChangeBoard or ApproverKind.EmergencyBoard => true,
                     _ => false,
                 };
                 if (!ok)

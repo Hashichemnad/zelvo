@@ -227,7 +227,11 @@ internal static class ChangeCore
 }
 
 /// <summary>Where a change's approval is.</summary>
-internal sealed record ChangeApprovalSummary(Guid ProcessId, ApprovalProcessState State, int CurrentLevel, int Levels, LocalizedTextDto? LevelName, string? Reason, DateTimeOffset CreatedAt, DateTimeOffset? EndedAt);
+/// <param name="Board">Task H4: <c>Advisory</c> while the change waits for the change advisory board, <c>Emergency</c> for the emergency board.</param>
+/// <param name="DecideBy">Task H4: when the emergency board is expected to have decided.</param>
+internal sealed record ChangeApprovalSummary(
+    Guid ProcessId, ApprovalProcessState State, int CurrentLevel, int Levels, LocalizedTextDto? LevelName, string? Reason, DateTimeOffset CreatedAt, DateTimeOffset? EndedAt,
+    string? Board = null, DateTimeOffset? DecideBy = null);
 
 /// <summary>A change (module 17).</summary>
 internal sealed record ChangeResponse(
@@ -255,6 +259,7 @@ internal sealed class ChangeResponseContext
     private DirectoryRefs _refs = null!;
     private bool _edit;
     private bool _manage;
+    private int _emergencyHours = 4;
 
     public static async Task<ChangeResponseContext> LoadAsync(ZelvoDbContext db, CurrentUser user, IReadOnlyList<Ticket> tickets, CancellationToken cancellationToken)
     {
@@ -275,6 +280,8 @@ internal sealed class ChangeResponseContext
             _refs = await DirectoryRefs.LoadAsync(db, cancellationToken).ConfigureAwait(false),
             _edit = user.Has(Permissions.ChangesEdit),
             _manage = user.Has(Permissions.ChangesManage),
+            _emergencyHours = await db.ChangeBoards.AsNoTracking().Where(b => b.Kind == ChangeBoardKind.Emergency).Select(b => (int?)b.DecideWithinHours)
+                .FirstOrDefaultAsync(cancellationToken).ConfigureAwait(false) ?? 4,
         };
     }
 
@@ -287,8 +294,11 @@ internal sealed class ChangeResponseContext
         if (_approvals.TryGetValue(t.Id, out var process))
         {
             var levels = Zelvo.Workflows.Approvals.ApprovalPlanner.Read(process.Levels);
-            var level = process.CurrentLevel < levels.Count ? LocalizedTextDto.From(levels[process.CurrentLevel].Name) : null;
-            approval = new(process.Id, process.State, process.CurrentLevel, levels.Count, level, process.Reason, process.CreatedAt, process.EndedAt);
+            var current = process.CurrentLevel < levels.Count ? levels[process.CurrentLevel] : null;
+            var board = process.State == ApprovalProcessState.Pending ? current?.Board : null;
+            approval = new(process.Id, process.State, process.CurrentLevel, levels.Count, current is null ? null : LocalizedTextDto.From(current.Name), process.Reason,
+                process.CreatedAt, process.EndedAt, board,
+                board == nameof(ChangeBoardKind.Emergency) ? process.CreatedAt.AddHours(_emergencyHours) : null);
         }
 
         return new ChangeResponse(

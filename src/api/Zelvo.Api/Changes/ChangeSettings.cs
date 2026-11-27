@@ -74,12 +74,12 @@ public sealed partial record ChangeSettingsValue(IReadOnlyList<RiskQuestion> Que
         Approvers = [new ApproverRef { Kind = ApproverKind.Permission, Key = Zelvo.Tickets.ChangePermissions.Manage }],
     };
 
-    /// <summary>The change advisory board: holders of <c>changes.approve</c>.</summary>
+    /// <summary>The change advisory board (task H4): decided by its chair in a meeting, after the members' votes.</summary>
     public static ApprovalLevelDefinition BoardLevel { get; } = new()
     {
         Name = new("Change advisory board", "المجلس الاستشاري للتغيير"),
         Mode = ApprovalMode.Any,
-        Approvers = [new ApproverRef { Kind = ApproverKind.Permission, Key = Zelvo.Tickets.ChangePermissions.Approve }],
+        Approvers = [new ApproverRef { Kind = ApproverKind.ChangeBoard }],
     };
 
     /// <summary>An executive.</summary>
@@ -90,12 +90,12 @@ public sealed partial record ChangeSettingsValue(IReadOnlyList<RiskQuestion> Que
         Approvers = [new ApproverRef { Kind = ApproverKind.Role, Key = ExecutiveRole }],
     };
 
-    /// <summary>The emergency board.</summary>
+    /// <summary>The emergency board (task H4): its members decide without a meeting, within hours.</summary>
     public static ApprovalLevelDefinition EmergencyLevel { get; } = new()
     {
         Name = new("Emergency change board", "مجلس التغييرات الطارئة"),
         Mode = ApprovalMode.Any,
-        Approvers = [new ApproverRef { Kind = ApproverKind.Permission, Key = Zelvo.Tickets.ChangePermissions.Approve }],
+        Approvers = [new ApproverRef { Kind = ApproverKind.EmergencyBoard }],
     };
 
     /// <summary>

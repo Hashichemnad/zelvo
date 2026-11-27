@@ -51,6 +51,10 @@ export interface ChangeApprovalSummary {
   reason: string | null;
   createdAt: string;
   endedAt: string | null;
+  /** Task H4: the board the change waits for. */
+  board?: "Advisory" | "Emergency" | null;
+  /** Task H4: when the emergency board is expected to decide. */
+  decideBy?: string | null;
 }
 
 export interface Change {
@@ -235,4 +239,92 @@ export function fromLocalInput(value: string): string | null {
   if (!value) return null;
   const d = new Date(value);
   return Number.isNaN(d.getTime()) ? null : d.toISOString();
+}
+
+// ---- Task H4: the change advisory board and the emergency board ----
+
+export type BoardKind = "Advisory" | "Emergency";
+export type MeetingState = "Planned" | "Held" | "Cancelled";
+export type CabDecision = "Approved" | "Rejected" | "Deferred";
+export type VoteChoice = "Approve" | "Reject" | "Abstain";
+export const voteChoices: readonly VoteChoice[] = ["Approve", "Reject", "Abstain"];
+export const cabDecisions: readonly CabDecision[] = ["Approved", "Rejected", "Deferred"];
+
+export interface ChangeBoard {
+  id: string;
+  kind: BoardKind;
+  name: Bilingual;
+  chair: Person | null;
+  deputyChair: Person | null;
+  members: Person[];
+  decideWithinHours: number;
+  etag: string;
+}
+
+export interface MeetingSummary {
+  id: string;
+  title: Bilingual;
+  startsAt: string;
+  endsAt: string;
+  location: string | null;
+  chair: Person;
+  state: MeetingState;
+  itemCount: number;
+  decidedCount: number;
+}
+
+export interface Vote {
+  member: Person;
+  choice: VoteChoice;
+  comment: string | null;
+  votedAt: string;
+}
+
+export interface AgendaItem {
+  id: string;
+  position: number;
+  changeId: string;
+  changeNumber: string;
+  changeTitle: string;
+  kind: ChangeKind;
+  stage: ChangeStage;
+  riskLevel: ChangeRiskLevel | null;
+  plannedStart: string | null;
+  plannedEnd: string | null;
+  conflictCount: number;
+  waiting: boolean;
+  votes: Vote[];
+  tally: Record<VoteChoice, number>;
+  decision: CabDecision | null;
+  comment: string | null;
+  minutes: string | null;
+  decidedBy: Person | null;
+  decidedAt: string | null;
+}
+
+export interface Meeting {
+  id: string;
+  title: Bilingual;
+  startsAt: string;
+  endsAt: string;
+  location: string | null;
+  chair: Person;
+  state: MeetingState;
+  minutes: string | null;
+  members: Person[];
+  agenda: AgendaItem[];
+  isChair: boolean;
+  isMember: boolean;
+  mayManage: boolean;
+  etag: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface ChangeBoardEntry {
+  meetingId: string;
+  meetingTitle: Bilingual;
+  meetingStartsAt: string;
+  meetingState: MeetingState;
+  item: AgendaItem;
 }
