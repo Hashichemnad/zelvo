@@ -24,3 +24,9 @@ export function teamsFrameAncestors(env: Record<string, string | undefined> = pr
   const configured = env.TEAMS_FRAME_ANCESTORS?.split(/\s+/).filter((s) => /^https:\/\/(\*\.)?[a-z0-9.-]+$/i.test(s));
   return configured && configured.length > 0 ? configured : defaultTeamsFrameAncestors;
 }
+
+/**
+ * Where the Teams JavaScript SDK fetches the current list of Teams' own hosts when the tab starts
+ * (it falls back to the list it carries after 1.5 seconds). Allowed in `connect-src` on Teams pages only.
+ */
+export const teamsConnectSources = ["https://res.cdn.office.net"];

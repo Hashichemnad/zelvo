@@ -24,6 +24,12 @@ describe("content security policy (task F7)", () => {
     expect(directive(policy, "upgrade-insecure-requests")).toBe("upgrade-insecure-requests");
   });
 
+  it("lets Teams pages fetch the Teams SDK's host list and nothing else (task J4)", () => {
+    const policy = contentSecurityPolicy({ nonce: "n", frameAncestors: ["https://teams.microsoft.com"], connectSources: ["https://res.cdn.office.net"] });
+    expect(directive(policy, "connect-src")).toBe("connect-src 'self' https://res.cdn.office.net");
+    expect(directive(policy, "script-src")).toBe("script-src 'self' 'nonce-n' 'strict-dynamic'");
+  });
+
   it("makes a different 128-bit nonce each time", () => {
     const first = newNonce();
     expect(atob(first)).toHaveLength(16);
