@@ -2573,7 +2573,9 @@
       "privacy_request_new": "طلب خصوصية جديد بانتظار المعالجة",
       "workflow_rule": "إشعار من قاعدة سير عمل",
       "malware_definitions_outdated": "تعريفات البرمجيات الضارة غير محدّثة",
-      "wellbeing_enabled": "تفعيل موازنة أعباء العمل"
+      "wellbeing_enabled": "تفعيل موازنة أعباء العمل",
+      "asset_contract_expiring": "ينتهي عقد أو ضمان قريبًا",
+      "asset_license_expiring": "تنتهي رخصة برنامج قريبًا"
     },
     "audiences": {
       "Requester": "بلاغاتكم",

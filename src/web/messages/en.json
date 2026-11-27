@@ -2573,7 +2573,9 @@
       "privacy_request_new": "A new privacy request is waiting",
       "workflow_rule": "A workflow rule's notification",
       "malware_definitions_outdated": "Malware definitions are out of date",
-      "wellbeing_enabled": "Workload balancing is now on"
+      "wellbeing_enabled": "Workload balancing is now on",
+      "asset_contract_expiring": "A contract or warranty ends soon",
+      "asset_license_expiring": "A software licence ends soon"
     },
     "audiences": {
       "Requester": "Your incidents",

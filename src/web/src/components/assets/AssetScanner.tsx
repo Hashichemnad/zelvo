@@ -78,7 +78,7 @@ export function AssetScanner({ onFound, label, decode = decodeLabel }: { onFound
   return (
     <div className="space-y-3" data-testid="asset-scanner">
       <div className="flex flex-wrap items-center gap-2">
-        <input ref={camera} id={`${id}-camera`} type="file" accept="image/*" capture="environment" className="sr-only"
+        <input ref={camera} id={`${id}-camera`} type="file" accept="image/*" capture="environment" hidden tabIndex={-1} aria-hidden="true"
           onChange={(e) => {
             void picture(e.target.files?.[0]);
             e.target.value = "";
