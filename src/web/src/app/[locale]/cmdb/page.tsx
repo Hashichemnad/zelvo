@@ -19,7 +19,11 @@ export async function generateMetadata({ params }: PageProps<"/[locale]/cmdb">) 
 }
 
 const selectClass =
-  "rounded-md border border-line bg-surface px-3 py-2 text-ink focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand";
+  "block max-w-full rounded-md border border-line bg-surface px-3 py-2 text-ink focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand";
+// A text box without a width is as wide as 20 average characters of the font, wider than a 320 px
+// screen with a wide brand font (WCAG 1.4.10 reflow; as in Settings → Users).
+const textClass = `${selectClass} w-64`;
+const labelClass = "max-w-full space-y-1 text-sm";
 
 /** Configuration items for staff (task G1, cmdb.read): search and filters by class, status, group and location. */
 export default async function CmdbPage({ params, searchParams }: PageProps<"/[locale]/cmdb">) {
@@ -68,19 +72,19 @@ export default async function CmdbPage({ params, searchParams }: PageProps<"/[lo
         )}
       </div>
       <p className="max-w-3xl">{t("intro")}</p>
-      <form method="get" aria-label={t("filters")} className="flex flex-wrap items-end gap-3 rounded-lg border border-line p-3">
-        <label className="space-y-1 text-sm">
+      <form method="get" aria-label={t("filters")} className="flex min-w-0 flex-wrap items-end gap-3 rounded-lg border border-line p-3">
+        <label className={labelClass}>
           <span className="block font-semibold">{t("search")}</span>
-          <input type="search" name="q" defaultValue={q} maxLength={200} dir="auto" className={selectClass} />
+          <input type="search" name="q" defaultValue={q} maxLength={200} dir="auto" className={textClass} />
         </label>
-        <label className="space-y-1 text-sm">
+        <label className={labelClass}>
           <span className="block font-semibold">{t("class")}</span>
           <select name="classId" defaultValue={query.classId ?? ""} className={`${selectClass} max-w-64`}>
             <option value="">{t("anyClass")}</option>
             {(classes ?? []).map((c) => <option key={c.id} value={c.id}>{textIn(c.path, l) || c.key}</option>)}
           </select>
         </label>
-        <label className="space-y-1 text-sm">
+        <label className={labelClass}>
           <span className="block font-semibold">{t("status")}</span>
           <select name="status" defaultValue={query.status ?? ""} className={selectClass}>
             <option value="">{t("anyStatus")}</option>
@@ -88,7 +92,7 @@ export default async function CmdbPage({ params, searchParams }: PageProps<"/[lo
           </select>
         </label>
         {choices.groups && (
-          <label className="space-y-1 text-sm">
+          <label className={labelClass}>
             <span className="block font-semibold">{t("group")}</span>
             <select name="groupId" defaultValue={query.groupId ?? ""} className={`${selectClass} max-w-64`}>
               <option value="">{t("anyGroup")}</option>
@@ -96,7 +100,7 @@ export default async function CmdbPage({ params, searchParams }: PageProps<"/[lo
             </select>
           </label>
         )}
-        <label className="space-y-1 text-sm">
+        <label className={labelClass}>
           <span className="block font-semibold">{t("location")}</span>
           <select name="locationId" defaultValue={query.locationId ?? ""} className={`${selectClass} max-w-64`}>
             <option value="">{t("anyLocation")}</option>

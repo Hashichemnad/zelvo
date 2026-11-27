@@ -61,8 +61,8 @@ test.describe("CMDB", () => {
     // The list view says the same.
     await page.getByRole("button", { name: "List", exact: true }).click();
     const lines = page.getByTestId("ci-map-lines");
-    await expect(lines).toContainText(/E-services website — runs on → CI-\d+ srv-web-01/);
-    await expect(lines).toContainText(/srv-web-01 — connects to →/);
+    await expect(lines).toContainText(/E-services website — Runs on → CI-\d+ srv-web-01/);
+    await expect(lines).toContainText(/srv-web-01 — Connects to →/);
     await expectAccessible(page);
 
     // In Arabic, right to left, with the list view remembered on the device.
