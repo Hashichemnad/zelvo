@@ -164,7 +164,18 @@
     "teams.status.none": "You have no open tickets.",
     "teams.status.state": "Status",
     "teams.status.team": "Team",
-    "teams.status.open": "Open in Zelvo"
+    "teams.status.open": "Open in Zelvo",
+    "push.title.asset.contract-expiring": "A contract ends soon",
+    "push.title.asset.license-expiring": "A software licence ends soon",
+    "push.title.problem.assigned": "Problem assigned to you",
+    "push.title.problem.queued": "New problem for your group",
+    "push.title.problem.known-error": "A workaround is available",
+    "push.title.problem.resolved": "Problem resolved",
+    "push.title.record.received": "Your request was received",
+    "push.title.record.replied": "New reply on your request",
+    "push.title.record.resolved": "Your request is done",
+    "push.title.record.assigned": "Assigned to you",
+    "push.title.record.queued": "New item for your group"
   },
   "templates": {
     "incident.received": {

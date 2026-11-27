@@ -164,7 +164,18 @@
     "teams.status.none": "لا توجد لديكم طلبات مفتوحة.",
     "teams.status.state": "الحالة",
     "teams.status.team": "الفريق",
-    "teams.status.open": "فتح في زيلفو"
+    "teams.status.open": "فتح في زيلفو",
+    "push.title.asset.contract-expiring": "عقد يوشك على الانتهاء",
+    "push.title.asset.license-expiring": "ترخيص برمجي يوشك على الانتهاء",
+    "push.title.problem.assigned": "مشكلة مسندة إليكم",
+    "push.title.problem.queued": "مشكلة جديدة لمجموعتكم",
+    "push.title.problem.known-error": "يتوفر حل مؤقت",
+    "push.title.problem.resolved": "تم حل المشكلة",
+    "push.title.record.received": "تم استلام طلبكم",
+    "push.title.record.replied": "رد جديد على طلبكم",
+    "push.title.record.resolved": "تم إنجاز طلبكم",
+    "push.title.record.assigned": "مسند إليكم",
+    "push.title.record.queued": "عنصر جديد لمجموعتكم"
   },
   "templates": {
     "incident.received": {
