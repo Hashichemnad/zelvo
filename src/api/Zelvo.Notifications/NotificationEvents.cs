@@ -159,6 +159,12 @@ public static class NotificationEvents
     /// <summary>A data subject request was refused, with the reason (task F5).</summary>
     public const string PrivacyRequestRejected = "privacy.request.rejected";
 
+    /// <summary>
+    /// Task K4 (module 21; product owner decision 2026-11-26): an administrator turned agent
+    /// wellbeing on; to every agent, in the app and by email (which cannot be turned off).
+    /// </summary>
+    public const string WellbeingEnabled = "wellbeing.enabled";
+
     /// <summary>A new data subject request waits; to holders of <c>privacy.requests</c> (task F5).</summary>
     public const string PrivacyRequestNew = "privacy.request.new";
 
@@ -238,6 +244,8 @@ public static class NotificationEvents
         new(PrivacyRequestCompleted, NotificationAudience.Requester, false, [Placeholders.PrivacyRequestNumber, Placeholders.PrivacyRequestType, Placeholders.PrivacyRequestResolution]),
         new(PrivacyRequestRejected, NotificationAudience.Requester, false, [Placeholders.PrivacyRequestNumber, Placeholders.PrivacyRequestType, Placeholders.PrivacyRequestResolution]),
         new(PrivacyRequestNew, NotificationAudience.Staff, false, [Placeholders.PrivacyRequestNumber, Placeholders.PrivacyRequestType, Placeholders.PrivacyRequestDueAt]),
+        // Task K4: agents are told when wellbeing is turned on (UAE PDPL).
+        new(WellbeingEnabled, NotificationAudience.Staff, false, []),
         // Task M1: the scanner's definitions are out of date.
         new(MalwareDefinitionsOutdated, NotificationAudience.Staff, true, [Placeholders.DefinitionsVersion, Placeholders.DefinitionsBuiltAt, Placeholders.DefinitionsDays]),
     ];

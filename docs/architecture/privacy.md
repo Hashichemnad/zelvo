@@ -77,3 +77,7 @@ Refused: erasing yourself (`erase-self`), the last active tenant administrator (
 - Breach notification workflow to the UAE Data Office (organisational process; see the PDPL mapping).
 - Optional purposes switching features off automatically.
 - Retention of the audit log itself (kept, decided 2026-11-25) and of backups (operators' backup rotation, F6).
+
+## Agent wellbeing (task K4)
+
+The wellbeing figures and alerts of a person (module 21) are part of their copy of their data (`personal-data.json`, `wellbeing`) and are removed when the person is erased. They are kept 90 days and removed when wellbeing is turned off, independently of the retention periods above. See `wellbeing.md` and `docs/security/wellbeing-dpia.md`.

@@ -40,6 +40,10 @@ internal sealed class DemoPrivacySeeder : IDemoSeeder
 
                 Closed records are kept for the periods our records policy sets, then their personal data is removed.
 
+                ## For our staff: workload balancing
+
+                When workload balancing is on, Zelvo records once a day, for each member of a support team, the open tickets assigned to them (weighted by priority), new assignments, their changes in Zelvo outside the team's working hours and the share of angry or escalated tickets they handle, so that team leads can rebalance work before anyone is overloaded. Nothing about presence or typing is recorded, and the figures are never used to rank or score people. Team leads see their own groups' members; executives and administrators see group totals only; each person sees their own figures under **Account → My workload**. The figures are kept for 90 days, every view of them is recorded, and they are part of the copy of your data.
+
                 ## Your rights
 
                 Under **Account → Privacy** you can download a copy of your data, ask for it to be corrected or erased, or ask us to restrict or stop processing it. We answer within 30 days.
@@ -56,6 +60,10 @@ internal sealed class DemoPrivacySeeder : IDemoSeeder
                 ## مدة الاحتفاظ
 
                 نحتفظ بالسجلات المغلقة للمدد التي تحددها سياسة السجلات لدينا، ثم تُحذف بياناتها الشخصية.
+
+                ## لموظفينا: موازنة أعباء العمل
+
+                عند تفعيل موازنة أعباء العمل، يسجّل زيلفو مرة واحدة يومياً لكل عضو في فرق الدعم التذاكرَ المفتوحة المسندة إليه (مرجّحة بحسب الأولوية)، والإسنادات الجديدة، وتغييراته في زيلفو خارج ساعات عمل الفريق، ونسبة التذاكر التي فيها استياء أو تصعيد مما يعالجه، ليتمكن قادة الفرق من إعادة توزيع العمل قبل أن تتجاوز الأعباء طاقة أي موظف. ولا يُسجَّل شيء عن الحضور أو الكتابة، ولا تُستخدم الأرقام لترتيب الموظفين أو تقييمهم. ويطّلع قادة الفرق على أعضاء مجموعاتهم، بينما لا يطّلع التنفيذيون والمسؤولون إلا على إجماليات المجموعات، ويطّلع كل شخص على أرقامه من صفحة **الحساب ← أعباء عملي**. وتُحفظ الأرقام لمدة 90 يوماً، ويُسجَّل كل اطلاع عليها، وتُدرج في نسخة بياناتكم.
 
                 ## حقوقكم
 

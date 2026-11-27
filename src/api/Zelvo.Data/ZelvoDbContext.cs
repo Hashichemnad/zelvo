@@ -343,6 +343,15 @@ public sealed partial class ZelvoDbContext(DbContextOptions<ZelvoDbContext> opti
     /// <summary>Versions of the privacy notice (GOV-5, task F5).</summary>
     public DbSet<PrivacyNotice> PrivacyNotices => Set<PrivacyNotice>();
 
+    /// <summary>Agents' daily wellbeing figures (module 21, task K4).</summary>
+    public DbSet<Wellbeing.WellbeingDay> WellbeingDays => Set<Wellbeing.WellbeingDay>();
+
+    /// <summary>Groups' wellbeing thresholds (task K4).</summary>
+    public DbSet<Wellbeing.WellbeingThreshold> WellbeingThresholds => Set<Wellbeing.WellbeingThreshold>();
+
+    /// <summary>Agents past a threshold (task K4).</summary>
+    public DbSet<Wellbeing.WellbeingAlert> WellbeingAlerts => Set<Wellbeing.WellbeingAlert>();
+
     /// <summary>Optional purposes people agree to or not (task F5).</summary>
     public DbSet<ConsentPurpose> ConsentPurposes => Set<ConsentPurpose>();
 
@@ -2498,6 +2507,52 @@ public sealed partial class ZelvoDbContext(DbContextOptions<ZelvoDbContext> opti
             message.Property(m => m.Event).HasMaxLength(ChatMessage.EventMaxLength);
             message.Property(m => m.Citations).HasColumnType("uuid[]");
             message.HasIndex(m => new { m.TenantId, m.SessionId, m.Sequence });
+        });
+
+        // Task K4 (module 21): agent wellbeing.
+        modelBuilder.Entity<Wellbeing.WellbeingDay>(day =>
+        {
+            day.ToTable("wellbeing_days");
+            day.HasKey(d => d.Id);
+            day.Property(d => d.Id).ValueGeneratedNever();
+            day.HasOne<Tenant>().WithMany().HasForeignKey(d => d.TenantId).OnDelete(DeleteBehavior.Restrict);
+            day.HasOne<UserAccount>().WithMany().HasForeignKey(d => d.UserId).OnDelete(DeleteBehavior.Cascade);
+            day.HasIndex(d => new { d.TenantId, d.UserId, d.Day }).IsUnique();
+            day.HasIndex(d => new { d.TenantId, d.Day });
+            day.HasIndex(d => d.UserId);
+        });
+
+        modelBuilder.Entity<Wellbeing.WellbeingThreshold>(threshold =>
+        {
+            threshold.ToTable("wellbeing_thresholds", t =>
+            {
+                t.HasCheckConstraint("ck_wellbeing_thresholds_load", "max_weighted_load IS NULL OR max_weighted_load BETWEEN 1 AND 1000");
+                t.HasCheckConstraint("ck_wellbeing_thresholds_new", "max_new_per_day IS NULL OR max_new_per_day BETWEEN 1 AND 500");
+                t.HasCheckConstraint("ck_wellbeing_thresholds_hours", "max_after_hours_hours IS NULL OR max_after_hours_hours BETWEEN 0 AND 168");
+                t.HasCheckConstraint("ck_wellbeing_thresholds_difficult", "max_difficult_percent IS NULL OR max_difficult_percent BETWEEN 1 AND 100");
+            });
+            threshold.HasKey(t => t.GroupId);
+            threshold.HasOne<Tenant>().WithMany().HasForeignKey(t => t.TenantId).OnDelete(DeleteBehavior.Restrict);
+            threshold.HasOne<Directory.SupportGroup>().WithMany().HasForeignKey(t => t.GroupId).OnDelete(DeleteBehavior.Cascade);
+            threshold.HasOne<UserAccount>().WithMany().HasForeignKey(t => t.UpdatedById).OnDelete(DeleteBehavior.SetNull);
+            threshold.HasIndex(t => t.TenantId);
+            threshold.HasIndex(t => t.UpdatedById);
+        });
+
+        modelBuilder.Entity<Wellbeing.WellbeingAlert>(alert =>
+        {
+            alert.ToTable("wellbeing_alerts", t => t.HasCheckConstraint("ck_wellbeing_alerts_kind", EnumCheck("kind", Enum.GetNames<Wellbeing.WellbeingAlertKind>())));
+            alert.HasKey(a => a.Id);
+            alert.Property(a => a.Id).ValueGeneratedNever();
+            alert.HasOne<Tenant>().WithMany().HasForeignKey(a => a.TenantId).OnDelete(DeleteBehavior.Restrict);
+            alert.HasOne<UserAccount>().WithMany().HasForeignKey(a => a.UserId).OnDelete(DeleteBehavior.Cascade);
+            alert.HasOne<Directory.SupportGroup>().WithMany().HasForeignKey(a => a.GroupId).OnDelete(DeleteBehavior.Cascade);
+            alert.Property(a => a.Kind).HasConversion<string>().HasMaxLength(20);
+            // One open alert per agent, group and kind.
+            alert.HasIndex(a => new { a.TenantId, a.UserId, a.GroupId, a.Kind }, "ix_wellbeing_alerts_open").IsUnique().HasFilter("ended_at IS NULL");
+            alert.HasIndex(a => new { a.TenantId, a.GroupId, a.RaisedAt });
+            alert.HasIndex(a => a.UserId);
+            alert.HasIndex(a => a.GroupId);
         });
 
         modelBuilder.Entity<PrivacyNotice>(notice =>
