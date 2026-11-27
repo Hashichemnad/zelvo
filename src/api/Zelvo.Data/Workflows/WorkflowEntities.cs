@@ -56,6 +56,33 @@ public sealed class WorkflowRule : ITenantOwned, IAuditedEntity
     /// <summary>When the rule matched, later rules of the same trigger are not tried.</summary>
     public bool StopProcessing { get; set; }
 
+    /// <summary>Maximum length of <see cref="SourceText"/>.</summary>
+    public const int SourceTextMaxLength = 2000;
+
+    /// <summary>
+    /// Task K1 (module 20): a draft made by the AI from a plain-language description. Drafts never
+    /// run; they go live only when an administrator approves them.
+    /// </summary>
+    public bool IsDraft { get; set; }
+
+    /// <summary>The administrator's own words the draft was made from (kept after approval, audited).</summary>
+    public string? SourceText { get; set; }
+
+    /// <summary>The language of <see cref="SourceText"/> (<c>en</c> or <c>ar</c>), when known.</summary>
+    public string? SourceLanguage { get; set; }
+
+    /// <summary>What the AI could not express with the builder, as a JSON array of short phrases.</summary>
+    public string Unmapped { get; set; } = "[]";
+
+    /// <summary>The call in the AI log that made the draft.</summary>
+    public long? AiCallId { get; set; }
+
+    /// <summary>Who approved the draft.</summary>
+    public Guid? ApprovedById { get; set; }
+
+    /// <summary>When the draft was approved.</summary>
+    public DateTimeOffset? ApprovedAt { get; set; }
+
     /// <summary>Who created it.</summary>
     public Guid? CreatedById { get; init; }
 

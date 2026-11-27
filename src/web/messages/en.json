@@ -805,7 +805,8 @@
         "articleDrafts": "Article drafts",
         "test": "Connection test",
         "unknown": "Other",
-        "transcription": "Voice-note transcription"
+        "transcription": "Voice-note transcription",
+        "ruleBuilder": "Rule builder"
       },
       "errors": {
         "provider-auth-failed": "The provider refused the API key. Check the key and the account.",
@@ -909,7 +910,8 @@
           "sentiment": "Detects frustrated customers so they can be escalated.",
           "virtualAgent": "Answers questions in the portal and chat from the knowledge base and hands over to a person.",
           "articleDrafts": "Drafts knowledge articles from resolved tickets for review.",
-          "transcription": "Turns WhatsApp voice notes into text. The recording is sent to the provider without masking, because audio cannot be masked; the text is masked like any other for later AI use. Not available with Anthropic."
+          "transcription": "Turns WhatsApp voice notes into text. The recording is sent to the provider without masking, because audio cannot be masked; the text is masked like any other for later AI use. Not available with Anthropic.",
+          "ruleBuilder": "Turns a rule described in plain English or Arabic into a draft workflow rule from your own lists. The administrator checks and approves the draft before it runs."
         },
         "provider": "Provider",
         "noProvider": "None",
@@ -4974,7 +4976,8 @@
       "requesterLanguage": "Requester's language",
       "priority": "Priority (1 is highest)",
       "fee": "Service fee",
-      "answer": "Form answer"
+      "answer": "Form answer",
+      "requesterCustomerGroup": "Requester's customer group (for example VIP)"
     },
     "operators": {
       "in": "is one of",
@@ -5130,7 +5133,54 @@
     "chooseConnector": "Choose a connector",
     "operation": "Operation",
     "chooseOperation": "Choose an operation",
-    "connectorHint": "The call goes out after the change is saved, with retries; the values it reads from the answer are added to the ticket as an internal note."
+    "connectorHint": "The call goes out after the change is saved, with retries; the values it reads from the answer are added to the ticket as an internal note.",
+    "groupLeadsOf": "Team leads of {name}",
+    "alsoBy": "Also by",
+    "channelsHint": "WhatsApp and SMS reach people who turned them on for their phone under Account → Notifications; Teams reaches people linked to your Teams app. The channel must be set up in Settings → Messaging.",
+    "plainLanguage": {
+      "title": "Describe a rule in your own words",
+      "intro": "Write what should happen in English or Arabic. Zelvo's AI builds a draft from your own groups, services and lists. The draft does not run until you check it and approve it.",
+      "label": "What should the rule do?",
+      "hint": "For example: when a VIP raises a critical incident, notify the IT manager on WhatsApp.",
+      "build": "Build the rule",
+      "building": "Building the rule…",
+      "off": "Plain-language rules are off. An administrator turns on \"Rule builder\" in Settings → AI → Features.",
+      "limitReached": "The monthly AI limit is reached. Rules can still be built step by step below.",
+      "errors": {
+        "rule-not-understood": "No rule could be built from the description. Say what should happen, for example who to tell or which group to assign. What the AI could not use:",
+        "ai-off": "Plain-language rules are off. An administrator turns on \"Rule builder\" in Settings → AI → Features.",
+        "limit-reached": "The monthly AI limit is reached.",
+        "failed": "The AI gave no usable answer. Try again, or build the rule step by step."
+      }
+    },
+    "drafts": {
+      "title": "Drafts waiting for your approval",
+      "intro": "Check what the AI built. Drafts do not run until you approve them; you can change them in the builder first.",
+      "described": "You described:",
+      "unmapped": "Not included (add it in the builder if you need it):",
+      "approve": "Approve and turn on",
+      "edit": "Change in the builder",
+      "discard": "Discard the draft",
+      "badge": "Draft, not running",
+      "approved": "The rule is approved and now runs."
+    },
+    "diagram": {
+      "caption": "The rule as a diagram: when, if, then",
+      "show": "Show {name} as a diagram",
+      "always": "Always (no conditions)",
+      "or": " or ",
+      "and": ", ",
+      "inApp": "in the app",
+      "byEmail": "by email",
+      "assign": "Assign to {group} ({method})",
+      "notify": "Tell {recipients}: {how}",
+      "approval": "Ask for approval {stage}: {levels, plural, one {# level} other {# levels}}",
+      "connector": "Call {connector}: {operation}",
+      "stops": "Later rules are not tried.",
+      "answerField": "Form answer \"{key}\"",
+      "namedPerson": "A named person",
+      "unknownItem": "(no longer exists)"
+    }
   },
   "approvals": {
     "title": "My approvals",

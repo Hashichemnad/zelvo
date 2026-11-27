@@ -103,6 +103,12 @@ public static class RuleFields
     /// <summary>The requester's language (en, ar).</summary>
     public const string RequesterLanguage = "requesterLanguage";
 
+    /// <summary>
+    /// Task K1: a customer group (B3) the requester is in, added by hand or by email domain, for
+    /// example the VIP group (product owner decision 2026-11-26: no separate VIP flag).
+    /// </summary>
+    public const string RequesterCustomerGroup = "requesterCustomerGroup";
+
     /// <summary>Incident priority, 1 (highest) to 5.</summary>
     public const string Priority = "priority";
 
@@ -113,7 +119,7 @@ public static class RuleFields
     public const string AnswerPrefix = "answer.";
 
     /// <summary>Fields taking lists of ids.</summary>
-    public static IReadOnlyList<string> IdLists { get; } = [Service, Category, Location, Group, RequesterDepartment];
+    public static IReadOnlyList<string> IdLists { get; } = [Service, Category, Location, Group, RequesterDepartment, RequesterCustomerGroup];
 
     /// <summary>Fields taking lists of names.</summary>
     public static IReadOnlyList<string> NameLists { get; } = [Channel, State, RequesterLanguage];
@@ -139,10 +145,11 @@ public static class RuleFields
 /// <param name="RequesterDepartmentId">The requester's department.</param>
 /// <param name="RequesterLanguage">The requester's language.</param>
 /// <param name="Answers">Form answers by field key.</param>
+/// <param name="RequesterCustomerGroups">Task K1: the active customer groups the requester is in.</param>
 public sealed record RuleSubject(
     TicketType Type, TicketState State, TicketChannel Channel, Guid? ServiceId, decimal? Fee,
     IReadOnlyCollection<Guid> CategoryAncestry, IReadOnlyCollection<Guid> LocationAncestry, int? Priority, Guid? GroupId,
-    Guid? RequesterDepartmentId, string? RequesterLanguage, JsonObject Answers);
+    Guid? RequesterDepartmentId, string? RequesterLanguage, JsonObject Answers, IReadOnlyCollection<Guid>? RequesterCustomerGroups = null);
 
 /// <summary>An action of a rule, by <c>type</c>.</summary>
 [JsonPolymorphic(TypeDiscriminatorPropertyName = "type")]
@@ -184,7 +191,8 @@ public sealed record NotifyAction : WorkflowAction
 {
     /// <summary>
     /// Who: <c>requester</c>, <c>requesterManager</c>, <c>assignee</c>, <c>group</c> (the ticket's
-    /// group members), <c>groupLeads</c>, <c>user:&lt;id&gt;</c>, <c>group:&lt;id&gt;</c>, <c>role:&lt;key&gt;</c>.
+    /// group members), <c>groupLeads</c>, <c>user:&lt;id&gt;</c>, <c>group:&lt;id&gt;</c>,
+    /// <c>groupLeads:&lt;id&gt;</c> (a named group's team leads, task K1), <c>role:&lt;key&gt;</c>.
     /// </summary>
     public IReadOnlyList<string> Recipients { get; init; } = [];
 
@@ -196,6 +204,14 @@ public sealed record NotifyAction : WorkflowAction
 
     /// <summary>Whether it also goes by email.</summary>
     public bool Email { get; init; } = true;
+
+    /// <summary>
+    /// Task K1: also by WhatsApp, SMS or Microsoft Teams (E3), to people who can be reached there:
+    /// WhatsApp and SMS to the phone of those who turned them on under Account → Notifications,
+    /// Teams to those linked to the tenant's Teams app. <see langword="null"/> (rules made before
+    /// K1): as each person chose for their notifications.
+    /// </summary>
+    public IReadOnlyList<Data.Channels.MessagingKind>? Channels { get; init; }
 }
 
 /// <summary>Ask for approval (service requests; before assignment on submission, or after fulfilment).</summary>
@@ -295,6 +311,9 @@ public static class RuleDocuments
     public static IReadOnlyList<string> NotifyPlaceholders { get; } =
         ["recipient.name", "tenant.name", "ticket.number", "ticket.title", "ticket.state", "ticket.group", "requester.name", "service.name"];
 
+    /// <summary>Longest plain-language description of a rule (task K1).</summary>
+    public const int MaxSourceText = 2000;
+
     /// <summary>JSON of rule documents: camelCase, enums as names.</summary>
     public static JsonSerializerOptions Json { get; } = new(JsonSerializerDefaults.Web)
     {
@@ -342,6 +361,8 @@ public static class RuleDocuments
                 return InList(condition, subject.GroupId is { } g ? [g.ToString()] : []);
             case RuleFields.RequesterDepartment:
                 return InList(condition, subject.RequesterDepartmentId is { } d ? [d.ToString()] : []);
+            case RuleFields.RequesterCustomerGroup:
+                return InList(condition, [.. (subject.RequesterCustomerGroups ?? []).Select(g => g.ToString())]);
             case RuleFields.Channel:
                 return InList(condition, [subject.Channel.ToString()]);
             case RuleFields.State:
@@ -533,6 +554,11 @@ public static class RuleDocuments
             }
         }
 
+        if (action.Channels is { } channels && (channels.Count != channels.Distinct().Count() || channels.Any(c => !Enum.IsDefined(c))))
+        {
+            problems.Add(new($"{at}.channels", "channels-invalid", "Choose WhatsApp, SMS or Teams, each at most once."));
+        }
+
         if (!action.Subject.HasAnyValue || !action.Body.HasAnyValue)
         {
             problems.Add(new($"{at}.subject", "wording-required", "Write the subject and the message in English or Arabic."));
@@ -564,7 +590,8 @@ public static class RuleDocuments
     public static bool IsRecipient(string? recipient) => recipient switch
     {
         "requester" or "requesterManager" or "assignee" or "group" or "groupLeads" => true,
-        { } r when r.StartsWith("user:", StringComparison.Ordinal) || r.StartsWith("group:", StringComparison.Ordinal) => Guid.TryParse(r[(r.IndexOf(':') + 1)..], out _),
+        { } r when r.StartsWith("user:", StringComparison.Ordinal) || r.StartsWith("group:", StringComparison.Ordinal)
+            || r.StartsWith("groupLeads:", StringComparison.Ordinal) => Guid.TryParse(r[(r.IndexOf(':') + 1)..], out _),
         { } r when r.StartsWith("role:", StringComparison.Ordinal) => r.Length is > 5 and <= 65,
         _ => false,
     };

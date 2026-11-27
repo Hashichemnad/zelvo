@@ -1103,6 +1103,12 @@ public sealed partial class ZelvoDbContext(DbContextOptions<ZelvoDbContext> opti
             rule.Property(r => r.Version).IsRowVersion();
             rule.HasIndex(r => new { r.TenantId, r.Trigger, r.Position });
             rule.HasIndex(r => r.CreatedById);
+            // Task K1: plain-language drafts.
+            rule.Property(r => r.SourceText).HasMaxLength(Workflows.WorkflowRule.SourceTextMaxLength);
+            rule.Property(r => r.SourceLanguage).HasMaxLength(2);
+            rule.Property(r => r.Unmapped).HasColumnType("jsonb").HasDefaultValueSql("'[]'::jsonb");
+            rule.HasOne<UserAccount>().WithMany().HasForeignKey(r => r.ApprovedById).OnDelete(DeleteBehavior.SetNull);
+            rule.HasIndex(r => r.ApprovedById);
         });
 
         modelBuilder.Entity<Workflows.ApprovalProcess>(process =>

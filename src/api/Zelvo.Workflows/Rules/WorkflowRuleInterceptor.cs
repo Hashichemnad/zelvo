@@ -65,7 +65,8 @@ public sealed class WorkflowRuleInterceptor(ITenantContext tenantContext, Pendin
             }
 
             var triggers = work.Select(w => w.Trigger).Distinct().ToList();
-            var rules = await db.WorkflowRules.AsNoTracking().Where(r => r.Active && triggers.Contains(r.Trigger))
+            // Task K1: drafts (from plain-language rules) never run until an administrator approves them.
+            var rules = await db.WorkflowRules.AsNoTracking().Where(r => r.Active && !r.IsDraft && triggers.Contains(r.Trigger))
                 .OrderBy(r => r.Position).ThenBy(r => r.Id).ToListAsync(cancellationToken).ConfigureAwait(false);
             if (rules.Count == 0)
             {
@@ -265,6 +266,9 @@ public sealed class WorkflowRuleInterceptor(ITenantContext tenantContext, Pendin
                 case { } r when r.StartsWith("group:", StringComparison.Ordinal) && Guid.TryParse(r[6..], out var other):
                     staffSide.UnionWith(await MembersAsync(db, other, false, cancellationToken).ConfigureAwait(false));
                     break;
+                case { } r when r.StartsWith("groupLeads:", StringComparison.Ordinal) && Guid.TryParse(r[11..], out var led):
+                    staffSide.UnionWith(await MembersAsync(db, led, true, cancellationToken).ConfigureAwait(false));
+                    break;
                 case { } r when r.StartsWith("role:", StringComparison.Ordinal):
                     var key = r[5..];
                     staffSide.UnionWith(await db.Users.AsNoTracking()
@@ -295,6 +299,12 @@ public sealed class WorkflowRuleInterceptor(ITenantContext tenantContext, Pendin
             [Placeholders.RequesterName] = PlaceholderValue.OfText(facts.Requester?.DisplayName ?? facts.Requester?.Email),
             [Placeholders.ServiceName] = facts.ServiceName is null ? PlaceholderValue.OfText(string.Empty) : PlaceholderValue.OfText(facts.ServiceName),
         };
+        if (action.Channels is { } channels)
+        {
+            // Task K1: the rule names its messaging channels (none: in the app and by email only).
+            values[Placeholders.RuleChannels] = PlaceholderValue.OfText(string.Join(',', channels.Distinct()));
+        }
+
         var request = ticket.Type == TicketType.ServiceRequest;
         if (requesterSide.Count > 0)
         {
@@ -369,9 +379,23 @@ public sealed record RuleFacts(RuleSubject Subject, UserAccount? Requester, Data
         }
 
         var language = requester?.PreferredLanguage is Data.Localization.LocalizedText.English or Data.Localization.LocalizedText.Arabic ? requester.PreferredLanguage : null;
+        var customerGroups = await CustomerGroupsAsync(db, requester, cancellationToken).ConfigureAwait(false);
         var subject = new RuleSubject(ticket.Type, ticket.State, ticket.Channel, serviceId, fee, categories, locations, priority, ticket.GroupId,
-            requester?.DepartmentId, language, answers);
+            requester?.DepartmentId, language, answers, customerGroups);
         return new RuleFacts(subject, requester, serviceName, serviceId);
+    }
+
+    /// <summary>Task K1: the active customer groups (B3) the requester is in, by hand or by email domain.</summary>
+    private static async Task<IReadOnlyCollection<Guid>> CustomerGroupsAsync(ZelvoDbContext db, UserAccount? requester, CancellationToken cancellationToken)
+    {
+        if (requester is null)
+        {
+            return [];
+        }
+
+        var groups = await db.CustomerGroups.AsNoTracking().Where(g => g.Active).Include(g => g.Members.Where(m => m.UserId == requester.Id))
+            .ToListAsync(cancellationToken).ConfigureAwait(false);
+        return [.. groups.Where(g => g.Members.Count > 0 || Tickets.Sla.SlaMatcher.InDomain(g, requester.Email)).Select(g => g.Id)];
     }
 
     /// <summary>A card's fee in AED: its amount when paid, else 0.</summary>

@@ -1,7 +1,7 @@
 // Development AI provider mock (Compose only). Speaks the OpenAI Chat Completions API, so
 // Settings → AI can be tried and the end-to-end tests can run without a real provider or key:
 // add an "OpenAI-compatible" provider with the endpoint http://ai-mock:8097/v1. It answers
-// connection tests with "OK", the AI features of task E5 (recognised by the "Task: …" line of
+// connection tests with "OK", the AI features of task E5 and the K1 rule builder (recognised by the "Task: …" line of
 // their instructions) with fixed answers of the shape each one needs, and anything else with a
 // fixed sentence; counts tokens roughly, and records what it received (GET /received) so tests can
 // check that personal data was masked. Never part of an installation.
@@ -70,6 +70,36 @@ function featureAnswer(system, prompt) {
             : (arabic ? "لم أجد مقالًا يجيب عن سؤالكم. هل تريدون التحدث إلى أحد الموظفين؟" : "I could not find an article that answers this. Would you like to talk to a member of staff?"),
         articles: handover ? [] : articles.slice(0, 1),
         handover,
+      });
+    }
+    case "ruleBuilder": {
+      // Task K1: a rule from the description, picking the first listed items it mentions.
+      const text = block("description");
+      const ref = (label, pattern) => {
+        const lines = block(label).split("\n");
+        return (lines.find((l) => pattern.test(l)) ?? lines[0] ?? "").split(":")[0].trim() || null;
+      };
+      const vip = /vip|كبار/i.test(text) ? ref("customerGroups", /vip|كبار|key|senior/i) : null;
+      const group = ref("groups", /service desk|it |تقنية|مكتب الخدمة/i);
+      const channels = [/whatsapp|واتساب/i.test(text) && "WhatsApp", /\bsms\b|رسالة نصية/i.test(text) && "Sms", /teams/i.test(text) && "Teams"].filter(Boolean);
+      return JSON.stringify({
+        name: { en: "Rule from the description (development mock)", ar: "قاعدة من الوصف (خدمة تجريبية)" },
+        trigger: "TicketCreated",
+        recordType: /incident|بلاغ/i.test(text) ? "Incident" : null,
+        match: "All",
+        conditions: [
+          ...(vip ? [{ field: "requesterCustomerGroup", op: "in", value: [vip] }] : []),
+          ...(/critical|p1|حرج/i.test(text) ? [{ field: "priority", op: "eq", value: 1 }] : []),
+        ],
+        actions: group ? [{
+          type: "notify",
+          recipients: [`groupLeads:${group}`],
+          channels,
+          email: true,
+          subject: { en: "{{ticket.number}}: {{ticket.title}}", ar: "{{ticket.number}}: {{ticket.title}}" },
+          body: { en: "Dear {{recipient.name}}, {{requester.name}} raised {{ticket.number}}.", ar: "حضرة {{recipient.name}}، قدّم {{requester.name}} البلاغ {{ticket.number}}." },
+        }] : [],
+        unmapped: /hours|ساعات/i.test(text) ? ["Working hours only"] : [],
       });
     }
     case "articleDraft":

@@ -9394,6 +9394,18 @@ namespace Zelvo.Data.Migrations
                         .HasColumnType("boolean")
                         .HasColumnName("active");
 
+                    b.Property<long?>("AiCallId")
+                        .HasColumnType("bigint")
+                        .HasColumnName("ai_call_id");
+
+                    b.Property<DateTimeOffset?>("ApprovedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("approved_at");
+
+                    b.Property<Guid?>("ApprovedById")
+                        .HasColumnType("uuid")
+                        .HasColumnName("approved_by_id");
+
                     b.Property<string>("Conditions")
                         .IsRequired()
                         .HasColumnType("jsonb")
@@ -9406,6 +9418,10 @@ namespace Zelvo.Data.Migrations
                     b.Property<Guid?>("CreatedById")
                         .HasColumnType("uuid")
                         .HasColumnName("created_by_id");
+
+                    b.Property<bool>("IsDraft")
+                        .HasColumnType("boolean")
+                        .HasColumnName("is_draft");
 
                     b.Property<string>("Match")
                         .IsRequired()
@@ -9422,6 +9438,16 @@ namespace Zelvo.Data.Migrations
                         .HasColumnType("character varying(30)")
                         .HasColumnName("record_type");
 
+                    b.Property<string>("SourceLanguage")
+                        .HasMaxLength(2)
+                        .HasColumnType("character varying(2)")
+                        .HasColumnName("source_language");
+
+                    b.Property<string>("SourceText")
+                        .HasMaxLength(2000)
+                        .HasColumnType("character varying(2000)")
+                        .HasColumnName("source_text");
+
                     b.Property<bool>("StopProcessing")
                         .HasColumnType("boolean")
                         .HasColumnName("stop_processing");
@@ -9435,6 +9461,13 @@ namespace Zelvo.Data.Migrations
                         .HasMaxLength(30)
                         .HasColumnType("character varying(30)")
                         .HasColumnName("trigger");
+
+                    b.Property<string>("Unmapped")
+                        .IsRequired()
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("jsonb")
+                        .HasColumnName("unmapped")
+                        .HasDefaultValueSql("'[]'::jsonb");
 
                     b.Property<DateTimeOffset>("UpdatedAt")
                         .HasColumnType("timestamp with time zone")
@@ -9478,6 +9511,9 @@ namespace Zelvo.Data.Migrations
 
                     b.HasKey("Id")
                         .HasName("pk_workflow_rules");
+
+                    b.HasIndex("ApprovedById")
+                        .HasDatabaseName("ix_workflow_rules_approved_by_id");
 
                     b.HasIndex("CreatedById")
                         .HasDatabaseName("ix_workflow_rules_created_by_id");
@@ -12067,6 +12103,12 @@ namespace Zelvo.Data.Migrations
 
             modelBuilder.Entity("Zelvo.Data.Workflows.WorkflowRule", b =>
                 {
+                    b.HasOne("Zelvo.Data.Identity.UserAccount", null)
+                        .WithMany()
+                        .HasForeignKey("ApprovedById")
+                        .OnDelete(DeleteBehavior.SetNull)
+                        .HasConstraintName("fk_workflow_rules_users_approved_by_id");
+
                     b.HasOne("Zelvo.Data.Identity.UserAccount", null)
                         .WithMany()
                         .HasForeignKey("CreatedById")

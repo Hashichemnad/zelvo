@@ -6,6 +6,7 @@ import en from "../../../messages/en.json";
 import type { DateDisplayOptions } from "@/lib/format";
 import type { ApprovalDetail, ApprovalProcessView, WorkflowRule } from "@/lib/workflows";
 import { ApprovalDecisionForm, ApprovalProcessTimeline } from "./Approvals";
+import { RuleDiagram } from "./RuleDiagram";
 import { WorkflowRulesPanel } from "./WorkflowRulesPanel";
 
 const refresh = vi.fn();
@@ -19,7 +20,16 @@ const choices = {
   services: [{ id: "s1", code: "IT-LAPTOP", name: { en: "New laptop", ar: "حاسوب جديد" } }],
   categories: [], locations: [], departments: [], roles: [],
   groups: [{ id: "g1", name: { en: "Desk", ar: "المكتب" }, description: null, active: true, memberCount: 1, leadCount: 1 }],
+  customerGroups: [{ id: "v1", name: { en: "VIP", ar: "كبار المتعاملين" }, active: true }],
 };
+
+const story = "When a VIP raises a critical incident, notify the IT manager on WhatsApp";
+const vipDraft = (patch: Partial<WorkflowRule> = {}) => rule({
+  id: "r9", name: { en: "VIP critical incidents", ar: "البلاغات الحرجة لكبار المتعاملين" }, recordType: "Incident",
+  conditions: [{ field: "requesterCustomerGroup", op: "in", value: ["v1"] }, { field: "priority", op: "eq", value: 1 }],
+  actions: [{ type: "notify", recipients: ["groupLeads:g1"], subject: { en: "VIP P1", ar: "بلاغ حرج" }, body: { en: "x", ar: "س" }, email: false, channels: ["WhatsApp"] }],
+  draft: true, sourceText: story, sourceLanguage: "en", unmapped: ["Only during working hours"], etag: "\"3\"", ...patch,
+});
 
 function wrap(children: ReactNode, locale: "en" | "ar" = "en") {
   return render(<NextIntlClientProvider locale={locale} messages={locale === "en" ? en : ar}>{children}</NextIntlClientProvider>);
@@ -34,7 +44,8 @@ const rule = (patch: Partial<WorkflowRule> = {}): WorkflowRule => ({
   trigger: "TicketCreated", recordType: "ServiceRequest", match: "All",
   conditions: [{ field: "service", op: "in", value: ["s1"] }],
   actions: [{ type: "approval", stage: "BeforeAssignment", levels: [{ name: { en: "Manager", ar: "المدير" }, mode: "Any", approvers: [{ kind: "RequesterManager" }], conditions: [] }] }],
-  stopProcessing: false, etag: "\"7\"", createdAt: "2026-11-24T08:00:00Z", updatedAt: "2026-11-24T08:00:00Z", ...patch,
+  stopProcessing: false, etag: "\"7\"", createdAt: "2026-11-24T08:00:00Z", updatedAt: "2026-11-24T08:00:00Z",
+  draft: false, sourceText: null, sourceLanguage: null, unmapped: [], approvedAt: null, ...patch,
 });
 
 const process: ApprovalProcessView = {
@@ -98,6 +109,55 @@ describe("WorkflowRulesPanel", () => {
     fireEvent.click(screen.getByRole("button", { name: "إضافة قاعدة" }));
     fireEvent.change(screen.getByLabelText("على"), { target: { value: "Incident" } });
     expect(within(screen.getByLabelText("الإجراء 1")).queryByRole("option", { name: "طلب اعتماد" })).toBeNull();
+  });
+});
+
+describe("Plain-language rules (task K1)", () => {
+  it("builds a draft from a description, shows it as a diagram with what was left out, and approves it", async () => {
+    const fetchMock = vi.spyOn(globalThis, "fetch")
+      .mockResolvedValueOnce(json(vipDraft(), 201))
+      .mockResolvedValueOnce(json(vipDraft({ draft: false, approvedAt: "2026-11-27T08:00:00Z", etag: "\"4\"" })));
+    wrap(<WorkflowRulesPanel initialRules={[]} choices={choices} csrfToken="csrf" plainLanguage={{ available: true, reason: null }} />);
+    fireEvent.change(screen.getByLabelText("What should the rule do?"), { target: { value: story } });
+    fireEvent.click(screen.getByRole("button", { name: "Build the rule" }));
+
+    const drafts = await screen.findByTestId("rule-drafts");
+    expect(drafts).toHaveTextContent(story);
+    const diagram = within(drafts).getByTestId("rule-diagram");
+    expect(diagram).toHaveTextContent("Requester's customer group (for example VIP) is one of VIP");
+    expect(diagram).toHaveTextContent("Priority (1 is highest) equals 1");
+    expect(diagram).toHaveTextContent("Tell Team leads of Desk: in the app, WhatsApp");
+    expect(within(drafts).getByTestId("rule-unmapped")).toHaveTextContent("Only during working hours");
+    expect(screen.getByTestId("workflow-rules")).toHaveTextContent("Draft, not running");
+    expect(JSON.parse(String((fetchMock.mock.calls[0]![1] as RequestInit).body))).toEqual({ text: story });
+
+    fireEvent.click(within(drafts).getByRole("button", { name: "Approve and turn on" }));
+    expect(await screen.findByText("The rule is approved and now runs.")).toBeInTheDocument();
+    const [url, init] = fetchMock.mock.calls[1]!;
+    expect(url).toBe("/bff/api/v1/workflow-rules/r9/approve");
+    expect((init as RequestInit).headers).toMatchObject({ "If-Match": "\"3\"" });
+    expect(screen.queryByTestId("rule-drafts")).toBeNull();
+  });
+
+  it("lists what the AI could not use when no rule could be built, and says when the feature is off", async () => {
+    vi.spyOn(globalThis, "fetch").mockResolvedValue(json({ code: "rule-not-understood", unmapped: ["Action \"sendFlowers\": build it in the builder."] }, 422));
+    const { unmount } = wrap(<WorkflowRulesPanel initialRules={[]} choices={choices} csrfToken="csrf" plainLanguage={{ available: true, reason: null }} />);
+    fireEvent.change(screen.getByLabelText("What should the rule do?"), { target: { value: "Send flowers" } });
+    fireEvent.click(screen.getByRole("button", { name: "Build the rule" }));
+    expect(await screen.findByTestId("plain-language-error")).toHaveTextContent("sendFlowers");
+    unmount();
+
+    wrap(<WorkflowRulesPanel initialRules={[]} choices={choices} csrfToken="csrf" plainLanguage={{ available: false, reason: "ai-off" }} />, "ar");
+    expect(screen.getByTestId("plain-language-rule")).toHaveTextContent("ميزة القواعد باللغة الطبيعية غير مفعّلة");
+    expect(screen.queryByRole("button", { name: "إعداد القاعدة" })).toBeNull();
+  });
+
+  it("draws every rule as when, if, then in Arabic", () => {
+    wrap(<RuleDiagram id="d" rule={vipDraft()} choices={choices} />, "ar");
+    const boxes = within(screen.getByTestId("rule-diagram")).getAllByRole("heading");
+    expect(boxes.map((b) => b.textContent)).toEqual(["عندما", "إذا", "عندئذٍ"].map((w) => expect.stringContaining(w) as unknown as string));
+    expect(screen.getByTestId("rule-diagram")).toHaveTextContent("كبار المتعاملين");
+    expect(screen.getByTestId("rule-diagram")).toHaveTextContent("واتساب");
   });
 });
 

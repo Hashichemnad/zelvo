@@ -393,4 +393,10 @@ public static class Placeholders
 
     /// <summary>Whether a workflow rule's notification also goes by email ("true").</summary>
     public const string RuleEmail = "rule.email";
+
+    /// <summary>
+    /// Task K1: the messaging channels a workflow rule names (<c>WhatsApp,Sms,Teams</c>, empty for
+    /// none). Missing for rules made before K1, which follow each person's choices.
+    /// </summary>
+    public const string RuleChannels = "rule.channels";
 }
