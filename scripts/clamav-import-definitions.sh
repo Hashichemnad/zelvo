@@ -1,6 +1,8 @@
 #!/usr/bin/env bash
 # Imports ClamAV malware definitions into an installation without internet access (task B1,
-# product owner decision 2026-11-22).
+# product owner decision 2026-11-22). Since task M1 administrators import them in Settings →
+# Updates → Malware definitions, which Zelvo serves to ClamAV as its private mirror; this script
+# stays for operators (for example when no administrator can sign in yet).
 #
 # 1. On a computer with internet access, download the current definitions, for example with
 #    `freshclam --datadir=<folder>` or ClamAV's cvdupdate tool. You get main.cvd, daily.cvd
@@ -9,9 +11,8 @@
 #      scripts/clamav-import-definitions.sh <folder>
 #
 # Every file is checked with ClamAV's sigtool before it replaces the current definitions; then
-# ClamAV reloads them without stopping. Set CLAMAV_NO_FRESHCLAMD=true in deploy/compose/.env
-# so ClamAV does not try to download updates itself. Importing definitions in Settings comes
-# with the offline update packages (task F4).
+# ClamAV reloads them without stopping. Files copied here are kept: freshclam replaces them only
+# with newer ones (imported in Settings, or downloaded with "Download definitions automatically").
 set -euo pipefail
 
 source_dir="${1:-}"

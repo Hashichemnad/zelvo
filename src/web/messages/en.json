@@ -1350,6 +1350,11 @@
       "title": "Finish setting up",
       "text": "{done} of {total} setup steps are finished.",
       "action": "Open the setup wizard"
+    },
+    "definitionsBanner": {
+      "title": "Malware definitions are out of date",
+      "text": "The malware scanner's definitions are older than {days} days.",
+      "action": "Open malware definitions"
     }
   },
   "demo": {
@@ -2501,7 +2506,8 @@
       "privacy_request_completed": "Your privacy request was completed",
       "privacy_request_rejected": "Your privacy request could not be carried out",
       "privacy_request_new": "A new privacy request is waiting",
-      "workflow_rule": "A workflow rule's notification"
+      "workflow_rule": "A workflow rule's notification",
+      "malware_definitions_outdated": "Malware definitions are out of date"
     },
     "audiences": {
       "Requester": "Your incidents",
@@ -6433,5 +6439,86 @@
       "other": "That did not work. Please try again."
     },
     "auditNote": "Every import, install and rollback is recorded in the audit log."
+  },
+  "malwareDefinitions": {
+    "title": "Malware definitions",
+    "intro": "Every uploaded file is checked by the ClamAV malware scanner before anyone can download it. Its definitions must be current to recognise new malware. Zelvo gives ClamAV the definition files you import here, so installations without internet access stay protected; ClamAV checks each file's signature from ClamAV's publisher before it loads it.",
+    "tabs": {
+      "label": "Updates",
+      "packages": "Update packages",
+      "definitions": "Malware definitions"
+    },
+    "statusTitle": "Malware scanning",
+    "scanningOn": "Malware scanning: on",
+    "scanningOff": "Malware scanning: off for this installation",
+    "loaded": "Loaded definitions",
+    "loadedValue": "Daily version {version} from {date}",
+    "loadedUnknown": "Not known yet: the scanner has not answered.",
+    "lastUpdate": "Last update",
+    "never": "No imports or updates yet",
+    "checked": "Last checked",
+    "scannerUnreachable": "The scanner did not answer the last check.",
+    "outdated": "The definitions are older than {days} days. Import current definition files below, or check that ClamAV can download them.",
+    "importTitle": "Import definition files",
+    "importIntro": "Choose the main, daily and bytecode files (.cvd or .cld, and their .cvd.sign files if you have them), for example from ClamAV's cvdupdate tool or freshclam on a computer with internet access. Each file is listed with its type, version and date before you import it. ClamAV loads imported files within 30 minutes.",
+    "uploadLabel": "Definition files (up to {size} MB each)",
+    "import": "Import",
+    "inboxTitle": "Updates inbox",
+    "inboxEmpty": "No definition files are waiting in the inbox.",
+    "importInbox": "Import the chosen files",
+    "megabytes": "{size} MB",
+    "version": "version {version}",
+    "kinds": {
+      "database": "{database} database",
+      "sign": "signature of {database}",
+      "unknown": "not a ClamAV file"
+    },
+    "outcomes": {
+      "import": "will be imported",
+      "same": "already imported; left out",
+      "refused": "refused"
+    },
+    "resultsTitle": "Files of the last import",
+    "imported": "The files passed every check and were imported. ClamAV loads them within 30 minutes.",
+    "servedTitle": "Files Zelvo gives ClamAV",
+    "noFiles": "No files imported yet.",
+    "importedBy": "{when} by {name}",
+    "columns": {
+      "file": "File",
+      "version": "Version",
+      "built": "Built",
+      "imported": "Imported",
+      "when": "When",
+      "event": "What happened"
+    },
+    "settingsTitle": "Settings",
+    "warningDays": "Warn when the definitions are older than (days)",
+    "warningDaysHelp": "From 1 to 90 days. Administrators of this installation are told in Zelvo and by email, once for each version.",
+    "warningDaysInvalid": "Choose 1 to 90 days.",
+    "autoDownload": "Download definitions automatically",
+    "autoDownloadHelp": "For installations with internet access: ClamAV downloads definitions from ClamAV's own servers when Zelvo has no newer imported files. Turn it off to make ClamAV use only the files imported here.",
+    "save": "Save settings",
+    "saved": "The settings are saved.",
+    "historyTitle": "History",
+    "noHistory": "Nothing has happened yet.",
+    "events": {
+      "Imported": "Imported: {versions}",
+      "Refused": "Import refused: {versions}",
+      "Loaded": "ClamAV loaded the imported definitions: {versions}",
+      "Downloaded": "ClamAV loaded definitions downloaded automatically or shipped with it: {versions}"
+    },
+    "byPerson": "{text} (by {name})",
+    "auditNote": "Every import, refusal, settings change and newly loaded version is in the audit log.",
+    "problems": {
+      "definitions-not-clamav": "Not a ClamAV definition file: choose main, daily or bytecode .cvd or .cld files, or their .cvd.sign files.",
+      "definitions-damaged": "A file is damaged or incomplete: its content does not match its checksum. Copy it again.",
+      "definitions-too-large": "A file is larger than this installation accepts.",
+      "definitions-older": "A file is older than the definitions Zelvo or ClamAV already has.",
+      "definitions-duplicate": "The same database was chosen more than once.",
+      "definitions-incomplete": "The first import needs all three databases: main, daily and bytecode.",
+      "definitions-sign-unmatched": "A signature file does not belong to a database in this import or to one Zelvo has.",
+      "inbox-file-not-found": "That file is no longer in the updates inbox.",
+      "other": "The files could not be imported. Please try again."
+    }
   }
 }

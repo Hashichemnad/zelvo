@@ -334,6 +334,12 @@
       "inApp": "A new request for {{privacyRequest.type}} ({{privacyRequest.number}}) is due by {{privacyRequest.dueAt}}.",
       "body": "Dear {{recipient.name}},\n\nA new data subject request {{privacyRequest.number}} for {{privacyRequest.type}} was received. It is due by {{privacyRequest.dueAt}}.\n\nKind regards,\n{{tenant.name}}",
       "action": "Open the request"
+    },
+    "malware.definitions-outdated": {
+      "subject": "Malware definitions are out of date",
+      "inApp": "The malware definitions are version {{definitions.version}} from {{definitions.builtAt}}, older than {{definitions.days}} days. Import new definitions in Settings → Updates → Malware definitions.",
+      "body": "Dear {{recipient.name}},\n\nThe malware scanner that checks every uploaded file still uses definitions version {{definitions.version}}, built on {{definitions.builtAt}}. They are older than the {{definitions.days}} days set for this installation, so the newest malware may not be recognised.\n\nPlease import current ClamAV definition files in Settings → Updates → Malware definitions, or check that the scanner can download them.\n\nKind regards,\n{{tenant.name}}",
+      "action": "Open malware definitions"
     }
   },
   "samples": {

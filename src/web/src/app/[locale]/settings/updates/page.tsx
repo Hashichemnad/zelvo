@@ -1,5 +1,6 @@
 import { getTranslations, setRequestLocale } from "next-intl/server";
 import { UpdatesPanel } from "@/components/updates/UpdatesPanel";
+import { UpdatesTabs } from "@/components/updates/UpdatesTabs";
 import { getJsonAs } from "@/lib/api";
 import { getDisplayFormat } from "@/lib/display";
 import type { UpdatesState } from "@/lib/updates";
@@ -28,6 +29,7 @@ export default async function UpdatesSettingsPage({ params }: PageProps<"/[local
   return (
     <section aria-labelledby="updates-heading" className="space-y-4">
       <h2 id="updates-heading" className="text-2xl font-bold">{tSection("title")}</h2>
+      <UpdatesTabs current="packages" />
       {!updates || !format ? (
         <p role="alert">{tSettings(user ? "noAccess" : "unavailable")}</p>
       ) : (

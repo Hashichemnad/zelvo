@@ -58,6 +58,7 @@ Development Compose allows plain HTTP and the private ranges `10.0.0.0/8`, `172.
 | Grafana | Prometheus 9090, Tempo 3200, Loki 3100 | HTTP | **No** | None |
 | Updater | Docker Engine | Unix socket `/var/run/docker.sock` | n/a | File access (root on the host); listens on no port |
 | Updater | Compose services' health addresses | HTTP | **No** | None |
+| ClamAV (`freshclam`) | API private mirror `/_internal/clamav/…` (M1; not routed by the proxy) | HTTP 8080 | **No** (public definition files; ClamAV checks their Talos signature) | None |
 | API, worker | Vault or OpenBao Transit (when used) | HTTPS (`Secrets:Vault:Address`) | Yes, trusting `Secrets:Vault:CaFile` | Token file or AppRole |
 | Worker | Headless Chromium (child process) | None: network blocked (`--host-resolver-rules=MAP * ~NOTFOUND`, page CSP `default-src 'none'`) | n/a | n/a |
 
@@ -68,7 +69,7 @@ Development Compose allows plain HTTP and the private ranges `10.0.0.0/8`, `172.
 | Worker (notifications, reports), API (test email) | Installation mail server | SMTP 587 (STARTTLS required) or 465 (TLS on connect); `None` only when chosen | Required unless `Security=None` (F7: `Auto` never falls back to plain) | User and password | `Notifications:Smtp:*` (`ZELVO_SMTP_*`); Compose sends to Mailpit without TLS |
 | Keycloak | Mail server for sign-in codes and password resets | SMTP | Per realm settings (`starttls`, `ssl`) | User and password | `Identity:Provisioning:Smtp:*` |
 | Caddy | ACME CA | HTTPS 443 (and port 80 or 443 reachable for the challenges) | Yes | ACME account key | `ZELVO_ACME_CA`, `ZELVO_ACME_EMAIL` |
-| ClamAV (`freshclam`) | ClamAV definition mirrors | HTTPS | Yes | None | Off with `CLAMAV_NO_FRESHCLAMD=true` (offline import) |
+| ClamAV (`freshclam`) | ClamAV's definition servers (`database.clamav.net`), only when the API's private mirror redirects there | HTTPS | Yes | None | Settings → Updates → Malware definitions, "Download definitions automatically" (M1; `MalwareDefinitions:UpstreamMirror`) |
 | API | DNS resolvers (domain verification, SPF, DKIM, DMARC checks) | DNS 53 | No (DNS) | None | System resolvers (`BrandingServices`, DnsClient) |
 | API, worker | Vault or OpenBao | HTTPS | Yes | Token or AppRole | `Secrets:Vault:*` |
 

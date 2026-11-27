@@ -5,3 +5,11 @@
 # "example-secret-value"); it was never a real key.
 4e12c4b100ef48ecf36d2677ca7096435cd4b221:src/api/tests/Zelvo.Api.Tests/SecretsTests.cs:generic-api-key:62
 4e12c4b100ef48ecf36d2677ca7096435cd4b221:src/api/tests/Zelvo.Api.Tests/SecretsTests.cs:generic-api-key:67
+
+# M1: freshclam's private-mirror address on the API's internal port (an internal service
+# address, not a secret) in commit ab35567; the route has an underscore since, which the
+# generic-api-key rule no longer matches.
+ab355676494fa9b8a8ba0083d97abdd741d24468:deploy/compose/compose.production.yaml:generic-api-key:486
+ab355676494fa9b8a8ba0083d97abdd741d24468:deploy/helm/zelvo/templates/clamav.yaml:generic-api-key:35
+ab355676494fa9b8a8ba0083d97abdd741d24468:deploy/compose/compose.yaml:generic-api-key:555
+ab355676494fa9b8a8ba0083d97abdd741d24468:docs/architecture/updates.md:generic-api-key:105

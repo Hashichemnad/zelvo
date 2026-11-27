@@ -79,7 +79,7 @@ const pages: Record<Persona, Target[]> = {
     "/settings/mailboxes", "/settings/messaging", "/settings/monitoring", "/settings/notifications",
     "/settings/notifications/deliveries", "/settings/payments", "/settings/privacy", "/settings/reports", "/settings/roles",
     "/settings/search", "/settings/sign-in", "/settings/sign-in/uae-pass", "/settings/skills", "/settings/sla-policies",
-    "/settings/translations", "/settings/updates", "/settings/users", "/settings/workflows",
+    "/settings/translations", "/settings/updates", "/settings/updates/malware-definitions", "/settings/users", "/settings/workflows",
     { from: "/settings/users", link: /\/settings\/users\/[0-9a-f-]{36}$/, name: "/settings/users/[id]" },
     { from: "/settings/roles", link: /\/settings\/roles\/[a-z0-9-]+$/, name: "/settings/roles/[key]" },
     { from: "/settings/groups", link: /\/settings\/groups\/[0-9a-f-]{36}$/, name: "/settings/groups/[id]" },

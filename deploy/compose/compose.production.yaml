@@ -481,8 +481,10 @@ services:
     image: clamav/clamav:1.5.5
     cap_add: [CHOWN, DAC_OVERRIDE, FOWNER, SETGID, SETUID]
     environment:
-      # Offline installs: true, then import definitions (scripts/clamav-import-definitions.sh).
-      CLAMAV_NO_FRESHCLAMD: ${CLAMAV_NO_FRESHCLAMD:-false}
+      # Task M1: freshclam reads Zelvo's private mirror (Settings → Updates → Malware definitions)
+      # every 30 minutes; offline installs import definition files there.
+      FRESHCLAM_CONF_PrivateMirror: http://api:8080/_internal/clamav
+      FRESHCLAM_CHECKS: "48"
       CLAMD_CONF_StreamMaxLength: 105M
       CLAMD_CONF_MaxFileSize: 105M
       CLAMD_CONF_MaxScanSize: 400M

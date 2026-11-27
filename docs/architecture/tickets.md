@@ -75,7 +75,7 @@ Product owner decision 2026-11-22: attachments in PostgreSQL behind `IAttachment
 ### ClamAV
 
 - Compose service `clamav`: the official `clamav/clamav` image, unmodified (GPL-2.0), with its definitions in the `clamav-db` volume. clamd accepts streams up to 105 MB (`CLAMD_CONF_StreamMaxLength`). Only the worker connects, inside the Compose network.
-- **Updates:** with internet access, freshclam in the image updates the definitions automatically. **Offline installations** set `CLAMAV_NO_FRESHCLAMD=true` and import definition files downloaded elsewhere: `scripts/clamav-import-definitions.sh <folder>` checks each file with `sigtool`, moves them into place and reloads clamd without a restart. Importing them in Settings comes with the update packages (F4).
+- **Updates (task M1):** freshclam in the image reads Zelvo as its private mirror: administrators import definition files in Settings → Updates → Malware definitions (also for offline installations), and with "Download definitions automatically" on ClamAV downloads from ClamAV's own servers when Zelvo has nothing newer. See `updates.md` (Malware definitions). Operators can still copy files into ClamAV with `scripts/clamav-import-definitions.sh <folder>`, which checks each file with `sigtool`, moves them into place and reloads clamd without a restart.
 - **Memory:** about 1–1.5 GB with the full definitions (1.0 GB measured idle with 1.5.3), briefly about twice that while new definitions load; included in the server sizing.
 - **Turning scanning off** (`AttachmentScanning__Enabled=false` for the API and the worker, `ZELVO_ATTACHMENT_SCANNING` in Compose): files are stored as NotScanned and can be downloaded; Settings → Attachments says so.
 

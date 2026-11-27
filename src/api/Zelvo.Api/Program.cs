@@ -124,6 +124,8 @@ builder.Services.AddZelvoReports();
 // Task F4: where update packages are kept, and the running version.
 builder.Services.AddZelvoUpdateOptions(builder.Configuration);
 builder.Services.AddSingleton<InstalledVersionProvider>();
+// Task M1: malware definitions imported in Settings and served to ClamAV.
+builder.Services.AddZelvoMalwareDefinitions(builder.Configuration);
 
 var app = builder.Build();
 
@@ -183,6 +185,9 @@ v1.MapSetupEndpoints();
 v1.MapLicenseEndpoints();
 // Task F4: offline update packages.
 v1.MapUpdateEndpoints();
+// Task M1: Settings → Updates → Malware definitions, and the private mirror ClamAV reads.
+v1.MapMalwareDefinitionEndpoints();
+app.MapMalwareDefinitionMirror();
 v1.ForModule(LicensedModules.Incidents).MapIncidentEndpoints();
 v1.ForModule(LicensedModules.Incidents).MapIncidentSettingsEndpoints();
 v1.ForModule(LicensedModules.Sla).MapSlaEndpoints();

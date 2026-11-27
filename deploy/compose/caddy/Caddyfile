@@ -35,6 +35,9 @@
 # Incoming messages (zelvo_hooks) then get 503 too, and their providers send them again later.
 (zelvo) {
 	encode zstd gzip
+	# The security directives below are the same in the Helm chart's Caddyfile
+	# (deploy/helm/zelvo/files/Caddyfile); scripts/check-caddy-security.sh fails CI when they differ.
+	# zelvo:security-begin
 	# Task F7 (ASVS V3.4.1): browsers keep to HTTPS for a year on the installation's address and
 	# custom domains. Not for localhost, where it would also force every other local port onto
 	# HTTPS. Without includeSubDomains: other hosts under a customer's domain are theirs to decide.
@@ -45,6 +48,7 @@
 	handle @trace {
 		respond 405
 	}
+	# zelvo:security-end
 	import zelvo_hooks
 	handle_path /_zelvo/maintenance/* {
 		root * /srv/maintenance

@@ -543,15 +543,18 @@ services:
       start_period: 15s
 
   # Malware scanning of attachments (B1, product owner decision 2026-11-22): the official ClamAV
-  # image, unmodified (GPL-2.0). It ships with malware definitions and keeps them up to date with
-  # freshclam when it can reach the internet. Offline installations set CLAMAV_NO_FRESHCLAMD=true
-  # and import definition files with scripts/clamav-import-definitions.sh. Needs about 1-1.5 GB
-  # of memory, briefly about twice that while it loads new definitions.
+  # image, unmodified (GPL-2.0). It ships with malware definitions. Task M1 (approved 2026-11-26):
+  # freshclam reads Zelvo as its private mirror, which serves the definition files imported in
+  # Settings → Updates → Malware definitions and, with "Download definitions automatically" on,
+  # sends freshclam on to ClamAV's own servers. Needs about 1-1.5 GB of memory, briefly about twice
+  # that while it loads new definitions.
   clamav:
     <<: *restart
     image: clamav/clamav:1.5.5
     environment:
-      CLAMAV_NO_FRESHCLAMD: ${CLAMAV_NO_FRESHCLAMD:-false}
+      FRESHCLAM_CONF_PrivateMirror: http://api:8080/_internal/clamav
+      # Every 30 minutes (freshclam allows at most 50 checks a day).
+      FRESHCLAM_CHECKS: "48"
       # Room for the largest attachment a tenant can allow (100 MB).
       CLAMD_CONF_StreamMaxLength: 105M
       CLAMD_CONF_MaxFileSize: 105M

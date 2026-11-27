@@ -14,7 +14,7 @@ spec:
   policyTypes: [Ingress]
 {{- range $target := list (dict "name" "proxy" "from" (list) "ports" (list 8080 8443))
     (dict "name" "web" "from" (list "proxy") "ports" (list 3000))
-    (dict "name" "api" "from" (list "proxy" "web") "ports" (list 8080))
+    (dict "name" "api" "from" (list "proxy" "web" "clamav") "ports" (list 8080))
     (dict "name" "keycloak" "from" (list "proxy" "web" "api" "migrate" "keycloak") "ports" (list 8080 9000 7800 57800))
     (dict "name" "clamav" "from" (list "worker") "ports" (list 3310)) }}
 ---

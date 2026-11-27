@@ -334,6 +334,12 @@
       "inApp": "ورد طلب جديد بشأن {{privacyRequest.type}} ({{privacyRequest.number}})، ويُستحق الرد عليه في موعد أقصاه {{privacyRequest.dueAt}}.",
       "body": "حضرة {{recipient.name}} المحترم،\n\nورد طلب جديد من صاحب البيانات برقم {{privacyRequest.number}} بشأن {{privacyRequest.type}}، ويُستحق الرد عليه في موعد أقصاه {{privacyRequest.dueAt}}.\n\nمع التحية،\n{{tenant.name}}",
       "action": "فتح الطلب"
+    },
+    "malware.definitions-outdated": {
+      "subject": "تعريفات البرمجيات الضارة غير محدّثة",
+      "inApp": "إصدار تعريفات البرمجيات الضارة هو {{definitions.version}} بتاريخ {{definitions.builtAt}}، وقد مضى عليها أكثر من {{definitions.days}} أيام. يُرجى استيراد تعريفات جديدة من الإعدادات ← التحديثات ← تعريفات البرمجيات الضارة.",
+      "body": "حضرة {{recipient.name}} المحترم،\n\nلا يزال برنامج فحص البرمجيات الضارة الذي يفحص جميع الملفات المرفوعة يستخدم إصدار التعريفات {{definitions.version}} الصادر بتاريخ {{definitions.builtAt}}، وقد تجاوز عمرها المدة المحددة لهذا النظام وهي {{definitions.days}} أيام، مما قد يحول دون التعرّف على أحدث البرمجيات الضارة.\n\nيُرجى استيراد ملفات تعريفات ClamAV الحالية من الإعدادات ← التحديثات ← تعريفات البرمجيات الضارة، أو التحقق من قدرة برنامج الفحص على تنزيلها.\n\nمع التحية،\n{{tenant.name}}",
+      "action": "فتح تعريفات البرمجيات الضارة"
     }
   },
   "samples": {

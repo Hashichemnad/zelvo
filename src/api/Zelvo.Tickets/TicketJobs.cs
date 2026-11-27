@@ -376,6 +376,9 @@ public static class TicketServiceCollectionExtensions
 
         services.TryAddScoped<IAttachmentStore, PostgresAttachmentStore>();
         services.TryAddSingleton<IMalwareScanner, ClamAvScanner>();
+        // Task M1: ClamAV's definitions (the private mirror, what ClamAV has loaded).
+        services.TryAddSingleton<Malware.MalwareDefinitionStore>();
+        services.TryAddSingleton<Malware.IClamAvVersionClient, Malware.ClamAvVersionClient>();
         services.AddScoped<ISearchDocumentSource, IncidentSearchSource>();
         services.AddScoped<ISearchDocumentSource, VoiceSearchSource>();
         services.AddScoped<ISearchDocumentSource, RequestSearchSource>();
@@ -418,6 +421,8 @@ public static class TicketServiceCollectionExtensions
         {
             services.TryAddSingleton<AttachmentScanJob>();
             services.AddHostedService(sp => sp.GetRequiredService<AttachmentScanJob>());
+            services.TryAddSingleton<Malware.ClamAvStatusJob>();
+            services.AddHostedService(sp => sp.GetRequiredService<Malware.ClamAvStatusJob>());
         }
 
         return services;
