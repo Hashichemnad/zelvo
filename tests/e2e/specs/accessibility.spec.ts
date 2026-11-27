@@ -53,7 +53,7 @@ const pages: Record<Persona, Target[]> = {
   visitor: ["", "/help", "/catalog", "/contact", "/track", "/status", "/privacy", "/sign-in-problem", "/no-such-page", "/offline", "/account-setup",
     { from: "/help", link: /\/help\/articles\/[0-9a-f-]{36}$/, name: "/help/articles/[id]" },
     { from: "/catalog", link: /\/catalog\/[0-9a-f-]{36}$/, name: "/catalog/[id]" }],
-  requester: ["", "/account", "/account/privacy", "/my-tickets", "/my-incidents", "/my-incidents/new", "/my-requests", "/my-voice",
+  requester: ["", "/account", "/account/privacy", "/my-tickets", "/my-assets", "/my-incidents", "/my-incidents/new", "/my-requests", "/my-voice",
     "/notifications", "/catalog", "/contact",
     { from: "/my-incidents", link: /\/my-incidents\/[0-9a-f-]{36}$/, name: "/my-incidents/[id]" },
     { from: "/my-requests", link: /\/my-requests\/[0-9a-f-]{36}$/, name: "/my-requests/[id]" },
@@ -68,15 +68,18 @@ const pages: Record<Persona, Target[]> = {
     { from: "/knowledge", link: /\/knowledge\/[0-9a-f-]{36}$/, name: "/knowledge/[id]" },
     { from: "/workspace", link: /\/workspace\/[0-9a-f-]{36}$/, name: "/workspace/[ticket]" },
     // Task G1: the CMDB and an item with its relationships, impact and map.
-    { from: "/cmdb", link: /\/cmdb\/[0-9a-f-]{36}$/, name: "/cmdb/[id]" }],
+    { from: "/cmdb", link: /\/cmdb\/[0-9a-f-]{36}$/, name: "/cmdb/[id]" },
+    // Task G3: assets, an asset, contracts, licences and the label scanner.
+    "/assets", "/assets/contracts", "/assets/licenses", "/assets/scan",
+    { from: "/assets", link: /\/assets\/[0-9a-f-]{36}$/, name: "/assets/[id]" }],
   lead: ["/knowledge/review", "/reports", "/reports/agents", "/settings/canned-responses"],
   // Detail pages marked optional depend on sample data the demo may not have at that moment
   // (an approval waiting for this approver, a webhook, a paid receipt); they are listed as skipped.
   approver: ["/approvals", { from: "/approvals", link: /\/approvals\/[0-9a-f-]{36}$/, name: "/approvals/[id]", optional: true }],
-  admin: ["/settings", "/setup", "/privacy-requests", "/payments", "/reports/schedules", "/reports/schedules/new", "/cmdb/new",
+  admin: ["/settings", "/setup", "/privacy-requests", "/payments", "/reports/schedules", "/reports/schedules/new", "/cmdb/new", "/cmdb/review", "/assets/new",
     "/settings/ai", "/settings/ai/features", "/settings/ai/log", "/settings/ai/mcp", "/settings/ai/mcp-servers", "/settings/ai/prices",
     "/settings/ai/usage", "/settings/assignment", "/settings/attachments", "/settings/branding", "/settings/business-calendars",
-    "/settings/catalog", "/settings/categories", "/settings/cmdb", "/settings/chat", "/settings/connectors", "/settings/customer-groups",
+    "/settings/assets", "/settings/catalog", "/settings/categories", "/settings/cmdb", "/settings/chat", "/settings/connectors", "/settings/customer-groups",
     "/settings/customer-voice", "/settings/departments", "/settings/field-sets", "/settings/forms", "/settings/groups",
     "/settings/import-export", "/settings/incidents", "/settings/integrations", "/settings/integrations/log",
     "/settings/integrations/webhooks", "/settings/knowledge", "/settings/language", "/settings/license", "/settings/locations",

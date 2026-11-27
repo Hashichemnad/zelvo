@@ -8,6 +8,7 @@ import { deleteRequest, getJson, putJson } from "@/lib/client-api";
 import { textIn, type TicketCi } from "@/lib/cmdb";
 import type { Locale } from "@/lib/incidents";
 import { CiLookup } from "./CiLookup";
+import { AssetScanner } from "@/components/assets/AssetScanner";
 import { CiStatusBadge, CmdbStatusLine, useSaver } from "./common";
 
 /**
@@ -20,6 +21,7 @@ export function TicketCiPanel({
   kind,
   canEdit,
   canOpenItems,
+  canScan = false,
   csrfToken,
 }: {
   ticketId: string;
@@ -27,6 +29,8 @@ export function TicketCiPanel({
   canEdit: boolean;
   /** cmdb.read: item names link to their pages. */
   canOpenItems: boolean;
+  /** Task G3 (assets.read): a scanned asset label adds its item to the ticket. */
+  canScan?: boolean;
   csrfToken: string;
 }) {
   const t = useTranslations("cmdb.ticketPanel");
@@ -82,6 +86,14 @@ export function TicketCiPanel({
       {canEdit && links && (
         <CiLookup id={`${id}-add`} label={t("add")} exclude={links.map((l) => l.item.id)} disabled={busy}
           onPick={(item) => void run(async () => setLinks(await putJson<TicketCi[]>(`${base}/${item.id}`, {}, csrfToken)))} />
+      )}
+      {canEdit && canScan && links && (
+        <details>
+          <summary className="cursor-pointer text-sm font-semibold">{t("scan")}</summary>
+          <div className="mt-2">
+            <AssetScanner onFound={(asset) => void run(async () => setLinks(await putJson<TicketCi[]>(`${base}/${asset.id}`, {}, csrfToken)))} />
+          </div>
+        </details>
       )}
       <CmdbStatusLine status={status} />
     </section>

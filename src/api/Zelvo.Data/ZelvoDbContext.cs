@@ -1918,7 +1918,8 @@ public sealed partial class ZelvoDbContext(DbContextOptions<ZelvoDbContext> opti
                 table.HasCheckConstraint("ck_document_exports_status", EnumCheck("status", Enum.GetNames<ExportStatus>()));
                 table.HasCheckConstraint("ck_document_exports_language", "language IN ('en', 'ar')");
                 // Task F2: report exports have their dashboard and filter instead of a ticket.
-                table.HasCheckConstraint("ck_document_exports_subject", "(kind = 'Report') = (entity_id IS NULL AND parameters IS NOT NULL)");
+                // Reports and asset label sheets (task G3) are described by their parameters; tickets by their id.
+                table.HasCheckConstraint("ck_document_exports_subject", "(kind IN ('Report', 'AssetLabels')) = (entity_id IS NULL AND parameters IS NOT NULL)");
             });
             export.HasKey(e => e.Id);
             export.Property(e => e.Id).ValueGeneratedNever();

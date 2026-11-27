@@ -42,6 +42,21 @@ public sealed partial class ZelvoDbContext
     /// <summary>The reconciliation review queue.</summary>
     public DbSet<CiReviewItem> CiReviewItems => Set<CiReviewItem>();
 
+    /// <summary>Assets (task G3).</summary>
+    public DbSet<Asset> Assets => Set<Asset>();
+
+    /// <summary>Last generated asset tag number per tenant.</summary>
+    public DbSet<AssetTagSequence> AssetTagSequences => Set<AssetTagSequence>();
+
+    /// <summary>Contracts and warranties.</summary>
+    public DbSet<AssetContract> AssetContracts => Set<AssetContract>();
+
+    /// <summary>Assets of contracts.</summary>
+    public DbSet<AssetContractItem> AssetContractItems => Set<AssetContractItem>();
+
+    /// <summary>Software licences.</summary>
+    public DbSet<SoftwareLicense> SoftwareLicenses => Set<SoftwareLicense>();
+
     private static void ConfigureCmdb(ModelBuilder modelBuilder)
     {
         modelBuilder.Entity<CiClass>(ciClass =>
@@ -169,6 +184,7 @@ public sealed partial class ZelvoDbContext
         });
 
         ConfigureCmdbDiscovery(modelBuilder);
+        ConfigureAssets(modelBuilder);
     }
 
     private static void ConfigureCmdbDiscovery(ModelBuilder modelBuilder)
@@ -263,6 +279,102 @@ public sealed partial class ZelvoDbContext
             // A pair is raised once, whatever was decided: the smaller id first.
             review.HasIndex(r => new { r.ConfigurationItemId, r.OtherItemId }).IsUnique().HasFilter("kind = 'PossibleDuplicate'");
             review.HasIndex(r => r.SourceRecordId).IsUnique().HasFilter("kind = 'Ambiguous' AND state = 'Open'");
+        });
+    }
+
+    private static void ConfigureAssets(ModelBuilder modelBuilder)
+    {
+        modelBuilder.Entity<Asset>(asset =>
+        {
+            asset.ToTable("assets", table =>
+            {
+                table.HasCheckConstraint("ck_assets_state", EnumCheck("state", Enum.GetNames<AssetState>()));
+                table.HasCheckConstraint("ck_assets_tag", "tag ~ '^[A-Z0-9]([A-Z0-9-]{0,30}[A-Z0-9])?$'");
+                table.HasCheckConstraint("ck_assets_assigned", "(state = 'Assigned') = (assigned_to_id IS NOT NULL)");
+                table.HasCheckConstraint("ck_assets_cost", "purchase_cost IS NULL OR purchase_cost >= 0");
+            });
+            asset.HasKey(a => a.ConfigurationItemId);
+            asset.HasOne<Tenant>().WithMany().HasForeignKey(a => a.TenantId).OnDelete(DeleteBehavior.Restrict);
+            asset.HasOne<ConfigurationItem>().WithOne().HasForeignKey<Asset>(a => a.ConfigurationItemId).OnDelete(DeleteBehavior.Cascade);
+            asset.HasOne<UserAccount>().WithMany().HasForeignKey(a => a.AssignedToId).OnDelete(DeleteBehavior.Restrict);
+            asset.HasOne<Ticket>().WithMany().HasForeignKey(a => a.RequestTicketId).OnDelete(DeleteBehavior.SetNull);
+            asset.Property(a => a.Tag).HasMaxLength(Asset.TagMaxLength);
+            asset.Property(a => a.State).HasConversion<string>().HasMaxLength(20);
+            asset.Property(a => a.PurchaseCost).HasPrecision(12, 2);
+            asset.Property(a => a.Supplier).HasMaxLength(Asset.SupplierMaxLength);
+            asset.Property(a => a.OrderNumber).HasMaxLength(Asset.SupplierMaxLength);
+            asset.Property(a => a.Notes).HasMaxLength(Asset.NotesMaxLength);
+            asset.Property(a => a.Version).IsRowVersion();
+            asset.HasIndex(a => new { a.TenantId, a.Tag }).IsUnique();
+            asset.HasIndex(a => new { a.TenantId, a.State });
+            asset.HasIndex(a => new { a.TenantId, a.AssignedToId });
+            asset.HasIndex(a => a.RequestTicketId);
+        });
+
+        modelBuilder.Entity<AssetTagSequence>(sequence =>
+        {
+            sequence.ToTable("asset_tag_sequences");
+            sequence.HasKey(s => s.TenantId);
+            sequence.HasOne<Tenant>().WithMany().HasForeignKey(s => s.TenantId).OnDelete(DeleteBehavior.Restrict);
+        });
+
+        modelBuilder.Entity<AssetContract>(contract =>
+        {
+            contract.ToTable("asset_contracts", table =>
+            {
+                table.HasCheckConstraint("ck_asset_contracts_kind", EnumCheck("kind", Enum.GetNames<AssetContractKind>()));
+                table.HasCheckConstraint("ck_asset_contracts_dates", "starts_on IS NULL OR starts_on <= ends_on");
+                table.HasCheckConstraint("ck_asset_contracts_cost", "cost_aed IS NULL OR cost_aed >= 0");
+            });
+            contract.HasKey(c => c.Id);
+            contract.Property(c => c.Id).ValueGeneratedNever();
+            contract.HasOne<Tenant>().WithMany().HasForeignKey(c => c.TenantId).OnDelete(DeleteBehavior.Restrict);
+            contract.HasOne<UserAccount>().WithMany().HasForeignKey(c => c.OwnerId).OnDelete(DeleteBehavior.SetNull);
+            contract.Property(c => c.Kind).HasConversion<string>().HasMaxLength(20);
+            contract.Property(c => c.Name).HasMaxLength(AssetContract.NameMaxLength);
+            contract.Property(c => c.Reference).HasMaxLength(AssetContract.ReferenceMaxLength);
+            contract.Property(c => c.Supplier).HasMaxLength(AssetContract.NameMaxLength);
+            contract.Property(c => c.Notes).HasMaxLength(Asset.NotesMaxLength);
+            contract.Property(c => c.CostAed).HasPrecision(12, 2);
+            contract.Property(c => c.Version).IsRowVersion();
+            contract.HasIndex(c => new { c.TenantId, c.EndsOn });
+        });
+
+        modelBuilder.Entity<AssetContractItem>(item =>
+        {
+            item.ToTable("asset_contract_items");
+            item.HasKey(i => new { i.ContractId, i.ConfigurationItemId });
+            item.HasOne<Tenant>().WithMany().HasForeignKey(i => i.TenantId).OnDelete(DeleteBehavior.Restrict);
+            item.HasOne<AssetContract>().WithMany().HasForeignKey(i => i.ContractId).OnDelete(DeleteBehavior.Cascade);
+            item.HasOne<Asset>().WithMany().HasForeignKey(i => i.ConfigurationItemId).OnDelete(DeleteBehavior.Cascade);
+            item.HasIndex(i => new { i.TenantId, i.ConfigurationItemId });
+        });
+
+        modelBuilder.Entity<SoftwareLicense>(license =>
+        {
+            license.ToTable("software_licenses", table =>
+            {
+                table.HasCheckConstraint("ck_software_licenses_metric", EnumCheck("metric", Enum.GetNames<LicenseMetric>()));
+                table.HasCheckConstraint("ck_software_licenses_quantity", "quantity BETWEEN 0 AND 10000000");
+                table.HasCheckConstraint("ck_software_licenses_products", "jsonb_typeof(product_keys) = 'array'");
+                table.HasCheckConstraint("ck_software_licenses_dates", "starts_on IS NULL OR ends_on IS NULL OR starts_on <= ends_on");
+                table.HasCheckConstraint("ck_software_licenses_cost", "cost_aed IS NULL OR cost_aed >= 0");
+            });
+            license.HasKey(l => l.Id);
+            license.Property(l => l.Id).ValueGeneratedNever();
+            license.HasOne<Tenant>().WithMany().HasForeignKey(l => l.TenantId).OnDelete(DeleteBehavior.Restrict);
+            license.HasOne<UserAccount>().WithMany().HasForeignKey(l => l.OwnerId).OnDelete(DeleteBehavior.SetNull);
+            license.Property(l => l.Name).HasMaxLength(SoftwareLicense.NameMaxLength);
+            license.Property(l => l.Publisher).HasMaxLength(SoftwareLicense.NameMaxLength);
+            license.Property(l => l.Supplier).HasMaxLength(SoftwareLicense.NameMaxLength);
+            license.Property(l => l.Reference).HasMaxLength(AssetContract.ReferenceMaxLength);
+            license.Property(l => l.Notes).HasMaxLength(Asset.NotesMaxLength);
+            license.Property(l => l.ProductKeys).HasColumnType("jsonb");
+            license.Property(l => l.Metric).HasConversion<string>().HasMaxLength(20);
+            license.Property(l => l.CostAed).HasPrecision(12, 2);
+            license.Property(l => l.Version).IsRowVersion();
+            license.HasIndex(l => new { l.TenantId, l.Name });
+            license.HasIndex(l => new { l.TenantId, l.EndsOn });
         });
     }
 }

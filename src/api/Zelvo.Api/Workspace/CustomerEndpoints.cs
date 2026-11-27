@@ -68,6 +68,11 @@ internal static class CustomerEndpoints
                 cancellationToken);
         }
 
+        // Task G3 (module 18 story): the requester's assets, their warranty and the tickets each is on.
+        var assets = user.Has(Permissions.AssetsRead) || user.Has(Permissions.AssetsManage)
+            ? await Assets.PersonAssetResponse.LoadAsync(db, requester.Id, withTickets: true, cancellationToken)
+            : null;
+
         return TypedResults.Ok(new CustomerResponse(
             new PersonResponse(requester.Id, requester.DisplayName),
             showEmail ? requester.Email : null,
@@ -76,7 +81,8 @@ internal static class CustomerEndpoints
             groups,
             open,
             total,
-            recent));
+            recent,
+            assets));
     }
 }
 
@@ -89,9 +95,10 @@ internal static class CustomerEndpoints
 /// <param name="OpenCount">Their incidents not resolved or closed, this one included.</param>
 /// <param name="TotalCount">All their incidents, this one included.</param>
 /// <param name="Recent">Their most recent other incidents, newest first.</param>
+/// <param name="Assets">Task G3: the assets assigned to them, for callers with assets.read (null otherwise).</param>
 internal sealed record CustomerResponse(
     PersonResponse Person, string? Email, string? PreferredLanguage, UserStatus Status, IReadOnlyList<NamedRef> CustomerGroups,
-    int OpenCount, int TotalCount, IReadOnlyList<CustomerTicketResponse> Recent);
+    int OpenCount, int TotalCount, IReadOnlyList<CustomerTicketResponse> Recent, IReadOnlyList<Assets.PersonAssetResponse>? Assets);
 
 /// <summary>One of the requester's other incidents.</summary>
 internal sealed record CustomerTicketResponse(

@@ -80,7 +80,11 @@
     "privacy.type.Correction": "correction of your personal data",
     "privacy.type.Erasure": "erasure of your personal data",
     "privacy.type.Restriction": "restriction of the processing of your personal data",
-    "privacy.type.Objection": "an objection to the processing of your personal data"
+    "privacy.type.Objection": "an objection to the processing of your personal data",
+    "asset.contractKind.Warranty": "warranty",
+    "asset.contractKind.Support": "support contract",
+    "asset.contractKind.Maintenance": "maintenance contract",
+    "asset.contractKind.Lease": "lease"
   },
   "templates": {
     "incident.received": {
@@ -346,6 +350,18 @@
       "inApp": "{{tenant.name}} turned on the wellbeing dashboard. It keeps daily figures of your workload for 90 days so team leads can balance work. See your own figures under Account → My workload.",
       "body": "Dear {{recipient.name}},\n\n{{tenant.name}} has turned on the wellbeing dashboard in Zelvo. It helps team leads balance work before anyone is overloaded; it is not used to rank or score people.\n\nWhat is recorded, once a day: the open tickets assigned to you (weighted by priority), new assignments, work you do in Zelvo outside your team's working hours (from your replies, state changes and work on tasks), and the share of angry or escalated tickets you handle. Nothing about your presence or typing is recorded.\n\nThe team leads of your groups see your figures; executives and administrators see only group totals. Every view of your figures is recorded, the figures are kept for 90 days, and they are part of the copy of your data you can ask for. You can see your own figures under Account → My workload. The privacy notice explains your rights.\n\nKind regards,\n{{tenant.name}}",
       "action": "See my workload"
+    },
+    "asset.contract-expiring": {
+      "subject": "{{contract.name}} ends on {{contract.endsOn}}",
+      "inApp": "The {{contract.kind}} {{contract.name}} ({{contract.supplier}}) ends on {{contract.endsOn}}. It covers {{contract.assets}} assets.",
+      "body": "Dear {{recipient.name}},\n\nThe {{contract.kind}} {{contract.name}} from {{contract.supplier}} ends on {{contract.endsOn}}. It covers {{contract.assets}} assets.\n\nPlease decide in good time whether to renew it, replace the assets or let it end, and record the new end date in Zelvo.\n\nKind regards,\n{{tenant.name}}",
+      "action": "Open contracts"
+    },
+    "asset.license-expiring": {
+      "subject": "The licence {{license.name}} ends on {{license.endsOn}}",
+      "inApp": "The software licence {{license.name}} ({{license.quantity}} entitlements) ends on {{license.endsOn}}.",
+      "body": "Dear {{recipient.name}},\n\nThe software licence {{license.name}} with {{license.quantity}} entitlements ends on {{license.endsOn}}.\n\nPlease check how many are in use in Zelvo's licence compliance and renew it in good time, so that the software stays licensed.\n\nKind regards,\n{{tenant.name}}",
+      "action": "Open licences"
     }
   },
   "samples": {

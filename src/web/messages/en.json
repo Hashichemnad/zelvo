@@ -329,6 +329,10 @@
       "wellbeing": {
         "title": "Wellbeing",
         "description": "Turn the workload-balancing dashboard on or off and set the default thresholds."
+      },
+      "assets": {
+        "title": "Assets",
+        "description": "The prefix of generated asset tags and how long before an end date alerts go out."
       }
     },
     "missingWarning": "{count, plural, one {# text is} other {# texts are}} missing a translation.",
@@ -568,7 +572,9 @@
         "cmdb_manage": "Add, change and retire configuration items and relationships; change Settings → CMDB",
         "wellbeing_read": "See the wellbeing dashboard: team leads their groups' agents, others group totals",
         "wellbeing_manage": "Turn agent wellbeing on or off and set its default thresholds",
-        "cmdb_discovery_manage": "Set up CMDB discovery sources (Intune, Entra ID devices, Azure, Active Directory, vCenter, the discovery API)"
+        "cmdb_discovery_manage": "Set up CMDB discovery sources (Intune, Entra ID devices, Azure, Active Directory, vCenter, the discovery API)",
+        "assets_read": "See assets, contracts, warranties, software licences and compliance; print labels",
+        "assets_manage": "Manage assets and their lifecycle, contracts, warranties and licences; change Settings → Assets"
       },
       "events": {
         "user_created": "A user was created",
@@ -1941,7 +1947,8 @@
         "privacy": "Privacy",
         "installation": "Installation",
         "cmdb": "CMDB",
-        "wellbeing": "Agent wellbeing"
+        "wellbeing": "Agent wellbeing",
+        "assets": "Assets"
       },
       "tenant_manage": "Change the organisation's name",
       "translations_read": "See missing translations",
@@ -2002,7 +2009,9 @@
       "cmdb_manage": "Add, change and retire configuration items and relationships; change Settings → CMDB",
       "wellbeing_read": "See the wellbeing dashboard: team leads their groups' agents, others group totals",
       "wellbeing_manage": "Turn agent wellbeing on or off and set its default thresholds",
-      "cmdb_discovery_manage": "Set up CMDB discovery sources (Intune, Entra ID devices, Azure, Active Directory, vCenter, the discovery API)"
+      "cmdb_discovery_manage": "Set up CMDB discovery sources (Intune, Entra ID devices, Azure, Active Directory, vCenter, the discovery API)",
+      "assets_read": "See assets, contracts, warranties, software licences and compliance; print labels",
+      "assets_manage": "Manage assets and their lifecycle, contracts, warranties and licences; change Settings → Assets"
     },
     "assignment": {
       "intro": "The rules are checked in order and the first that matches decides where a new ticket goes. They run when a ticket is created and when an agent chooses \"Route again\"; they never move a ticket on their own later.",
@@ -3149,7 +3158,8 @@
       "disabled": "This account is disabled.",
       "counts": "Open incidents: {open} · All incidents: {total}",
       "recent": "Previous incidents",
-      "noOthers": "No other incidents."
+      "noOthers": "No other incidents.",
+      "assets": "Their assets"
     },
     "ai": {
       "title": "AI assistant",
@@ -7002,7 +7012,8 @@
       "failed": "The configuration items could not be loaded.",
       "none": "No configuration items yet.",
       "remove": "Remove {name}",
-      "add": "Add an item by number or name"
+      "add": "Add an item by number or name",
+      "scan": "Scan an asset label"
     },
     "discovery": {
       "caption": "Discovery sources",
@@ -7407,6 +7418,251 @@
       "invalidPasswordMinUpperCaseCharsMessage": "The password needs more capital letters.",
       "invalidPasswordMinLowerCaseCharsMessage": "The password needs more small letters.",
       "invalidPasswordMinSpecialCharsMessage": "The password needs more special characters."
+    }
+  },
+  "assets": {
+    "headerNav": "Assets",
+    "nav": {
+      "label": "Asset pages",
+      "assets": "Assets",
+      "contracts": "Contracts and warranties",
+      "licenses": "Software licences",
+      "scan": "Scan a label"
+    },
+    "states": {
+      "Requested": "Requested",
+      "Ordered": "Ordered",
+      "Received": "Received",
+      "InStock": "In stock",
+      "Assigned": "Assigned",
+      "InRepair": "In repair",
+      "Retired": "Retired",
+      "Disposed": "Disposed"
+    },
+    "contractKinds": {
+      "Warranty": "Warranty",
+      "Support": "Support",
+      "Maintenance": "Maintenance",
+      "Lease": "Lease"
+    },
+    "person": {
+      "search": "Find",
+      "failed": "People could not be searched.",
+      "results": "{count, plural, =0 {Nobody found.} one {One person found.} other {# people found.}}"
+    },
+    "list": {
+      "title": "Assets",
+      "intro": "Laptops, phones, printers, software and other hardware and software configuration items with an asset tag: where each is in its life, who has it, and its warranty.",
+      "noAccess": "You do not have access to assets.",
+      "unavailable": "Assets cannot be reached right now. Please try again later.",
+      "new": "New asset",
+      "back": "Back to assets",
+      "filters": "Filter assets",
+      "search": "Tag, number or name",
+      "state": "State",
+      "anyState": "Any state except disposed",
+      "warrantyEnding": "Only warranties ending soon",
+      "apply": "Show",
+      "clear": "Clear the filters",
+      "count": "{count, plural, =0 {No assets match.} one {One asset.} other {# assets.}}",
+      "tag": "Tag",
+      "name": "Name",
+      "assignedTo": "Assigned to",
+      "warranty": "Warranty ends",
+      "endsSoon": "Ends soon",
+      "ended": "Ended",
+      "labels": "Labels",
+      "chosen": "{count, plural, =0 {No assets chosen} one {One asset chosen} other {# assets chosen}}",
+      "layout": "Labels",
+      "layoutSmall": "Small (24 per A4 page)",
+      "layoutLarge": "Large (10 per A4 page)",
+      "chooseForLabels": "Choose assets to print their labels.",
+      "chooseAll": "Choose all assets on this page",
+      "choose": "Choose {tag}"
+    },
+    "new": {
+      "heading": "New asset",
+      "item": "Hardware or software item",
+      "otherItem": "Choose another item",
+      "tag": "Asset tag",
+      "tagHint": "Capital letters, digits and hyphens, at most 32. Leave it empty for the next generated tag.",
+      "state": "State",
+      "person": "Assign to",
+      "assignedTo": "Assigned to {name}.",
+      "otherPerson": "Choose someone else",
+      "save": "Add the asset",
+      "errors": {
+        "failed": "The asset could not be added. Please try again.",
+        "not-an-asset-class": "Only hardware and software items are assets.",
+        "already-an-asset": "This item is an asset already.",
+        "tag-taken": "Another asset has this tag."
+      }
+    },
+    "detail": {
+      "title": "Asset",
+      "state": "State",
+      "item": "Configuration item",
+      "assignedTo": "Assigned to",
+      "since": "Since {date}",
+      "warranty": "Warranty",
+      "request": "Asked for in",
+      "purchased": "Bought",
+      "cost": "AED {amount}",
+      "notes": "Notes",
+      "moveHeading": "Change the state",
+      "nextState": "New state",
+      "reassign": "Assign to someone else",
+      "person": "Assign to",
+      "assigningTo": "To {name}.",
+      "otherPerson": "Choose someone else",
+      "note": "Why (for the history)",
+      "move": "Change the state",
+      "moved": "The state was changed.",
+      "edit": "Change the tag and purchase details",
+      "editHeading": "Tag and purchase details",
+      "fields": {
+        "tag": "Asset tag",
+        "supplier": "Supplier",
+        "orderNumber": "Order or invoice number",
+        "purchaseDate": "Purchase date",
+        "purchaseCost": "Cost (AED)",
+        "notes": "Notes"
+      },
+      "save": "Save",
+      "saved": "Saved.",
+      "cancel": "Cancel",
+      "contractsHeading": "Contracts and warranties",
+      "noContracts": "No contract or warranty covers this asset.",
+      "endsOn": "ends {date}",
+      "allContracts": "All contracts and warranties",
+      "licensesHeading": "Licences of its software",
+      "noLicenses": "No licence covers software found on this asset.",
+      "errors": {
+        "failed": "The change could not be saved. Please try again.",
+        "state-not-allowed": "The asset cannot move to that state from where it is.",
+        "tag-taken": "Another asset has this tag.",
+        "version-mismatch": "Someone else changed the asset. Reload the page and repeat your change."
+      }
+    },
+    "contracts": {
+      "title": "Contracts and warranties",
+      "intro": "Warranties, support, maintenance and lease contracts on assets. Asset managers and the contract's owner are told before one ends.",
+      "none": "No contracts or warranties yet.",
+      "name": "Name",
+      "kind": "Kind",
+      "endsOn": "Ends",
+      "startsOn": "Starts",
+      "assets": "Assets",
+      "actions": "Actions",
+      "edit": "Edit",
+      "delete": "Remove",
+      "confirmDelete": "Remove {name}?",
+      "deleted": "Removed.",
+      "add": "Add a contract or warranty",
+      "addHeading": "New contract or warranty",
+      "editHeading": "Change {name}",
+      "supplier": "Supplier",
+      "reference": "Reference",
+      "cost": "Cost (AED)",
+      "assetTags": "Asset tags",
+      "assetTagsHint": "The tags of the assets it covers, separated by commas or spaces.",
+      "owner": "Owner: {name}.",
+      "removeOwner": "Remove the owner",
+      "ownerSearch": "Owner (told before it ends)",
+      "save": "Save",
+      "saved": "Saved.",
+      "cancel": "Cancel",
+      "unknownTag": "No asset has the tag {tag}.",
+      "errors": {
+        "failed": "The contract could not be saved. Please try again.",
+        "name-required": "Give it a name.",
+        "ends-on-required": "Enter the last day it covers.",
+        "dates-invalid": "It cannot start after it ends.",
+        "cost-invalid": "Enter a cost in AED with at most two decimals.",
+        "owner-unknown": "Choose an active person.",
+        "asset-unknown": "Choose assets that exist.",
+        "too-many-items": "A contract covers at most 1,000 assets.",
+        "version-mismatch": "Someone else changed it. Reload the page and repeat your change."
+      }
+    },
+    "licenses": {
+      "title": "Software licences",
+      "intro": "What you own against what discovery found installed. Licences per device count each device; licences per person count each person once, and devices assigned to nobody once each.",
+      "none": "No software licences yet.",
+      "name": "Name",
+      "owned": "Owned",
+      "used": "In use",
+      "devicesPeople": "{devices} devices, {people} people",
+      "compliance": "Compliance",
+      "shortfall": "{count, plural, one {Short by one} other {Short by {shown}}}",
+      "spare": "{count, plural, =0 {Fully used} one {One spare} other {{shown} spare}}",
+      "endsOn": "Ends",
+      "actions": "Actions",
+      "perDevice": "Per device",
+      "perUser": "Per person",
+      "edit": "Edit",
+      "delete": "Remove",
+      "confirmDelete": "Remove {name}?",
+      "deleted": "Removed.",
+      "add": "Add a licence",
+      "addHeading": "New software licence",
+      "editHeading": "Change {name}",
+      "products": "Products it covers",
+      "noProducts": "Choose at least one product that discovery found.",
+      "removeProduct": "Remove {name}",
+      "findProduct": "Find discovered software",
+      "search": "Find",
+      "found": "{count, plural, =0 {No software found.} one {One product found.} other {# products found.}}",
+      "onDevices": "{count, plural, one {on one device} other {on {shown} devices}}",
+      "metric": "Counted",
+      "publisher": "Publisher",
+      "supplier": "Supplier",
+      "reference": "Agreement reference",
+      "save": "Save",
+      "saved": "Saved.",
+      "cancel": "Cancel",
+      "errors": {
+        "failed": "The licence could not be saved. Please try again.",
+        "name-required": "Give it a name.",
+        "products-required": "Choose 1 to 20 products.",
+        "quantity-invalid": "Enter how many it entitles.",
+        "dates-invalid": "It cannot start after it ends.",
+        "cost-invalid": "Enter a cost in AED with at most two decimals.",
+        "version-mismatch": "Someone else changed it. Reload the page and repeat your change."
+      }
+    },
+    "scan": {
+      "title": "Scan an asset label",
+      "intro": "Take a picture of an asset label with your phone's camera (QR code or barcode), or type the tag printed on it. The asset opens.",
+      "takePicture": "Take a picture of the label",
+      "typeTag": "Or type the tag",
+      "find": "Find",
+      "reading": "Reading the label…",
+      "unreadable": "No QR code or barcode could be read. Hold the camera closer, in good light, or type the tag.",
+      "notATag": "Asset tags are capital letters, digits and hyphens.",
+      "unknown": "No asset has the tag {tag}.",
+      "found": "Found {tag}: {name}.",
+      "failed": "The asset could not be looked up. Please try again."
+    },
+    "mine": {
+      "title": "My assets",
+      "intro": "The laptops, phones and other equipment assigned to you, with their warranty.",
+      "unavailable": "Your assets cannot be shown right now. Please try again later.",
+      "none": "Nothing is assigned to you.",
+      "noneForPerson": "No assets are assigned to them.",
+      "open": "See my assets",
+      "warranty": "Warranty until {date}",
+      "noWarranty": "No warranty recorded",
+      "tickets": "{count, plural, =0 {On no tickets} one {On one ticket} other {On {shown} tickets}}"
+    },
+    "settings": {
+      "title": "Asset settings",
+      "intro": "Tags are generated for new assets unless one is typed in. Alerts about contracts, warranties and licences go out the set number of days before they end.",
+      "prefix": "Prefix of generated tags",
+      "prefixHint": "1 to 10 capital letters or digits, starting with a letter. New assets get tags such as {example}.",
+      "days": "Days before an end date that alerts go out",
+      "daysHint": "From 1 to 365 days.",
+      "save": "Save"
     }
   }
 }

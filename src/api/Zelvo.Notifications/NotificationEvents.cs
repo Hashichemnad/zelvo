@@ -175,6 +175,15 @@ public static class NotificationEvents
     public const string MalwareDefinitionsOutdated = "malware.definitions-outdated";
 
     /// <summary>
+    /// A contract or warranty on assets ends within the tenant's warning period (task G3); to the
+    /// holders of <c>assets.manage</c> and its owner, once per end date.
+    /// </summary>
+    public const string AssetContractExpiring = "asset.contract-expiring";
+
+    /// <summary>A software licence ends within the warning period (task G3); to the same people.</summary>
+    public const string AssetLicenseExpiring = "asset.license-expiring";
+
+    /// <summary>
     /// A notify action of a workflow rule (task C3). Its wording is the rule's own, carried in the
     /// notification's values; it is not listed in Settings → Notifications or Account → Notifications.
     /// </summary>
@@ -248,6 +257,10 @@ public static class NotificationEvents
         new(WellbeingEnabled, NotificationAudience.Staff, false, []),
         // Task M1: the scanner's definitions are out of date.
         new(MalwareDefinitionsOutdated, NotificationAudience.Staff, true, [Placeholders.DefinitionsVersion, Placeholders.DefinitionsBuiltAt, Placeholders.DefinitionsDays]),
+        // Task G3: contracts, warranties and licences about to end.
+        new(AssetContractExpiring, NotificationAudience.Staff, true,
+            [Placeholders.ContractName, Placeholders.ContractKind, Placeholders.ContractSupplier, Placeholders.ContractEndsOn, Placeholders.ContractAssets]),
+        new(AssetLicenseExpiring, NotificationAudience.Staff, true, [Placeholders.LicenseName, Placeholders.LicenseQuantity, Placeholders.LicenseEndsOn]),
     ];
 
     /// <summary>Events that are not set up in Settings (their wording comes from elsewhere).</summary>
@@ -356,6 +369,30 @@ public static class Placeholders
 
     /// <summary>The warning period in days.</summary>
     public const string DefinitionsDays = "definitions.days";
+
+    /// <summary>A contract's or warranty's name (task G3).</summary>
+    public const string ContractName = "contract.name";
+
+    /// <summary>What kind of contract it is, in words.</summary>
+    public const string ContractKind = "contract.kind";
+
+    /// <summary>The contract's supplier.</summary>
+    public const string ContractSupplier = "contract.supplier";
+
+    /// <summary>The last day the contract covers (YYYY-MM-DD).</summary>
+    public const string ContractEndsOn = "contract.endsOn";
+
+    /// <summary>How many assets the contract covers.</summary>
+    public const string ContractAssets = "contract.assets";
+
+    /// <summary>A software licence's name (task G3).</summary>
+    public const string LicenseName = "license.name";
+
+    /// <summary>How many entitlements the licence has.</summary>
+    public const string LicenseQuantity = "license.quantity";
+
+    /// <summary>The day the licence ends (YYYY-MM-DD).</summary>
+    public const string LicenseEndsOn = "license.endsOn";
 
     /// <summary>What was done, or why a data subject request was refused (task F5).</summary>
     public const string PrivacyRequestResolution = "privacyRequest.resolution";

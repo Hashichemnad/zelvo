@@ -108,7 +108,7 @@ describe("ReviewQueue", () => {
     expect(await screen.findByText("The items were merged.")).toBeInTheDocument();
     const [url, init] = fetchMock.mock.calls[0] as unknown as [string, RequestInit];
     expect(url).toBe(`/bff/api/v1/cmdb/review/${r.id}/merge`);
-    expect(JSON.parse(String(init.body))).toEqual({ keepId: r.items[0].id });
+    expect(JSON.parse(String(init.body))).toEqual({ keepId: r.items[0]!.id });
   });
 
   it("offers linking or a new item for a record that matched several items, in Arabic", () => {

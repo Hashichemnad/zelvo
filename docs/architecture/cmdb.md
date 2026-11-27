@@ -8,7 +8,7 @@ Covers the first part of module 18 in `docs/requirements.md`:
 - impact traversal ("what depends on this item"), used later by problems (H1) and changes (H3, H5);
 - configuration items on incidents and service requests, and the CI picker field that C1 deferred.
 
-Import, discovery and reconciliation came with G2 (below, "Import, discovery and reconciliation"). Assets, contracts, licences and labels come with G3.
+Import, discovery and reconciliation came with G2, assets, contracts, licences and labels with G3 (both below).
 
 Product owner decisions that shape it (2026-11-26, Phase 2 plan):
 
@@ -258,10 +258,87 @@ Seeder `g2-discovery` (order 272): a discovery API source in each organisation (
 - Sources that change an item's class or status (people decide), and deleting items a source no longer reports (they are marked).
 - Not tried against real Intune, Entra ID, Azure, Active Directory or vCenter systems in this session (no access); the clients follow the documented APIs and are tested against recorded requests. Not run in Docker Compose here (no image builds in this environment).
 
+## Assets (task G3)
+
+Covers module 18's asset lifecycle (requested, ordered, received, in stock, assigned, in repair, retired, disposed), contracts, warranties and software licences with expiry alerts, software licence compliance (installed against owned), barcode and QR labels scanned with the phone's camera, and assets assigned to people and shown on their tickets. Product owner decision 16 of 2026-11-26: a ZXing-based library for scanning (MIT or Apache-2.0); labels carry the asset tag only, as a QR code and Code 128.
+
+### Code
+
+| Piece | Where |
+| --- | --- |
+| Tables `assets` (one per configuration item), `asset_tag_sequences`, `asset_contracts`, `asset_contract_items`, `software_licenses` (row-level security; migration `Assets`); export kind `AssetLabels` | `src/api/Zelvo.Data/Cmdb/AssetEntities.cs`, `ZelvoDbContext.Cmdb.cs` |
+| Lifecycle, tags, settings, compliance, warranties | `src/api/Zelvo.Api/Assets/AssetCore.cs` |
+| Assets, lookup, labels, people's assets, settings | `AssetEndpoints.cs` |
+| Contracts, licences, discovered software | `AssetContractEndpoints.cs` |
+| Expiry alerts | `AssetJobs.cs` (`AssetExpiryAlerts`, `AssetJobs`) |
+| QR code and Code 128 encoders, the label sheet | `src/api/Zelvo.Tickets/Exports/Barcodes.cs`, `AssetLabelDocument.cs` (made by the worker's PDF job like F1's exports) |
+| Notifications `asset.contract-expiring`, `asset.license-expiring` | `src/api/Zelvo.Notifications` (events, placeholders, English and formal Arabic templates) |
+| Demo seeder `g3-assets` | `src/api/Zelvo.Api/Demo/DemoAssetsSeeder.cs` |
+| Pages: `/assets`, `/assets/[id]`, `/assets/new`, `/assets/contracts`, `/assets/licenses`, `/assets/scan`, `/my-assets`, Settings → Assets; "My assets" on My tickets; the requester's assets in the workspace's customer panel; "Scan an asset label" on the configuration items panel of incidents and requests | `src/web/src/components/assets`, `src/web/src/app/[locale]/assets` |
+
+### Assets and their lifecycle
+
+- **An asset is a hardware or software configuration item with a tag** (`POST /assets` with the item; families Hardware and Software only, `not-an-asset-class` otherwise; one asset per item). The tag is typed (capital letters, digits and hyphens, at most 32, unique in the tenant) or generated as `AST-000123` (prefix `assets.tagPrefix`, its own sequence; a typed tag that takes a generated number is skipped).
+- **Lifecycle** (`POST /assets/{id}/state` with If-Match): requested → ordered, received, in stock or retired; ordered → received or retired; received → in stock, assigned or in repair; in stock → assigned, in repair or retired; assigned → in stock, in repair, retired or assigned to someone else; in repair → in stock, assigned or retired; retired → in stock or disposed; disposed is final. Other moves answer 409 `state-not-allowed`. Assigned assets, and only they, name an active person (`assigned_to_id`, `assigned_at`); leaving Assigned clears the person. Each move is audited (`assets.state-changed` with from, to, the people and a note).
+- **The item's status follows**: requested, ordered and received → Planned; in stock and assigned → Active; in repair → Maintenance; retired and disposed → Retired (and the search document follows).
+- **Details**: the service request that asked for it (`request_ticket_id`, a `ServiceRequest` ticket), purchase date, cost in AED, supplier, order number and notes (`PATCH /assets/{id}`).
+- **Who sees what.** `assets.read` (agents, team leads, executives, administrators) sees assets, contracts, licences and compliance and prints labels; `assets.manage` (administrators) changes them. Both are open to integrations. Every person sees the assets assigned to them (`GET /me/assets`, without ticket counts).
+
+### On tickets
+
+- **Customer panel** (B4): `GET /incidents/{id}/customer` includes the requester's assigned assets for callers with `assets.read`: tag, name, class, warranty end and how many tickets each is on (the module 18 story: the laptop, its warranty and its past incidents, to decide repair or replace). Also `GET /users/{id}/assets`.
+- **My assets** (`/my-assets`) and a section on My tickets.
+- **Scanning onto a ticket**: the configuration items panel of incidents and service requests has "Scan an asset label" for staff with the ticket's edit permission and `assets.read`; the item of the asset found is added to the ticket.
+
+### Contracts, warranties and licences
+
+- **Contracts** (`/assets/contracts`): kind (Warranty, Support, Maintenance, Lease), name, reference, supplier, start and end dates, cost in AED, notes, an owner and the assets they cover (up to 1,000). An asset's warranty is the latest end of its warranty contracts.
+- **Software licences** (`/assets/licenses`): name, publisher, the **discovered products** they cover (1–20 product keys from G2's installed software, chosen from `GET /assets/software`), per device or per person, quantity, dates, supplier, reference, cost and owner.
+- **Compliance** (`LicenseCompliance`): the devices (not retired, not merged) with one of the products installed; per person, devices assigned to the same person count once and devices assigned to nobody once each. `used`, `shortfall` (used above quantity) and `spare` are shown per licence and on each asset's licences.
+- **Expiry alerts** (`AssetJobs`, hourly in the API, advisory lock per tenant, tenants from `zelvo_asset_job_tenants()`): contracts and licences that end within `assets.expiryWarningDays` (default 30, 1–365) are announced **once per end date** to the holders of `assets.manage` and the owner (at most 50 people), in the app and by email (`asset.contract-expiring` with the contract's name, kind, supplier, end date and number of assets; `asset.license-expiring` with the name, quantity and end date), audited `assets.contract.expiry-alerted`, `assets.license.expiry-alerted`. A new end date gets a new alert. End dates are given as `YYYY-MM-DD` in the wording. Administrators switch and word the events in Settings → Notifications like the others.
+
+### Labels and scanning
+
+- **Label sheets** (`POST /assets/labels/exports?ids=…&layout=Small|Large`, at most 200, `assets.read`): a PDF made by the worker's headless Chromium (F1's `document_exports`, kind `AssetLabels`, downloaded only by the person who asked, kept a day), A4 with 3 × 8 labels of 70 × 37 mm or 2 × 5 of 99 × 57 mm. Each label has the **asset tag as a QR code and as Code 128** (decision 16), the tag in text, the item's name and the organisation in its brand colour, in English or Arabic. Audited `assets.labels.requested`.
+- **Encoders**: Zelvo's own (`Barcodes`), drawn as SVG because the renderer runs no scripts: QR codes in byte mode with error correction level M, versions 1–3 with the lowest-penalty mask; Code 128 with code set B and its check symbol. Both were checked with a reference decoder (ZXing-C++) while built; the unit tests keep a verified QR matrix, and a web test decodes it with the app's own library.
+- **Scanning** (`/assets/scan` and the ticket panel): "Take a picture of the label" opens the phone's camera app (`<input capture="environment">`, as J1's camera attachments), and the picture is decoded in the browser with **`@zxing/browser` 0.2.1 (MIT) and `@zxing/library` 0.23.0 (Apache-2.0)**, new dependencies, loaded only when a picture is chosen. The page itself never asks for the camera, so `Permissions-Policy: camera=()` stays. Typing the tag is the equal for keyboard and screen-reader users. `GET /assets/lookup?tag=` finds the asset.
+
+### API
+
+| Endpoint | Who | Does |
+| --- | --- | --- |
+| `GET`, `POST /assets`, `GET`, `PATCH /assets/{id}`, `POST /assets/{id}/state` | `assets.read` / `assets.manage` | Assets and their lifecycle |
+| `GET /assets/lookup?tag=` | `assets.read` | A scanned label |
+| `POST /assets/labels/exports` | `assets.read` | Label sheets |
+| `GET`, `POST /assets/contracts`, `GET`, `PATCH`, `DELETE /assets/contracts/{id}` | `assets.read` / `assets.manage` | Contracts and warranties |
+| `GET`, `POST /assets/licenses`, `PATCH`, `DELETE /assets/licenses/{id}`, `GET /assets/software` | `assets.read` / `assets.manage` | Licences, compliance, discovered software |
+| `GET /users/{id}/assets` | `assets.read` | A person's assets |
+| `GET /me/assets` | signed in | My assets |
+| `GET`, `PUT /assets/settings` | `assets.read` / `assets.manage` | Tag prefix and warning period |
+
+Problem codes: `asset-not-found`, `contract-not-found`, `license-not-found`, `not-an-asset-class`, `already-an-asset`, `tag-taken`, `state-not-allowed`, `too-many-exports`, and the field codes `name-required`, `ends-on-required`, `dates-invalid`, `cost-invalid`, `owner-unknown`, `asset-unknown`, `too-many-items`, `products-required`, `quantity-invalid`.
+
+### Demo
+
+Seeder `g3-assets` (order 274): the government entity's customer service desktop (assigned to the sample requester, warranty ending within the alert period) and printer (in stock), and the company's laptops (one assigned with a warranty ending soon, one in repair, one in stock) with warranties; a support contract each; Microsoft 365 licences: 25 for the government entity (spare) and 2 per device for the company, short against the 3 laptops G2's endpoint agent found it on, and a per-person CRM licence.
+
+### Tests
+
+- Integration against PostgreSQL (`AssetApiTests`): hardware only, generated and typed tags, lifecycle moves and refusals with the item's status following, assignment, the warranty, the customer panel and `/users/{id}/assets`, My assets for the requester only, lookup, retire and dispose; licence compliance per device and per person against G2's discovered software, the expiry alerts once per end date and again for a new one, settings; label sheets made by the worker with two QR codes and two Code 128 symbols, in Arabic, and a real PDF with Chromium where the computer has it.
+- Unit (`BarcodeTests`): the verified QR matrix of `AST-000123`, versions by length, too-long text refused, Code 128 values and check symbol.
+- Web (`assets.test.tsx`): dates without a time, the scanner from a picture and by typing (Arabic), label sheets for chosen assets, licence shortfall, a lifecycle move with its ETag and person, a person's assets in Arabic, Settings → Assets for `assets.manage`, and the app's ZXing decoding the label's QR code.
+
+### Not in G3
+
+- Live camera scanning in the page (video): it would need `Permissions-Policy: camera=(self)`; the camera app's picture works on every phone without it (for the product owner).
+- Purchase orders, depreciation and stock levels; licence entitlements by agreement other than counts; automatic assignment from discovery's primary user (the records keep it for later).
+- A separately licensed asset module (Phase 2 modules are not licensed yet, for the product owner).
+- Not run in Docker Compose here (no image builds in this environment).
+
 ## Not in G1
 
 - Import from Excel and CSV, the discovery API and the discovery sources, identification rules, reconciliation and duplicates (G2, above).
-- Assets, lifecycle, contracts, warranties, licences, labels and scanning (G3).
+- Assets, lifecycle, contracts, warranties, licences, labels and scanning (G3, above).
 - CIs on problems and changes (H1, H3; the table is ready).
 - A separately licensed CMDB module (for the product owner).
 - The load test with 50,000 and 500,000 items (L1).

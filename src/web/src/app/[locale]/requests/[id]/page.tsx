@@ -70,7 +70,7 @@ export default async function RequestPage({ params }: PageProps<"/[locale]/reque
       {form && <FormAnswersView view={form} attachmentBase={`/bff/api/v1/service-requests/${request.id}/attachments`} />}
       <RequestAttachments requestId={request.id} attachments={attachments} documentNames={documentNames} />
       {/* Task G1: the configuration items the request is about. */}
-      <TicketCiPanel ticketId={request.id} kind="service-requests" canEdit={permissions.includes("requests.edit")} canOpenItems={permissions.includes("cmdb.read")}
+      <TicketCiPanel ticketId={request.id} kind="service-requests" canEdit={permissions.includes("requests.edit")} canOpenItems={permissions.includes("cmdb.read")} canScan={permissions.includes("assets.read")}
         csrfToken={session.data.csrfToken} />
       <RequestTasksPanel tasks={tasks ?? []} display={display} csrfToken={session.data.csrfToken} />
       <RequestApprovals processes={approvals} display={display} />

@@ -192,6 +192,9 @@ public enum ExportKind
 
     /// <summary>A dashboard of module 10 (task F2) with its filter, built with the asker's access.</summary>
     Report,
+
+    /// <summary>A sheet of asset labels (task G3): each asset tag as a QR code and Code 128.</summary>
+    AssetLabels,
 }
 
 /// <summary>Where an export is.</summary>

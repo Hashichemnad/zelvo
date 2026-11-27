@@ -939,13 +939,13 @@ namespace Zelvo.Data.Migrations
 
                     b.ToTable("document_exports", null, t =>
                         {
-                            t.HasCheckConstraint("ck_document_exports_kind", "kind IN ('Incident', 'ServiceRequest', 'Report')");
+                            t.HasCheckConstraint("ck_document_exports_kind", "kind IN ('Incident', 'ServiceRequest', 'Report', 'AssetLabels')");
 
                             t.HasCheckConstraint("ck_document_exports_language", "language IN ('en', 'ar')");
 
                             t.HasCheckConstraint("ck_document_exports_status", "status IN ('Pending', 'Ready', 'Failed')");
 
-                            t.HasCheckConstraint("ck_document_exports_subject", "(kind = 'Report') = (entity_id IS NULL AND parameters IS NOT NULL)");
+                            t.HasCheckConstraint("ck_document_exports_subject", "(kind IN ('Report', 'AssetLabels')) = (entity_id IS NULL AND parameters IS NOT NULL)");
                         });
                 });
 
@@ -3109,6 +3109,242 @@ namespace Zelvo.Data.Migrations
                         });
                 });
 
+            modelBuilder.Entity("Zelvo.Data.Cmdb.Asset", b =>
+                {
+                    b.Property<Guid>("ConfigurationItemId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("configuration_item_id");
+
+                    b.Property<DateTimeOffset?>("AssignedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("assigned_at");
+
+                    b.Property<Guid?>("AssignedToId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("assigned_to_id");
+
+                    b.Property<DateTimeOffset>("CreatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("created_at");
+
+                    b.Property<string>("Notes")
+                        .HasMaxLength(2000)
+                        .HasColumnType("character varying(2000)")
+                        .HasColumnName("notes");
+
+                    b.Property<string>("OrderNumber")
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)")
+                        .HasColumnName("order_number");
+
+                    b.Property<decimal?>("PurchaseCost")
+                        .HasPrecision(12, 2)
+                        .HasColumnType("numeric(12,2)")
+                        .HasColumnName("purchase_cost");
+
+                    b.Property<DateOnly?>("PurchaseDate")
+                        .HasColumnType("date")
+                        .HasColumnName("purchase_date");
+
+                    b.Property<Guid?>("RequestTicketId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("request_ticket_id");
+
+                    b.Property<string>("State")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("character varying(20)")
+                        .HasColumnName("state");
+
+                    b.Property<string>("Supplier")
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)")
+                        .HasColumnName("supplier");
+
+                    b.Property<string>("Tag")
+                        .IsRequired()
+                        .HasMaxLength(32)
+                        .HasColumnType("character varying(32)")
+                        .HasColumnName("tag");
+
+                    b.Property<Guid>("TenantId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("tenant_id");
+
+                    b.Property<DateTimeOffset>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("updated_at");
+
+                    b.Property<uint>("Version")
+                        .IsConcurrencyToken()
+                        .ValueGeneratedOnAddOrUpdate()
+                        .HasColumnType("xid")
+                        .HasColumnName("xmin");
+
+                    b.HasKey("ConfigurationItemId")
+                        .HasName("pk_assets");
+
+                    b.HasIndex("AssignedToId")
+                        .HasDatabaseName("ix_assets_assigned_to_id");
+
+                    b.HasIndex("RequestTicketId")
+                        .HasDatabaseName("ix_assets_request_ticket_id");
+
+                    b.HasIndex("TenantId", "AssignedToId")
+                        .HasDatabaseName("ix_assets_tenant_id_assigned_to_id");
+
+                    b.HasIndex("TenantId", "State")
+                        .HasDatabaseName("ix_assets_tenant_id_state");
+
+                    b.HasIndex("TenantId", "Tag")
+                        .IsUnique()
+                        .HasDatabaseName("ix_assets_tenant_id_tag");
+
+                    b.ToTable("assets", null, t =>
+                        {
+                            t.HasCheckConstraint("ck_assets_assigned", "(state = 'Assigned') = (assigned_to_id IS NOT NULL)");
+
+                            t.HasCheckConstraint("ck_assets_cost", "purchase_cost IS NULL OR purchase_cost >= 0");
+
+                            t.HasCheckConstraint("ck_assets_state", "state IN ('Requested', 'Ordered', 'Received', 'InStock', 'Assigned', 'InRepair', 'Retired', 'Disposed')");
+
+                            t.HasCheckConstraint("ck_assets_tag", "tag ~ '^[A-Z0-9]([A-Z0-9-]{0,30}[A-Z0-9])?$'");
+                        });
+                });
+
+            modelBuilder.Entity("Zelvo.Data.Cmdb.AssetContract", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<decimal?>("CostAed")
+                        .HasPrecision(12, 2)
+                        .HasColumnType("numeric(12,2)")
+                        .HasColumnName("cost_aed");
+
+                    b.Property<DateTimeOffset>("CreatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("created_at");
+
+                    b.Property<DateOnly>("EndsOn")
+                        .HasColumnType("date")
+                        .HasColumnName("ends_on");
+
+                    b.Property<DateOnly?>("ExpiryAlertedFor")
+                        .HasColumnType("date")
+                        .HasColumnName("expiry_alerted_for");
+
+                    b.Property<string>("Kind")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("character varying(20)")
+                        .HasColumnName("kind");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)")
+                        .HasColumnName("name");
+
+                    b.Property<string>("Notes")
+                        .HasMaxLength(2000)
+                        .HasColumnType("character varying(2000)")
+                        .HasColumnName("notes");
+
+                    b.Property<Guid?>("OwnerId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("owner_id");
+
+                    b.Property<string>("Reference")
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)")
+                        .HasColumnName("reference");
+
+                    b.Property<DateOnly?>("StartsOn")
+                        .HasColumnType("date")
+                        .HasColumnName("starts_on");
+
+                    b.Property<string>("Supplier")
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)")
+                        .HasColumnName("supplier");
+
+                    b.Property<Guid>("TenantId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("tenant_id");
+
+                    b.Property<DateTimeOffset>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("updated_at");
+
+                    b.Property<uint>("Version")
+                        .IsConcurrencyToken()
+                        .ValueGeneratedOnAddOrUpdate()
+                        .HasColumnType("xid")
+                        .HasColumnName("xmin");
+
+                    b.HasKey("Id")
+                        .HasName("pk_asset_contracts");
+
+                    b.HasIndex("OwnerId")
+                        .HasDatabaseName("ix_asset_contracts_owner_id");
+
+                    b.HasIndex("TenantId", "EndsOn")
+                        .HasDatabaseName("ix_asset_contracts_tenant_id_ends_on");
+
+                    b.ToTable("asset_contracts", null, t =>
+                        {
+                            t.HasCheckConstraint("ck_asset_contracts_cost", "cost_aed IS NULL OR cost_aed >= 0");
+
+                            t.HasCheckConstraint("ck_asset_contracts_dates", "starts_on IS NULL OR starts_on <= ends_on");
+
+                            t.HasCheckConstraint("ck_asset_contracts_kind", "kind IN ('Warranty', 'Support', 'Maintenance', 'Lease')");
+                        });
+                });
+
+            modelBuilder.Entity("Zelvo.Data.Cmdb.AssetContractItem", b =>
+                {
+                    b.Property<Guid>("ContractId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("contract_id");
+
+                    b.Property<Guid>("ConfigurationItemId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("configuration_item_id");
+
+                    b.Property<Guid>("TenantId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("tenant_id");
+
+                    b.HasKey("ContractId", "ConfigurationItemId")
+                        .HasName("pk_asset_contract_items");
+
+                    b.HasIndex("ConfigurationItemId")
+                        .HasDatabaseName("ix_asset_contract_items_configuration_item_id");
+
+                    b.HasIndex("TenantId", "ConfigurationItemId")
+                        .HasDatabaseName("ix_asset_contract_items_tenant_id_configuration_item_id");
+
+                    b.ToTable("asset_contract_items", (string)null);
+                });
+
+            modelBuilder.Entity("Zelvo.Data.Cmdb.AssetTagSequence", b =>
+                {
+                    b.Property<Guid>("TenantId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("tenant_id");
+
+                    b.Property<long>("LastValue")
+                        .HasColumnType("bigint")
+                        .HasColumnName("last_value");
+
+                    b.HasKey("TenantId")
+                        .HasName("pk_asset_tag_sequences");
+
+                    b.ToTable("asset_tag_sequences", (string)null);
+                });
+
             modelBuilder.Entity("Zelvo.Data.Cmdb.CiClass", b =>
                 {
                     b.Property<Guid>("Id")
@@ -3933,6 +4169,118 @@ namespace Zelvo.Data.Migrations
                             t.HasCheckConstraint("ck_configuration_items_sequence", "sequence >= 1");
 
                             t.HasCheckConstraint("ck_configuration_items_status", "status IN ('Planned', 'Active', 'Maintenance', 'Retired')");
+                        });
+                });
+
+            modelBuilder.Entity("Zelvo.Data.Cmdb.SoftwareLicense", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<decimal?>("CostAed")
+                        .HasPrecision(12, 2)
+                        .HasColumnType("numeric(12,2)")
+                        .HasColumnName("cost_aed");
+
+                    b.Property<DateTimeOffset>("CreatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("created_at");
+
+                    b.Property<DateOnly?>("EndsOn")
+                        .HasColumnType("date")
+                        .HasColumnName("ends_on");
+
+                    b.Property<DateOnly?>("ExpiryAlertedFor")
+                        .HasColumnType("date")
+                        .HasColumnName("expiry_alerted_for");
+
+                    b.Property<string>("Metric")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("character varying(20)")
+                        .HasColumnName("metric");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)")
+                        .HasColumnName("name");
+
+                    b.Property<string>("Notes")
+                        .HasMaxLength(2000)
+                        .HasColumnType("character varying(2000)")
+                        .HasColumnName("notes");
+
+                    b.Property<Guid?>("OwnerId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("owner_id");
+
+                    b.Property<string>("ProductKeys")
+                        .IsRequired()
+                        .HasColumnType("jsonb")
+                        .HasColumnName("product_keys");
+
+                    b.Property<string>("Publisher")
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)")
+                        .HasColumnName("publisher");
+
+                    b.Property<int>("Quantity")
+                        .HasColumnType("integer")
+                        .HasColumnName("quantity");
+
+                    b.Property<string>("Reference")
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)")
+                        .HasColumnName("reference");
+
+                    b.Property<DateOnly?>("StartsOn")
+                        .HasColumnType("date")
+                        .HasColumnName("starts_on");
+
+                    b.Property<string>("Supplier")
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)")
+                        .HasColumnName("supplier");
+
+                    b.Property<Guid>("TenantId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("tenant_id");
+
+                    b.Property<DateTimeOffset>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("updated_at");
+
+                    b.Property<uint>("Version")
+                        .IsConcurrencyToken()
+                        .ValueGeneratedOnAddOrUpdate()
+                        .HasColumnType("xid")
+                        .HasColumnName("xmin");
+
+                    b.HasKey("Id")
+                        .HasName("pk_software_licenses");
+
+                    b.HasIndex("OwnerId")
+                        .HasDatabaseName("ix_software_licenses_owner_id");
+
+                    b.HasIndex("TenantId", "EndsOn")
+                        .HasDatabaseName("ix_software_licenses_tenant_id_ends_on");
+
+                    b.HasIndex("TenantId", "Name")
+                        .HasDatabaseName("ix_software_licenses_tenant_id_name");
+
+                    b.ToTable("software_licenses", null, t =>
+                        {
+                            t.HasCheckConstraint("ck_software_licenses_cost", "cost_aed IS NULL OR cost_aed >= 0");
+
+                            t.HasCheckConstraint("ck_software_licenses_dates", "starts_on IS NULL OR ends_on IS NULL OR starts_on <= ends_on");
+
+                            t.HasCheckConstraint("ck_software_licenses_metric", "metric IN ('Device', 'User')");
+
+                            t.HasCheckConstraint("ck_software_licenses_products", "jsonb_typeof(product_keys) = 'array'");
+
+                            t.HasCheckConstraint("ck_software_licenses_quantity", "quantity BETWEEN 0 AND 10000000");
                         });
                 });
 
@@ -11597,6 +11945,85 @@ namespace Zelvo.Data.Migrations
                         .HasConstraintName("fk_voice_notes_tickets_ticket_id");
                 });
 
+            modelBuilder.Entity("Zelvo.Data.Cmdb.Asset", b =>
+                {
+                    b.HasOne("Zelvo.Data.Identity.UserAccount", null)
+                        .WithMany()
+                        .HasForeignKey("AssignedToId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .HasConstraintName("fk_assets_users_assigned_to_id");
+
+                    b.HasOne("Zelvo.Data.Cmdb.ConfigurationItem", null)
+                        .WithOne()
+                        .HasForeignKey("Zelvo.Data.Cmdb.Asset", "ConfigurationItemId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired()
+                        .HasConstraintName("fk_assets_configuration_items_configuration_item_id");
+
+                    b.HasOne("Zelvo.Data.Tickets.Ticket", null)
+                        .WithMany()
+                        .HasForeignKey("RequestTicketId")
+                        .OnDelete(DeleteBehavior.SetNull)
+                        .HasConstraintName("fk_assets_tickets_request_ticket_id");
+
+                    b.HasOne("Zelvo.Data.Tenancy.Tenant", null)
+                        .WithMany()
+                        .HasForeignKey("TenantId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired()
+                        .HasConstraintName("fk_assets_tenants_tenant_id");
+                });
+
+            modelBuilder.Entity("Zelvo.Data.Cmdb.AssetContract", b =>
+                {
+                    b.HasOne("Zelvo.Data.Identity.UserAccount", null)
+                        .WithMany()
+                        .HasForeignKey("OwnerId")
+                        .OnDelete(DeleteBehavior.SetNull)
+                        .HasConstraintName("fk_asset_contracts_users_owner_id");
+
+                    b.HasOne("Zelvo.Data.Tenancy.Tenant", null)
+                        .WithMany()
+                        .HasForeignKey("TenantId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired()
+                        .HasConstraintName("fk_asset_contracts_tenants_tenant_id");
+                });
+
+            modelBuilder.Entity("Zelvo.Data.Cmdb.AssetContractItem", b =>
+                {
+                    b.HasOne("Zelvo.Data.Cmdb.Asset", null)
+                        .WithMany()
+                        .HasForeignKey("ConfigurationItemId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired()
+                        .HasConstraintName("fk_asset_contract_items_assets_configuration_item_id");
+
+                    b.HasOne("Zelvo.Data.Cmdb.AssetContract", null)
+                        .WithMany()
+                        .HasForeignKey("ContractId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired()
+                        .HasConstraintName("fk_asset_contract_items_asset_contracts_contract_id");
+
+                    b.HasOne("Zelvo.Data.Tenancy.Tenant", null)
+                        .WithMany()
+                        .HasForeignKey("TenantId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired()
+                        .HasConstraintName("fk_asset_contract_items_tenants_tenant_id");
+                });
+
+            modelBuilder.Entity("Zelvo.Data.Cmdb.AssetTagSequence", b =>
+                {
+                    b.HasOne("Zelvo.Data.Tenancy.Tenant", null)
+                        .WithMany()
+                        .HasForeignKey("TenantId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired()
+                        .HasConstraintName("fk_asset_tag_sequences_tenants_tenant_id");
+                });
+
             modelBuilder.Entity("Zelvo.Data.Cmdb.CiClass", b =>
                 {
                     b.HasOne("Zelvo.Data.Cmdb.CiClass", null)
@@ -11824,6 +12251,22 @@ namespace Zelvo.Data.Migrations
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired()
                         .HasConstraintName("fk_configuration_items_tenants_tenant_id");
+                });
+
+            modelBuilder.Entity("Zelvo.Data.Cmdb.SoftwareLicense", b =>
+                {
+                    b.HasOne("Zelvo.Data.Identity.UserAccount", null)
+                        .WithMany()
+                        .HasForeignKey("OwnerId")
+                        .OnDelete(DeleteBehavior.SetNull)
+                        .HasConstraintName("fk_software_licenses_users_owner_id");
+
+                    b.HasOne("Zelvo.Data.Tenancy.Tenant", null)
+                        .WithMany()
+                        .HasForeignKey("TenantId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired()
+                        .HasConstraintName("fk_software_licenses_tenants_tenant_id");
                 });
 
             modelBuilder.Entity("Zelvo.Data.Cmdb.TicketConfigurationItem", b =>
