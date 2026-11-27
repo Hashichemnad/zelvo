@@ -70,25 +70,43 @@ export async function subscribeThisDevice(publicKey: string, csrfToken: string):
   subscription ??= await reg.pushManager.subscribe({ userVisibleOnly: true, applicationServerKey: wanted });
   const json = subscription.toJSON();
   await postJson("/v1/me/push/subscriptions", { endpoint: json.endpoint, p256dh: json.keys?.p256dh, auth: json.keys?.auth }, csrfToken);
+  remember(json.endpoint ?? null);
   return "subscribed";
 }
 
+/** Where this device's push address is remembered (the browser holds the subscription anyway). */
+const endpointKey = "zelvo-push-endpoint";
+
+function remember(endpoint: string | null): void {
+  try {
+    if (endpoint) localStorage.setItem(endpointKey, endpoint);
+    else localStorage.removeItem(endpointKey);
+  } catch {
+    // Storage blocked: sign-out then relies on the push service reporting the device gone.
+  }
+}
+
 /**
- * Signing out on this device (task J2): the browser's subscription ends and the API forgets the
- * device, so the next person signed in here gets nothing meant for this one. Never blocks sign-out
- * for long: after a second and a half it goes on regardless.
+ * Signing out on this device (task J2), without holding up the sign-out: the push address this
+ * device subscribed with, read at once, which the sign-out form sends along so the server removes
+ * the device before the session ends. The browser's own subscription is ended in the background.
  */
-export async function forgetThisDevice(csrfToken: string): Promise<void> {
-  const work = (async () => {
-    const subscription = await currentSubscription();
-    if (!subscription) return;
-    try {
-      await postJson("/v1/me/push/subscriptions/remove", { endpoint: subscription.endpoint }, csrfToken);
-    } finally {
-      await subscription.unsubscribe();
-    }
-  })().catch(() => undefined);
-  await Promise.race([work, new Promise((resolve) => setTimeout(resolve, 1500))]);
+export function takeRememberedEndpoint(): string | null {
+  let endpoint: string | null = null;
+  try {
+    endpoint = localStorage.getItem(endpointKey);
+  } catch {
+    endpoint = null;
+  }
+  remember(null);
+  if (endpoint && pushSupported()) {
+    void navigator.serviceWorker
+      .getRegistration("/")
+      .then((reg) => reg?.pushManager.getSubscription())
+      .then((subscription) => subscription?.unsubscribe())
+      .catch(() => undefined);
+  }
+  return endpoint;
 }
 
 function sameBytes(a: Uint8Array, b: Uint8Array): boolean {

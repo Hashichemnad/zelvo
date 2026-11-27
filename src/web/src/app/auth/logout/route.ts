@@ -1,4 +1,5 @@
 import { NextResponse, type NextRequest } from "next/server";
+import { apiFetch } from "@/lib/api";
 import { authConfigFor } from "@/lib/auth/config";
 import { getOidcConfiguration, oidc } from "@/lib/auth/oidc";
 import { isSameOriginRequest, localeOf, secretsMatch } from "@/lib/auth/security";
@@ -26,6 +27,21 @@ export async function POST(request: NextRequest) {
   }
   if (!secretsMatch(String(form.get("csrf") ?? ""), session.data.csrfToken)) {
     return new NextResponse(null, { status: 403 });
+  }
+
+  // Task J2: this device stops receiving the person's web push (the address the page sent along).
+  const pushEndpoint = String(form.get("pushEndpoint") ?? "");
+  if (pushEndpoint.startsWith("https://") && pushEndpoint.length <= 2048) {
+    try {
+      await apiFetch("/api/v1/me/push/subscriptions/remove", session.data.accessToken, config.tenant, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ endpoint: pushEndpoint }),
+        signal: AbortSignal.timeout(3_000),
+      });
+    } catch {
+      // The API is unreachable: the device goes when the push service reports it gone.
+    }
   }
 
   await deleteSession(session.id, config);
