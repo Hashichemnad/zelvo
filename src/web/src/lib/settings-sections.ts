@@ -26,6 +26,7 @@ export interface SettingsSection {
     | "catalog"
     | "cmdb"
     | "assets"
+    | "problems"
     | "customerVoice"
     | "wellbeing"
     | "knowledge"
@@ -88,6 +89,8 @@ export const settingsSections: readonly SettingsSection[] = [
   { key: "cmdb", href: "/settings/cmdb", permission: "cmdb.manage" },
   // Task G3: generated asset tags and expiry alerts.
   { key: "assets", href: "/settings/assets", permission: "assets.manage" },
+  // Task H1: the known error prefix and the fishbone template (module 16).
+  { key: "problems", href: "/settings/problems", permission: "problems.manage" },
   { key: "customerVoice", href: "/settings/customer-voice", permission: "voice.manage" },
   // Task C3: the no-code builder for assignment, approval and notification rules.
   { key: "workflows", href: "/settings/workflows", permission: "workflows.manage" },

@@ -113,6 +113,7 @@ public static partial class TicketNumbers
         {
             [TicketType.Incident] = "INC", [TicketType.ServiceRequest] = "REQ",
             [TicketType.Complaint] = "CMP", [TicketType.Inquiry] = "INQ", [TicketType.Suggestion] = "SUG",
+            [TicketType.Problem] = "PRB",
         };
 
     /// <summary>The number shown to people: prefix, a hyphen and at least six digits.</summary>

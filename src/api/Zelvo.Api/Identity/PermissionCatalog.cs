@@ -227,6 +227,18 @@ internal static class Permissions
     /// <summary>Read people's consent to the optional purposes and the notice they accepted (task F5), for example for a survey tool.</summary>
     public const string PrivacyConsentsRead = "privacy.consents.read";
 
+    /// <summary>Task H1 (module 16): see problems, their root-cause analysis and links, and the known error database.</summary>
+    public const string ProblemsRead = Zelvo.Tickets.ProblemPermissions.Read;
+
+    /// <summary>Task H1: raise problems (from incidents or by hand), write the analysis and known errors, link incidents, items and articles.</summary>
+    public const string ProblemsEdit = Zelvo.Tickets.ProblemPermissions.Edit;
+
+    /// <summary>
+    /// Task H1, the problem manager (product owner decision 11 of 2026-11-26): assign problems,
+    /// record known errors, resolve and close problems with their incidents, publish and retire known errors.
+    /// </summary>
+    public const string ProblemsManage = Zelvo.Tickets.ProblemPermissions.Manage;
+
     /// <summary>Task G1 (module 18): see configuration items, their relationships, map, impact and history.</summary>
     public const string CmdbRead = "cmdb.read";
 
@@ -351,6 +363,9 @@ internal static class PermissionCatalog
         Permissions.AssetsManage,
         Permissions.WellbeingRead,
         Permissions.WellbeingManage,
+        Permissions.ProblemsRead,
+        Permissions.ProblemsEdit,
+        Permissions.ProblemsManage,
     ];
 
     /// <summary>
@@ -459,12 +474,13 @@ internal static class PermissionCatalog
         new(BuiltInRoles.Agent, new LocalizedText("Agent", "موظف الدعم"),
             [Permissions.UsersRead, Permissions.IncidentsRead, Permissions.IncidentsCreate, Permissions.IncidentsEdit, Permissions.IncidentsAssign, Permissions.DirectoryRead,
                 Permissions.KnowledgeRead, Permissions.KnowledgeWrite, Permissions.RequestsRead, Permissions.RequestsEdit, Permissions.RequestsAssign, Permissions.ChatHandle,
-                Permissions.VoiceRead, Permissions.VoiceEdit, Permissions.VoiceAssign, Permissions.CmdbRead, Permissions.AssetsRead],
+                Permissions.VoiceRead, Permissions.VoiceEdit, Permissions.VoiceAssign, Permissions.CmdbRead, Permissions.AssetsRead, Permissions.ProblemsRead, Permissions.ProblemsEdit],
             new Dictionary<string, FieldAccess> { ["users.email"] = FieldAccess.Read }),
         new(BuiltInRoles.TeamLead, new LocalizedText("Team lead", "قائد الفريق"),
             [Permissions.UsersRead, Permissions.IncidentsRead, Permissions.IncidentsCreate, Permissions.IncidentsEdit, Permissions.IncidentsAssign, Permissions.IncidentsMajor, Permissions.DirectoryRead,
                 Permissions.KnowledgeRead, Permissions.KnowledgeWrite, Permissions.KnowledgePublish, Permissions.RequestsRead, Permissions.RequestsEdit, Permissions.RequestsAssign, Permissions.ChatHandle,
-                Permissions.VoiceRead, Permissions.VoiceEdit, Permissions.VoiceAssign, Permissions.VoiceReport, Permissions.ReportsRead, Permissions.CmdbRead, Permissions.AssetsRead, Permissions.WellbeingRead],
+                Permissions.VoiceRead, Permissions.VoiceEdit, Permissions.VoiceAssign, Permissions.VoiceReport, Permissions.ReportsRead, Permissions.CmdbRead, Permissions.AssetsRead, Permissions.WellbeingRead,
+                Permissions.ProblemsRead, Permissions.ProblemsEdit, Permissions.ProblemsManage],
             new Dictionary<string, FieldAccess> { ["users.email"] = FieldAccess.Read }),
         new(BuiltInRoles.Approver, new LocalizedText("Approver", "المعتمِد"), [], new Dictionary<string, FieldAccess>()),
         new(BuiltInRoles.TenantAdmin, new LocalizedText("Tenant administrator", "مسؤول الجهة"),
@@ -473,7 +489,7 @@ internal static class PermissionCatalog
         new(BuiltInRoles.ExecutiveAuditor, new LocalizedText("Executive / auditor", "تنفيذي / مدقق"),
             [Permissions.AuditRead, Permissions.UsersRead, Permissions.IncidentsRead, Permissions.DirectoryRead, Permissions.KnowledgeRead, Permissions.RequestsRead,
                 Permissions.VoiceRead, Permissions.VoiceReport, Permissions.ApprovalsRead, Permissions.ReportsRead, Permissions.ReportsAll, Permissions.PaymentsRead,
-                Permissions.CmdbRead, Permissions.AssetsRead, Permissions.WellbeingRead],
+                Permissions.CmdbRead, Permissions.AssetsRead, Permissions.WellbeingRead, Permissions.ProblemsRead],
             new Dictionary<string, FieldAccess> { ["users.email"] = FieldAccess.Read }),
     ];
 

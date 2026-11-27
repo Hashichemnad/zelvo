@@ -84,7 +84,8 @@
     "asset.contractKind.Warranty": "ضمان",
     "asset.contractKind.Support": "عقد دعم",
     "asset.contractKind.Maintenance": "عقد صيانة",
-    "asset.contractKind.Lease": "عقد إيجار"
+    "asset.contractKind.Lease": "عقد إيجار",
+    "ticket.type.Problem": "مشكلة"
   },
   "templates": {
     "incident.received": {
@@ -362,6 +363,30 @@
       "inApp": "ينتهي ترخيص البرمجيات {{license.name}} ({{license.quantity}} استحقاق) في {{license.endsOn}}.",
       "body": "السيد/السيدة {{recipient.name}} المحترم/المحترمة،\n\nتحية طيبة وبعد،\n\nنود إفادتكم بأن ترخيص البرمجيات {{license.name}} الذي يشمل {{license.quantity}} استحقاق ينتهي في {{license.endsOn}}.\n\nيُرجى التحقق من عدد الاستحقاقات المستخدمة في صفحة الامتثال للتراخيص في زيلفو وتجديد الترخيص في وقت مناسب، حتى تبقى البرمجيات مرخَّصة.\n\nوتفضلوا بقبول فائق الاحترام والتقدير،\n{{tenant.name}}",
       "action": "فتح التراخيص"
+    },
+    "problem.assigned": {
+      "subject": "تم إسناد المشكلة رقم {{ticket.number}} إليكم",
+      "inApp": "تم إسناد المشكلة «{{ticket.title}}» إليكم.",
+      "body": "تحية طيبة، {{recipient.name}}\n\nتم إسناد المشكلة رقم {{ticket.number}} بعنوان «{{ticket.title}}» إليكم لدراستها.\n\nالفريق: {{ticket.group}}\n\nمع خالص التحية،\n{{tenant.name}}",
+      "action": "فتح المشكلة"
+    },
+    "problem.queued": {
+      "subject": "مشكلة جديدة لدى {{ticket.group}}: {{ticket.number}}",
+      "inApp": "مشكلة جديدة لدى {{ticket.group}}: «{{ticket.title}}».",
+      "body": "تحية طيبة، {{recipient.name}}\n\nتوجد مشكلة جديدة رقم {{ticket.number}} بعنوان «{{ticket.title}}» بانتظار المعالجة لدى {{ticket.group}}.\n\nمع خالص التحية،\n{{tenant.name}}",
+      "action": "فتح المشكلة"
+    },
+    "problem.known-error": {
+      "subject": "{{ticket.number}}: يتوفر حل مؤقت ({{knownError.number}})",
+      "inApp": "تم تسجيل حل مؤقت للبلاغ «{{ticket.title}}» في الخطأ المعروف {{knownError.number}}: {{knownError.title}}.",
+      "body": "تحية طيبة، {{recipient.name}}\n\nالبلاغ رقم {{ticket.number}} بعنوان «{{ticket.title}}» مرتبط بالمشكلة رقم {{problem.number}}. وقد تم تحديد سببها وتسجيل حل مؤقت في الخطأ المعروف رقم {{knownError.number}} بعنوان «{{knownError.title}}».\n\nيمكنكم فتح البلاغ ونسخ الحل المؤقت في ردكم.\n\nمع خالص التحية،\n{{tenant.name}}",
+      "action": "فتح البلاغ"
+    },
+    "problem.resolved": {
+      "subject": "تم حل المشكلة رقم {{ticket.number}}",
+      "inApp": "تم حل المشكلة «{{ticket.title}}».",
+      "body": "تحية طيبة، {{recipient.name}}\n\nتم حل المشكلة رقم {{ticket.number}} بعنوان «{{ticket.title}}»:\n\n{{ticket.resolutionNotes}}\n\nمع خالص التحية،\n{{tenant.name}}",
+      "action": "فتح المشكلة"
     }
   },
   "samples": {
@@ -380,6 +405,7 @@
     "approval.level": "اعتماد المدير",
     "approval.reason": "تم استنفاد ميزانية هذا الربع.",
     "task.name": "تجهيز الحاسوب",
-    "privacyRequest.resolution": "أُتيحت لكم نسخة من بياناتكم يمكنكم تنزيلها من صفحة الحساب ← الخصوصية."
+    "privacyRequest.resolution": "أُتيحت لكم نسخة من بياناتكم يمكنكم تنزيلها من صفحة الحساب ← الخصوصية.",
+    "knownError.title": "تعذر الدخول إلى بوابة الموارد البشرية بعد تغيير كلمة المرور"
   }
 }

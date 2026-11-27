@@ -5578,7 +5578,7 @@ namespace Zelvo.Data.Migrations
 
                     b.ToTable("form_bindings", null, t =>
                         {
-                            t.HasCheckConstraint("ck_form_bindings_record_type", "record_type IN ('Incident', 'ServiceRequest', 'Complaint', 'Inquiry', 'Suggestion')");
+                            t.HasCheckConstraint("ck_form_bindings_record_type", "record_type IN ('Incident', 'ServiceRequest', 'Complaint', 'Inquiry', 'Suggestion', 'Problem')");
                         });
                 });
 
@@ -8545,6 +8545,282 @@ namespace Zelvo.Data.Migrations
                         });
                 });
 
+            modelBuilder.Entity("Zelvo.Data.Problems.KnownError", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<Guid?>("ArticleId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("article_id");
+
+                    b.Property<DateTimeOffset>("CreatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("created_at");
+
+                    b.Property<Guid?>("CreatedById")
+                        .HasColumnType("uuid")
+                        .HasColumnName("created_by_id");
+
+                    b.Property<string>("Number")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("character varying(20)")
+                        .HasColumnName("number");
+
+                    b.Property<Guid>("ProblemId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("problem_id");
+
+                    b.Property<long>("Sequence")
+                        .HasColumnType("bigint")
+                        .HasColumnName("sequence");
+
+                    b.Property<string>("Status")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("character varying(20)")
+                        .HasColumnName("status");
+
+                    b.Property<Guid>("TenantId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("tenant_id");
+
+                    b.Property<DateTimeOffset>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("updated_at");
+
+                    b.Property<uint>("Version")
+                        .IsConcurrencyToken()
+                        .ValueGeneratedOnAddOrUpdate()
+                        .HasColumnType("xid")
+                        .HasColumnName("xmin");
+
+                    b.ComplexProperty(typeof(Dictionary<string, object>), "Symptoms", "Zelvo.Data.Problems.KnownError.Symptoms#LocalizedText", b1 =>
+                        {
+                            b1.IsRequired();
+
+                            b1.Property<string>("Ar")
+                                .HasMaxLength(10000)
+                                .HasColumnType("character varying(10000)")
+                                .HasColumnName("symptoms_ar");
+
+                            b1.Property<string>("En")
+                                .HasMaxLength(10000)
+                                .HasColumnType("character varying(10000)")
+                                .HasColumnName("symptoms_en");
+                        });
+
+                    b.ComplexProperty(typeof(Dictionary<string, object>), "Title", "Zelvo.Data.Problems.KnownError.Title#LocalizedText", b1 =>
+                        {
+                            b1.IsRequired();
+
+                            b1.Property<string>("Ar")
+                                .HasMaxLength(300)
+                                .HasColumnType("character varying(300)")
+                                .HasColumnName("title_ar");
+
+                            b1.Property<string>("En")
+                                .HasMaxLength(300)
+                                .HasColumnType("character varying(300)")
+                                .HasColumnName("title_en");
+                        });
+
+                    b.ComplexProperty(typeof(Dictionary<string, object>), "Workaround", "Zelvo.Data.Problems.KnownError.Workaround#LocalizedText", b1 =>
+                        {
+                            b1.IsRequired();
+
+                            b1.Property<string>("Ar")
+                                .HasMaxLength(10000)
+                                .HasColumnType("character varying(10000)")
+                                .HasColumnName("workaround_ar");
+
+                            b1.Property<string>("En")
+                                .HasMaxLength(10000)
+                                .HasColumnType("character varying(10000)")
+                                .HasColumnName("workaround_en");
+                        });
+
+                    b.HasKey("Id")
+                        .HasName("pk_known_errors");
+
+                    b.HasIndex("ArticleId")
+                        .HasDatabaseName("ix_known_errors_article_id");
+
+                    b.HasIndex("CreatedById")
+                        .HasDatabaseName("ix_known_errors_created_by_id");
+
+                    b.HasIndex("ProblemId")
+                        .IsUnique()
+                        .HasDatabaseName("ix_known_errors_problem_id");
+
+                    b.HasIndex("TenantId", "Number")
+                        .IsUnique()
+                        .HasDatabaseName("ix_known_errors_tenant_id_number");
+
+                    b.HasIndex("TenantId", "Sequence")
+                        .IsUnique()
+                        .HasDatabaseName("ix_known_errors_tenant_id_sequence");
+
+                    b.ToTable("known_errors", null, t =>
+                        {
+                            t.HasCheckConstraint("ck_known_errors_sequence", "sequence >= 1");
+
+                            t.HasCheckConstraint("ck_known_errors_status", "status IN ('Active', 'Retired')");
+
+                            t.HasCheckConstraint("ck_known_errors_title", "coalesce(length(btrim(title_en)), 0) + coalesce(length(btrim(title_ar)), 0) > 0");
+
+                            t.HasCheckConstraint("ck_known_errors_workaround", "coalesce(length(btrim(workaround_en)), 0) + coalesce(length(btrim(workaround_ar)), 0) > 0");
+                        });
+                });
+
+            modelBuilder.Entity("Zelvo.Data.Problems.KnownErrorNumberSequence", b =>
+                {
+                    b.Property<Guid>("TenantId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("tenant_id");
+
+                    b.Property<long>("LastValue")
+                        .HasColumnType("bigint")
+                        .HasColumnName("last_value");
+
+                    b.HasKey("TenantId")
+                        .HasName("pk_known_error_number_sequences");
+
+                    b.ToTable("known_error_number_sequences", (string)null);
+                });
+
+            modelBuilder.Entity("Zelvo.Data.Problems.ProblemArticle", b =>
+                {
+                    b.Property<Guid>("ProblemId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("problem_id");
+
+                    b.Property<Guid>("ArticleId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("article_id");
+
+                    b.Property<DateTimeOffset>("LinkedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("linked_at");
+
+                    b.Property<Guid?>("LinkedById")
+                        .HasColumnType("uuid")
+                        .HasColumnName("linked_by_id");
+
+                    b.Property<Guid>("TenantId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("tenant_id");
+
+                    b.HasKey("ProblemId", "ArticleId")
+                        .HasName("pk_problem_articles");
+
+                    b.HasIndex("ArticleId")
+                        .HasDatabaseName("ix_problem_articles_article_id");
+
+                    b.HasIndex("LinkedById")
+                        .HasDatabaseName("ix_problem_articles_linked_by_id");
+
+                    b.HasIndex("TenantId", "ArticleId")
+                        .HasDatabaseName("ix_problem_articles_tenant_id_article_id");
+
+                    b.ToTable("problem_articles", (string)null);
+                });
+
+            modelBuilder.Entity("Zelvo.Data.Problems.ProblemIncident", b =>
+                {
+                    b.Property<Guid>("ProblemId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("problem_id");
+
+                    b.Property<Guid>("IncidentId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("incident_id");
+
+                    b.Property<DateTimeOffset>("LinkedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("linked_at");
+
+                    b.Property<Guid?>("LinkedById")
+                        .HasColumnType("uuid")
+                        .HasColumnName("linked_by_id");
+
+                    b.Property<Guid>("TenantId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("tenant_id");
+
+                    b.HasKey("ProblemId", "IncidentId")
+                        .HasName("pk_problem_incidents");
+
+                    b.HasIndex("IncidentId")
+                        .HasDatabaseName("ix_problem_incidents_incident_id");
+
+                    b.HasIndex("LinkedById")
+                        .HasDatabaseName("ix_problem_incidents_linked_by_id");
+
+                    b.HasIndex("TenantId", "IncidentId")
+                        .HasDatabaseName("ix_problem_incidents_tenant_id_incident_id");
+
+                    b.ToTable("problem_incidents", null, t =>
+                        {
+                            t.HasCheckConstraint("ck_problem_incidents_not_self", "problem_id <> incident_id");
+                        });
+                });
+
+            modelBuilder.Entity("Zelvo.Data.Problems.ProblemRecord", b =>
+                {
+                    b.Property<Guid>("TicketId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("ticket_id");
+
+                    b.Property<string>("Fishbone")
+                        .IsRequired()
+                        .HasColumnType("jsonb")
+                        .HasColumnName("fishbone");
+
+                    b.Property<string>("FiveWhys")
+                        .IsRequired()
+                        .HasColumnType("jsonb")
+                        .HasColumnName("five_whys");
+
+                    b.Property<string>("Phase")
+                        .IsRequired()
+                        .HasMaxLength(30)
+                        .HasColumnType("character varying(30)")
+                        .HasColumnName("phase");
+
+                    b.Property<int>("Priority")
+                        .HasColumnType("integer")
+                        .HasColumnName("priority");
+
+                    b.Property<string>("RootCause")
+                        .HasMaxLength(4000)
+                        .HasColumnType("character varying(4000)")
+                        .HasColumnName("root_cause");
+
+                    b.Property<Guid>("TenantId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("tenant_id");
+
+                    b.HasKey("TicketId")
+                        .HasName("pk_problems");
+
+                    b.HasIndex("TenantId")
+                        .HasDatabaseName("ix_problems_tenant_id");
+
+                    b.ToTable("problems", null, t =>
+                        {
+                            t.HasCheckConstraint("ck_problems_fishbone", "jsonb_typeof(fishbone) = 'object'");
+
+                            t.HasCheckConstraint("ck_problems_five_whys", "jsonb_typeof(five_whys) = 'object'");
+
+                            t.HasCheckConstraint("ck_problems_phase", "phase IN ('Assessment', 'RootCauseAnalysis', 'KnownError')");
+
+                            t.HasCheckConstraint("ck_problems_priority", "priority BETWEEN 1 AND 5");
+                        });
+                });
+
             modelBuilder.Entity("Zelvo.Data.Reports.ReportDelivery", b =>
                 {
                     b.Property<Guid>("Id")
@@ -9406,7 +9682,7 @@ namespace Zelvo.Data.Migrations
 
                     b.ToTable("sla_policies", null, t =>
                         {
-                            t.HasCheckConstraint("ck_sla_policies_record_type", "record_type IN ('Incident', 'ServiceRequest', 'Complaint', 'Inquiry', 'Suggestion')");
+                            t.HasCheckConstraint("ck_sla_policies_record_type", "record_type IN ('Incident', 'ServiceRequest', 'Complaint', 'Inquiry', 'Suggestion', 'Problem')");
                         });
                 });
 
@@ -9949,7 +10225,7 @@ namespace Zelvo.Data.Migrations
 
                             t.HasCheckConstraint("ck_tickets_state", "state IN ('New', 'Assigned', 'InProgress', 'OnHold', 'Resolved', 'Closed', 'Reopened')");
 
-                            t.HasCheckConstraint("ck_tickets_type", "type IN ('Incident', 'ServiceRequest', 'Complaint', 'Inquiry', 'Suggestion')");
+                            t.HasCheckConstraint("ck_tickets_type", "type IN ('Incident', 'ServiceRequest', 'Complaint', 'Inquiry', 'Suggestion', 'Problem')");
                         });
                 });
 
@@ -10283,7 +10559,7 @@ namespace Zelvo.Data.Migrations
 
                     b.ToTable("ticket_number_sequences", null, t =>
                         {
-                            t.HasCheckConstraint("ck_ticket_number_sequences_type", "type IN ('Incident', 'ServiceRequest', 'Complaint', 'Inquiry', 'Suggestion')");
+                            t.HasCheckConstraint("ck_ticket_number_sequences_type", "type IN ('Incident', 'ServiceRequest', 'Complaint', 'Inquiry', 'Suggestion', 'Problem')");
                         });
                 });
 
@@ -10458,7 +10734,7 @@ namespace Zelvo.Data.Migrations
 
                             t.HasCheckConstraint("ck_happiness_ratings_points", "points IN (3, 5)");
 
-                            t.HasCheckConstraint("ck_happiness_ratings_record_type", "record_type IN ('Incident', 'ServiceRequest', 'Complaint', 'Inquiry', 'Suggestion')");
+                            t.HasCheckConstraint("ck_happiness_ratings_record_type", "record_type IN ('Incident', 'ServiceRequest', 'Complaint', 'Inquiry', 'Suggestion', 'Problem')");
 
                             t.HasCheckConstraint("ck_happiness_ratings_score", "score BETWEEN 1 AND points");
                         });
@@ -10975,7 +11251,7 @@ namespace Zelvo.Data.Migrations
                         {
                             t.HasCheckConstraint("ck_workflow_rules_match", "match IN ('All', 'Any')");
 
-                            t.HasCheckConstraint("ck_workflow_rules_record_type", "record_type IS NULL OR record_type IN ('Incident', 'ServiceRequest', 'Complaint', 'Inquiry', 'Suggestion')");
+                            t.HasCheckConstraint("ck_workflow_rules_record_type", "record_type IS NULL OR record_type IN ('Incident', 'ServiceRequest', 'Complaint', 'Inquiry', 'Suggestion', 'Problem')");
 
                             t.HasCheckConstraint("ck_workflow_rules_trigger", "trigger IN ('TicketCreated', 'StateChanged', 'AssignmentChanged', 'ApprovalDecided')");
                         });
@@ -13328,6 +13604,122 @@ namespace Zelvo.Data.Migrations
                         .HasConstraintName("fk_privacy_notices_tenants_tenant_id");
                 });
 
+            modelBuilder.Entity("Zelvo.Data.Problems.KnownError", b =>
+                {
+                    b.HasOne("Zelvo.Data.Knowledge.KbArticle", null)
+                        .WithMany()
+                        .HasForeignKey("ArticleId")
+                        .OnDelete(DeleteBehavior.SetNull)
+                        .HasConstraintName("fk_known_errors_kb_articles_article_id");
+
+                    b.HasOne("Zelvo.Data.Identity.UserAccount", null)
+                        .WithMany()
+                        .HasForeignKey("CreatedById")
+                        .OnDelete(DeleteBehavior.SetNull)
+                        .HasConstraintName("fk_known_errors_users_created_by_id");
+
+                    b.HasOne("Zelvo.Data.Tickets.Ticket", null)
+                        .WithMany()
+                        .HasForeignKey("ProblemId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired()
+                        .HasConstraintName("fk_known_errors_tickets_problem_id");
+
+                    b.HasOne("Zelvo.Data.Tenancy.Tenant", null)
+                        .WithMany()
+                        .HasForeignKey("TenantId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired()
+                        .HasConstraintName("fk_known_errors_tenants_tenant_id");
+                });
+
+            modelBuilder.Entity("Zelvo.Data.Problems.KnownErrorNumberSequence", b =>
+                {
+                    b.HasOne("Zelvo.Data.Tenancy.Tenant", null)
+                        .WithMany()
+                        .HasForeignKey("TenantId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired()
+                        .HasConstraintName("fk_known_error_number_sequences_tenants_tenant_id");
+                });
+
+            modelBuilder.Entity("Zelvo.Data.Problems.ProblemArticle", b =>
+                {
+                    b.HasOne("Zelvo.Data.Knowledge.KbArticle", null)
+                        .WithMany()
+                        .HasForeignKey("ArticleId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired()
+                        .HasConstraintName("fk_problem_articles_kb_articles_article_id");
+
+                    b.HasOne("Zelvo.Data.Identity.UserAccount", null)
+                        .WithMany()
+                        .HasForeignKey("LinkedById")
+                        .OnDelete(DeleteBehavior.SetNull)
+                        .HasConstraintName("fk_problem_articles_users_linked_by_id");
+
+                    b.HasOne("Zelvo.Data.Tickets.Ticket", null)
+                        .WithMany()
+                        .HasForeignKey("ProblemId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired()
+                        .HasConstraintName("fk_problem_articles_tickets_problem_id");
+
+                    b.HasOne("Zelvo.Data.Tenancy.Tenant", null)
+                        .WithMany()
+                        .HasForeignKey("TenantId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired()
+                        .HasConstraintName("fk_problem_articles_tenants_tenant_id");
+                });
+
+            modelBuilder.Entity("Zelvo.Data.Problems.ProblemIncident", b =>
+                {
+                    b.HasOne("Zelvo.Data.Tickets.Ticket", null)
+                        .WithMany()
+                        .HasForeignKey("IncidentId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired()
+                        .HasConstraintName("fk_problem_incidents_tickets_incident_id");
+
+                    b.HasOne("Zelvo.Data.Identity.UserAccount", null)
+                        .WithMany()
+                        .HasForeignKey("LinkedById")
+                        .OnDelete(DeleteBehavior.SetNull)
+                        .HasConstraintName("fk_problem_incidents_users_linked_by_id");
+
+                    b.HasOne("Zelvo.Data.Tickets.Ticket", null)
+                        .WithMany()
+                        .HasForeignKey("ProblemId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired()
+                        .HasConstraintName("fk_problem_incidents_tickets_problem_id");
+
+                    b.HasOne("Zelvo.Data.Tenancy.Tenant", null)
+                        .WithMany()
+                        .HasForeignKey("TenantId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired()
+                        .HasConstraintName("fk_problem_incidents_tenants_tenant_id");
+                });
+
+            modelBuilder.Entity("Zelvo.Data.Problems.ProblemRecord", b =>
+                {
+                    b.HasOne("Zelvo.Data.Tenancy.Tenant", null)
+                        .WithMany()
+                        .HasForeignKey("TenantId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired()
+                        .HasConstraintName("fk_problems_tenants_tenant_id");
+
+                    b.HasOne("Zelvo.Data.Tickets.Ticket", null)
+                        .WithOne("Problem")
+                        .HasForeignKey("Zelvo.Data.Problems.ProblemRecord", "TicketId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired()
+                        .HasConstraintName("fk_problems_tickets_ticket_id");
+                });
+
             modelBuilder.Entity("Zelvo.Data.Reports.ReportDelivery", b =>
                 {
                     b.HasOne("Zelvo.Data.Identity.UserAccount", null)
@@ -14111,6 +14503,8 @@ namespace Zelvo.Data.Migrations
             modelBuilder.Entity("Zelvo.Data.Tickets.Ticket", b =>
                 {
                     b.Navigation("Incident");
+
+                    b.Navigation("Problem");
 
                     b.Navigation("Voice");
                 });

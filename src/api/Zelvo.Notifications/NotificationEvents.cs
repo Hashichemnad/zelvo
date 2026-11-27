@@ -99,6 +99,18 @@ public static class NotificationEvents
 
     /// <summary>A complaint, inquiry or suggestion arrived in a group's queue without an assignee.</summary>
     public const string VoiceQueued = "voice.queued";
+    /// <summary>A problem was assigned to someone (not by themselves; task H1).</summary>
+    public const string ProblemAssigned = "problem.assigned";
+
+    /// <summary>A problem arrived in a group's queue without an assignee (task H1).</summary>
+    public const string ProblemQueued = "problem.queued";
+
+    /// <summary>A known error with a workaround was recorded for a problem; the assignees of its open incidents hear about it (task H1).</summary>
+    public const string ProblemKnownError = "problem.known-error";
+
+    /// <summary>A problem was resolved; the assignees of its incidents and the person who raised it hear about it (task H1).</summary>
+    public const string ProblemResolved = "problem.resolved";
+
     /// <summary>An approver is asked to decide on a request (task C3); the email has Approve and Reject buttons.</summary>
     public const string ApprovalRequested = "approval.requested";
 
@@ -253,6 +265,12 @@ public static class NotificationEvents
         new(PrivacyRequestCompleted, NotificationAudience.Requester, false, [Placeholders.PrivacyRequestNumber, Placeholders.PrivacyRequestType, Placeholders.PrivacyRequestResolution]),
         new(PrivacyRequestRejected, NotificationAudience.Requester, false, [Placeholders.PrivacyRequestNumber, Placeholders.PrivacyRequestType, Placeholders.PrivacyRequestResolution]),
         new(PrivacyRequestNew, NotificationAudience.Staff, false, [Placeholders.PrivacyRequestNumber, Placeholders.PrivacyRequestType, Placeholders.PrivacyRequestDueAt]),
+        // Task H1: problem management.
+        new(ProblemAssigned, NotificationAudience.Staff, true, [Placeholders.TicketNumber, Placeholders.TicketTitle, Placeholders.TicketGroup]),
+        new(ProblemQueued, NotificationAudience.Staff, true, [Placeholders.TicketNumber, Placeholders.TicketTitle, Placeholders.TicketGroup]),
+        new(ProblemKnownError, NotificationAudience.Staff, true,
+            [Placeholders.TicketNumber, Placeholders.TicketTitle, Placeholders.ProblemNumber, Placeholders.KnownErrorNumber, Placeholders.KnownErrorTitle]),
+        new(ProblemResolved, NotificationAudience.Staff, true, [Placeholders.TicketNumber, Placeholders.TicketTitle, Placeholders.TicketResolutionNotes]),
         // Task K4: agents are told when wellbeing is turned on (UAE PDPL).
         new(WellbeingEnabled, NotificationAudience.Staff, false, []),
         // Task M1: the scanner's definitions are out of date.
@@ -444,4 +462,13 @@ public static class Placeholders
     /// none). Missing for rules made before K1, which follow each person's choices.
     /// </summary>
     public const string RuleChannels = "rule.channels";
+
+    /// <summary>A problem's number (task H1), for example <c>PRB-000123</c>.</summary>
+    public const string ProblemNumber = "problem.number";
+
+    /// <summary>A known error's number (task H1), for example <c>KE-000123</c>.</summary>
+    public const string KnownErrorNumber = "knownError.number";
+
+    /// <summary>A known error's title in the recipient's language (task H1).</summary>
+    public const string KnownErrorTitle = "knownError.title";
 }

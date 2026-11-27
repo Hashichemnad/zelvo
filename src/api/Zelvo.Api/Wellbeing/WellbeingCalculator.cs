@@ -91,7 +91,7 @@ internal sealed class WellbeingCalculator(ZelvoDbContext db, TenantSettingsStore
         var load = isToday
             ? (await db.Tickets.AsNoTracking()
                 .Where(t => t.AssigneeId != null && agents.Contains(t.AssigneeId.Value) && t.State != TicketState.Resolved && t.State != TicketState.Closed && !t.Held)
-                .Select(t => new { Agent = t.AssigneeId!.Value, Priority = t.Incident != null ? (int?)t.Incident.Priority : t.Voice != null ? (int?)t.Voice.Priority : null })
+                .Select(t => new { Agent = t.AssigneeId!.Value, Priority = t.Incident != null ? (int?)t.Incident.Priority : t.Voice != null ? (int?)t.Voice.Priority : t.Problem != null ? (int?)t.Problem.Priority : null })
                 .ToListAsync(cancellationToken))
                 .GroupBy(t => t.Agent).ToDictionary(g => g.Key, g => (Open: g.Count(), Weighted: g.Sum(t => Weight(t.Priority))))
             : [];

@@ -161,6 +161,9 @@ public sealed class Ticket : ITenantOwned, IAuditedEntity
     /// <summary>Customer voice details of complaints, inquiries and suggestions (task C6).</summary>
     public Voice.CustomerVoiceRecord? Voice { get; set; }
 
+    /// <summary>Problem details of problems (task H1).</summary>
+    public Problems.ProblemRecord? Problem { get; set; }
+
     /// <summary>Optimistic concurrency token (PostgreSQL <c>xmin</c>).</summary>
     public uint Version { get; init; }
 }
@@ -182,6 +185,9 @@ public enum TicketType
 
     /// <summary>A suggestion, reviewed with feedback to its submitter (module 3, task C6).</summary>
     Suggestion,
+
+    /// <summary>The cause of one or more incidents, investigated by problem management (module 16, task H1).</summary>
+    Problem,
 }
 
 /// <summary>Ticket states (module 1).</summary>

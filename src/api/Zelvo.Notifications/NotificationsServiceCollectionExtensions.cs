@@ -29,6 +29,7 @@ public static class NotificationsServiceCollectionExtensions
             services.AddScoped<INotificationSource, KnowledgeNotificationSource>();
             services.AddScoped<INotificationSource, CommentNotificationSource>();
             services.AddScoped<INotificationSource, VoiceNotificationSource>();
+            services.AddScoped<INotificationSource, ProblemNotificationSource>();
             services.AddScoped<INotificationSource, SentimentNotificationSource>();
             services.AddScoped<INotificationSource, ApprovalNotificationSource>();
             services.AddScoped<INotificationSource, ServiceRequestNotificationSource>();

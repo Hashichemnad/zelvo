@@ -228,7 +228,7 @@ public sealed class SlaTracker(ZelvoDbContext db, IAuditLog audit)
                 continue;
             }
 
-            var subject = new SlaSubject(ticket.Type, ticket.Incident?.Priority ?? ticket.Voice?.Priority, setup.CategoryAncestry(ticket.CategoryId),
+            var subject = new SlaSubject(ticket.Type, ticket.Incident?.Priority ?? ticket.Voice?.Priority ?? ticket.Problem?.Priority, setup.CategoryAncestry(ticket.CategoryId),
                 setup.CustomerGroupsOf(ticket.RequesterId, emails.GetValueOrDefault(ticket.RequesterId)));
             var matched = SlaMatcher.FirstMatch(setup.Policies, subject);
             // Task C4: a service's own ownership and completion targets and escalations replace the policy's.
@@ -299,7 +299,7 @@ public sealed class SlaTracker(ZelvoDbContext db, IAuditLog audit)
 
         // 2. The policy, target and calendar that apply now; the elapsed time is kept.
         clock.PolicyId = serviceTarget is null ? policyId : null;
-        clock.TargetMinutes = serviceTarget ?? SlaMatcher.TargetOf(policy, clock.Metric, ticket.Incident?.Priority ?? ticket.Voice?.Priority);
+        clock.TargetMinutes = serviceTarget ?? SlaMatcher.TargetOf(policy, clock.Metric, ticket.Incident?.Priority ?? ticket.Voice?.Priority ?? ticket.Problem?.Priority);
         clock.CalendarId = calendarId;
         var calendar = setup.Calendar(calendarId);
 

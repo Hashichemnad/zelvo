@@ -452,6 +452,7 @@ public sealed partial class ZelvoDbContext(DbContextOptions<ZelvoDbContext> opti
         ConfigureMessaging(modelBuilder);
         ConfigureConnectors(modelBuilder);
         ConfigureCmdb(modelBuilder);
+        ConfigureProblems(modelBuilder);
 
         modelBuilder.Entity<TenantDataKey>(key =>
         {
@@ -915,6 +916,7 @@ public sealed partial class ZelvoDbContext(DbContextOptions<ZelvoDbContext> opti
             ticket.HasOne<Ticket>().WithMany().HasForeignKey(t => t.FollowUpOfId).OnDelete(DeleteBehavior.NoAction);
             ticket.HasOne(t => t.Incident).WithOne().HasForeignKey<Incident>(i => i.TicketId).OnDelete(DeleteBehavior.Cascade);
             ticket.HasOne(t => t.Voice).WithOne().HasForeignKey<Voice.CustomerVoiceRecord>(v => v.TicketId).OnDelete(DeleteBehavior.Cascade);
+            ticket.HasOne(t => t.Problem).WithOne().HasForeignKey<Problems.ProblemRecord>(p => p.TicketId).OnDelete(DeleteBehavior.Cascade);
             ticket.HasIndex(t => new { t.TenantId, t.Number }).IsUnique();
             ticket.HasIndex(t => new { t.TenantId, t.Type, t.Sequence }).IsUnique();
             ticket.HasIndex(t => new { t.TenantId, t.RequesterId, t.CreatedAt });

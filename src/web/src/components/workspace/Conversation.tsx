@@ -9,6 +9,7 @@ import { isConnectionFailure, queueWork } from "@/lib/pwa/offline-store";
 import { formatDateTime, type DateDisplayOptions } from "@/lib/format";
 import { inLanguage, type Locale, type Person } from "@/lib/incidents";
 import type { CannedResponse, Comment, CommentVisibility, RenderedResponse } from "@/lib/workspace";
+import { composeInsertEvent, type ComposeInsertDetail } from "@/lib/problems";
 import { inputClass, secondaryButtonClass } from "@/components/incidents/ReportIncidentForm";
 import { TranslateButton } from "@/components/ai/TranslateButton";
 import { aiErrorKey, type AiReply, type AiTranslation } from "@/lib/ai-features";
@@ -147,6 +148,20 @@ export function Composer({ incidentId, csrfToken, staff, requesterLanguage, resp
   const [aiBusy, setAiBusy] = useState(false);
   const [sources, setSources] = useState<AiReply["articles"]>([]);
   const tAi = useTranslations("ai.assist");
+
+  // Task H1: a known error's workaround pasted from the known errors panel, in its language.
+  useEffect(() => {
+    function onInsert(event: Event) {
+      const detail = (event as CustomEvent<ComposeInsertDetail>).detail;
+      if (!detail || detail.incidentId !== incidentId) return;
+      setVisibility("Public");
+      setLanguage(detail.language);
+      setBody((current) => (current.trim() ? `${current.trimEnd()}\n\n${detail.text}` : detail.text));
+      textRef.current?.focus();
+    }
+    window.addEventListener(composeInsertEvent, onInsert);
+    return () => window.removeEventListener(composeInsertEvent, onInsert);
+  }, [incidentId]);
 
   async function suggest() {
     setAiBusy(true);

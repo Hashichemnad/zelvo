@@ -619,7 +619,7 @@ internal static class KnowledgeEndpoints
 
     private static string Cut(string value, int max) => value.Length <= max ? value : value[..max];
 
-    private static async Task<KbArticle> NewArticleAsync(
+    internal static async Task<KbArticle> NewArticleAsync(
         ZelvoDbContext db, ITenantContext tenant, TenantSettingsStore settings, CurrentUser user, ArticleContentRequest request, Guid? sourceTicketId,
         CancellationToken cancellationToken)
     {
@@ -756,7 +756,7 @@ internal static class KnowledgeEndpoints
     internal static string ETagOf(KbArticleVersion? working, KbArticleVersion? published) =>
         $"\"{(working ?? published)?.Version ?? 0}\"";
 
-    private static async Task<IResult> SaveAsync(
+    internal static async Task<IResult> SaveAsync(
         HttpContext http, ZelvoDbContext db, CurrentUser user, TenantSettingsStore settings, ISearchIndexer indexer, KbArticle article,
         CancellationToken cancellationToken, bool created = false)
     {

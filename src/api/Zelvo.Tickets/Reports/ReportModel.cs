@@ -71,6 +71,11 @@ public static class ReportPermissions
             types.UnionWith([TicketType.Complaint, TicketType.Inquiry, TicketType.Suggestion]);
         }
 
+        if (permissions.Contains(ProblemPermissions.Read))
+        {
+            types.Add(TicketType.Problem);
+        }
+
         return types;
     }
 }

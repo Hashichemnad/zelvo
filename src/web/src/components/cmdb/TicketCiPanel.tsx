@@ -25,7 +25,7 @@ export function TicketCiPanel({
   csrfToken,
 }: {
   ticketId: string;
-  kind: "incidents" | "service-requests";
+  kind: "incidents" | "service-requests" | "problems";
   canEdit: boolean;
   /** cmdb.read: item names link to their pages. */
   canOpenItems: boolean;
