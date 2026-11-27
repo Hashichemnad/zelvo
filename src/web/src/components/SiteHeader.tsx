@@ -13,6 +13,7 @@ import { sectionsFor } from "@/lib/settings-sections";
 import { getJsonAs } from "@/lib/api";
 import { toDigitSystem } from "@/lib/format";
 import { AccountMenu } from "./AccountMenu";
+import { CollapsibleNav } from "./pwa/CollapsibleNav";
 import { NotificationBell } from "./notifications/NotificationBell";
 import { DemoPanel } from "./DemoPanel";
 import { LanguageSwitcher } from "./LanguageSwitcher";
@@ -71,8 +72,8 @@ export async function SiteHeader() {
               )}
               <span>{product}</span>
             </Link>
-            <nav aria-label={tIncidents("label")}>
-              <ul className="flex flex-wrap gap-3 text-sm font-semibold">
+            <CollapsibleNav label={tIncidents("label")} menuLabel={t("menu")}>
+              <ul className="flex flex-col gap-3 py-2 text-sm font-semibold sm:flex-row sm:flex-wrap sm:py-0">
                 {moduleShown(licensed, modules.knowledge) && (
                   <li>
                     <Link href="/help" className="text-brand underline-offset-4 hover:underline">
@@ -205,7 +206,7 @@ export async function SiteHeader() {
                   </>
                 )}
               </ul>
-            </nav>
+            </CollapsibleNav>
           </div>
           <div className="flex flex-wrap items-center gap-3">
             {user && unread && (

@@ -31,6 +31,7 @@ app.kubernetes.io/name: {{ .name }}
 {{- $_ := required "smtp.from is required" .Values.smtp.from -}}
 {{- $_ := required "tenant.nameEn is required" .Values.tenant.nameEn -}}
 {{- $_ := required "tenant.nameAr is required" .Values.tenant.nameAr -}}
+{{- $_ := required "tenant.firstAdminEmail is required (the first administrator, task M2)" .Values.tenant.firstAdminEmail -}}
 {{- $_ := required "release.manifest is required (--set-file release.manifest=release/release-manifest.json)" .Values.release.manifest -}}
 {{- $_ := required "release.signature is required (--set-file release.signature=release/release-manifest.json.sig)" .Values.release.signature -}}
 {{- end }}

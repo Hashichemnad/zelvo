@@ -232,6 +232,30 @@ export async function getBranding(tenant: string): Promise<import("./branding").
   }
 }
 
+/** Cache tag of the installable app's settings (task J1). */
+export function appInfoTag(tenant: string): string {
+  return `app:${tenant}`;
+}
+
+/** Task J1: whether the installed app may keep data offline and the tenant's app icon sizes (cached for a minute). */
+export async function getAppInfo(tenant: string): Promise<import("./pwa/manifest").AppInfo | null> {
+  try {
+    const response = await fetch(new URL("/api/v1/app", apiBaseUrl), {
+      next: { revalidate: 60, tags: [appInfoTag(tenant), brandingTag(tenant)] },
+      signal: AbortSignal.timeout(timeoutMs),
+      headers: { Accept: "application/json", "X-Zelvo-Tenant": tenant },
+    });
+    return response.ok ? ((await response.json()) as import("./pwa/manifest").AppInfo) : null;
+  } catch {
+    return null;
+  }
+}
+
+/** Expires the cached app settings after an administrator changes them through this web app. */
+export function forgetAppInfo(tenant: string): void {
+  revalidateTag(appInfoTag(tenant), { expire: 0 });
+}
+
 /** Expires the cached branding after an administrator publishes or discards through this web app. */
 export function forgetBranding(tenant: string): void {
   revalidateTag(brandingTag(tenant), { expire: 0 });

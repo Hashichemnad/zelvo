@@ -65,3 +65,13 @@ describe("visitor paths of the API proxy", () => {
     expect(isVisitorPath("GET", ["v1", "me", "tickets"])).toBe(false);
   });
 });
+
+describe("account setup (task M2)", () => {
+  it("lets visitors check and use a setup link, nothing else under identity", () => {
+    expect(isVisitorPath("POST", ["v1", "identity", "account-setup"])).toBe(true);
+    expect(isVisitorPath("POST", ["v1", "identity", "account-setup", "check"])).toBe(true);
+    expect(isVisitorPath("GET", ["v1", "identity", "account-setup"])).toBe(false);
+    expect(isVisitorPath("POST", ["v1", "identity", "settings"])).toBe(false);
+    expect(isVisitorPath("POST", ["v1", "identity", "account-setup", "other"])).toBe(false);
+  });
+});

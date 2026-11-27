@@ -43,6 +43,7 @@ spec:
             - { name: Tenancy__Bootstrap__Slug, value: {{ .Values.tenant.slug | quote }} }
             - { name: Tenancy__Bootstrap__NameEn, value: {{ .Values.tenant.nameEn | quote }} }
             - { name: Tenancy__Bootstrap__NameAr, value: {{ .Values.tenant.nameAr | quote }} }
+            - { name: Tenancy__Bootstrap__FirstAdminEmail, value: {{ .Values.tenant.firstAdminEmail | quote }} }
             - { name: Identity__PublicUrl, value: "https://{{ .Values.publicHost }}/auth" }
             - { name: Identity__InternalUrl, value: "http://{{ $fullname }}-keycloak:8080/auth" }
             {{- include "zelvo.secretEnv" (dict "root" . "env" "Identity__ProvisionerClientSecret" "key" "keycloakProvisionerSecret") | nindent 12 }}

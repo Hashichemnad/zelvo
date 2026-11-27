@@ -22,6 +22,10 @@ tenant:
   slug: default
   nameEn: ""
   nameAr: ""
+  # REQUIRED (task M2): the first administrator. The migrate job creates them and prints a
+  # one-time setup link in its log (kubectl logs job/<release>-migrate | grep ZELVO-SETUP-LINK)
+  # until they use it; each upgrade before then makes a new link.
+  firstAdminEmail: ""
 
 # REQUIRED: a Secret the operator creates with the installation's passwords (keys in README.md).
 existingSecret: zelvo-secrets

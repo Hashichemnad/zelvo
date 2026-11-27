@@ -100,8 +100,32 @@ checks `SHA256SUMS` and the manifest's signature, loads every image from files (
 third-party ones under `images/third-party/`, so no registry is needed), copies the configuration
 to `/opt/zelvo` without touching an existing `.env`, secrets or data, makes `.env` with random
 passwords (mode 0600), the master key (owner the services' user, mode 0400) and RabbitMQ's users,
-stops for the required settings (public host, ACME email, organisation names, mail server) and
-then starts and waits until everything is healthy. Later versions come as update packages.
+stops for the required settings (public host, ACME email, organisation names, the first
+administrator's email, mail server) and then starts and waits until everything is healthy. Later
+versions come as update packages.
+
+Task M2 (pentest pack, open points 1 to 3):
+
+- **First tenant administrator**: `ZELVO_FIRST_ADMIN_EMAIL` (Helm `tenant.firstAdminEmail`).
+  `migrate` creates the person in the tenant's realm (email verified, no password, required action
+  "configure authenticator app"), gives them the tenant administrator role in Zelvo and prints a
+  one-time setup link (`ZELVO-SETUP-LINK https://<host>/en/account-setup#<token>`, 256 random bits,
+  only the SHA-256 hash stored in `account_setup_links` with row-level security, 72 hours, used
+  once). `install.sh` shows it; until it is used every run of `migrate` makes a new one and earlier
+  links stop working; once the tenant has an administrator who set up their account (or one made
+  otherwise) nothing happens. A mistyped address corrected before the link was used: the earlier
+  person loses the role and is disabled. The page sets the password through Keycloak's admin API
+  (`POST /api/v1/identity/account-setup`, the realm's password policy decides; audited
+  `identity.account-setup.completed`); the authenticator app is set up at the first sign-in.
+- **More tenants**: `add-tenant.sh` in the installation folder runs `migrate` once with the new
+  tenant's slug, names, own host (`Tenancy:Bootstrap:Host`, recorded as a verified custom domain:
+  the operator vouches for it, so no DNS proof) and first administrator. On Kubernetes the same
+  settings go on a one-off run of the migrate job's image.
+- **The REST API through the proxy**: `/api/v1/*` (integrations, the MCP server) is routed to the
+  API with HSTS and the TRACE refusal; `/api/v1/hooks` is not (webhooks use `/hooks/{tenant}/…`).
+- Every `migrate` run now keeps each realm's sign-in name, sign-in image and web app addresses in
+  step with the tenant's published branding and verified domains (before M2 a restart reset them
+  to the installation's own address until the next publish or verification).
 
 Hardening: release images only (`pull_policy: never`); read-only root file systems with `tmpfs`
 where needed (all but RabbitMQ, OpenSearch, ClamAV and Keycloak, whose images write to their own

@@ -62,7 +62,9 @@ public sealed class WorkspaceApiTests(DatabaseFixture database) : IAsyncDisposab
         // The audit log keeps the length of a comment, not its text.
         var audited = await db.AuditEvents.Where(e => e.EntityType == "ticket_comment" && e.Category == AuditCategory.Create).ToListAsync(Ct);
         Assert.Equal(3, audited.Count);
-        Assert.DoesNotContain(audited, e => e.Changes!.Contains("6.2", StringComparison.Ordinal));
+        // (The texts themselves, not "6.2" alone: timestamps in the changes can contain those characters.)
+        Assert.DoesNotContain(audited, e => e.Changes!.Contains("6.2 bug", StringComparison.Ordinal) || e.Changes!.Contains("الإصدار", StringComparison.Ordinal)
+            || e.Changes!.Contains("VPN client", StringComparison.Ordinal));
     }
 
     [Fact]

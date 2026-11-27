@@ -167,6 +167,8 @@ v1.MapMeEndpoints();
 v1.MapUserEndpoints();
 v1.MapRoleEndpoints();
 v1.MapIdentitySettingsEndpoints();
+// Task M2: the first administrator's one-time setup link (hardened installs).
+v1.MapAccountSetupEndpoints();
 v1.MapUaePassEndpoints();
 v1.MapPreferenceEndpoints();
 v1.MapSettingsEndpoints();
@@ -218,6 +220,8 @@ v1.ForModule(LicensedModules.Omnichannel).MapZelvoChannels();
 // Task E7: identity, CRM and REST connectors and monitoring alerts (module 14).
 v1.ForModule(LicensedModules.Integrations).MapConnectorEndpoints();
 app.MapBrandingEndpoints(v1);
+// Task J1: the installable web app (module 19): app icon sizes and offline data.
+v1.MapAppEndpoints();
 
 await app.RunAsync();
 return 0;

@@ -6,6 +6,7 @@ import { useRouter } from "@/i18n/navigation";
 import { ApiError, deleteRequest, postFile } from "@/lib/client-api";
 import { formatDateTime, type DateDisplayOptions } from "@/lib/format";
 import { formatSize, type Attachment } from "@/lib/incidents";
+import { CameraButtons } from "@/components/pwa/CameraButtons";
 import { secondaryButtonClass } from "./ReportIncidentForm";
 
 export interface AttachmentsPanelProps {
@@ -36,9 +37,11 @@ export function AttachmentsPanel({ incidentId, attachments, csrfToken, canUpload
   async function upload(event: React.FormEvent) {
     event.preventDefault();
     const file = input.current?.files?.[0];
-    if (!file) {
-      return;
-    }
+    if (file) await send(file);
+  }
+
+  // Files chosen in the picker or taken with the camera (task J1) go through the same upload.
+  async function send(file: File) {
     setBusy(true);
     try {
       await postFile(base, file, csrfToken);
@@ -136,6 +139,7 @@ export function AttachmentsPanel({ incidentId, attachments, csrfToken, canUpload
           <button type="submit" className={secondaryButtonClass} disabled={busy}>
             {busy ? t("uploading") : t("upload")}
           </button>
+          <CameraButtons allowed={limits?.allowedExtensions} disabled={busy} onFile={(file) => void send(file)} />
         </form>
       )}
       <p role="status" aria-live="polite" className={message?.bad ? "text-bad" : "text-ok"}>

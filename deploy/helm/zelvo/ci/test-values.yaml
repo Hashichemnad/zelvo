@@ -1,7 +1,7 @@
 # Values for CI's helm lint and template (task F6). Addresses are examples; no secrets here: the
 # chart reads them from the existing secret "zelvo-secrets".
 publicHost: zelvo.example.org
-tenant: { nameEn: Example Authority, nameAr: هيئة المثال }
+tenant: { nameEn: Example Authority, nameAr: هيئة المثال, firstAdminEmail: it.admin@example.ae }
 postgres: { host: zelvo-db-rw.zelvo.svc }
 redis: { endpoint: "zelvo-valkey.zelvo.svc:6379" }
 rabbitmq: { host: zelvo-rabbitmq.zelvo.svc }

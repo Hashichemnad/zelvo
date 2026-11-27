@@ -3,7 +3,10 @@
 import { useEffect, useId, useState } from "react";
 import { useLocale, useTranslations } from "next-intl";
 import { useRouter } from "@/i18n/navigation";
-import { ApiError, getJson, postJson } from "@/lib/client-api";
+import { ApiError, getJson, postFile, postJson } from "@/lib/client-api";
+import { CameraButtons } from "@/components/pwa/CameraButtons";
+import { offlineWorkAllowed } from "@/lib/pwa/app-state";
+import { isConnectionFailure, queueWork } from "@/lib/pwa/offline-store";
 import { FormRenderer } from "@/components/forms/FormRenderer";
 import { checkAnswers } from "@/lib/forms/check";
 import type { AnswerError, Answers, ResolvedForm } from "@/lib/forms/types";
@@ -28,13 +31,15 @@ export interface ReportIncidentFormProps {
   followUpOf?: { id: string; number: string } | null;
   /** Active categories and locations to choose from, and groups for staff who assign (task B2). */
   directory?: { categories: TreeNode[]; locations: TreeNode[]; groups: GroupSummary[] | null } | null;
+  /** Task J1: photos and files the requester adds (camera on phones), uploaded once the incident exists. */
+  attachments?: { maxSizeMb: number; allowedExtensions: string[] } | null;
 }
 
 /**
  * "Report an incident" for requesters (title and description; the portal, D2, reuses it) and
  * "Log an incident" for staff, who also choose the requester, channel, impact, urgency and assignee.
  */
-export function ReportIncidentForm({ csrfToken, settings, basePath, staff, followUpOf, directory }: ReportIncidentFormProps) {
+export function ReportIncidentForm({ csrfToken, settings, basePath, staff, followUpOf, directory, attachments }: ReportIncidentFormProps) {
   const t = useTranslations("incidents.form");
   const tIncidents = useTranslations("incidents");
   const tCommon = useTranslations("common");
@@ -51,12 +56,14 @@ export function ReportIncidentForm({ csrfToken, settings, basePath, staff, follo
   const [categoryId, setCategoryId] = useState("");
   const [locationId, setLocationId] = useState("");
   const [groupId, setGroupId] = useState("");
-  const [status, setStatus] = useState<"idle" | "saving" | "failed" | "invalid" | "rateLimited" | "notInGroup" | "formInvalid" | "formChanged">("idle");
+  const [status, setStatus] = useState<"idle" | "saving" | "failed" | "invalid" | "rateLimited" | "notInGroup" | "formInvalid" | "formChanged" | "queued">("idle");
   // Task C1: the category's form, its answers and the problems found in them.
   const [form, setForm] = useState<ResolvedForm | null>(null);
   const [formAnswers, setFormAnswers] = useState<Answers>({});
   const [formErrors, setFormErrors] = useState<AnswerError[]>([]);
   const [formReload, setFormReload] = useState(0);
+  const [files, setFiles] = useState<File[]>([]);
+  const [filesProblem, setFilesProblem] = useState<string | null>(null);
 
   useEffect(() => {
     let cancelled = false;
@@ -109,8 +116,28 @@ export function ReportIncidentForm({ csrfToken, settings, basePath, staff, follo
     }
     try {
       const created = await postJson<Incident>("/v1/incidents", body, csrfToken);
-      router.push(`${basePath}/${created.id}`);
+      // Task J1: the photos and files go through the incident's checked and scanned upload.
+      let refused = 0;
+      for (const file of files) {
+        await postFile(`/v1/incidents/${created.id}/attachments`, file, csrfToken).catch(() => {
+          refused++;
+        });
+      }
+      router.push(refused > 0 ? `${basePath}/${created.id}?filesRefused=${refused}` : `${basePath}/${created.id}`);
     } catch (error) {
+      // Task J1: a requester's new incident without a connection waits on the device and is sent when it is back.
+      if (!staff && files.length === 0 && isConnectionFailure(error) && offlineWorkAllowed()) {
+        try {
+          await queueWork({ kind: "incident", path: "/v1/incidents", body, summary: title.trim() });
+          setTitle("");
+          setDescription("");
+          setFormAnswers({});
+          setStatus("queued");
+        } catch {
+          setStatus("failed");
+        }
+        return;
+      }
       const errors = error instanceof ApiError ? (error.details.errors as Record<string, unknown> | undefined) : undefined;
       const answerErrors = error instanceof ApiError ? (error.details.formErrors as AnswerError[] | undefined) : undefined;
       if (answerErrors?.length) {
@@ -134,6 +161,19 @@ export function ReportIncidentForm({ csrfToken, settings, basePath, staff, follo
               : "failed",
       );
     }
+  }
+
+  function addFiles(added: File[]) {
+    if (!attachments) return;
+    setFilesProblem(null);
+    const ok: File[] = [];
+    for (const file of added) {
+      const extension = file.name.includes(".") ? file.name.split(".").pop()!.toLowerCase() : "";
+      if (!attachments.allowedExtensions.includes(extension)) setFilesProblem(t("fileTypeRefused", { name: file.name }));
+      else if (file.size > attachments.maxSizeMb * 1024 * 1024) setFilesProblem(t("fileTooLarge", { name: file.name, size: attachments.maxSizeMb }));
+      else ok.push(file);
+    }
+    setFiles((current) => [...current, ...ok].slice(0, 10));
   }
 
   function focusFirstError(errors: AnswerError[]) {
@@ -249,6 +289,34 @@ export function ReportIncidentForm({ csrfToken, settings, basePath, staff, follo
             locations={directory?.locations ?? []} csrfToken={csrfToken} idPrefix={`${id}-answers`} />
         </section>
       )}
+      {attachments && !staff && (
+        <fieldset className="space-y-2" data-testid="report-files">
+          <legend className="font-semibold">{t("files")}</legend>
+          <input id={`${id}-files`} type="file" multiple aria-label={t("files")} aria-describedby={`${id}-files-hint`}
+            accept={attachments.allowedExtensions.map((e) => `.${e}`).join(",")} className="block text-sm"
+            onChange={(e) => {
+              addFiles(Array.from(e.target.files ?? []));
+              e.target.value = "";
+            }} />
+          <CameraButtons allowed={attachments.allowedExtensions} onFile={(file) => addFiles([file])} />
+          <p id={`${id}-files-hint`} className="text-sm text-ink-muted">
+            {t("filesHint", { size: attachments.maxSizeMb, types: attachments.allowedExtensions.join(", ") })}
+          </p>
+          {files.length > 0 && (
+            <ul className="space-y-1">
+              {files.map((file, index) => (
+                <li key={`${file.name}-${index}`} className="flex flex-wrap items-center gap-2 text-sm">
+                  <span dir="auto" className="break-all">{file.name}</span>
+                  <button type="button" className="font-semibold text-brand underline" onClick={() => setFiles((current) => current.filter((_, i) => i !== index))}>
+                    {t("removeFile", { name: file.name })}
+                  </button>
+                </li>
+              ))}
+            </ul>
+          )}
+          {filesProblem && <p role="alert" className="text-sm text-bad">{filesProblem}</p>}
+        </fieldset>
+      )}
       {staff && (
         <fieldset className="grid gap-4 sm:grid-cols-2">
           <div className="space-y-1">
@@ -322,8 +390,8 @@ export function ReportIncidentForm({ csrfToken, settings, basePath, staff, follo
         <button type="submit" disabled={status === "saving"} className={buttonClass}>
           {status === "saving" ? t("submitting") : staff ? t("submitStaff") : t("submit")}
         </button>
-        <p role="status" aria-live="polite" className="text-bad">
-          {status === "invalid" ? t("titleRequired") : status === "formInvalid" ? t("formInvalid") : status === "formChanged" ? t("formChanged") : status === "notInGroup" ? t("notInGroup") : status === "failed" ? t("failed") : status === "rateLimited" ? tCommon("rateLimited") : ""}
+        <p role="status" aria-live="polite" className={status === "queued" ? "" : "text-bad"}>
+          {status === "invalid" ? t("titleRequired") : status === "formInvalid" ? t("formInvalid") : status === "formChanged" ? t("formChanged") : status === "notInGroup" ? t("notInGroup") : status === "failed" ? t("failed") : status === "queued" ? t("queued") : status === "rateLimited" ? tCommon("rateLimited") : ""}
         </p>
       </div>
     </form>

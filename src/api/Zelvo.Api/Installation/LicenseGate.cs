@@ -70,6 +70,8 @@ internal sealed class LicenseEnforcementMiddleware(RequestDelegate next)
     [
         "/api/v1/system", "/api/v1/tenant", "/api/v1/me", "/api/v1/license", "/api/v1/setup", "/api/v1/branding", "/api/v1/translations",
         "/api/v1/demo",
+        // Task M2: the first administrator chooses a password before the license is imported; task J1: the app manifest.
+        "/api/v1/identity/account-setup", "/api/v1/app",
         // Task F5: the published privacy notice people accept (GOV-5) is shown before activation too.
         "/api/v1/privacy/notice",
     ];

@@ -20,6 +20,9 @@ public enum BrandingSlot
 
     /// <summary>Image of the sign-in page.</summary>
     LoginImage,
+
+    /// <summary>Icon of the installable web app (task J1): a square PNG of at least 512 pixels, resized by the server.</summary>
+    AppIcon,
 }
 
 /// <summary>A font the branding may choose; every one is bundled with Zelvo (works offline) and has Arabic and Latin letters.</summary>

@@ -4954,6 +4954,52 @@ namespace Zelvo.Data.Migrations
                     b.ToTable("ticket_form_responses", (string)null);
                 });
 
+            modelBuilder.Entity("Zelvo.Data.Identity.AccountSetupLink", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<DateTimeOffset>("CreatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("created_at");
+
+                    b.Property<DateTimeOffset>("ExpiresAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("expires_at");
+
+                    b.Property<Guid>("TenantId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("tenant_id");
+
+                    b.Property<string>("TokenHash")
+                        .IsRequired()
+                        .HasMaxLength(64)
+                        .HasColumnType("character(64)")
+                        .HasColumnName("token_hash")
+                        .IsFixedLength();
+
+                    b.Property<DateTimeOffset?>("UsedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("used_at");
+
+                    b.Property<Guid>("UserId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("user_id");
+
+                    b.HasKey("Id")
+                        .HasName("pk_account_setup_links");
+
+                    b.HasIndex("UserId")
+                        .HasDatabaseName("ix_account_setup_links_user_id");
+
+                    b.HasIndex("TenantId", "TokenHash")
+                        .IsUnique()
+                        .HasDatabaseName("ix_account_setup_links_tenant_id_token_hash");
+
+                    b.ToTable("account_setup_links", (string)null);
+                });
+
             modelBuilder.Entity("Zelvo.Data.Identity.IdentitySettings", b =>
                 {
                     b.Property<Guid>("TenantId")
@@ -9288,7 +9334,7 @@ namespace Zelvo.Data.Migrations
 
                     b.ToTable("ticket_attachments", null, t =>
                         {
-                            t.HasCheckConstraint("ck_ticket_attachments_branding_slot", "branding_slot IS NULL OR branding_slot IN ('LogoLight', 'LogoDark', 'Favicon', 'LoginImage')");
+                            t.HasCheckConstraint("ck_ticket_attachments_branding_slot", "branding_slot IS NULL OR branding_slot IN ('LogoLight', 'LogoDark', 'Favicon', 'LoginImage', 'AppIcon')");
 
                             t.HasCheckConstraint("ck_ticket_attachments_comment", "comment_id IS NULL OR ticket_id IS NOT NULL");
 
@@ -11721,6 +11767,23 @@ namespace Zelvo.Data.Migrations
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired()
                         .HasConstraintName("fk_ticket_form_responses_tickets_ticket_id");
+                });
+
+            modelBuilder.Entity("Zelvo.Data.Identity.AccountSetupLink", b =>
+                {
+                    b.HasOne("Zelvo.Data.Tenancy.Tenant", null)
+                        .WithMany()
+                        .HasForeignKey("TenantId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired()
+                        .HasConstraintName("fk_account_setup_links_tenants_tenant_id");
+
+                    b.HasOne("Zelvo.Data.Identity.UserAccount", null)
+                        .WithMany()
+                        .HasForeignKey("UserId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired()
+                        .HasConstraintName("fk_account_setup_links_users_user_id");
                 });
 
             modelBuilder.Entity("Zelvo.Data.Identity.IdentitySettings", b =>

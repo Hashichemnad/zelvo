@@ -10,6 +10,9 @@ import { Link } from "@/i18n/navigation";
 import { isId } from "@/lib/incident-pages";
 import { loadRequest } from "@/lib/request-pages";
 import { requireSignedIn } from "@/lib/signed-in";
+import { getAppInfo } from "@/lib/api";
+import { formatDateTime } from "@/lib/format";
+import { RememberTicket } from "@/components/pwa/RememberTicket";
 
 export async function generateMetadata({ params }: PageProps<"/[locale]/my-requests/[id]">) {
   const { locale } = await params;
@@ -34,8 +37,23 @@ export default async function MyRequestPage({ params }: PageProps<"/[locale]/my-
       </section>
     );
   }
+  // Task J1: kept on the device for the offline page, as the requester sees it now.
+  const app = await getAppInfo(tenant);
+  const tStates = await getTranslations({ locale, namespace: "incidents.states" });
+  const offline = {
+    id: request.id,
+    number: request.number,
+    title: request.title,
+    state: tStates(request.state),
+    team: null,
+    description: request.description,
+    href: `/${locale}/my-requests/${request.id}`,
+    messages: [],
+    updated: formatDateTime(new Date(request.updatedAt), display),
+  };
   return (
     <article aria-labelledby="request-heading" className="space-y-8">
+      <RememberTicket ticket={offline} enabled={app?.offlineData ?? true} />
       <Link href="/my-requests" className="text-sm font-semibold text-brand underline-offset-4 hover:underline">{t("backToMine")}</Link>
       <header className="space-y-1">
         <p className="font-mono text-ink-muted" dir="ltr">{request.number}</p>

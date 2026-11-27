@@ -387,6 +387,8 @@ services:
       Tenancy__Bootstrap__Slug: ${ZELVO_DEFAULT_TENANT:-default}
       Tenancy__Bootstrap__NameEn: ${ZELVO_DEFAULT_TENANT_NAME_EN:?set in .env}
       Tenancy__Bootstrap__NameAr: ${ZELVO_DEFAULT_TENANT_NAME_AR:?set in .env}
+      # Task M2: the first tenant administrator; migrate prints their one-time setup link until they use it.
+      Tenancy__Bootstrap__FirstAdminEmail: ${ZELVO_FIRST_ADMIN_EMAIL:?set in .env}
       <<: [*identity-env, *licensing-env]
       Identity__Provisioning__AdminUser: ${KEYCLOAK_ADMIN_USER}
       Identity__Provisioning__AdminPassword: ${KEYCLOAK_ADMIN_PASSWORD}

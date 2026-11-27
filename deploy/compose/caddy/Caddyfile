@@ -6,7 +6,8 @@
 # - Certificates a tenant uploaded in Settings → Branding come from Zelvo during the TLS
 #   handshake ("get_certificate http"); Zelvo answers 204 for other hosts and ACME takes over.
 # Both questions go to the API's internal address with a shared secret (ZELVO_TLS_TOKEN) and are
-# never reachable from outside: the proxy forwards only to the web app.
+# never reachable from outside: the proxy forwards only to the web app, the REST API at /api/v1
+# (task M2) and the webhook routes below.
 {
 	email {$ZELVO_ACME_EMAIL:admin@localhost}
 	acme_ca {$ZELVO_ACME_CA:https://acme-v02.api.letsencrypt.org/directory}
@@ -50,6 +51,19 @@
 	}
 	# zelvo:security-end
 	import zelvo_hooks
+	# Task M2 (pentest pack, open point 3): the REST API for integrations (API keys, OAuth
+	# clients) and the MCP server at /api/v1, with the API's own rate limits and authentication;
+	# HSTS and the TRACE refusal above apply as for pages. Tenants other than the installation's
+	# default are named with the X-Zelvo-Tenant header. Provider webhooks stay under
+	# /hooks/<tenant>/..., where the proxy names the tenant, so /api/v1/hooks is not routed.
+	handle /api/v1/* {
+		@api_hooks path /api/v1/hooks /api/v1/hooks/*
+		respond @api_hooks 404
+		reverse_proxy api:8080 {
+			# Streamable HTTP (MCP) and Server-Sent Events go out as they come.
+			flush_interval -1
+		}
+	}
 	handle_path /_zelvo/maintenance/* {
 		root * /srv/maintenance
 		file_server
