@@ -5445,6 +5445,8 @@
       "Complaint": "Complaints",
       "Inquiry": "Inquiries",
       "Suggestion": "Suggestions",
+      "Problem": "Problems",
+      "Custom": "Custom records",
       "Portal": "Portal ratings"
     },
     "channels": {

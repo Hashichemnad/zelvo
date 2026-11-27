@@ -71,7 +71,7 @@ export function ProblemTimeline({ entries, display }: { entries: TimelineEntry[]
             <li key={i}>
               <time dateTime={e.at} className="text-sm text-ink-muted">{formatDateTime(new Date(e.at), display)}</time>{" "}
               {e.ticket.type === "Incident" ? (
-                <Link href={`/incidents/${e.ticket.id}`} className="text-brand underline-offset-4 hover:underline">{label}</Link>
+                <Link href={`/incidents/${e.ticket.id}`} className="text-brand underline underline-offset-4">{label}</Link>
               ) : (
                 <span>{label}</span>
               )}
