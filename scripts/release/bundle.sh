@@ -11,6 +11,7 @@
 #   compose/                    hardened Docker Compose for small installs (compose.production.yaml)
 #   helm/zelvo-<version>.tgz    the Helm chart for medium and large installs
 #   install.sh                  offline install or upgrade of a Compose installation
+#   compose/add-tenant.sh       adds an organisation (tenant) with its host and first administrator
 #   cosign.pub                  Zelvo's image-signing public key, to check images and the manifest
 #   package-manifest.json       the input of zelvo-sign package for the update package (.zpkg)
 #   SHA256SUMS
@@ -53,6 +54,8 @@ for image in $third_party; do
   docker save "$image" | gzip -1 > "$out/images/third-party/$(echo "$image" | tr '/:' '__').tar.gz"
 done
 cp "$repo/scripts/release/install.sh" "$out/install.sh"
+# Task M2: further organisations (tenants) on their own hosts, run in the installation folder.
+cp "$repo/scripts/release/add-tenant.sh" "$out/compose/add-tenant.sh"
 # Zelvo's image-signing public key; tests give a throwaway one in ZELVO_BUNDLE_PUBLIC_KEY.
 if [[ -n "${ZELVO_BUNDLE_PUBLIC_KEY:-}" ]]; then
   cp "$ZELVO_BUNDLE_PUBLIC_KEY" "$out/cosign.pub"

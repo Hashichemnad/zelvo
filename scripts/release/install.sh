@@ -65,7 +65,7 @@ for folder in caddy security postgres observability; do
   rm -rf "${target:?}/$folder"
   cp -r "$bundle/compose/$folder" "$target/$folder"
 done
-cp "$bundle/compose/restore.sh" "$bundle/compose/clamav-import-definitions.sh" "$target/"
+cp "$bundle/compose/restore.sh" "$bundle/compose/clamav-import-definitions.sh" "$bundle/compose/add-tenant.sh" "$target/"
 mkdir -p "$target/release"
 cp "$bundle/release/release-manifest.json" "$bundle/release/release-manifest.json.sig" "$target/release/"
 chmod 0644 "$target/release/"*
@@ -124,7 +124,7 @@ chown 0:0 "$target/secrets/rabbitmq-definitions.json"
 chmod 0444 "$target/secrets/rabbitmq-definitions.json"
 
 missing=()
-for key in ZELVO_PUBLIC_HOST ZELVO_ACME_EMAIL ZELVO_DEFAULT_TENANT_NAME_EN ZELVO_DEFAULT_TENANT_NAME_AR ZELVO_SMTP_HOST ZELVO_SMTP_FROM; do
+for key in ZELVO_PUBLIC_HOST ZELVO_ACME_EMAIL ZELVO_DEFAULT_TENANT_NAME_EN ZELVO_DEFAULT_TENANT_NAME_AR ZELVO_FIRST_ADMIN_EMAIL ZELVO_SMTP_HOST ZELVO_SMTP_FROM; do
   [[ -n "${!key:-}" ]] || missing+=("$key")
 done
 if [[ ${#missing[@]} -gt 0 ]]; then
@@ -141,10 +141,25 @@ fi
 
 say "Starting Zelvo $version"
 (cd "$target" && docker compose up --detach --wait --wait-timeout "${ZELVO_WAIT_TIMEOUT:-1200}")
+# Task M2: the first administrator's one-time setup link, printed by migrate until it is used.
+link=$(cd "$target" && docker compose logs --no-log-prefix migrate 2>/dev/null | grep -o 'ZELVO-SETUP-LINK [^ "]*' | tail -n 1 | cut -d' ' -f2 || true)
 cat <<MSG
 
 Zelvo $version is running at https://${ZELVO_PUBLIC_HOST}/
+MSG
+if [[ -n "$link" ]]; then
+  cat <<MSG
+First administrator (${ZELVO_FIRST_ADMIN_EMAIL}): open this one-time link to choose the password,
+then sign in and set up the authenticator app. It works once, for 72 hours; give it to that
+person only. Each start of Zelvo before it is used makes a new link (shown again by
+"docker compose logs migrate | grep ZELVO-SETUP-LINK").
+  $link
+MSG
+else
+  echo "The organisation already has its administrator (no new setup link)."
+fi
+cat <<MSG
 Next: sign in as the administrator, open Settings → License, download the activation request,
-send it to Zelvo and import the license file you receive. Keep copies of $target/.env and
-$target/secrets/master.key outside this server.
+send it to Zelvo and import the license file you receive. More organisations: ./add-tenant.sh
+in $target. Keep copies of $target/.env and $target/secrets/master.key outside this server.
 MSG

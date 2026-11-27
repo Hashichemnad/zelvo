@@ -1,5 +1,5 @@
 import { NextResponse, type NextRequest } from "next/server";
-import { apiFetch, forgetBranding, forgetLocalizationSettings, forgetPrivacyNotice } from "@/lib/api";
+import { apiFetch, forgetAppInfo, forgetBranding, forgetLocalizationSettings, forgetPrivacyNotice } from "@/lib/api";
 import { authConfigFor } from "@/lib/auth/config";
 import { isSameOriginRequest, secretsMatch } from "@/lib/auth/security";
 import { getSession } from "@/lib/auth/session";
@@ -86,6 +86,11 @@ async function forward(request: NextRequest, { params }: { params: Promise<{ pat
   if (request.method === "POST" && /^v1\/settings\/branding\/(publish|discard)$/.test(path.join("/")) && response.ok) {
     // Task F1: every page shows the published branding at once.
     forgetBranding(config.tenant);
+  }
+
+  if (request.method === "PUT" && path.join("/") === "v1/settings/app" && response.ok) {
+    // Task J1: the installed app follows the offline data setting at once.
+    forgetAppInfo(config.tenant);
   }
 
   if (request.method === "POST" && path.join("/") === "v1/privacy/notices/draft/publish" && response.ok) {

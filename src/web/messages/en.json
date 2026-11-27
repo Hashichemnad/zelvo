@@ -15,7 +15,8 @@
     "privacyNotice": "Privacy notice",
     "activationRequired": "Zelvo is not activated on these servers yet, so most screens are not available. An administrator imports the license in Settings → License.",
     "maintenanceAhead": "Zelvo will be updated to version {version} on {when} and will be unavailable for about {minutes} minutes.",
-    "maintenanceNow": "Zelvo is being updated to version {version} and will be unavailable for a few minutes."
+    "maintenanceNow": "Zelvo is being updated to version {version} and will be unavailable for a few minutes.",
+    "menu": "Menu"
   },
   "language": {
     "name": "English",
@@ -1272,7 +1273,8 @@
           "LogoLight": "Logo for light backgrounds",
           "LogoDark": "Logo for dark backgrounds",
           "Favicon": "Browser tab icon",
-          "LoginImage": "Sign-in page image"
+          "LoginImage": "Sign-in page image",
+          "AppIcon": "App icon"
         },
         "choose": "Choose an image",
         "remove": "Remove",
@@ -1282,7 +1284,8 @@
           "Clean": "Checked: no malware found.",
           "Infected": "Rejected: malware was found.",
           "NotScanned": "Not checked (scanning is off in this installation)."
-        }
+        },
+        "appIconHint": "The icon of the installed app on phones and computers: a square PNG of at least 512 × 512 pixels. Zelvo makes every size phones need from it."
       },
       "publish": {
         "title": "Publish",
@@ -1356,7 +1359,26 @@
         "branding-not-ready": "The draft cannot be published until every problem is solved.",
         "too-many-domains": "You have the most domains allowed.",
         "domain-not-found": "That domain no longer exists.",
-        "sender-domain-not-set": "No sender domain is set."
+        "sender-domain-not-set": "No sender domain is set.",
+        "app-icon-too-small": "The app icon must be at least 512 × 512 pixels.",
+        "app-icon-not-square": "The app icon must be square (as wide as it is high).",
+        "png-unreadable": "The file is not a PNG image Zelvo can read.",
+        "png-interlaced": "Save the image without interlacing and upload it again.",
+        "png-too-large": "The image can be at most 4096 × 4096 pixels."
+      },
+      "app": {
+        "title": "Installable app",
+        "intro": "People install your organisation's app from its own address: it shows your product name, colours and app icon. Print or share the QR code so people can open the address with their phone's camera.",
+        "qrAlt": "QR code that opens {address}",
+        "address": "Address the QR code opens",
+        "qrHelp": "Scanning the code opens the address in the phone's browser, which then offers to install the app.",
+        "downloadQr": "Download the QR code (SVG)",
+        "offlineTitle": "Offline data",
+        "offlineData": "Keep data on the device for offline use",
+        "offlineHelp": "On: requesters' last-viewed tickets (read-only) and new incidents and replies sent without a connection are kept on their own device until they sign out. Agents' lists are never kept. Off: the app still opens without a connection but keeps nothing, and what devices kept is removed.",
+        "saved": "Saved.",
+        "failed": "The setting could not be saved. Try again.",
+        "rateLimited": "Too many requests in a short time. Please wait a minute, then try again."
       }
     },
     "setupBanner": {
@@ -1535,7 +1557,13 @@
       "groupHint": "Leave this to let the assignment rules choose the group.",
       "notInGroup": "The assignee is not a member of the chosen group.",
       "formInvalid": "Some answers in the form need your attention.",
-      "formChanged": "The form was changed while you were filling it. It has been loaded again; check your answers and send again."
+      "formChanged": "The form was changed while you were filling it. It has been loaded again; check your answers and send again.",
+      "queued": "You are offline. Your incident is kept on this device and will be sent when the connection is back.",
+      "files": "Photos and files",
+      "filesHint": "Optional. Up to {size} MB each; accepted types: {types}.",
+      "removeFile": "Remove {name}",
+      "fileTypeRefused": "{name} cannot be attached: this type of file is not accepted.",
+      "fileTooLarge": "{name} cannot be attached: it is larger than {size} MB."
     },
     "work": {
       "heading": "Work on this incident",
@@ -1618,7 +1646,8 @@
         "attachment-content-mismatch": "The file's content does not match its type.",
         "ticket-closed": "The incident is closed, so no files can be added or removed.",
         "failed": "The file could not be attached. Please try again."
-      }
+      },
+      "someRefused": "{count, plural, one {# file could not be attached. Try it again below.} other {# files could not be attached. Try them again below.}}"
     },
     "timeline": {
       "heading": "Updates on this major incident",
@@ -3071,7 +3100,8 @@
       "suggestReply": "Suggest a reply",
       "translateTo": "Translate into {language}",
       "basedOn": "Based on:",
-      "aiReview": "Check AI suggestions and translations before you send them."
+      "aiReview": "Check AI suggestions and translations before you send them.",
+      "queued": "You are offline. Your reply is kept on this device and will be sent when the connection is back."
     },
     "sla": {
       "label": "Service level timers",
@@ -6676,6 +6706,73 @@
       "saved": "Saved.",
       "failed": "The settings could not be saved.",
       "privacyHint": "Add a staff section to the privacy notice in Settings → Privacy that explains the wellbeing figures."
+    }
+  },
+  "app": {
+    "description": "Raise and follow your requests, approve, chat and get help.",
+    "sent": "{count, plural, one {# item kept on this device was sent.} other {# items kept on this device were sent.}}",
+    "notSent": "{count, plural, one {# item kept on this device could not be sent. See it on the offline page.} other {# items kept on this device could not be sent. See them on the offline page.}}",
+    "offlineBanner": "You are offline. Pages need the connection; new incidents and replies you send now are kept on this device and sent when it is back.",
+    "offlineBannerNoData": "You are offline. Pages need the connection.",
+    "openOffline": "What is on this device",
+    "installLabel": "Install the app",
+    "installText": "Install this app on your device to open it from the home screen.",
+    "install": "Install",
+    "iosGuide": "To install this app, tap Share, then Add to Home Screen.",
+    "notNow": "Not now",
+    "camera": {
+      "photo": "Take a photo",
+      "video": "Record a video"
+    },
+    "offline": {
+      "title": "You are offline",
+      "intro": "This page opens without a connection. It shows what this device keeps for you; everything else needs the connection.",
+      "backOnline": "You are back online",
+      "backOnlineText": "The connection is back. Work kept on this device is being sent.",
+      "goHome": "Go to the home page",
+      "tryAgain": "Try again",
+      "unsentTitle": "Waiting to be sent",
+      "unsentNone": "Nothing is waiting to be sent.",
+      "unsentIncident": "New incident",
+      "unsentReply": "Reply to {number}",
+      "keptSince": "Kept since {when}",
+      "refused": "It could not be sent. Open the ticket when you are online and send it again.",
+      "discard": "Discard",
+      "unsentHelp": "Files and photos are not kept: add them when you are online.",
+      "ticketsTitle": "Your recent tickets",
+      "ticketsNone": "No tickets are kept on this device.",
+      "asSeen": "viewed {when}",
+      "readOnly": "As you last saw it (last changed {updated}). You cannot change it while offline.",
+      "ticketsHelp": "Only your own tickets you opened on this device are kept, and they are removed when you sign out."
+    }
+  },
+  "accountSetup": {
+    "title": "Set up your account",
+    "checking": "Checking the link…",
+    "invalid": "This setup link does not work: it was used already, it expired, or it is not complete. Ask the installation's operator for a new one.",
+    "intro": "Choose the password for <address>{email}</address>. After that you sign in and set up the authenticator app on your phone.",
+    "password": "New password",
+    "repeat": "Repeat the password",
+    "hint": "Use a long password you do not use anywhere else.",
+    "save": "Save the password",
+    "saving": "Saving…",
+    "mismatch": "The two passwords are not the same.",
+    "refused": "The password does not meet the password rules. Choose another one.",
+    "failed": "The password could not be saved. Try again.",
+    "rateLimited": "Too many requests in a short time. Please wait a minute, then try again.",
+    "done": "Your password is saved and the link no longer works. Sign in now; you will be asked to set up the authenticator app.",
+    "signIn": "Sign in",
+    "policies": {
+      "invalidPasswordMinLengthMessage": "The password is too short.",
+      "invalidPasswordMaxLengthMessage": "The password is too long.",
+      "invalidPasswordNotUsernameMessage": "The password cannot be your email address or user name.",
+      "invalidPasswordNotEmailMessage": "The password cannot be your email address.",
+      "invalidPasswordHistoryMessage": "You used this password before. Choose another one.",
+      "invalidPasswordBlacklistedMessage": "This password is too common. Choose another one.",
+      "invalidPasswordMinDigitsMessage": "The password needs more digits.",
+      "invalidPasswordMinUpperCaseCharsMessage": "The password needs more capital letters.",
+      "invalidPasswordMinLowerCaseCharsMessage": "The password needs more small letters.",
+      "invalidPasswordMinSpecialCharsMessage": "The password needs more special characters."
     }
   }
 }

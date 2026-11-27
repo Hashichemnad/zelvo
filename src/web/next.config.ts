@@ -16,7 +16,12 @@ const nextConfig: NextConfig = {
   productionBrowserSourceMaps: false,
   // Release images (task F6) are built with ZELVO_RELEASE=true; the value is compiled in, so the
   // release integrity check cannot be switched off by the environment at run time.
-  env: { ZELVO_RELEASE_BUILD: process.env.ZELVO_RELEASE === "true" ? "true" : "false" },
+  // Task J1: the service worker's cache version changes with every build, so a new release
+  // replaces the cached app shell and offline page.
+  env: {
+    ZELVO_RELEASE_BUILD: process.env.ZELVO_RELEASE === "true" ? "true" : "false",
+    ZELVO_APP_BUILD: `${process.env.ZELVO_VERSION ?? "dev"}-${Date.now().toString(36)}`,
+  },
   reactStrictMode: true,
   async headers() {
     return [

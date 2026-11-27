@@ -107,6 +107,20 @@ First resource: `users` (`displayName`, `email` (sensitive), `emiratesId` (sensi
 | `ZELVO_DEV_USERS_PASSWORD` | migrate | **Development only:** one user per persona (`requester@zelvo.test`, `agent@`, `lead@`, `approver@`, `admin@`, `executive@`) |
 | `SESSION_STORE_URL` | web | Valkey for sessions (required in production) |
 
+## First administrator of a hardened installation (task M2)
+
+Development and demo installations make their people with `migrate`; hardened installations get
+their first tenant administrator from `Tenancy:Bootstrap:FirstAdminEmail`: created in the realm
+without a password and with the required action `CONFIGURE_TOTP`, given the `tenant-admin` role,
+and sent (by the operator) a one-time setup link printed by `migrate`. The link's token is in the
+address's fragment, so it never reaches a server log or a `Referer`; the page
+`/<lang>/account-setup` (open to visitors, `no-referrer`) removes it from the address bar, checks it
+(`POST /api/v1/identity/account-setup/check`) and sets the password (`POST /api/v1/identity/account-setup`,
+Keycloak's password policy decides, `422 password-refused` with the policy). Links are kept as
+SHA-256 hashes (`account_setup_links`), work once and for 72 hours. Code: `FirstAdministrator`,
+`AccountSetupEndpoints`, `KeycloakRealmProvisioner.EnsureFirstAdministratorAsync`. Both endpoints
+stay open in activation mode, so the first administrator can sign in and import the license.
+
 ## Tests
 
 - API (`src/api/tests`): tokens signed with a test key go through the real token checks (wrong realm, audience, key, tenant claim, expiry); first sign-in; step-up; field rules; role guards; sign-in settings and their Keycloak sync (faked); row-level security on every new table.

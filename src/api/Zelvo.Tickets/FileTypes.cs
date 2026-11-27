@@ -31,6 +31,7 @@ public static class FileTypes
     private static readonly byte[] Id3 = "ID3"u8.ToArray();
     private static readonly byte[] Ftyp = "ftyp"u8.ToArray();
     private static readonly byte[] Wave = "WAVE"u8.ToArray();
+    private static readonly byte[] Ebml = [0x1A, 0x45, 0xDF, 0xA3];
 
     /// <summary>Every known type, by extension.</summary>
     public static IReadOnlyList<FileType> All { get; } =
@@ -59,7 +60,22 @@ public static class FileTypes
         new("mp3", "audio/mpeg", c => StartsWith(c, Id3) || (c.Length >= 2 && c.Span[0] == 0xFF && (c.Span[1] & 0xE0) == 0xE0)),
         new("m4a", "audio/mp4", c => c.Length >= 12 && c.Span[4..8].SequenceEqual(Ftyp)),
         new("wav", "audio/wav", c => StartsWith(c, Riff) && c.Length >= 12 && c.Span[8..12].SequenceEqual(Wave)),
+        // Camera attachments (task J1): phones record MP4 (Android, iOS), QuickTime (iOS) or WebM
+        // (browsers), and iPhones may keep photos as HEIC. Known, so administrators can allow them in
+        // Settings → Attachments; not in the default allowlist.
+        new("mp4", "video/mp4", c => Brand(c, "isom", "iso2", "mp41", "mp42", "avc1", "dash", "M4V ", "3gp4", "3gp5", "3gp6")),
+        new("mov", "video/quicktime", c => Brand(c, "qt  ")),
+        new("webm", "video/webm", c => StartsWith(c, Ebml)),
+        new("heic", "image/heic", c => Brand(c, "heic", "heix", "heim", "heis", "mif1", "msf1")),
     ];
+
+    /// <summary>The video types camera attachments may have (task J1).</summary>
+    public static IReadOnlyList<string> VideoExtensions { get; } = ["mp4", "mov", "webm"];
+
+    // ISO base media files (MP4, QuickTime, HEIF) start with a box "ftyp" naming the major brand.
+    private static bool Brand(ReadOnlyMemory<byte> content, params string[] brands) =>
+        content.Length >= 12 && content.Span[4..8].SequenceEqual(Ftyp)
+        && brands.Any(b => content.Span[8..12].SequenceEqual(System.Text.Encoding.ASCII.GetBytes(b)));
 
     /// <summary>The audio types voice notes may have (task E3).</summary>
     public static IReadOnlyList<string> AudioExtensions { get; } = ["ogg", "amr", "mp3", "m4a", "wav"];

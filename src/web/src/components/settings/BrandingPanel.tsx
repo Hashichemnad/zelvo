@@ -3,6 +3,7 @@
 import { useId, useState, type FormEvent } from "react";
 import { useLocale, useTranslations } from "next-intl";
 import { ApiError, deleteRequest, getJson, postFile, postJson, putJson } from "@/lib/client-api";
+import { InstallableApp } from "./InstallableApp";
 import {
   brandingImagePath,
   brandingSlots,
@@ -35,12 +36,15 @@ export function BrandingPanel({
   sender: initialSender,
   tenant,
   csrfToken,
+  app,
 }: {
   initial: BrandingSettings;
   domains: CustomDomain[];
   sender: SenderDomain | null;
   tenant: string;
   csrfToken: string;
+  /** Task J1: the installable app's offline data setting and the address this page was opened on. */
+  app?: { offlineData: boolean; address: string };
 }) {
   const t = useTranslations("settings.branding");
   const [settings, setSettings] = useState(initial);
@@ -51,6 +55,7 @@ export function BrandingPanel({
       <Images settings={settings} onChange={setSettings} tenant={tenant} csrfToken={csrfToken} />
       <Publish settings={settings} onChange={setSettings} csrfToken={csrfToken} />
       <Domains initial={initialDomains} csrfToken={csrfToken} />
+      {app && <InstallableApp initial={app} domains={initialDomains} csrfToken={csrfToken} />}
       <Sender initial={initialSender} csrfToken={csrfToken} />
       <p className="text-sm text-ink-muted">{t("poweredByNote")}</p>
     </div>
@@ -231,9 +236,10 @@ function Images({ settings, onChange, tenant, csrfToken }: { settings: BrandingS
               {/* eslint-disable-next-line @next/next/no-img-element */}
               {src && image?.scanStatus !== "Pending" && <img src={src} alt={t("images.previewAlt", { name: t(`images.slots.${slot}`) })} className="max-h-24 w-auto" />}
               {image && <p className="text-sm">{t(`images.scan.${image.scanStatus}`)}</p>}
+              {slot === "AppIcon" && <p className="text-sm text-ink-muted">{t("images.appIconHint")}</p>}
               <label className="block text-sm">
                 <span className="font-semibold">{t("images.choose")}</span>
-                <input type="file" accept={slot === "Favicon" ? ".png,.jpg,.jpeg,.webp,.ico" : ".png,.jpg,.jpeg,.webp"} disabled={busy !== null}
+                <input type="file" accept={slot === "Favicon" ? ".png,.jpg,.jpeg,.webp,.ico" : slot === "AppIcon" ? ".png" : ".png,.jpg,.jpeg,.webp"} disabled={busy !== null}
                   onChange={(e) => void upload(slot, e.target.files?.[0])} className="block text-sm" />
               </label>
               {image && <button type="button" onClick={() => void remove(slot)} className="text-sm font-semibold text-bad underline">{t("images.remove")}</button>}

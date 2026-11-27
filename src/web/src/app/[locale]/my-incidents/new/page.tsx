@@ -3,7 +3,7 @@ import { ReportIncidentForm } from "@/components/incidents/ReportIncidentForm";
 import { getJsonAs } from "@/lib/api";
 import { loadDirectoryChoices } from "@/lib/directory-pages";
 import { isId } from "@/lib/incident-pages";
-import type { Incident, IncidentSettings } from "@/lib/incidents";
+import type { AttachmentSettings, Incident, IncidentSettings } from "@/lib/incidents";
 import { requireSignedIn } from "@/lib/signed-in";
 
 export async function generateMetadata({ params }: PageProps<"/[locale]/my-incidents/new">) {
@@ -19,13 +19,15 @@ export default async function ReportIncidentPage({ params, searchParams }: PageP
   const { session, tenant } = await requireSignedIn(locale, `/${locale}/my-incidents/new`);
   const t = await getTranslations({ locale, namespace: "incidents" });
   const followUpId = (await searchParams).followUpOf;
-  const [settings, followUp, choices] = await Promise.all([
+  const [settings, followUp, choices, attachmentSettings] = await Promise.all([
     getJsonAs<IncidentSettings>("/api/v1/settings/incidents", session.data.accessToken, tenant),
     typeof followUpId === "string" && isId(followUpId)
       ? getJsonAs<Incident>(`/api/v1/incidents/${followUpId}`, session.data.accessToken, tenant)
       : Promise.resolve(null),
     // Requesters choose only categories and locations; groups are for staff.
     loadDirectoryChoices(session.data.accessToken, tenant, []),
+    // Task J1: photos and files with the report (camera on phones), within the tenant's limits.
+    getJsonAs<AttachmentSettings>("/api/v1/settings/attachments", session.data.accessToken, tenant),
   ]);
 
   return (
@@ -40,6 +42,7 @@ export default async function ReportIncidentPage({ params, searchParams }: PageP
         basePath="/my-incidents"
         followUpOf={followUp?.state === "Closed" ? { id: followUp.id, number: followUp.number } : null}
         directory={{ categories: choices.categories, locations: choices.locations, groups: null }}
+        attachments={attachmentSettings ? { maxSizeMb: attachmentSettings.maxSizeMb, allowedExtensions: attachmentSettings.allowedExtensions } : null}
       />
     </section>
   );

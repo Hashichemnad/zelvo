@@ -83,6 +83,27 @@ internal sealed class FakeKeycloakAdmin : IKeycloakAdmin
     /// <summary>Users removed by erasure (task F5).</summary>
     public List<(string Realm, string Subject)> DeletedUsers { get; } = [];
 
+    /// <summary>Task M2: passwords set through setup links (realm, subject, password).</summary>
+    public List<(string Realm, string Subject, string Password)> PasswordCalls { get; } = [];
+
+    /// <summary>Task M2: passwords the fake realm's policy refuses (shorter than this).</summary>
+    public int MinimumPasswordLength { get; set; } = 12;
+
+    public Task SetPasswordAsync(string realm, string subject, string password, CancellationToken cancellationToken)
+    {
+        if (password.Length < MinimumPasswordLength)
+        {
+            throw new KeycloakAdminException("Keycloak refused PUT reset-password with 400: invalidPasswordMinLengthMessage", System.Net.HttpStatusCode.BadRequest);
+        }
+
+        lock (PasswordCalls)
+        {
+            PasswordCalls.Add((realm, subject, password));
+        }
+
+        return Task.CompletedTask;
+    }
+
     public Task DeleteUserAsync(string realm, string subject, CancellationToken cancellationToken)
     {
         lock (DeletedUsers)

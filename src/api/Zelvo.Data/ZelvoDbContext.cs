@@ -358,6 +358,9 @@ public sealed partial class ZelvoDbContext(DbContextOptions<ZelvoDbContext> opti
     /// <summary>The consent history, never changed (task F5).</summary>
     public DbSet<ConsentRecord> ConsentRecords => Set<ConsentRecord>();
 
+    /// <summary>One-time links to choose a password (task M2: the first tenant administrator of a hardened installation).</summary>
+    public DbSet<AccountSetupLink> AccountSetupLinks => Set<AccountSetupLink>();
+
     /// <summary>Data subject requests (task F5).</summary>
     public DbSet<DataSubjectRequest> DataSubjectRequests => Set<DataSubjectRequest>();
 
@@ -2586,6 +2589,18 @@ public sealed partial class ZelvoDbContext(DbContextOptions<ZelvoDbContext> opti
             purpose.ConfigureLocalizedText(p => p.Description, "description", ConsentPurpose.DescriptionMaxLength);
             purpose.Property(p => p.Version).IsRowVersion();
             purpose.HasIndex(p => new { p.TenantId, p.Key }).IsUnique();
+        });
+
+        modelBuilder.Entity<AccountSetupLink>(link =>
+        {
+            link.ToTable("account_setup_links");
+            link.HasKey(l => l.Id);
+            link.Property(l => l.Id).ValueGeneratedNever();
+            link.HasOne<Tenant>().WithMany().HasForeignKey(l => l.TenantId).OnDelete(DeleteBehavior.Restrict);
+            link.HasOne<UserAccount>().WithMany().HasForeignKey(l => l.UserId).OnDelete(DeleteBehavior.Cascade);
+            link.Property(l => l.TokenHash).HasMaxLength(64).IsFixedLength();
+            link.HasIndex(l => new { l.TenantId, l.TokenHash }).IsUnique();
+            link.HasIndex(l => l.UserId);
         });
 
         modelBuilder.Entity<ConsentRecord>(record =>

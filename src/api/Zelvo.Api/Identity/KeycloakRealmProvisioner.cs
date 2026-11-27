@@ -186,6 +186,37 @@ internal sealed class KeycloakRealmProvisioner(KeycloakAdminClient admin, Identi
     }
 
     /// <summary>Creates or updates a user with a password; returns its Keycloak id.</summary>
+    /// <summary>
+    /// Task M2: finds or creates a hardened installation's first tenant administrator in the
+    /// tenant's realm: email verified, no password (chosen with the one-time setup link) and the
+    /// required action "configure authenticator app", so the second factor is set up at the first
+    /// sign-in. An existing user is left as it is. Returns the Keycloak id.
+    /// </summary>
+    public async Task<string> EnsureFirstAdministratorAsync(Tenant tenant, string email, CancellationToken cancellationToken)
+    {
+        var realm = identity.RealmFor(tenant.Slug);
+        var found = await admin.GetArrayAsync($"realms/{E(realm)}/users?email={E(email)}&exact=true", cancellationToken).ConfigureAwait(false);
+        if (found.Count > 0)
+        {
+            return (string)found[0]!["id"]!;
+        }
+
+        var user = new JsonObject
+        {
+            ["username"] = email,
+            ["email"] = email,
+            ["emailVerified"] = true,
+            ["enabled"] = true,
+            ["requiredActions"] = new JsonArray("CONFIGURE_TOTP"),
+        };
+        using (await admin.SendAsync(HttpMethod.Post, $"realms/{E(realm)}/users", user, cancellationToken).ConfigureAwait(false))
+        {
+        }
+
+        found = await admin.GetArrayAsync($"realms/{E(realm)}/users?email={E(email)}&exact=true", cancellationToken).ConfigureAwait(false);
+        return (string)found.Single()!["id"]!;
+    }
+
     public async Task<string> EnsureUserAsync(Tenant tenant, string email, string firstName, string lastName, string password, CancellationToken cancellationToken)
     {
         var realm = identity.RealmFor(tenant.Slug);

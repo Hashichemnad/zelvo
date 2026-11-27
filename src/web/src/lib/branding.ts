@@ -2,8 +2,8 @@
 
 import type { Bilingual } from "./incidents";
 
-export type BrandingSlot = "LogoLight" | "LogoDark" | "Favicon" | "LoginImage";
-export const brandingSlots: readonly BrandingSlot[] = ["LogoLight", "LogoDark", "Favicon", "LoginImage"];
+export type BrandingSlot = "LogoLight" | "LogoDark" | "Favicon" | "LoginImage" | "AppIcon";
+export const brandingSlots: readonly BrandingSlot[] = ["LogoLight", "LogoDark", "Favicon", "LoginImage", "AppIcon"];
 
 /** Fonts the branding may choose (bundled, Arabic and Latin): key → CSS family. Matches Zelvo.Data.Branding.BrandingFonts. */
 export const brandingFonts: Readonly<Record<string, string>> = {
