@@ -32,7 +32,7 @@ spec:
           env:
             # Task M1: freshclam reads Zelvo's private mirror (Settings → Updates → Malware
             # definitions) every 30 minutes; the API sends it on to ClamAV's servers when allowed.
-            - { name: FRESHCLAM_CONF_PrivateMirror, value: "http://{{ $fullname }}-api:8080/internal/clamav" }
+            - { name: FRESHCLAM_CONF_PrivateMirror, value: "http://{{ $fullname }}-api:8080/_internal/clamav" }
             - { name: FRESHCLAM_CHECKS, value: "48" }
             - { name: CLAMD_CONF_StreamMaxLength, value: 105M }
             - { name: CLAMD_CONF_MaxFileSize, value: 105M }

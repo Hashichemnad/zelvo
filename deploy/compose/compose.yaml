@@ -552,7 +552,7 @@ services:
     <<: *restart
     image: clamav/clamav:1.5.5
     environment:
-      FRESHCLAM_CONF_PrivateMirror: http://api:8080/internal/clamav
+      FRESHCLAM_CONF_PrivateMirror: http://api:8080/_internal/clamav
       # Every 30 minutes (freshclam allows at most 50 checks a day).
       FRESHCLAM_CHECKS: "48"
       # Room for the largest attachment a tenant can allow (100 MB).

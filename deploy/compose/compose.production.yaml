@@ -483,7 +483,7 @@ services:
     environment:
       # Task M1: freshclam reads Zelvo's private mirror (Settings → Updates → Malware definitions)
       # every 30 minutes; offline installs import definition files there.
-      FRESHCLAM_CONF_PrivateMirror: http://api:8080/internal/clamav
+      FRESHCLAM_CONF_PrivateMirror: http://api:8080/_internal/clamav
       FRESHCLAM_CHECKS: "48"
       CLAMD_CONF_StreamMaxLength: 105M
       CLAMD_CONF_MaxFileSize: 105M

@@ -58,7 +58,7 @@ Development Compose allows plain HTTP and the private ranges `10.0.0.0/8`, `172.
 | Grafana | Prometheus 9090, Tempo 3200, Loki 3100 | HTTP | **No** | None |
 | Updater | Docker Engine | Unix socket `/var/run/docker.sock` | n/a | File access (root on the host); listens on no port |
 | Updater | Compose services' health addresses | HTTP | **No** | None |
-| ClamAV (`freshclam`) | API private mirror `/internal/clamav/…` (M1; not routed by the proxy) | HTTP 8080 | **No** (public definition files; ClamAV checks their Talos signature) | None |
+| ClamAV (`freshclam`) | API private mirror `/_internal/clamav/…` (M1; not routed by the proxy) | HTTP 8080 | **No** (public definition files; ClamAV checks their Talos signature) | None |
 | API, worker | Vault or OpenBao Transit (when used) | HTTPS (`Secrets:Vault:Address`) | Yes, trusting `Secrets:Vault:CaFile` | Token file or AppRole |
 | Worker | Headless Chromium (child process) | None: network blocked (`--host-resolver-rules=MAP * ~NOTFOUND`, page CSP `default-src 'none'`) | n/a | n/a |
 
