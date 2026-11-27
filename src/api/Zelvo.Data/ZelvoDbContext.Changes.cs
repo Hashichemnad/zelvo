@@ -70,6 +70,9 @@ public sealed partial class ZelvoDbContext
             change.Property(c => c.TestPlan).HasMaxLength(ChangeRecord.PlanMaxLength);
             change.Property(c => c.BackoutPlan).HasMaxLength(ChangeRecord.PlanMaxLength);
             change.Property(c => c.ReviewNotes).HasMaxLength(ChangeRecord.PlanMaxLength);
+            change.Property(c => c.WhatIf).HasColumnType("jsonb");
+            change.Property(c => c.WhatIfExplanation).HasMaxLength(ChangeRecord.PlanMaxLength);
+            change.Property(c => c.WhatIfExplanationLanguage).HasMaxLength(2);
             change.HasIndex(c => new { c.TenantId, c.PlannedStart });
             change.HasIndex(c => c.TemplateId);
         });

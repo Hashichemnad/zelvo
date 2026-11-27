@@ -15,7 +15,7 @@ internal static class ChangeSetup
     }
 
     public static RouteGroupBuilder MapZelvoChangeEndpoints(this RouteGroupBuilder group) =>
-        group.MapChangeCalendarEndpoints().MapChangeEndpoints().MapChangeTemplateEndpoints().MapChangeSettingsEndpoints().MapChangeBoardEndpoints();
+        group.MapChangeCalendarEndpoints().MapChangeEndpoints().MapChangeTemplateEndpoints().MapChangeSettingsEndpoints().MapChangeBoardEndpoints().MapChangeWhatIfEndpoints();
 }
 
 /// <summary>Standard change templates, blackout periods and questionnaire wording that miss a language (LANG-5).</summary>

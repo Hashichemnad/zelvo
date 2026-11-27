@@ -38,7 +38,8 @@ internal sealed record VoteResponse(PersonResponse Member, CabVoteChoice Choice,
 internal sealed record AgendaItemResponse(
     Guid Id, int Position, Guid ChangeId, string ChangeNumber, string ChangeTitle, ChangeKind Kind, ChangeStage Stage, ChangeRiskLevel? RiskLevel,
     DateTimeOffset? PlannedStart, DateTimeOffset? PlannedEnd, int ConflictCount, bool Waiting, IReadOnlyList<VoteResponse> Votes,
-    IReadOnlyDictionary<CabVoteChoice, int> Tally, CabDecision? Decision, string? Comment, string? Minutes, PersonResponse? DecidedBy, DateTimeOffset? DecidedAt);
+    IReadOnlyDictionary<CabVoteChoice, int> Tally, CabDecision? Decision, string? Comment, string? Minutes, PersonResponse? DecidedBy, DateTimeOffset? DecidedAt,
+    PredictedRisk? Predicted = null, int Services = 0, int People = 0);
 
 /// <summary>A meeting with its members, agenda and minutes.</summary>
 internal sealed record MeetingResponse(
@@ -735,13 +736,16 @@ internal static class ChangeBoardEndpoints
 
             var itemVotes = votes.Where(v => v.ItemId == item.Id).ToList();
             var conflicts = await ChangeConflicts.ForAsync(db, ticket, cancellationToken);
+            // Task H5: the board's agenda shows the what-if figures.
+            var simulation = await ChangeSimulator.CurrentAsync(db, ticket, cancellationToken);
             result.Add(new AgendaItemResponse(
                 item.Id, item.Position, ticket.Id, ticket.Number, ticket.Title, ticket.Change!.Kind, ChangeCore.StageOf(ticket), ticket.Change.RiskLevel,
                 ticket.Change.PlannedStart, ticket.Change.PlannedEnd, conflicts.Count, pendingBoard.Contains(ticket.Id),
                 [.. itemVotes.Select(v => new VoteResponse(new PersonResponse(v.UserId, names.GetValueOrDefault(v.UserId)), v.Choice, v.Comment, v.VotedAt))],
                 Enum.GetValues<CabVoteChoice>().ToDictionary(c => c, c => itemVotes.Count(v => v.Choice == c)),
                 item.Decision, item.Comment, item.Minutes,
-                item.DecidedById is { } d ? new PersonResponse(d, names.GetValueOrDefault(d)) : null, item.DecidedAt));
+                item.DecidedById is { } d ? new PersonResponse(d, names.GetValueOrDefault(d)) : null, item.DecidedAt,
+                simulation.Predicted, simulation.Blast.Impact.BusinessServices.Count, simulation.Blast.PeopleCount));
         }
 
         return result;

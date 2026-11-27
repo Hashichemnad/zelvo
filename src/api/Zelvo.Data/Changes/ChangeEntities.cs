@@ -153,6 +153,21 @@ public sealed class ChangeRecord : ITenantOwned, IAuditedEntity
 
     /// <summary>When its approval path approved it (or when a standard change was scheduled).</summary>
     public DateTimeOffset? ApprovedAt { get; set; }
+
+    /// <summary>
+    /// Task H5: the what-if simulation as it was when the change was approved (JSON object: blast
+    /// radius, similar past changes, predicted risk and the AI explanation, if any), kept with it.
+    /// </summary>
+    public string? WhatIf { get; set; }
+
+    /// <summary>Task H5: the AI's explanation of the simulation, in the language it was asked in (it only explains; it never decides).</summary>
+    public string? WhatIfExplanation { get; set; }
+
+    /// <summary>Language of <see cref="WhatIfExplanation"/>.</summary>
+    public string? WhatIfExplanationLanguage { get; set; }
+
+    /// <summary>When the AI explained it.</summary>
+    public DateTimeOffset? WhatIfExplainedAt { get; set; }
 }
 
 /// <summary>

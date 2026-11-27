@@ -280,6 +280,10 @@ internal sealed class DemoChangesSeeder : IDemoSeeder
         }
 
         await db.SaveChangesAsync(cancellationToken).ConfigureAwait(false);
+
+        // Task H5: the approved fix keeps the what-if simulation it was approved with.
+        await ChangeSimulator.KeepAsync(db, fix, cancellationToken).ConfigureAwait(false);
+        await db.SaveChangesAsync(cancellationToken).ConfigureAwait(false);
         await transaction.CommitAsync(cancellationToken).ConfigureAwait(false);
 
         var indexer = context.Get<ISearchIndexer>();

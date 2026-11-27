@@ -480,6 +480,8 @@ internal static class ChangeEndpoints
                 await approvals.CancelAsync(ticket, "Replanned", cancellationToken);
                 change.Phase = ChangePhase.Planning;
                 change.ApprovedAt = null;
+                // Task H5: a new approval sees a new simulation.
+                ChangeSimulator.Forget(change);
                 break;
             case ChangeTarget.StartImplementation:
                 if (TicketWorkflow.Check(ticket, TicketState.InProgress, null, null) == TransitionError.AssigneeRequired)

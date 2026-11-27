@@ -37,6 +37,9 @@ test.describe("Changes", () => {
     await expect(page.getByRole("heading", { level: 1, name: "نقل نظام إدارة المعاملات إلى مركز البيانات الجديد" })).toBeVisible();
     await expect(page.getByTestId("change-risk")).toContainText("مرتفعة");
     await expect(page.getByTestId("change-plan")).toContainText("خطة التراجع");
+    // Task H5: the what-if simulation before approval: the blast radius and the predicted risk.
+    await expect(page.getByTestId("what-if-blast")).toContainText("نطاق الأثر");
+    await expect(page.getByTestId("what-if-predicted")).toContainText("المخاطر المتوقعة");
     expect((await new AxeBuilder({ page }).withTags(wcag).analyze()).violations).toEqual([]);
 
     await page.getByTestId("change-work").getByRole("button", { name: "تقديم للاعتماد" }).click();

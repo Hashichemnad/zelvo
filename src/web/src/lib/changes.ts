@@ -300,6 +300,10 @@ export interface AgendaItem {
   minutes: string | null;
   decidedBy: Person | null;
   decidedAt: string | null;
+  /** Task H5: the what-if figures on the agenda. */
+  predicted?: PredictedRisk | null;
+  services?: number;
+  people?: number;
 }
 
 export interface Meeting {
@@ -327,4 +331,67 @@ export interface ChangeBoardEntry {
   meetingStartsAt: string;
   meetingState: MeetingState;
   item: AgendaItem;
+}
+
+// ---- Task H5: the what-if simulation ----
+
+export interface ImpactNode {
+  kind: "ConfigurationItem" | "User" | "Department" | "CustomerGroup";
+  id: string;
+  number: string | null;
+  name: string | null;
+  localizedName: Bilingual | null;
+  class: { id: string; name: Bilingual; family: string } | null;
+}
+
+export interface ImpactEntry {
+  node: ImpactNode;
+  depth: number;
+}
+
+export interface BlastRadius {
+  items: ConflictItem[];
+  impact: { items: ImpactEntry[]; businessServices: ImpactEntry[]; consumers: ImpactEntry[]; userCount: number; truncated: boolean };
+  assetUsers: number;
+  peopleCount: number;
+}
+
+export interface SimilarChange {
+  id: string;
+  number: string;
+  title: string;
+  kind: ChangeKind;
+  outcome: ChangeOutcome;
+  reviewNotes: string | null;
+  implementedAt: string | null;
+  score: number;
+  reasons: ("items" | "class" | "team" | "words")[];
+  sharedItems: ConflictItem[];
+}
+
+export interface RiskReason {
+  cohort: "items" | "class" | "team";
+  changes: number;
+  failed: number;
+  withProblems: number;
+  failureRate: number;
+}
+
+export interface PredictedRisk {
+  level: ChangeRiskLevel;
+  failureChance: number;
+  baseRate: number;
+  history: boolean;
+  reasons: RiskReason[];
+  questionnaire: ChangeRiskLevel | null;
+}
+
+export interface WhatIf {
+  changeId: string;
+  blast: BlastRadius;
+  similar: SimilarChange[];
+  predicted: PredictedRisk;
+  explanation: { text: string; language: string; at: string } | null;
+  computedAt: string;
+  kept: boolean;
 }

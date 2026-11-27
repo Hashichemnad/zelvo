@@ -851,7 +851,8 @@
         "test": "Connection test",
         "unknown": "Other",
         "transcription": "Voice-note transcription",
-        "ruleBuilder": "Rule builder"
+        "ruleBuilder": "Rule builder",
+        "changeWhatIf": "Change what-if explanation"
       },
       "errors": {
         "provider-auth-failed": "The provider refused the API key. Check the key and the account.",
@@ -956,7 +957,8 @@
           "virtualAgent": "Answers questions in the portal and chat from the knowledge base and hands over to a person.",
           "articleDrafts": "Drafts knowledge articles from resolved tickets for review.",
           "transcription": "Turns WhatsApp voice notes into text. The recording is sent to the provider without masking, because audio cannot be masked; the text is masked like any other for later AI use. Not available with Anthropic.",
-          "ruleBuilder": "Turns a rule described in plain English or Arabic into a draft workflow rule from your own lists. The administrator checks and approves the draft before it runs."
+          "ruleBuilder": "Turns a rule described in plain English or Arabic into a draft workflow rule from your own lists. The administrator checks and approves the draft before it runs.",
+          "changeWhatIf": "Explains a change's what-if simulation (blast radius, similar past changes, predicted risk) in plain English or Arabic for requesters, approvers and the board. It only explains: the prediction is Zelvo's and the decision stays with people."
         },
         "provider": "Provider",
         "noProvider": "None",
@@ -8573,7 +8575,50 @@
         "end": "End",
         "location": "Room or online address",
         "submit": "Plan the meeting"
-      }
+      },
+      "whatIf": "What if: {services, plural, =0 {no business service} one {# business service} other {# business services}}, {people, plural, one {# person} other {# people}} affected, {chance}% chance of failing. Predicted risk:"
+    },
+    "whatIf": {
+      "heading": "What if",
+      "live": "Worked out now from the CMDB and past changes. It is kept with the change when it is approved.",
+      "kept": "As it was when the change was approved ({date}).",
+      "predicted": "Predicted risk",
+      "chance": "{chance}% chance of failing or being backed out, judging by past changes",
+      "questionnaire": "The questionnaire's risk:",
+      "noHistory": "No similar past changes yet: the usual failure rate of {rate}% is assumed.",
+      "cohorts": {
+        "items": "On the same items: {changes, plural, one {# change} other {# changes}}, {failed} failed or backed out, {problems} with problems ({rate}%)",
+        "class": "On items of the same classes: {changes, plural, one {# change} other {# changes}}, {failed} failed or backed out, {problems} with problems ({rate}%)",
+        "team": "By the same team: {changes, plural, one {# change} other {# changes}}, {failed} failed or backed out, {problems} with problems ({rate}%)"
+      },
+      "baseRate": "Usual failure rate: {rate}%",
+      "notADecision": "The prediction informs the approvers; it never decides.",
+      "blast": "Blast radius",
+      "noItems": "No configuration items are linked to the change, so its reach cannot be worked out.",
+      "items": "{count, plural, one {# item} other {# items}} touched, {reached, plural, =0 {nothing depends on them} one {# item depends on them} other {# items depend on them}}",
+      "services": "{count, plural, =0 {No business services} one {# business service} other {# business services}} affected",
+      "people": "{count, plural, =0 {Nobody} one {# person} other {# people}} affected, {assets, plural, =0 {none} one {# of them} other {# of them}} through an asset assigned to them",
+      "departments": "Departments:",
+      "customerGroups": "Customer groups:",
+      "truncated": "Very many items are affected; only the nearest are counted.",
+      "similar": "Similar past changes",
+      "noSimilar": "No similar past changes.",
+      "why": "Similar by:",
+      "reasons": {
+        "items": "the same items",
+        "class": "items of the same classes",
+        "team": "the same team",
+        "words": "similar words"
+      },
+      "explanation": "Explanation",
+      "noExplanation": "Ask the AI to explain these figures in plain language.",
+      "aiOff": "The AI explanation is off. An administrator can turn it on in Settings → AI → Features.",
+      "explain": "Explain with AI",
+      "explainIn": {
+        "en": "Explain in English",
+        "ar": "Explain in Arabic"
+      },
+      "aiNote": "The AI only explains; people's names are not sent and it never recommends a decision."
     }
   }
 }

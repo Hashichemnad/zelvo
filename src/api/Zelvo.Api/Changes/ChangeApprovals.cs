@@ -51,7 +51,7 @@ internal static class ChangeApprovals
             db, ticket, ApprovalStage.ChangeAuthorisation, definitions, await RuleFacts.LoadAsync(db, ticket, cancellationToken), cancellationToken);
         if (levels.Count == 0)
         {
-            Schedule(change, now);
+            await ScheduleAsync(db, ticket, now, cancellationToken);
         }
         else
         {
@@ -77,7 +77,7 @@ internal static class ChangeApprovals
         var change = ticket.Change ?? await db.Changes.SingleAsync(c => c.TicketId == ticket.Id, cancellationToken);
         if (process.State == ApprovalProcessState.Approved)
         {
-            Schedule(change, now);
+            await ScheduleAsync(db, ticket, now, cancellationToken);
         }
         else
         {
@@ -91,9 +91,12 @@ internal static class ChangeApprovals
         indexer.Upsert(ChangeSearch.Document(ticket, await ChangeSearch.StaffRolesAsync(db, cancellationToken)));
     }
 
-    private static void Schedule(ChangeRecord change, DateTimeOffset now)
+    /// <summary>Scheduled: approved now, and the what-if simulation kept with it (task H5).</summary>
+    private static async Task ScheduleAsync(ZelvoDbContext db, Ticket ticket, DateTimeOffset now, CancellationToken cancellationToken)
     {
+        var change = ticket.Change!;
         change.Phase = ChangePhase.Scheduled;
         change.ApprovedAt = now;
+        await ChangeSimulator.KeepAsync(db, ticket, cancellationToken);
     }
 }

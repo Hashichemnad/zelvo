@@ -92,6 +92,12 @@ function AgendaItemCard({ meeting, item, csrfToken, display, onSaved }: {
         {item.plannedStart && item.plannedEnd && <> · {formatDateTime(new Date(item.plannedStart), display)} – {formatDateTime(new Date(item.plannedEnd), display)}</>}
         {" · "}{t("conflicts", { count: item.conflictCount })}
       </p>
+      {item.predicted && (
+        <p className="text-sm" data-testid="agenda-what-if">
+          {t("whatIf", { services: item.services ?? 0, people: item.people ?? 0, chance: item.predicted.failureChance })}{" "}
+          <RiskBadge level={item.predicted.level} />
+        </p>
+      )}
       <div className="space-y-1">
         <p className="font-semibold">{tVotes("heading")} <Tally item={item} /></p>
         {item.votes.length === 0 ? <p className="text-sm text-ink-muted">{tVotes("none")}</p> : (

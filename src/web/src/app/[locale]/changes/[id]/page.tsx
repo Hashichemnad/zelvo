@@ -5,12 +5,13 @@ import { ChangeConflicts, ChangeLinks, ChangeNotes, ChangeTasks } from "@/compon
 import { ChangeWorkPanel } from "@/components/changes/ChangeWork";
 import { ChangeBoardHistory } from "@/components/changes/ChangeBoard";
 import { ChangeFacts } from "@/components/changes/ChangeFacts";
+import { ChangeWhatIf } from "@/components/changes/ChangeWhatIf";
 import { TicketCiPanel } from "@/components/cmdb/TicketCiPanel";
 import { RequestApprovals } from "@/components/workflows/Approvals";
 import { Link } from "@/i18n/navigation";
 import { getJsonAs } from "@/lib/api";
 import type { RequestTask } from "@/lib/catalog";
-import type { Change, ChangeBoardEntry, ChangeComment, ChangeLink, ChangeSettings } from "@/lib/changes";
+import type { Change, ChangeBoardEntry, ChangeComment, ChangeLink, ChangeSettings, WhatIf } from "@/lib/changes";
 import { getDisplayFormat } from "@/lib/display";
 import { loadDirectoryChoices } from "@/lib/directory-pages";
 import { isId } from "@/lib/incident-pages";
@@ -40,7 +41,7 @@ export default async function ChangePage({ params }: PageProps<"/[locale]/change
   }
   const token = session.data.accessToken;
   const get = <T,>(path: string) => getJsonAs<T>(path, token, tenant);
-  const [change, tasks, links, notes, approvals, settings, choices, format, board] = await Promise.all([
+  const [change, tasks, links, notes, approvals, settings, choices, format, board, whatIf, ai] = await Promise.all([
     get<Change>(`/api/v1/changes/${id}`),
     get<RequestTask[]>(`/api/v1/changes/${id}/tasks`),
     get<ChangeLink[]>(`/api/v1/changes/${id}/links`),
@@ -50,6 +51,9 @@ export default async function ChangePage({ params }: PageProps<"/[locale]/change
     loadDirectoryChoices(token, tenant, permissions),
     getDisplayFormat(),
     get<ChangeBoardEntry[]>(`/api/v1/changes/${id}/board`),
+    // Task H5: the what-if simulation and whether the AI can explain it.
+    get<WhatIf>(`/api/v1/changes/${id}/what-if`),
+    get<{ available: boolean }>("/api/v1/changes/what-if/availability"),
   ]);
   if (!change) notFound();
   const display = { locale, ...format };
@@ -66,6 +70,7 @@ export default async function ChangePage({ params }: PageProps<"/[locale]/change
       </header>
       <ChangeFacts change={change} display={display} />
       <ChangeWorkPanel key={`work-${change.etag}`} change={change} groups={choices.groups ?? []} canAssign={canManage} csrfToken={csrfToken} />
+      {whatIf && <ChangeWhatIf key={`what-if-${change.etag}`} initial={whatIf} aiAvailable={ai?.available ?? false} csrfToken={csrfToken} display={display} />}
       <ChangeConflicts conflicts={change.conflicts ?? []} display={display} />
       <ChangePlan key={`plan-${change.etag}`} change={change} canEdit={canEdit} csrfToken={csrfToken} display={display} />
       {settings && <RiskQuestionnaire key={`risk-${change.etag}`} change={change} settings={settings} canEdit={canEdit} csrfToken={csrfToken} />}

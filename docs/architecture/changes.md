@@ -108,7 +108,6 @@ Seeder `h3-changes` (after `h1-problems`): two standard changes (a scheduled res
 
 ## Not in H3
 
-- The what-if simulation: H5.
 - SLA clocks for changes (they run to their window).
 
 # The change advisory board (task H4)
@@ -155,3 +154,39 @@ Emergency changes go to the emergency board's level: its members decide **withou
 
 - Reminders or escalation when the emergency board has not decided by its time (the time is shown; for the product owner).
 - Quorum rules for votes: votes are advice by decision 8.
+
+# What-if simulation (task H5)
+
+Before approval, the requester, the approvers and the board see what the change could reach, how similar changes went and how risky the past says it is (decisions 6 and 7).
+
+| Piece | Where |
+| --- | --- |
+| The simulation: blast radius, similar changes, predicted risk | `src/api/Zelvo.Api/Changes/ChangeSimulation.cs` |
+| API: the simulation and the AI explanation | `src/api/Zelvo.Api/Changes/ChangeWhatIfEndpoints.cs` |
+| Kept with the change on approval (`changes.what_if`, `what_if_explanation`, `…_language`, `…_explained_at`; migration `ChangeWhatIf`) | `ChangeApprovals.cs`, `Zelvo.Data/Changes/ChangeEntities.cs` |
+| AI feature `changeWhatIf` | `src/api/Zelvo.Ai/AiFeatures.cs`, the development `ai-mock` |
+| The what-if panel on the change page, the approval page and figures on the board's agenda | `src/web/src/components/changes/ChangeWhatIf.tsx`, `ChangeBoard.tsx` |
+
+## The simulation
+
+`GET /changes/{id}/what-if` (holders of `changes.read` and the people asked to approve the change):
+
+- **Blast radius**: G1's impact traversal (three steps) from the change's configuration items: the affected items, the **business services** among them, and the users, departments and customer groups that use them through "used by" (decision 6); **people with an affected asset assigned to them** (G3, decision 6); and the number of **people affected**, each counted once (the services' users, the members of their departments and the asset holders).
+- **Similar past changes**: reviewed changes scored by **shared configuration items** (3 each, up to three), items of the **same classes** (2), the **same team** (1) and **words** of the title and description in common (up to 3; English and Arabic normalised: diacritics, tatweel, alef forms, teh marbuta and alef maqsura, the definite article, plurals, common words). Up to eight with a score of 2 or more, each with its **review outcome** and notes and why it is similar.
+- **Predicted risk** (decision 7: statistics of past outcomes on the same items, classes and team): failed and backed-out changes count 1, successful with problems a half; each cohort's failure rate is smoothed toward the tenant's usual rate (all reviewed changes; 15 % until there are five), weighted by closeness (items 3, classes 2, team 1) and evidence. Low below 20 %, medium below 40 %, high from 40 %. Shown **beside the questionnaire's level** with the reasons per cohort; it never decides and never changes the approval path.
+
+While the change is not approved the simulation is worked out live. **When it is approved** (or a standard change is scheduled) the simulation is **kept with the change** (`kept: true`, with when it was worked out); replanning forgets it.
+
+## The AI explanation
+
+`POST /changes/{id}/what-if/explain` with `language` `en` or `ar` (same access; audited `changes.what-if.explained`) asks the **AI feature `changeWhatIf`** (Settings → AI → Features, off until set up; `GET /changes/what-if/availability`) to explain the figures in plain language, at most 150 words. It goes through the E4 gateway (masking, guards, AI log): the data blocks hold figures and the names of the change, services, departments and similar changes, **never people's names**, and the instructions forbid recommending approval or rejection: **the AI only explains**. The explanation is kept with the change.
+
+## Where it is shown
+
+- The **change page** (the what-if panel, with "Explain in English" and "Explain in Arabic" when the AI is on).
+- The **approval page** of a change, for approvers (a compact panel without the similar changes, which the change page shows).
+- The **board's agenda**: each change with its business services, people affected, chance of failing and predicted risk.
+
+## Not in H5
+
+- Learning beyond the counts (for example a model per class): the statistics are explainable and enough for the first customers; for the product owner.

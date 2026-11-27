@@ -2534,6 +2534,24 @@ namespace Zelvo.Data.Migrations
                         .HasColumnType("character varying(20000)")
                         .HasColumnName("test_plan");
 
+                    b.Property<string>("WhatIf")
+                        .HasColumnType("jsonb")
+                        .HasColumnName("what_if");
+
+                    b.Property<DateTimeOffset?>("WhatIfExplainedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("what_if_explained_at");
+
+                    b.Property<string>("WhatIfExplanation")
+                        .HasMaxLength(20000)
+                        .HasColumnType("character varying(20000)")
+                        .HasColumnName("what_if_explanation");
+
+                    b.Property<string>("WhatIfExplanationLanguage")
+                        .HasMaxLength(2)
+                        .HasColumnType("character varying(2)")
+                        .HasColumnName("what_if_explanation_language");
+
                     b.HasKey("TicketId")
                         .HasName("pk_changes");
 
