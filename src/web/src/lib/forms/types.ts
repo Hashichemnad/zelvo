@@ -15,7 +15,8 @@ export type FieldType =
   | "Location"
   | "Signature"
   | "Table"
-  | "RichText";
+  | "RichText"
+  | "ConfigurationItem";
 
 export const fieldTypes: readonly FieldType[] = [
   "Text",
@@ -30,6 +31,8 @@ export const fieldTypes: readonly FieldType[] = [
   "Signature",
   "Table",
   "RichText",
+  // Task G1: a configuration item of the CMDB (module 18), or several.
+  "ConfigurationItem",
 ];
 
 /** Types a table column can have. */
@@ -119,7 +122,10 @@ export interface FormField {
   readOnly?: boolean;
   personalData?: boolean;
   multiline?: boolean;
+  /** Dropdown and configuration item: several choices. */
   multiple?: boolean;
+  /** Configuration item (task G1): the classes items may be picked from, each with the classes below it; empty: any class. */
+  configurationItemClasses?: string[] | null;
   options?: FieldOption[] | null;
   validation?: FieldValidation | null;
   defaultValue?: JsonValue;
@@ -238,6 +244,8 @@ export interface FormReferences {
   users: Record<string, string | null>;
   locations: Record<string, LocalizedName>;
   files: Record<string, FormFileRef>;
+  /** Task G1: configuration items by id, as "CI-000123 Name". */
+  configurationItems?: Record<string, string> | null;
 }
 
 export interface FormRef {

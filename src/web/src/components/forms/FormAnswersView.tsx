@@ -67,6 +67,15 @@ function Answer({ field, value, view, attachmentBase }: { field: FormField; valu
       return <>{refs?.users[String(value)] ?? String(value)}</>;
     case "Location":
       return <>{refs?.locations[String(value)] ? textOf(refs.locations[String(value)], locale) : String(value)}</>;
+    case "ConfigurationItem": {
+      // Task G1: number and name of each item picked.
+      const ids = (Array.isArray(value) ? value : [value]).map(String);
+      return (
+        <ul className="space-y-1">
+          {ids.map((id) => <li key={id} dir="auto">{refs?.configurationItems?.[id] ?? t("itemGone")}</li>)}
+        </ul>
+      );
+    }
     case "File":
       return (
         <ul className="space-y-1">

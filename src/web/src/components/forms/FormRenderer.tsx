@@ -1,16 +1,17 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useTranslations } from "next-intl";
 import { MarkdownView } from "@/components/knowledge/MarkdownView";
 import { ApiError, deleteRequest, getJson, postForm } from "@/lib/client-api";
 import { selectableNodes, textOf, type TreeNode } from "@/lib/directory";
-import { effectiveAnswers, errorsFor } from "@/lib/forms/check";
+import { CiLookup, lookupPath } from "@/components/cmdb/CiLookup";
+import type { CiPick } from "@/lib/cmdb";
+import { effectiveAnswers, errorsFor, maxConfigurationItems } from "@/lib/forms/check";
 import { evaluate, type FieldState } from "@/lib/forms/rules";
 import { isFallback, textIn, type AnswerError, type Answers, type FormField, type FormReferences, type FormUpload, type JsonValue, type ResolvedField, type Text } from "@/lib/forms/types";
 import { SignaturePad } from "./SignaturePad";
 import { fieldButton, fieldInput } from "./ui";
-
 
 type Locale = "en" | "ar";
 
@@ -100,7 +101,8 @@ function FieldView(props: FieldViewProps) {
   const errorId = own.length > 0 ? `${id}-error` : null;
   const describedBy = [help, errorId].filter(Boolean).join(" ") || undefined;
   const control = { id, describedBy, invalid: own.length > 0 };
-  const grouped = field.type === "Radio" || (field.type === "Dropdown" && field.multiple) || field.type === "Signature" || field.type === "Table" || field.type === "File";
+  const grouped = field.type === "Radio" || (field.type === "Dropdown" && field.multiple) || field.type === "Signature" || field.type === "Table" || field.type === "File"
+    || field.type === "ConfigurationItem";
 
   const body = <Control {...props} control={control} />;
   const footer = (
@@ -249,6 +251,8 @@ function Control(props: ControlProps) {
     }
     case "User":
       return <UserControl {...props} />;
+    case "ConfigurationItem":
+      return <ConfigurationItemControl {...props} />;
     case "File":
       return <FileControl {...props} />;
     case "Signature":
@@ -348,6 +352,58 @@ function UserControl({ value, set, state, control, references, preview }: Contro
           ))}
         </ul>
       )}
+    </div>
+  );
+}
+
+/** Task G1: one configuration item, or several, found by number or name. */
+function ConfigurationItemControl({ field, value, set, state, control, references, preview }: ControlProps) {
+  const t = useTranslations("forms.renderer");
+  const [names, setNames] = useState<Record<string, string>>({});
+  const chosen = field.multiple ? (Array.isArray(value) ? value.filter((v): v is string => typeof v === "string") : []) : typeof value === "string" ? [value] : [];
+  const missing = chosen.filter((id) => !names[id] && !references?.configurationItems?.[id]);
+  const missingKey = missing.join(",");
+
+  // Names of items chosen before (defaults, answers kept while the page is open).
+  useEffect(() => {
+    if (preview || !missingKey) return;
+    let live = true;
+    getJson<CiPick[]>(lookupPath("", [], missingKey.split(",")))
+      .then((found) => live && setNames((current) => ({ ...current, ...Object.fromEntries(found.map((f) => [f.id, `${f.number} ${f.name}`])) })))
+      .catch(() => undefined);
+    return () => {
+      live = false;
+    };
+  }, [missingKey, preview]);
+
+  const nameOf = (id: string) => names[id] ?? references?.configurationItems?.[id] ?? t("ciUnknown");
+  const full = field.multiple && chosen.length >= maxConfigurationItems;
+  return (
+    <div className="space-y-2">
+      {chosen.length > 0 && (
+        <ul className="space-y-1" aria-label={t("ciChosen")}>
+          {chosen.map((id) => (
+            <li key={id} className="flex flex-wrap items-center gap-2">
+              <span className="font-semibold" dir="auto">{nameOf(id)}</span>
+              {!state.readOnly && (
+                <button type="button" className={fieldButton}
+                  onClick={() => set(field.multiple ? chosen.filter((x) => x !== id) : null)}>
+                  {t("ciRemove", { name: nameOf(id) })}
+                </button>
+              )}
+            </li>
+          ))}
+        </ul>
+      )}
+      {!state.readOnly && !full && (
+        <CiLookup id={control.id} label={t(field.multiple ? "ciFindMore" : chosen.length > 0 ? "ciFindOther" : "ciFind")}
+          describedBy={control.describedBy} invalid={control.invalid} classIds={field.configurationItemClasses ?? []} exclude={chosen} disabled={preview}
+          onPick={(item) => {
+            setNames((current) => ({ ...current, [item.id]: `${item.number} ${item.name}` }));
+            set(field.multiple ? [...chosen, item.id] : item.id);
+          }} />
+      )}
+      {preview && <p className="text-sm text-ink-muted">{t("ciPreview")}</p>}
     </div>
   );
 }

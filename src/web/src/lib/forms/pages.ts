@@ -9,8 +9,9 @@ import type { FieldSetDetail } from "./types";
 export async function previewMessages(): Promise<Record<"en" | "ar", AbstractIntlMessages>> {
   const [en, ar] = await Promise.all([import("../../../messages/en.json"), import("../../../messages/ar.json")]);
   return {
-    en: { forms: { renderer: en.default.forms.renderer } },
-    ar: { forms: { renderer: ar.default.forms.renderer } },
+    // Task G1: the configuration item field's search box uses the CMDB picker's texts.
+    en: { forms: { renderer: en.default.forms.renderer }, cmdb: { picker: en.default.cmdb.picker } },
+    ar: { forms: { renderer: ar.default.forms.renderer }, cmdb: { picker: ar.default.cmdb.picker } },
   };
 }
 

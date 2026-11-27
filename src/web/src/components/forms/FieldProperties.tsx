@@ -16,6 +16,7 @@ import {
   type ResolvedField,
   type Text,
 } from "@/lib/forms/types";
+import { ConfigurationItemClasses } from "@/components/cmdb/ConfigurationItemClasses";
 import { RulesEditor } from "./RulesEditor";
 import { fieldButton, fieldInput } from "./ui";
 
@@ -36,6 +37,7 @@ export function FieldProperties({
   onChange,
   allFields,
   column = false,
+  attribute = false,
 }: {
   field: FormField;
   onChange: (field: FormField) => void;
@@ -43,6 +45,8 @@ export function FieldProperties({
   allFields: ResolvedField[];
   /** A table column: no rules, defaults or nested tables. */
   column?: boolean;
+  /** An attribute of a CMDB class (task G1): no rules, profile defaults, read-only setting or personal data. */
+  attribute?: boolean;
 }) {
   const t = useTranslations("forms.builder");
   const tTypes = useTranslations("forms.types");
@@ -50,7 +54,9 @@ export function FieldProperties({
   const v = field.validation ?? {};
   const setValidation = (change: Partial<NonNullable<FormField["validation"]>>) => onChange({ ...field, validation: { ...v, ...change } });
   const forcedPersonal = isPersonalData({ ...field, personalData: false });
-  const sources = profileSourcesFor(field.type);
+  const sources = attribute ? [] : profileSourcesFor(field.type);
+  // Configuration items hold no personal data, so attributes have no Emirates ID or IBAN format.
+  const formats = attribute ? fieldFormats.filter((f) => f === "Phone" || f === "Email") : fieldFormats;
   const textual = field.type === "Text" || field.type === "Number" || field.type === "Date" || field.type === "RichText";
 
   return (
@@ -76,14 +82,21 @@ export function FieldProperties({
       <fieldset className="space-y-1">
         <legend className="font-semibold">{t("behaviour")}</legend>
         <Toggle label={t("required")} checked={!!field.required} onChange={(required) => onChange({ ...field, required })} />
-        {!column && <Toggle label={t("readOnly")} hint={t("readOnlyHint")} checked={!!field.readOnly} onChange={(readOnly) => onChange({ ...field, readOnly })} />}
-        {!column && (
+        {!column && !attribute && <Toggle label={t("readOnly")} hint={t("readOnlyHint")} checked={!!field.readOnly} onChange={(readOnly) => onChange({ ...field, readOnly })} />}
+        {!column && !attribute && (
           <Toggle label={t("personalData")} hint={forcedPersonal ? t("personalDataForced") : t("personalDataHint")} checked={forcedPersonal || !!field.personalData}
             disabled={forcedPersonal} onChange={(personalData) => onChange({ ...field, personalData })} />
         )}
         {field.type === "Text" && <Toggle label={t("multiline")} checked={!!field.multiline} onChange={(multiline) => onChange({ ...field, multiline })} />}
-        {field.type === "Dropdown" && !column && <Toggle label={t("multiple")} checked={!!field.multiple} onChange={(multiple) => onChange({ ...field, multiple })} />}
+        {(field.type === "Dropdown" || field.type === "ConfigurationItem") && !column && (
+          <Toggle label={t("multiple")} checked={!!field.multiple} onChange={(multiple) => onChange({ ...field, multiple })} />
+        )}
       </fieldset>
+
+      {field.type === "ConfigurationItem" && (
+        <ConfigurationItemClasses chosen={field.configurationItemClasses ?? []}
+          onChange={(classes) => onChange({ ...field, configurationItemClasses: classes.length > 0 ? classes : null })} />
+      )}
 
       {(field.type === "Dropdown" || field.type === "Radio") && (
         <OptionsEditor options={field.options ?? []} onChange={(options) => onChange({ ...field, options })} />
@@ -97,7 +110,7 @@ export function FieldProperties({
               <label htmlFor={`${id}-format`} className="block">{t("format")}</label>
               <select id={`${id}-format`} value={v.format ?? ""} onChange={(e) => setValidation({ format: (e.target.value || null) as never })} className={fieldInput}>
                 <option value="">{t("formatNone")}</option>
-                {fieldFormats.map((f) => <option key={f} value={f}>{t(`formats.${f}`)}</option>)}
+                {formats.map((f) => <option key={f} value={f}>{t(`formats.${f}`)}</option>)}
               </select>
             </div>
             <NumberInput id={`${id}-minLength`} label={t("minLength")} value={v.minLength} onChange={(minLength) => setValidation({ minLength })} />
@@ -164,7 +177,7 @@ export function FieldProperties({
 
       {field.type === "Table" && !column && <ColumnsEditor field={field} onChange={onChange} />}
 
-      {!column && <RulesEditor field={field} allFields={allFields} onChange={(rules) => onChange({ ...field, rules })} />}
+      {!column && !attribute && <RulesEditor field={field} allFields={allFields} onChange={(rules) => onChange({ ...field, rules })} />}
     </div>
   );
 }
