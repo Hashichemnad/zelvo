@@ -341,6 +341,14 @@
       "recordTypes": {
         "title": "Record types",
         "description": "Your own record types: names, number prefixes, states and the portal entry."
+      },
+      "apps": {
+        "title": "Apps",
+        "description": "The low-code app builder: apps grouping record types, data lists and roles; export and import of app packages."
+      },
+      "dataLists": {
+        "title": "Data lists",
+        "description": "Tables of your own, such as vehicles or rooms, used as the options of form fields."
       }
     },
     "missingWarning": "{count, plural, one {# text is} other {# texts are}} missing a translation.",
@@ -586,7 +594,8 @@
         "problems_read": "See problems, their analysis and links, and the known error database",
         "problems_edit": "Raise problems, write the analysis and known errors, link incidents, items and articles",
         "problems_manage": "Problem manager: assign, record known errors, resolve and close problems, publish and retire known errors; change Settings → Problems",
-        "recordtypes_manage": "Make and change record types in Settings → Record types"
+        "recordtypes_manage": "Make and change record types in Settings → Record types",
+        "apps_manage": "Build apps and data lists, and import and approve app packages"
       },
       "events": {
         "user_created": "A user was created",
@@ -1964,7 +1973,8 @@
         "assets": "Assets",
         "problems": "Problems",
         "recordtypes": "Record types",
-        "records": "Custom records"
+        "records": "Custom records",
+        "apps": "App builder"
       },
       "tenant_manage": "Change the organisation's name",
       "translations_read": "See missing translations",
@@ -2034,7 +2044,8 @@
       "recordtypes_manage": "Make and change record types in Settings → Record types",
       "records_read": "{type}: see every record",
       "records_edit": "{type}: work on records",
-      "records_assign": "{type}: assign records"
+      "records_assign": "{type}: assign records",
+      "apps_manage": "Build apps, data lists and app packages, and approve imported packages in Settings → Apps"
     },
     "assignment": {
       "intro": "The rules are checked in order and the first that matches decides where a new ticket goes. They run when a ticket is created and when an agent chooses \"Route again\"; they never move a ticket on their own later.",
@@ -8104,6 +8115,227 @@
       "stateNameEn": "State {n}: name (English)",
       "stateNameAr": "State {n}: name (Arabic)",
       "stateCategory": "State {n}: category"
+    },
+    "appsNav": "Apps"
+  },
+  "apps": {
+    "source": {
+      "label": "Options from",
+      "own": "This field's own options",
+      "hint": "Choose a data list to offer its items; Settings → Data lists keeps them up to date.",
+      "fromList": "The list's {count, plural, one {# active item is} other {# active items are}} offered when the form is filled in.",
+      "unavailable": "The data lists could not be loaded."
+    },
+    "dataLists": {
+      "noAccess": "Data lists are managed by tenant administrators.",
+      "intro": "Tables of your own, for example vehicles or rooms, that dropdown and radio fields of forms offer as their options. Items you remove are no longer offered; answers that chose them keep them.",
+      "none": "There are no data lists yet.",
+      "new": "New data list",
+      "edit": "Edit {name}",
+      "editing": "Editing {name}",
+      "itemCount": "{count, plural, one {# active item} other {# active items}}",
+      "inApp": "In the app {app}",
+      "key": "Key",
+      "keyHint": "Forms refer to the list by this key; it never changes. A lower-case letter, then letters, digits and hyphens.",
+      "name": "Name",
+      "description": "Description",
+      "columns": "Extra columns",
+      "columnsHint": "Optional details of each item, for example a vehicle's plate number. Up to 10.",
+      "columnKey": "Key of column {n}",
+      "columnEn": "Column {n} in English",
+      "columnAr": "Column {n} in Arabic",
+      "removeColumn": "Remove column {n}",
+      "addColumn": "Add a column",
+      "items": "Items",
+      "itemsHint": "The value is stored in answers and stays when the label changes. Up to 1,000 items, in the order shown.",
+      "itemKey": "Value of item {n}",
+      "itemEn": "Item {n} in English",
+      "itemAr": "Item {n} in Arabic",
+      "itemValue": "{column} of item {n}",
+      "itemActive": "Item {n} offered",
+      "moveUp": "Move item {n} up",
+      "moveDown": "Move item {n} down",
+      "removeItem": "Remove item {n}",
+      "addItem": "Add an item",
+      "save": "Save data list",
+      "cancel": "Cancel",
+      "problems": {
+        "key": "Give a key: a lower-case letter, then letters, digits and hyphens.",
+        "name": "Give a name in English or Arabic.",
+        "columns": "Each column needs a different key (a letter, then letters and digits) and a name.",
+        "itemKeys": "Each item needs a different value of 1 to 100 characters.",
+        "itemLabels": "Each item needs a label in English or Arabic."
+      }
+    },
+    "settings": {
+      "noAccess": "Apps are managed by tenant administrators.",
+      "intro": "An app groups your own record types with their forms and workflow rules, data lists and roles under one name and icon, with its own list views, menu entries and portal entries. Apps move between installations as JSON packages; an imported package is checked and previewed and stays inactive until an administrator approves it.",
+      "apps": "Apps",
+      "none": "There are no apps yet.",
+      "active": "Active",
+      "inactive": "Switched off",
+      "contents": "{types, plural, one {# record type} other {# record types}}, {lists, plural, one {# data list} other {# data lists}}, {roles, plural, one {# role} other {# roles}}, {rules, plural, one {# workflow rule} other {# workflow rules}}",
+      "new": "New app",
+      "key": "Key",
+      "keyHint": "Used in addresses and packages; it never changes. Lower-case letters, digits and hyphens, starting with a letter.",
+      "name": "Name",
+      "icon": "Icon",
+      "create": "Create app",
+      "cancel": "Cancel",
+      "import": "Import an app package",
+      "importIntro": "Choose a package exported from another Zelvo installation, for example your test installation. Zelvo checks it against this installation and shows what it adds and changes; nothing of it is active until you approve it.",
+      "packageFile": "App package (.json)",
+      "packageHint": "At most 5 MB. Packages hold no code.",
+      "check": "Check the package",
+      "tooLarge": "This file is larger than 5 MB.",
+      "imports": "Imported packages",
+      "status": {
+        "Pending": "Waiting for approval",
+        "Approved": "Approved",
+        "Discarded": "Discarded"
+      },
+      "back": "Back to apps"
+    },
+    "editor": {
+      "heading": "The app's settings",
+      "active": "Active",
+      "inactive": "Switched off",
+      "activate": "Switch the app on",
+      "deactivate": "Switch the app off",
+      "activateHint": "Switching it on restores the record types and workflow rules that were switched off with it.",
+      "deactivateHint": "Switched off, the app's entries are hidden, its record types take no new records and its workflow rules stop. Records already raised stay.",
+      "export": "Export as a package",
+      "name": "Name",
+      "description": "Description",
+      "icon": "Icon",
+      "recordTypes": "Record types",
+      "dataLists": "Data lists",
+      "roles": "Roles",
+      "noTypes": "Make record types in Settings → Record types first.",
+      "noLists": "No data lists yet.",
+      "noRoles": "No custom roles yet; add them in Settings → Roles.",
+      "membersHint": "Each record type, data list and role belongs to at most one app. The forms and workflow rules of the app's record types come with it.",
+      "comesWith": "Comes with its record types",
+      "forms": "Forms",
+      "rules": "Workflow rules",
+      "entriesNeedTypes": "Choose the app's record types to add list views, menu entries and portal entries.",
+      "listViews": "List views",
+      "listViewsHint": "Saved filters of a record type's list.",
+      "menuEntries": "Menu entries",
+      "menuEntriesHint": "Links on the app's page for staff who work on its records.",
+      "portalEntries": "Portal entries",
+      "portalEntriesHint": "Links for people who may raise records of the type.",
+      "entryKey": "Key of entry {n}",
+      "viewName": "Name of view {n}",
+      "entryLabel": "Label of entry {n}",
+      "entryDescription": "Description of entry {n}",
+      "recordType": "Record type of entry {n}",
+      "viewState": "State of view {n}",
+      "anyState": "Any state",
+      "viewAssignee": "Assignee of view {n}",
+      "anyone": "Anyone",
+      "me": "The person viewing",
+      "nobody": "Nobody",
+      "viewOpen": "View {n}: open records only",
+      "menuTarget": "Entry {n} opens",
+      "targetRecords": "The records",
+      "targetNew": "The form to raise one",
+      "menuView": "List view of entry {n}",
+      "allRecords": "All records",
+      "removeEntry": "Remove entry {n}",
+      "addView": "Add a list view",
+      "addMenuEntry": "Add a menu entry",
+      "addPortalEntry": "Add a portal entry",
+      "save": "Save app",
+      "problems": {
+        "name": "Give the app a name in English or Arabic.",
+        "entryKey": "Each entry needs a key of lower-case letters, digits and hyphens.",
+        "entryKeyTwice": "Two entries of the same kind have the same key.",
+        "entryName": "Each entry needs a name in English or Arabic.",
+        "entryType": "Each entry needs one of the app's record types.",
+        "viewState": "A list view names a state its record type does not have.",
+        "menuView": "A menu entry names a list view of another record type."
+      }
+    },
+    "review": {
+      "title": "Review an app package",
+      "intro": "The package was checked against this installation as it is now. Nothing of it is active until you approve it; things that already exist change only as you choose.",
+      "app": "App",
+      "file": "File",
+      "source": "Exported from",
+      "fingerprint": "SHA-256 fingerprint",
+      "problems": "Problems",
+      "noProblems": "No problems found.",
+      "contents": "What the package holds",
+      "kinds": {
+        "app": "App",
+        "recordType": "Record type",
+        "dataList": "Data list",
+        "role": "Role"
+      },
+      "exists": "(already here)",
+      "new": "(new)",
+      "counts": "{forms, plural, one {# form} other {# forms}}, {rules, plural, one {# workflow rule} other {# workflow rules}}, {views, plural, one {# list view} other {# list views}}, {menu, plural, one {# menu entry} other {# menu entries}}, {portal, plural, one {# portal entry} other {# portal entries}}.",
+      "permissions": "Permissions",
+      "created": "Made",
+      "noGrants": "The package grants no permissions.",
+      "grantNew": "Given to the new role {role}",
+      "grantExisting": "Given to the existing role {role}",
+      "references": "What it refers to here",
+      "referenceKinds": {
+        "category": "Category",
+        "location": "Location",
+        "group": "Group",
+        "department": "Department",
+        "customerGroup": "Customer group",
+        "service": "Service",
+        "user": "Person",
+        "connector": "Connector",
+        "ciClass": "Configuration item class"
+      },
+      "foundAs": "found: {name}",
+      "notFound": "not found in this installation",
+      "conflicts": "Already in this installation",
+      "conflictsHint": "Choose for each one: keep what is here, or replace it with the package's.",
+      "replaceMeans": {
+        "app": "Replacing changes its name, description, icon, list views, menu entries and portal entries.",
+        "recordType": "Replacing changes its names, number prefix (new numbers only), states, portal entry and default priority, replaces its forms and switches its workflow rules off for the package's. Its records stay.",
+        "dataList": "Replacing changes its name and columns and adds or updates the package's items; items the package lacks are no longer offered.",
+        "role": "Replacing changes its name and second-factor setting and adds the package's permissions; it keeps the others."
+      },
+      "keep": "Keep what is here",
+      "replace": "Replace with the package's",
+      "confirm": "I have reviewed what this package adds and changes, and the permissions it grants.",
+      "approve": "Approve and activate",
+      "discard": "Discard",
+      "fixFirst": "Fix the problems first: change the package, or add what it refers to here, and open this page again.",
+      "chooseFirst": "Choose keep or replace for everything that already exists.",
+      "decided": {
+        "Pending": "Waiting for approval.",
+        "Approved": "This package was approved and its app is active.",
+        "Discarded": "This package was discarded; nothing was changed."
+      },
+      "added": "{count, plural, one {# item added} other {# items added}}",
+      "replaced": "{count, plural, one {# item replaced} other {# items replaced}}",
+      "kept": "{count, plural, one {# item kept as it was} other {# items kept as they were}}",
+      "openApp": "Open the app",
+      "codes": {
+        "reference-not-found": "It refers to something this installation does not have. Add it here, then check again.",
+        "prefix-taken": "Its number prefix is already used here.",
+        "permission-not-allowed": "One of its roles holds permissions other than those of the package's record types.",
+        "grant-requester": "It gives a record type's permissions to every requester, which is not allowed.",
+        "state-in-use": "Replacing the record type would remove or move a state that records are in.",
+        "format-unknown": "This is not a Zelvo app package."
+      }
+    },
+    "home": {
+      "title": "Apps",
+      "intro": "Your organisation's own processes, for example human resources or facilities.",
+      "none": "There are no apps for you yet.",
+      "back": "All apps",
+      "portal": "Start a request",
+      "start": "Start",
+      "menu": "Work in this app"
     }
   }
 }

@@ -17,6 +17,7 @@ import {
   type Text,
 } from "@/lib/forms/types";
 import { ConfigurationItemClasses } from "@/components/cmdb/ConfigurationItemClasses";
+import { DataListSource } from "@/components/apps/DataListSource";
 import { RulesEditor } from "./RulesEditor";
 import { fieldButton, fieldInput } from "./ui";
 
@@ -98,7 +99,11 @@ export function FieldProperties({
           onChange={(classes) => onChange({ ...field, configurationItemClasses: classes.length > 0 ? classes : null })} />
       )}
 
-      {(field.type === "Dropdown" || field.type === "Radio") && (
+      {(field.type === "Dropdown" || field.type === "Radio") && !attribute && (
+        <DataListSource value={field.dataList ?? null}
+          onChange={(dataList) => onChange({ ...field, dataList, options: dataList ? null : field.options ?? [] })} />
+      )}
+      {(field.type === "Dropdown" || field.type === "Radio") && !field.dataList && (
         <OptionsEditor options={field.options ?? []} onChange={(options) => onChange({ ...field, options })} />
       )}
 

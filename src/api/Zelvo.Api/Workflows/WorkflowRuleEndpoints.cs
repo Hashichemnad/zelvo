@@ -261,11 +261,21 @@ internal static class WorkflowRuleEndpoints
 
     // ---- helpers ----
 
-    private sealed record ParsedRule(
+    internal sealed record ParsedRule(
         LocalizedText Name, LocalizedText Description, bool Active, WorkflowTrigger Trigger, TicketType? RecordType, ConditionMatch Match,
         IReadOnlyList<WorkflowCondition> Conditions, IReadOnlyList<WorkflowAction> Actions, bool StopProcessing, Guid? CustomRecordTypeId = null);
 
     private static async Task<(ParsedRule? Rule, IResult? Problem)> ParseAsync(WorkflowRuleInput request, ZelvoDbContext db, CancellationToken cancellationToken)
+    {
+        var (rule, problems) = await CheckAsync(request, db, cancellationToken);
+        return problems.Count > 0 ? (null, Problems(problems)) : (rule, null);
+    }
+
+    /// <summary>
+    /// The rule of <paramref name="request"/> checked as the builder checks it, or its problems.
+    /// Task K3 checks the rules of imported app packages with it too.
+    /// </summary>
+    internal static async Task<(ParsedRule? Rule, List<FormProblem> Problems)> CheckAsync(WorkflowRuleInput request, ZelvoDbContext db, CancellationToken cancellationToken)
     {
         var problems = new List<FormProblem>();
         var name = DirectoryProblems.Clean(request.Name!);
@@ -373,11 +383,11 @@ internal static class WorkflowRuleEndpoints
 
         if (problems.Count > 0)
         {
-            return (null, Problems(problems));
+            return (null, problems);
         }
 
         return (new ParsedRule(name, description, request.Active ?? true, trigger, request.RecordType, request.Match ?? ConditionMatch.All,
-            conditions, actions, request.StopProcessing ?? false, customType), null);
+            conditions, actions, request.StopProcessing ?? false, customType), problems);
     }
 
     /// <summary>A 400 answer listing every problem, by field.</summary>
@@ -387,7 +397,7 @@ internal static class WorkflowRuleEndpoints
             type: ApiProblem.TypeFor("validation-failed"),
             extensions: new Dictionary<string, object?>(StringComparer.Ordinal) { ["code"] = "validation-failed", ["problems"] = problems });
 
-    private static void Apply(WorkflowRule rule, ParsedRule parsed)
+    internal static void Apply(WorkflowRule rule, ParsedRule parsed)
     {
         rule.Name = parsed.Name;
         rule.Description = parsed.Description;

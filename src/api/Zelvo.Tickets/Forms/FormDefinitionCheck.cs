@@ -47,6 +47,10 @@ public static partial class FormDefinitionCheck
     [GeneratedRegex("^[a-z][a-zA-Z0-9]{0,59}$", RegexOptions.CultureInvariant)]
     private static partial Regex KeyPattern();
 
+    /// <summary>Keys of data lists (task K3).</summary>
+    [GeneratedRegex("^[a-z][a-zA-Z0-9-]{0,39}$", RegexOptions.CultureInvariant)]
+    public static partial Regex DataListKeyPattern();
+
     /// <summary>Checks the resolved fields of a form (its own fields and those of its field sets).</summary>
     public static List<FormProblem> Check(IReadOnlyList<FormField> fields)
     {
@@ -131,10 +135,19 @@ public static partial class FormDefinitionCheck
             problems.Add(new(key, "column-rules", "Table columns have no rules."));
         }
 
+        if (field.DataList is not null && (field.Type is not (FieldType.Dropdown or FieldType.Radio) || !DataListKeyPattern().IsMatch(field.DataList)))
+        {
+            problems.Add(new(key, "data-list-invalid", "Only dropdown and radio fields take their options from a data list, named by its key."));
+        }
+
         if (field.Type is FieldType.Dropdown or FieldType.Radio)
         {
             var options = field.Options ?? [];
-            if (options.Count == 0)
+            if (options.Count == 0 && field.DataList is not null)
+            {
+                // Task K3: the data list's items become the options when the form is filled in.
+            }
+            else if (options.Count == 0)
             {
                 problems.Add(new(key, "options-required", "Dropdown and radio fields need at least one option."));
             }
@@ -372,7 +385,7 @@ public static partial class FormDefinitionCheck
         }
 
         if (condition.Operator is ConditionOperator.Equals or ConditionOperator.NotEquals && other.Type is FieldType.Dropdown or FieldType.Radio
-            && !(other.Options ?? []).Any(o => o.Value == condition.Value))
+            && other.DataList is null && !(other.Options ?? []).Any(o => o.Value == condition.Value))
         {
             problems.Add(new(field.Key, "rule-option-unknown", $"'{other.Key}' has no option '{condition.Value}'."));
         }

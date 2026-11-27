@@ -28,6 +28,8 @@ export interface SettingsSection {
     | "assets"
     | "problems"
     | "recordTypes"
+    | "apps"
+    | "dataLists"
     | "customerVoice"
     | "wellbeing"
     | "knowledge"
@@ -94,6 +96,9 @@ export const settingsSections: readonly SettingsSection[] = [
   { key: "problems", href: "/settings/problems", permission: "problems.manage" },
   // Task K2: custom record types on the ticket core (module 20).
   { key: "recordTypes", href: "/settings/record-types", permission: "recordtypes.manage" },
+  // Task K3: the low-code app builder and data lists (module 20).
+  { key: "apps", href: "/settings/apps", permission: "apps.manage" },
+  { key: "dataLists", href: "/settings/data-lists", permission: "apps.manage" },
   { key: "customerVoice", href: "/settings/customer-voice", permission: "voice.manage" },
   // Task C3: the no-code builder for assignment, approval and notification rules.
   { key: "workflows", href: "/settings/workflows", permission: "workflows.manage" },

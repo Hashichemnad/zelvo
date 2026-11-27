@@ -41,6 +41,8 @@ describe("FormBuilder", () => {
   it("adds fields from the palette, edits their properties and rules, saves and publishes", async () => {
     const fetchMock = vi.fn((url: string, init?: RequestInit) => {
       const body = init?.body ? JSON.parse(init.body as string) : null;
+      // Task K3: the dropdown's option source picker lists the data lists.
+      if (url.endsWith("/data-lists")) return Promise.resolve(ok([]));
       if (url.endsWith("/draft")) return Promise.resolve(ok({ ...draft(body.schema.elements.map((e: { field: FormField }) => e.field)), etag: 8 }));
       return Promise.resolve(ok({ ...draft(), state: "Published", publishedVersion: 1, hasUnpublishedChanges: false, etag: 9 }));
     });
@@ -68,7 +70,8 @@ describe("FormBuilder", () => {
 
     fireEvent.click(screen.getByRole("button", { name: "Save draft" }));
     await waitFor(() => expect(screen.getByText("Draft saved.")).toBeInTheDocument());
-    const [url, init] = fetchMock.mock.calls[0] as [string, RequestInit];
+    const changes = () => fetchMock.mock.calls.filter(([u]) => !u.endsWith("/data-lists"));
+    const [url, init] = changes()[0] as [string, RequestInit];
     expect(url).toBe("/bff/api/v1/forms/f1/draft");
     expect(new Headers(init.headers).get("If-Match")).toBe('"7"');
     const schema = JSON.parse(init.body as string).schema;
@@ -80,7 +83,7 @@ describe("FormBuilder", () => {
 
     fireEvent.click(screen.getByRole("button", { name: "Publish" }));
     await waitFor(() => expect(screen.getByText("Published. New tickets use this version.")).toBeInTheDocument());
-    expect(new Headers((fetchMock.mock.calls[1] as [string, RequestInit])[1].headers).get("If-Match")).toBe('"8"');
+    expect(new Headers((changes()[1] as [string, RequestInit])[1].headers).get("If-Match")).toBe('"8"');
   });
 
   it("previews the form on mobile and in Arabic, with rules working", () => {

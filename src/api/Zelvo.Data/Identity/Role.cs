@@ -41,6 +41,9 @@ public sealed class Role : ITenantOwned, IAuditedEntity
     /// <summary>When the role was created.</summary>
     public DateTimeOffset CreatedAt { get; init; } = DateTimeOffset.UtcNow;
 
+    /// <summary>Task K3: the app a custom role belongs to, if any (built-in roles never belong to one).</summary>
+    public Guid? AppId { get; set; }
+
     /// <summary>When the role was last changed.</summary>
     public DateTimeOffset UpdatedAt { get; set; } = DateTimeOffset.UtcNow;
 

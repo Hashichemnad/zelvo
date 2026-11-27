@@ -745,6 +745,368 @@ namespace Zelvo.Data.Migrations
                         });
                 });
 
+            modelBuilder.Entity("Zelvo.Data.Apps.App", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<bool>("Active")
+                        .HasColumnType("boolean")
+                        .HasColumnName("active");
+
+                    b.Property<DateTimeOffset>("CreatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("created_at");
+
+                    b.Property<Guid?>("CreatedById")
+                        .HasColumnType("uuid")
+                        .HasColumnName("created_by_id");
+
+                    b.Property<string>("Definition")
+                        .IsRequired()
+                        .HasColumnType("jsonb")
+                        .HasColumnName("definition");
+
+                    b.Property<string>("Icon")
+                        .IsRequired()
+                        .HasMaxLength(40)
+                        .HasColumnType("character varying(40)")
+                        .HasColumnName("icon");
+
+                    b.Property<Guid?>("ImportId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("import_id");
+
+                    b.Property<string>("Key")
+                        .IsRequired()
+                        .HasMaxLength(40)
+                        .HasColumnType("character varying(40)")
+                        .HasColumnName("key");
+
+                    b.Property<string>("Suspended")
+                        .IsRequired()
+                        .HasColumnType("jsonb")
+                        .HasColumnName("suspended");
+
+                    b.Property<Guid>("TenantId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("tenant_id");
+
+                    b.Property<DateTimeOffset>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("updated_at");
+
+                    b.Property<uint>("Version")
+                        .IsConcurrencyToken()
+                        .ValueGeneratedOnAddOrUpdate()
+                        .HasColumnType("xid")
+                        .HasColumnName("xmin");
+
+                    b.ComplexProperty(typeof(Dictionary<string, object>), "Description", "Zelvo.Data.Apps.App.Description#LocalizedText", b1 =>
+                        {
+                            b1.IsRequired();
+
+                            b1.Property<string>("Ar")
+                                .HasMaxLength(1000)
+                                .HasColumnType("character varying(1000)")
+                                .HasColumnName("description_ar");
+
+                            b1.Property<string>("En")
+                                .HasMaxLength(1000)
+                                .HasColumnType("character varying(1000)")
+                                .HasColumnName("description_en");
+                        });
+
+                    b.ComplexProperty(typeof(Dictionary<string, object>), "Name", "Zelvo.Data.Apps.App.Name#LocalizedText", b1 =>
+                        {
+                            b1.IsRequired();
+
+                            b1.Property<string>("Ar")
+                                .HasMaxLength(100)
+                                .HasColumnType("character varying(100)")
+                                .HasColumnName("name_ar");
+
+                            b1.Property<string>("En")
+                                .HasMaxLength(100)
+                                .HasColumnType("character varying(100)")
+                                .HasColumnName("name_en");
+                        });
+
+                    b.HasKey("Id")
+                        .HasName("pk_apps");
+
+                    b.HasIndex("TenantId", "Key")
+                        .IsUnique()
+                        .HasDatabaseName("ix_apps_tenant_id_key");
+
+                    b.ToTable("apps", null, t =>
+                        {
+                            t.HasCheckConstraint("ck_apps_definition", "jsonb_typeof(definition) = 'object'");
+
+                            t.HasCheckConstraint("ck_apps_key", "key ~ '^[a-z]([a-z0-9-]{0,38}[a-z0-9])?$'");
+
+                            t.HasCheckConstraint("ck_apps_suspended", "jsonb_typeof(suspended) = 'object'");
+                        });
+                });
+
+            modelBuilder.Entity("Zelvo.Data.Apps.AppImport", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<Guid?>("AppId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("app_id");
+
+                    b.Property<string>("AppKey")
+                        .IsRequired()
+                        .HasMaxLength(40)
+                        .HasColumnType("character varying(40)")
+                        .HasColumnName("app_key");
+
+                    b.Property<string>("Choices")
+                        .IsRequired()
+                        .HasColumnType("jsonb")
+                        .HasColumnName("choices");
+
+                    b.Property<DateTimeOffset?>("DecidedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("decided_at");
+
+                    b.Property<Guid?>("DecidedById")
+                        .HasColumnType("uuid")
+                        .HasColumnName("decided_by_id");
+
+                    b.Property<string>("FileName")
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)")
+                        .HasColumnName("file_name");
+
+                    b.Property<DateTimeOffset>("ImportedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("imported_at");
+
+                    b.Property<Guid?>("ImportedById")
+                        .HasColumnType("uuid")
+                        .HasColumnName("imported_by_id");
+
+                    b.Property<string>("Package")
+                        .IsRequired()
+                        .HasColumnType("jsonb")
+                        .HasColumnName("package");
+
+                    b.Property<string>("Result")
+                        .IsRequired()
+                        .HasColumnType("jsonb")
+                        .HasColumnName("result");
+
+                    b.Property<string>("Sha256")
+                        .IsRequired()
+                        .HasMaxLength(64)
+                        .HasColumnType("character varying(64)")
+                        .HasColumnName("sha256");
+
+                    b.Property<string>("Status")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("character varying(20)")
+                        .HasColumnName("status");
+
+                    b.Property<Guid>("TenantId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("tenant_id");
+
+                    b.Property<uint>("Version")
+                        .IsConcurrencyToken()
+                        .ValueGeneratedOnAddOrUpdate()
+                        .HasColumnType("xid")
+                        .HasColumnName("xmin");
+
+                    b.ComplexProperty(typeof(Dictionary<string, object>), "AppName", "Zelvo.Data.Apps.AppImport.AppName#LocalizedText", b1 =>
+                        {
+                            b1.IsRequired();
+
+                            b1.Property<string>("Ar")
+                                .HasMaxLength(100)
+                                .HasColumnType("character varying(100)")
+                                .HasColumnName("app_name_ar");
+
+                            b1.Property<string>("En")
+                                .HasMaxLength(100)
+                                .HasColumnType("character varying(100)")
+                                .HasColumnName("app_name_en");
+                        });
+
+                    b.HasKey("Id")
+                        .HasName("pk_app_imports");
+
+                    b.HasIndex("AppId")
+                        .HasDatabaseName("ix_app_imports_app_id");
+
+                    b.HasIndex("TenantId", "Status", "ImportedAt")
+                        .HasDatabaseName("ix_app_imports_tenant_id_status_imported_at");
+
+                    b.ToTable("app_imports", null, t =>
+                        {
+                            t.HasCheckConstraint("ck_app_imports_package", "jsonb_typeof(package) = 'object'");
+
+                            t.HasCheckConstraint("ck_app_imports_sha256", "sha256 ~ '^[0-9a-f]{64}$'");
+                        });
+                });
+
+            modelBuilder.Entity("Zelvo.Data.Apps.DataList", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<Guid?>("AppId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("app_id");
+
+                    b.Property<string>("Columns")
+                        .IsRequired()
+                        .HasColumnType("jsonb")
+                        .HasColumnName("columns");
+
+                    b.Property<DateTimeOffset>("CreatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("created_at");
+
+                    b.Property<string>("Key")
+                        .IsRequired()
+                        .HasMaxLength(40)
+                        .HasColumnType("character varying(40)")
+                        .HasColumnName("key");
+
+                    b.Property<Guid>("TenantId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("tenant_id");
+
+                    b.Property<DateTimeOffset>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("updated_at");
+
+                    b.Property<uint>("Version")
+                        .IsConcurrencyToken()
+                        .ValueGeneratedOnAddOrUpdate()
+                        .HasColumnType("xid")
+                        .HasColumnName("xmin");
+
+                    b.ComplexProperty(typeof(Dictionary<string, object>), "Description", "Zelvo.Data.Apps.DataList.Description#LocalizedText", b1 =>
+                        {
+                            b1.IsRequired();
+
+                            b1.Property<string>("Ar")
+                                .HasMaxLength(1000)
+                                .HasColumnType("character varying(1000)")
+                                .HasColumnName("description_ar");
+
+                            b1.Property<string>("En")
+                                .HasMaxLength(1000)
+                                .HasColumnType("character varying(1000)")
+                                .HasColumnName("description_en");
+                        });
+
+                    b.ComplexProperty(typeof(Dictionary<string, object>), "Name", "Zelvo.Data.Apps.DataList.Name#LocalizedText", b1 =>
+                        {
+                            b1.IsRequired();
+
+                            b1.Property<string>("Ar")
+                                .HasMaxLength(100)
+                                .HasColumnType("character varying(100)")
+                                .HasColumnName("name_ar");
+
+                            b1.Property<string>("En")
+                                .HasMaxLength(100)
+                                .HasColumnType("character varying(100)")
+                                .HasColumnName("name_en");
+                        });
+
+                    b.HasKey("Id")
+                        .HasName("pk_data_lists");
+
+                    b.HasIndex("AppId")
+                        .HasDatabaseName("ix_data_lists_app_id");
+
+                    b.HasIndex("TenantId", "Key")
+                        .IsUnique()
+                        .HasDatabaseName("ix_data_lists_tenant_id_key");
+
+                    b.ToTable("data_lists", null, t =>
+                        {
+                            t.HasCheckConstraint("ck_data_lists_columns", "jsonb_typeof(columns) = 'array'");
+
+                            t.HasCheckConstraint("ck_data_lists_key", "key ~ '^[a-z][a-zA-Z0-9-]{0,39}$'");
+                        });
+                });
+
+            modelBuilder.Entity("Zelvo.Data.Apps.DataListItem", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<bool>("Active")
+                        .HasColumnType("boolean")
+                        .HasColumnName("active");
+
+                    b.Property<Guid>("DataListId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("data_list_id");
+
+                    b.Property<string>("Key")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)")
+                        .HasColumnName("key");
+
+                    b.Property<int>("Position")
+                        .HasColumnType("integer")
+                        .HasColumnName("position");
+
+                    b.Property<Guid>("TenantId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("tenant_id");
+
+                    b.Property<string>("Values")
+                        .IsRequired()
+                        .HasColumnType("jsonb")
+                        .HasColumnName("values");
+
+                    b.ComplexProperty(typeof(Dictionary<string, object>), "Label", "Zelvo.Data.Apps.DataListItem.Label#LocalizedText", b1 =>
+                        {
+                            b1.IsRequired();
+
+                            b1.Property<string>("Ar")
+                                .HasMaxLength(200)
+                                .HasColumnType("character varying(200)")
+                                .HasColumnName("label_ar");
+
+                            b1.Property<string>("En")
+                                .HasMaxLength(200)
+                                .HasColumnType("character varying(200)")
+                                .HasColumnName("label_en");
+                        });
+
+                    b.HasKey("Id")
+                        .HasName("pk_data_list_items");
+
+                    b.HasIndex("DataListId", "Key")
+                        .IsUnique()
+                        .HasDatabaseName("ix_data_list_items_data_list_id_key");
+
+                    b.HasIndex("TenantId", "DataListId", "Position")
+                        .HasDatabaseName("ix_data_list_items_tenant_id_data_list_id_position");
+
+                    b.ToTable("data_list_items", null, t =>
+                        {
+                            t.HasCheckConstraint("ck_data_list_items_values", "jsonb_typeof(values) = 'object'");
+                        });
+                });
+
             modelBuilder.Entity("Zelvo.Data.Auditing.AuditEvent", b =>
                 {
                     b.Property<long>("Id")
@@ -5790,6 +6152,10 @@ namespace Zelvo.Data.Migrations
                         .HasColumnType("uuid")
                         .HasColumnName("id");
 
+                    b.Property<Guid?>("AppId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("app_id");
+
                     b.Property<DateTimeOffset>("CreatedAt")
                         .HasColumnType("timestamp with time zone")
                         .HasColumnName("created_at");
@@ -5839,6 +6205,9 @@ namespace Zelvo.Data.Migrations
 
                     b.HasKey("Id")
                         .HasName("pk_roles");
+
+                    b.HasIndex("AppId")
+                        .HasDatabaseName("ix_roles_app_id");
 
                     b.HasIndex("TenantId", "Key")
                         .IsUnique()
@@ -8877,6 +9246,10 @@ namespace Zelvo.Data.Migrations
                         .HasColumnType("boolean")
                         .HasColumnName("active");
 
+                    b.Property<Guid?>("AppId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("app_id");
+
                     b.Property<DateTimeOffset>("CreatedAt")
                         .HasColumnType("timestamp with time zone")
                         .HasColumnName("created_at");
@@ -8956,6 +9329,9 @@ namespace Zelvo.Data.Migrations
 
                     b.HasKey("Id")
                         .HasName("pk_record_types");
+
+                    b.HasIndex("AppId")
+                        .HasDatabaseName("ix_record_types_app_id");
 
                     b.HasIndex("TenantId", "Key")
                         .IsUnique()
@@ -11803,6 +12179,65 @@ namespace Zelvo.Data.Migrations
                         .HasConstraintName("fk_ai_triage_suggestions_tickets_ticket_id");
                 });
 
+            modelBuilder.Entity("Zelvo.Data.Apps.App", b =>
+                {
+                    b.HasOne("Zelvo.Data.Tenancy.Tenant", null)
+                        .WithMany()
+                        .HasForeignKey("TenantId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired()
+                        .HasConstraintName("fk_apps_tenants_tenant_id");
+                });
+
+            modelBuilder.Entity("Zelvo.Data.Apps.AppImport", b =>
+                {
+                    b.HasOne("Zelvo.Data.Apps.App", null)
+                        .WithMany()
+                        .HasForeignKey("AppId")
+                        .OnDelete(DeleteBehavior.SetNull)
+                        .HasConstraintName("fk_app_imports_apps_app_id");
+
+                    b.HasOne("Zelvo.Data.Tenancy.Tenant", null)
+                        .WithMany()
+                        .HasForeignKey("TenantId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired()
+                        .HasConstraintName("fk_app_imports_tenants_tenant_id");
+                });
+
+            modelBuilder.Entity("Zelvo.Data.Apps.DataList", b =>
+                {
+                    b.HasOne("Zelvo.Data.Apps.App", null)
+                        .WithMany()
+                        .HasForeignKey("AppId")
+                        .OnDelete(DeleteBehavior.SetNull)
+                        .HasConstraintName("fk_data_lists_apps_app_id");
+
+                    b.HasOne("Zelvo.Data.Tenancy.Tenant", null)
+                        .WithMany()
+                        .HasForeignKey("TenantId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired()
+                        .HasConstraintName("fk_data_lists_tenants_tenant_id");
+                });
+
+            modelBuilder.Entity("Zelvo.Data.Apps.DataListItem", b =>
+                {
+                    b.HasOne("Zelvo.Data.Apps.DataList", null)
+                        .WithMany()
+                        .HasForeignKey("DataListId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired()
+                        .HasConstraintName("fk_data_list_items_data_lists_data_list_id");
+
+                    b.HasOne("Zelvo.Data.Tenancy.Tenant", null)
+                        .WithMany()
+                        .HasForeignKey("TenantId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired()
+                        .HasConstraintName("fk_data_list_items_tenants_tenant_id");
+                });
+
             modelBuilder.Entity("Zelvo.Data.Auditing.AuditEvent", b =>
                 {
                     b.HasOne("Zelvo.Data.Tenancy.Tenant", null)
@@ -13209,6 +13644,12 @@ namespace Zelvo.Data.Migrations
 
             modelBuilder.Entity("Zelvo.Data.Identity.Role", b =>
                 {
+                    b.HasOne("Zelvo.Data.Apps.App", null)
+                        .WithMany()
+                        .HasForeignKey("AppId")
+                        .OnDelete(DeleteBehavior.SetNull)
+                        .HasConstraintName("fk_roles_apps_app_id");
+
                     b.HasOne("Zelvo.Data.Tenancy.Tenant", null)
                         .WithMany()
                         .HasForeignKey("TenantId")
@@ -13935,6 +14376,12 @@ namespace Zelvo.Data.Migrations
 
             modelBuilder.Entity("Zelvo.Data.Records.RecordType", b =>
                 {
+                    b.HasOne("Zelvo.Data.Apps.App", null)
+                        .WithMany()
+                        .HasForeignKey("AppId")
+                        .OnDelete(DeleteBehavior.SetNull)
+                        .HasConstraintName("fk_record_types_apps_app_id");
+
                     b.HasOne("Zelvo.Data.Tenancy.Tenant", null)
                         .WithMany()
                         .HasForeignKey("TenantId")

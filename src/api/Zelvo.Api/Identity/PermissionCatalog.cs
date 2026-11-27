@@ -245,6 +245,12 @@ internal static class Permissions
     /// </summary>
     public const string RecordTypesManage = "recordtypes.manage";
 
+    /// <summary>
+    /// Task K3 (module 20): the low-code app builder: Settings → Apps and Data lists, exporting
+    /// apps as packages and importing, checking and approving packages.
+    /// </summary>
+    public const string AppsManage = "apps.manage";
+
     /// <summary>Task G1 (module 18): see configuration items, their relationships, map, impact and history.</summary>
     public const string CmdbRead = "cmdb.read";
 
@@ -373,6 +379,7 @@ internal static class PermissionCatalog
         Permissions.ProblemsEdit,
         Permissions.ProblemsManage,
         Permissions.RecordTypesManage,
+        Permissions.AppsManage,
     ];
 
     /// <summary>
@@ -422,6 +429,9 @@ internal static class PermissionCatalog
         Permissions.CmdbDiscoveryManage,
         // Task K2, for the product owner's approval: making a record type grants permissions to roles.
         Permissions.RecordTypesManage,
+        // Task K3, for the product owner's approval: an approved package makes record types,
+        // roles and workflow rules and grants permissions to roles.
+        Permissions.AppsManage,
     };
 
     /// <summary>Permissions an integration may be given as scopes.</summary>

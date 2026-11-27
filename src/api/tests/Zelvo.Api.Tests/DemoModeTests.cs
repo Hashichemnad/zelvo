@@ -165,9 +165,16 @@ public sealed class DemoModeTests(DatabaseFixture database) : IAsyncDisposable
             await db.Notifications.CountAsync(n => n.EventType == Zelvo.Notifications.NotificationEvents.IncidentReceived, Ct));
 
         // Task C1: published forms with a field set, bound to the default and to Laptops, and profile fields
-        // (task C2 adds the laptop request form of the catalog).
-        Assert.Equal(3, await db.Forms.CountAsync(f => f.State == Data.Forms.FormState.Published, Ct));
-        Assert.Equal(2, await db.FormBindings.CountAsync(Ct));
+        // (task C2 adds the laptop request form of the catalog; task K3 the HR app's leave request form).
+        Assert.Equal(4, await db.Forms.CountAsync(f => f.State == Data.Forms.FormState.Published, Ct));
+        Assert.Equal(3, await db.FormBindings.CountAsync(Ct));
+
+        // Task K3: the HR app with its data list, record type, role and rule, installed like an approved package.
+        var hr = await db.Apps.SingleAsync(a => a.Key == "hr", Ct);
+        Assert.True(hr.Active);
+        Assert.Equal(5, await db.DataListItems.CountAsync(Ct));
+        Assert.True(await db.RecordTypes.AnyAsync(t => t.Key == "leave" && t.AppId == hr.Id, Ct));
+        Assert.True(await db.Roles.AnyAsync(r => r.Key == "hr-officer" && r.AppId == hr.Id, Ct));
         Assert.True(await db.FieldSets.AnyAsync(s => s.State == Data.Forms.FormState.Published, Ct));
         Assert.True(await db.Users.AnyAsync(u => u.DepartmentId != null && u.ManagerId != null && u.Phone != null, Ct));
         foreach (var form in await db.Forms.ToListAsync(Ct))
