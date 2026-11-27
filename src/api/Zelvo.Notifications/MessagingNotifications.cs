@@ -26,12 +26,33 @@ internal sealed class MessagingNotifications(ZelvoDbContext db)
 {
     private static readonly TimeSpan WhatsAppWindow = TimeSpan.FromHours(24);
 
-    /// <summary>Queues the channel messages of <paramref name="notification"/> for <paramref name="recipient"/>.</summary>
+    /// <summary>
+    /// Task K1: the channels a workflow rule's notification names (<c>WhatsApp,Sms</c>), or
+    /// <see langword="null"/> when the rule predates K1 and people's own choices apply.
+    /// </summary>
+    internal static IReadOnlySet<MessagingKind>? RuleChannels(string? value) =>
+        value is null
+            ? null
+            : value.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
+                .Select(v => Enum.TryParse<MessagingKind>(v, out var kind) ? (MessagingKind?)kind : null).OfType<MessagingKind>().ToHashSet();
+
+    /// <summary>
+    /// Queues the channel messages of <paramref name="notification"/> for <paramref name="recipient"/>.
+    /// With <paramref name="only"/> (a workflow rule's channels, task K1) the rule decides which
+    /// channels are used instead of the event's setting; each person's own opt-in for WhatsApp, SMS
+    /// and Teams still applies, as it is their phone and their consent.
+    /// </summary>
     public async Task QueueAsync(
         Notification notification, UserAccount recipient, NotificationEventDefinition definition, EventSetting setting, RenderedNotification rendered,
-        string language, NotificationLinks links, DateTimeOffset now, CancellationToken cancellationToken)
+        string language, NotificationLinks links, DateTimeOffset now, CancellationToken cancellationToken, IReadOnlySet<MessagingKind>? only = null)
     {
-        var channels = await db.MessagingChannels.AsNoTracking().Where(c => c.Active).ToListAsync(cancellationToken).ConfigureAwait(false);
+        if (only is { Count: 0 })
+        {
+            return;
+        }
+
+        var channels = await db.MessagingChannels.AsNoTracking().Where(c => c.Active && (only == null || only.Contains(c.Kind)))
+            .ToListAsync(cancellationToken).ConfigureAwait(false);
         if (channels.Count == 0)
         {
             return;
@@ -62,7 +83,7 @@ internal sealed class MessagingNotifications(ZelvoDbContext db)
             }
         }
 
-        if (!setting.Enabled || !setting.Messaging)
+        if (!setting.Enabled || (!setting.Messaging && only is null))
         {
             return;
         }

@@ -17,7 +17,7 @@ internal static class WorkflowSetup
     }
 
     public static RouteGroupBuilder MapZelvoWorkflowEndpoints(this RouteGroupBuilder group) =>
-        group.MapWorkflowRuleEndpoints().MapApprovalEndpoints();
+        group.MapPlainLanguageRuleEndpoints().MapWorkflowRuleEndpoints().MapApprovalEndpoints();
 }
 
 /// <summary>

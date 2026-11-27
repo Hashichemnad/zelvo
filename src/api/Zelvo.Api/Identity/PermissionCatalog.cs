@@ -226,6 +226,16 @@ internal static class Permissions
 
     /// <summary>Read people's consent to the optional purposes and the notice they accepted (task F5), for example for a survey tool.</summary>
     public const string PrivacyConsentsRead = "privacy.consents.read";
+
+    /// <summary>
+    /// The wellbeing dashboard (module 21, task K4; product owner decision 2026-11-26): team leads
+    /// see each agent of the groups they lead, others with this permission only group totals.
+    /// Every agent sees their own figures without it.
+    /// </summary>
+    public const string WellbeingRead = "wellbeing.read";
+
+    /// <summary>Settings → Wellbeing (task K4): turn wellbeing on or off and set the default thresholds.</summary>
+    public const string WellbeingManage = "wellbeing.manage";
 }
 
 /// <summary>A field of a resource that field rules can hide or make read-only.</summary>
@@ -316,6 +326,8 @@ internal static class PermissionCatalog
         Permissions.PrivacyRequests,
         Permissions.PrivacyConsentsRead,
         Permissions.InstallationManage,
+        Permissions.WellbeingRead,
+        Permissions.WellbeingManage,
     ];
 
     /// <summary>
@@ -355,6 +367,10 @@ internal static class PermissionCatalog
         // Task F3, for the product owner's approval: licenses and update packages change the
         // whole installation, and an update stops it for a while.
         Permissions.InstallationManage,
+        // Task K4, for the product owner's approval: people's workload figures are personal data
+        // (UAE PDPL) and are for the people who balance work, never for other systems.
+        Permissions.WellbeingRead,
+        Permissions.WellbeingManage,
     };
 
     /// <summary>Permissions an integration may be given as scopes.</summary>
@@ -421,7 +437,7 @@ internal static class PermissionCatalog
         new(BuiltInRoles.TeamLead, new LocalizedText("Team lead", "قائد الفريق"),
             [Permissions.UsersRead, Permissions.IncidentsRead, Permissions.IncidentsCreate, Permissions.IncidentsEdit, Permissions.IncidentsAssign, Permissions.IncidentsMajor, Permissions.DirectoryRead,
                 Permissions.KnowledgeRead, Permissions.KnowledgeWrite, Permissions.KnowledgePublish, Permissions.RequestsRead, Permissions.RequestsEdit, Permissions.RequestsAssign, Permissions.ChatHandle,
-                Permissions.VoiceRead, Permissions.VoiceEdit, Permissions.VoiceAssign, Permissions.VoiceReport, Permissions.ReportsRead],
+                Permissions.VoiceRead, Permissions.VoiceEdit, Permissions.VoiceAssign, Permissions.VoiceReport, Permissions.ReportsRead, Permissions.WellbeingRead],
             new Dictionary<string, FieldAccess> { ["users.email"] = FieldAccess.Read }),
         new(BuiltInRoles.Approver, new LocalizedText("Approver", "المعتمِد"), [], new Dictionary<string, FieldAccess>()),
         new(BuiltInRoles.TenantAdmin, new LocalizedText("Tenant administrator", "مسؤول الجهة"),
@@ -429,7 +445,8 @@ internal static class PermissionCatalog
             new Dictionary<string, FieldAccess> { ["users.email"] = FieldAccess.Read, ["users.emiratesId"] = FieldAccess.Edit, ["users.phone"] = FieldAccess.Edit }),
         new(BuiltInRoles.ExecutiveAuditor, new LocalizedText("Executive / auditor", "تنفيذي / مدقق"),
             [Permissions.AuditRead, Permissions.UsersRead, Permissions.IncidentsRead, Permissions.DirectoryRead, Permissions.KnowledgeRead, Permissions.RequestsRead,
-                Permissions.VoiceRead, Permissions.VoiceReport, Permissions.ApprovalsRead, Permissions.ReportsRead, Permissions.ReportsAll, Permissions.PaymentsRead],
+                Permissions.VoiceRead, Permissions.VoiceReport, Permissions.ApprovalsRead, Permissions.ReportsRead, Permissions.ReportsAll, Permissions.PaymentsRead,
+                Permissions.WellbeingRead],
             new Dictionary<string, FieldAccess> { ["users.email"] = FieldAccess.Read }),
     ];
 

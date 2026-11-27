@@ -22,6 +22,14 @@ internal static class ApiProblem
             type: TypeFor(code),
             extensions: new Dictionary<string, object?>(StringComparer.Ordinal) { ["code"] = code });
 
+    /// <summary>A problem result with a stable code and further members (for example what could not be done).</summary>
+    public static IResult Create(int statusCode, string code, string title, IReadOnlyDictionary<string, object?> extensions)
+    {
+        ArgumentNullException.ThrowIfNull(extensions);
+        var all = new Dictionary<string, object?>(extensions, StringComparer.Ordinal) { ["code"] = code };
+        return TypedResults.Problem(statusCode: statusCode, title: title, type: TypeFor(code), extensions: all);
+    }
+
     /// <summary>
     /// Writes a problem from middleware. When no problem details writer accepts the request (its
     /// <c>Accept</c> header rules out JSON, as the live-update stream's <c>text/event-stream</c>

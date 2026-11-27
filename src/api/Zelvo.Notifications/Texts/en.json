@@ -340,6 +340,12 @@
       "inApp": "The malware definitions are version {{definitions.version}} from {{definitions.builtAt}}, older than {{definitions.days}} days. Import new definitions in Settings → Updates → Malware definitions.",
       "body": "Dear {{recipient.name}},\n\nThe malware scanner that checks every uploaded file still uses definitions version {{definitions.version}}, built on {{definitions.builtAt}}. They are older than the {{definitions.days}} days set for this installation, so the newest malware may not be recognised.\n\nPlease import current ClamAV definition files in Settings → Updates → Malware definitions, or check that the scanner can download them.\n\nKind regards,\n{{tenant.name}}",
       "action": "Open malware definitions"
+    },
+    "wellbeing.enabled": {
+      "subject": "Workload balancing is now on",
+      "inApp": "{{tenant.name}} turned on the wellbeing dashboard. It keeps daily figures of your workload for 90 days so team leads can balance work. See your own figures under Account → My workload.",
+      "body": "Dear {{recipient.name}},\n\n{{tenant.name}} has turned on the wellbeing dashboard in Zelvo. It helps team leads balance work before anyone is overloaded; it is not used to rank or score people.\n\nWhat is recorded, once a day: the open tickets assigned to you (weighted by priority), new assignments, work you do in Zelvo outside your team's working hours (from your replies, state changes and work on tasks), and the share of angry or escalated tickets you handle. Nothing about your presence or typing is recorded.\n\nThe team leads of your groups see your figures; executives and administrators see only group totals. Every view of your figures is recorded, the figures are kept for 90 days, and they are part of the copy of your data you can ask for. You can see your own figures under Account → My workload. The privacy notice explains your rights.\n\nKind regards,\n{{tenant.name}}",
+      "action": "See my workload"
     }
   },
   "samples": {
