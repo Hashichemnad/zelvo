@@ -1,3 +1,4 @@
+using Zelvo.Api.Cmdb;
 using Zelvo.Workflows;
 using Zelvo.Workflows.Engine;
 using Zelvo.Api.ServiceDesk;
@@ -107,6 +108,7 @@ builder.Services.AddZelvoDemo();
 builder.Services.AddZelvoApiIntegrations(builder.Configuration);
 builder.Services.AddZelvoApiAi(builder.Configuration);
 builder.Services.AddZelvoKnowledge();
+builder.Services.AddZelvoCmdb();
 builder.Services.AddZelvoCatalog();
 // Online payments (module 15, task E8).
 builder.Services.AddZelvoPayments(builder.Configuration);
@@ -187,6 +189,8 @@ v1.MapLicenseEndpoints();
 v1.MapUpdateEndpoints();
 // Task M1: Settings → Updates → Malware definitions, and the private mirror ClamAV reads.
 v1.MapMalwareDefinitionEndpoints();
+// Task G1 (module 18). Phase 2 modules are not licensed separately yet (for the product owner).
+v1.MapZelvoCmdbEndpoints();
 app.MapMalwareDefinitionMirror();
 v1.ForModule(LicensedModules.Incidents).MapIncidentEndpoints();
 v1.ForModule(LicensedModules.Incidents).MapIncidentSettingsEndpoints();

@@ -226,6 +226,12 @@ internal static class Permissions
 
     /// <summary>Read people's consent to the optional purposes and the notice they accepted (task F5), for example for a survey tool.</summary>
     public const string PrivacyConsentsRead = "privacy.consents.read";
+
+    /// <summary>Task G1 (module 18): see configuration items, their relationships, map, impact and history.</summary>
+    public const string CmdbRead = "cmdb.read";
+
+    /// <summary>Task G1 (module 18): add, change and retire configuration items and relationships; Settings → CMDB.</summary>
+    public const string CmdbManage = "cmdb.manage";
 }
 
 /// <summary>A field of a resource that field rules can hide or make read-only.</summary>
@@ -316,6 +322,8 @@ internal static class PermissionCatalog
         Permissions.PrivacyRequests,
         Permissions.PrivacyConsentsRead,
         Permissions.InstallationManage,
+        Permissions.CmdbRead,
+        Permissions.CmdbManage,
     ];
 
     /// <summary>
@@ -416,12 +424,12 @@ internal static class PermissionCatalog
         new(BuiltInRoles.Agent, new LocalizedText("Agent", "موظف الدعم"),
             [Permissions.UsersRead, Permissions.IncidentsRead, Permissions.IncidentsCreate, Permissions.IncidentsEdit, Permissions.IncidentsAssign, Permissions.DirectoryRead,
                 Permissions.KnowledgeRead, Permissions.KnowledgeWrite, Permissions.RequestsRead, Permissions.RequestsEdit, Permissions.RequestsAssign, Permissions.ChatHandle,
-                Permissions.VoiceRead, Permissions.VoiceEdit, Permissions.VoiceAssign],
+                Permissions.VoiceRead, Permissions.VoiceEdit, Permissions.VoiceAssign, Permissions.CmdbRead],
             new Dictionary<string, FieldAccess> { ["users.email"] = FieldAccess.Read }),
         new(BuiltInRoles.TeamLead, new LocalizedText("Team lead", "قائد الفريق"),
             [Permissions.UsersRead, Permissions.IncidentsRead, Permissions.IncidentsCreate, Permissions.IncidentsEdit, Permissions.IncidentsAssign, Permissions.IncidentsMajor, Permissions.DirectoryRead,
                 Permissions.KnowledgeRead, Permissions.KnowledgeWrite, Permissions.KnowledgePublish, Permissions.RequestsRead, Permissions.RequestsEdit, Permissions.RequestsAssign, Permissions.ChatHandle,
-                Permissions.VoiceRead, Permissions.VoiceEdit, Permissions.VoiceAssign, Permissions.VoiceReport, Permissions.ReportsRead],
+                Permissions.VoiceRead, Permissions.VoiceEdit, Permissions.VoiceAssign, Permissions.VoiceReport, Permissions.ReportsRead, Permissions.CmdbRead],
             new Dictionary<string, FieldAccess> { ["users.email"] = FieldAccess.Read }),
         new(BuiltInRoles.Approver, new LocalizedText("Approver", "المعتمِد"), [], new Dictionary<string, FieldAccess>()),
         new(BuiltInRoles.TenantAdmin, new LocalizedText("Tenant administrator", "مسؤول الجهة"),
@@ -429,7 +437,8 @@ internal static class PermissionCatalog
             new Dictionary<string, FieldAccess> { ["users.email"] = FieldAccess.Read, ["users.emiratesId"] = FieldAccess.Edit, ["users.phone"] = FieldAccess.Edit }),
         new(BuiltInRoles.ExecutiveAuditor, new LocalizedText("Executive / auditor", "تنفيذي / مدقق"),
             [Permissions.AuditRead, Permissions.UsersRead, Permissions.IncidentsRead, Permissions.DirectoryRead, Permissions.KnowledgeRead, Permissions.RequestsRead,
-                Permissions.VoiceRead, Permissions.VoiceReport, Permissions.ApprovalsRead, Permissions.ReportsRead, Permissions.ReportsAll, Permissions.PaymentsRead],
+                Permissions.VoiceRead, Permissions.VoiceReport, Permissions.ApprovalsRead, Permissions.ReportsRead, Permissions.ReportsAll, Permissions.PaymentsRead,
+                Permissions.CmdbRead],
             new Dictionary<string, FieldAccess> { ["users.email"] = FieldAccess.Read }),
     ];
 

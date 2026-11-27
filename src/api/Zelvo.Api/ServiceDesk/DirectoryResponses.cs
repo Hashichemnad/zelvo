@@ -68,6 +68,26 @@ internal sealed class TreeIndex<TNode>
 
     public bool Selectable(TNode node) => Chain(node).All(n => n.Active);
 
+    /// <summary>The node and every node below it (task G1: items at a location or below).</summary>
+    public HashSet<Guid> WithDescendants(Guid id)
+    {
+        var result = new HashSet<Guid>();
+        var queue = new Queue<Guid>([id]);
+        while (queue.Count > 0)
+        {
+            var next = queue.Dequeue();
+            if (result.Add(next))
+            {
+                foreach (var child in _nodes.Values.Where(n => n.ParentId == next))
+                {
+                    queue.Enqueue(child.Id);
+                }
+            }
+        }
+
+        return result;
+    }
+
     public NodeRef? RefOf(Guid? id) =>
         id is { } nodeId && Find(nodeId) is { } node ? new NodeRef(node.Id, LocalizedTextDto.From(node.Name), LocalizedTextDto.From(PathOf(node))) : null;
 
