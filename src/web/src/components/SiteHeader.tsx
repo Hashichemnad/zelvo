@@ -32,6 +32,7 @@ export async function SiteHeader() {
   const tVoice = await getTranslations("voice.nav");
   const tPortal = await getTranslations("portal.nav");
   const tReports = await getTranslations("reports.nav");
+  const tCmdb = await getTranslations("cmdb");
   const tWellbeing = await getTranslations("wellbeing");
   const config = await getRequestAuthConfig();
   const locale = await getLocale();
@@ -157,6 +158,13 @@ export async function SiteHeader() {
                         </Link>
                       </li>
                     </>
+                  )}
+                  {user.permissions.includes("cmdb.read") && (
+                    <li>
+                      <Link href="/cmdb" className="text-brand underline-offset-4 hover:underline" data-testid="nav-cmdb">
+                        {tCmdb("nav")}
+                      </Link>
+                    </li>
                   )}
                   {isKnowledgeStaff(user.permissions) && (
                     <li>

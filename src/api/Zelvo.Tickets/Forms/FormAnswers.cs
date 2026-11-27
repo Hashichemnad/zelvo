@@ -38,6 +38,9 @@ public sealed class FormAnswerResult
 
     /// <summary>Files that must be the caller's own unsent uploads for the field.</summary>
     public List<FileReference> Files { get; } = [];
+
+    /// <summary>Configuration items (task G1) that must exist, not be retired and be of the field's classes.</summary>
+    public List<(string Field, Guid Id, IReadOnlyList<Guid> Classes)> ConfigurationItems { get; } = [];
 }
 
 /// <summary>
@@ -48,6 +51,9 @@ public sealed class FormAnswerResult
 public static class FormAnswers
 {
     private static readonly TimeSpan PatternTimeout = TimeSpan.FromMilliseconds(100);
+
+    /// <summary>Most configuration items one field takes.</summary>
+    public const int MaxConfigurationItems = 20;
 
     /// <summary>Checks <paramref name="submitted"/> against <paramref name="fields"/>; <paramref name="defaults"/> are the answers defaults give (profile values first).</summary>
     public static FormAnswerResult Check(IReadOnlyList<FormField> fields, JsonObject submitted, JsonObject defaults)
@@ -301,6 +307,46 @@ public static class FormAnswers
 
                 (field.Type == FieldType.User ? result.Users : result.Locations).Add((path, id));
                 return JsonValue.Create(id.ToString());
+            }
+
+            case FieldType.ConfigurationItem:
+            {
+                var ids = new List<Guid>();
+                IEnumerable<JsonNode?> picked = field.Multiple ? value as JsonArray ?? [] : new[] { value };
+                foreach (var item in picked)
+                {
+                    if (FormDefinitionCheck.Kind(item) != JsonValueKind.String || !Guid.TryParse(item!.GetValue<string>(), out var id))
+                    {
+                        Error("type", field.Multiple ? "Expected a list of ids." : "Expected an id.");
+                        return null;
+                    }
+
+                    if (!ids.Contains(id))
+                    {
+                        ids.Add(id);
+                    }
+                }
+
+                if (field.Multiple && value is not JsonArray)
+                {
+                    Error("type", "Expected a list of ids.");
+                    return null;
+                }
+
+                if (ids.Count > MaxConfigurationItems)
+                {
+                    Error("too-many", $"Choose at most {MaxConfigurationItems} items.");
+                    return null;
+                }
+
+                foreach (var id in ids)
+                {
+                    result.ConfigurationItems.Add((path, id, field.ConfigurationItemClasses ?? []));
+                }
+
+                return field.Multiple
+                    ? new JsonArray([.. ids.Select(i => (JsonNode?)JsonValue.Create(i.ToString()))])
+                    : JsonValue.Create(ids[0].ToString());
             }
 
             case FieldType.File:

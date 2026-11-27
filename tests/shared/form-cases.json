@@ -109,6 +109,26 @@
         { "answers": { "tags": [] }, "expected": { "approval": [true, false, false], "other": [true, false, false] } },
         { "answers": { "amount": "not a number" }, "expected": { "approval": [true, false, false] } }
       ]
+    },
+    {
+      "name": "configuration items (task G1): one or several picked items",
+      "fields": [
+        { "key": "service", "type": "ConfigurationItem", "label": { "en": "Affected service" } },
+        { "key": "servers", "type": "ConfigurationItem", "multiple": true, "label": { "en": "Servers" } },
+        {
+          "key": "details", "type": "Text", "label": { "en": "Details" },
+          "rules": [
+            { "action": "Show", "match": "Any", "conditions": [{ "field": "service", "operator": "NotEmpty" }, { "field": "servers", "operator": "NotEmpty" }] },
+            { "action": "Require", "match": "All", "conditions": [{ "field": "servers", "operator": "Equals", "value": "6f1c2a8e-3b4d-4e5f-9a0b-1c2d3e4f5a6b" }] }
+          ]
+        }
+      ],
+      "cases": [
+        { "answers": {}, "expected": { "details": [false, false, false] } },
+        { "answers": { "servers": [] }, "expected": { "details": [false, false, false] } },
+        { "answers": { "service": "0a1b2c3d-4e5f-4a6b-8c7d-9e0f1a2b3c4d" }, "expected": { "details": [true, false, false] } },
+        { "answers": { "servers": ["0a1b2c3d-4e5f-4a6b-8c7d-9e0f1a2b3c4d", "6F1C2A8E-3B4D-4E5F-9A0B-1C2D3E4F5A6B"] }, "expected": { "details": [true, true, false] } }
+      ]
     }
   ]
 }

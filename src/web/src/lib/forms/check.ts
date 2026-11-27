@@ -20,6 +20,10 @@ const formatCodes: Record<string, string> = {
 };
 
 const datePattern = /^\d{4}-\d{2}-\d{2}$/;
+const guidPattern = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
+/** Most configuration items one field takes (the server's FormAnswers.MaxConfigurationItems). */
+export const maxConfigurationItems = 20;
 
 function checkValue(field: FormField, value: JsonValue, path: string, errors: AnswerError[]): void {
   const v = field.validation ?? {};
@@ -70,6 +74,13 @@ function checkValue(field: FormField, value: JsonValue, path: string, errors: An
     case "File": {
       if (!Array.isArray(value)) return add("type");
       if (value.length > (v.maxFiles ?? 5)) return add("max-files");
+      return;
+    }
+    case "ConfigurationItem": {
+      const ids = field.multiple ? value : [value];
+      if (!Array.isArray(ids) || (field.multiple && !Array.isArray(value))) return add("type");
+      if (ids.some((id) => typeof id !== "string" || !guidPattern.test(id))) return add("type");
+      if (new Set(ids).size > maxConfigurationItems) return add("too-many");
       return;
     }
     case "Signature": {

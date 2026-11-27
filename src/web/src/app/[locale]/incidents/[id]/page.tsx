@@ -7,6 +7,7 @@ import { SlaClocks } from "@/components/sla/SlaClocks";
 import { IncidentHistory } from "@/components/incidents/IncidentHistory";
 import { IncidentWorkPanel } from "@/components/incidents/IncidentWorkPanel";
 import { MajorTimeline } from "@/components/incidents/MajorTimeline";
+import { TicketCiPanel } from "@/components/cmdb/TicketCiPanel";
 import { CreateArticleFromIncident } from "@/components/knowledge/NewArticle";
 import { ExportPdfButton } from "@/components/ExportPdfButton";
 import { Link } from "@/i18n/navigation";
@@ -73,6 +74,9 @@ export default async function IncidentPage({ params }: PageProps<"/[locale]/inci
       {form && <FormAnswersView view={form} attachmentBase={`/bff/api/v1/incidents/${incident.id}/attachments`} />}
       {incident.sla && <SlaClocks clocks={incident.sla} display={display} />}
       <IncidentWorkPanel incident={incident} settings={settings} csrfToken={session.data.csrfToken} permissions={permissions} assignees={assignees} directory={directory} />
+      {/* Task G1: the configuration items the incident is about. */}
+      <TicketCiPanel ticketId={incident.id} kind="incidents" canEdit={permissions.includes("incidents.edit")} canOpenItems={permissions.includes("cmdb.read")}
+        csrfToken={session.data.csrfToken} />
       {(incident.state === "Resolved" || closed) && permissions.includes("knowledge.write") && (
         <CreateArticleFromIncident incidentId={incident.id} csrfToken={session.data.csrfToken} withAi={articleDraftsOn} />
       )}

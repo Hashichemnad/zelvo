@@ -242,4 +242,29 @@ public sealed class FormEngineTests
         Assert.Equal(json, FormJson.Write(FormJson.ReadForm(json)));
         Assert.Null(FormJson.ReadForm("{\"elements\": 5}"));
     }
+
+    [Fact]
+    public void Configuration_item_fields_take_one_id_or_a_list_and_name_what_the_caller_must_check()
+    {
+        var classId = Guid.NewGuid();
+        var single = new FormField { Key = "service", Type = FieldType.ConfigurationItem, Label = new LocalizedText("Service", "الخدمة"), ConfigurationItemClasses = [classId] };
+        var several = single with { Key = "servers", Multiple = true, ConfigurationItemClasses = null };
+        Assert.Empty(FormDefinitionCheck.Check([single, several]));
+        Assert.Contains(FormDefinitionCheck.Check([single with { DefaultValue = Guid.NewGuid().ToString() }]), p => p.Code == "default-not-allowed");
+        Assert.Contains(FormDefinitionCheck.Check([new FormField { Key = "x", Type = FieldType.Text, Label = new("X", null), ConfigurationItemClasses = [classId] }]),
+            p => p.Code == "classes-not-allowed");
+
+        var a = Guid.NewGuid();
+        var b = Guid.NewGuid();
+        var result = FormAnswers.Check([single, several],
+            new JsonObject { ["service"] = a.ToString(), ["servers"] = new JsonArray(a.ToString(), b.ToString(), a.ToString()) }, []);
+        Assert.Empty(result.Errors);
+        Assert.Equal(a.ToString(), (string)result.Answers["service"]!);
+        Assert.Equal([a.ToString(), b.ToString()], result.Answers["servers"]!.AsArray().Select(n => (string)n!));
+        Assert.Equal(3, result.ConfigurationItems.Count);
+        Assert.Equal([classId], result.ConfigurationItems.First(c => c.Field == "service").Classes);
+
+        var wrong = FormAnswers.Check([single, several], new JsonObject { ["service"] = new JsonArray(a.ToString()), ["servers"] = a.ToString() }, []);
+        Assert.Equal(["servers:type", "service:type"], wrong.Errors.Select(e => $"{e.Field}:{e.Code}").Order(StringComparer.Ordinal));
+    }
 }

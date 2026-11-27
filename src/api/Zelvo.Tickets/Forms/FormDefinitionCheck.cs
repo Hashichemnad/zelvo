@@ -168,9 +168,18 @@ public static partial class FormDefinitionCheck
             problems.Add(new(key, "options-not-allowed", "Only dropdown and radio fields have options."));
         }
 
-        if (field.Multiple && field.Type != FieldType.Dropdown)
+        if (field.Multiple && field.Type is not (FieldType.Dropdown or FieldType.ConfigurationItem))
         {
-            problems.Add(new(key, "multiple-not-allowed", "Only dropdown fields allow several choices."));
+            problems.Add(new(key, "multiple-not-allowed", "Only dropdown and configuration item fields allow several choices."));
+        }
+
+        if ((field.ConfigurationItemClasses?.Count ?? 0) > 0 && field.Type != FieldType.ConfigurationItem)
+        {
+            problems.Add(new(key, "classes-not-allowed", "Only configuration item fields have classes."));
+        }
+        else if (field.ConfigurationItemClasses is { Count: > MaxOptions } || (field.ConfigurationItemClasses?.Distinct().Count() ?? 0) != (field.ConfigurationItemClasses?.Count ?? 0))
+        {
+            problems.Add(new(key, "classes-invalid", $"At most {MaxOptions} different classes."));
         }
 
         if (field.Multiline && field.Type != FieldType.Text)
@@ -222,7 +231,7 @@ public static partial class FormDefinitionCheck
 
         if (field.DefaultValue is not null)
         {
-            if (field.Type is FieldType.File or FieldType.Signature or FieldType.User or FieldType.Location or FieldType.Table)
+            if (field.Type is FieldType.File or FieldType.Signature or FieldType.User or FieldType.Location or FieldType.Table or FieldType.ConfigurationItem)
             {
                 problems.Add(new(key, "default-not-allowed", "This type of field has no fixed default; use a profile value instead."));
             }

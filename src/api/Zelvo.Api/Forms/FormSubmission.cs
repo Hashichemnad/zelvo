@@ -17,10 +17,13 @@ namespace Zelvo.Api.Forms;
 /// <param name="Users">Display names by user id.</param>
 /// <param name="Locations">Location paths by id.</param>
 /// <param name="Files">Uploaded files by id.</param>
+/// <param name="ConfigurationItems">Configuration items by id (task G1): number and name.</param>
 internal sealed record FormReferences(
-    IReadOnlyDictionary<string, string?> Users, IReadOnlyDictionary<string, LocalizedTextDto> Locations, IReadOnlyDictionary<string, FormFileRef> Files)
+    IReadOnlyDictionary<string, string?> Users, IReadOnlyDictionary<string, LocalizedTextDto> Locations, IReadOnlyDictionary<string, FormFileRef> Files,
+    IReadOnlyDictionary<string, string>? ConfigurationItems = null)
 {
-    public static FormReferences Empty { get; } = new(new Dictionary<string, string?>(), new Dictionary<string, LocalizedTextDto>(), new Dictionary<string, FormFileRef>());
+    public static FormReferences Empty { get; } = new(new Dictionary<string, string?>(), new Dictionary<string, LocalizedTextDto>(), new Dictionary<string, FormFileRef>(),
+        new Dictionary<string, string>());
 
     /// <summary>Looks up the users, locations and files that answers refer to.</summary>
     public static async Task<FormReferences> LoadAsync(
@@ -29,6 +32,7 @@ internal sealed record FormReferences(
         var users = new HashSet<Guid>();
         var locations = new HashSet<Guid>();
         var files = new HashSet<Guid>(extraFiles);
+        var items = new HashSet<Guid>();
         foreach (var field in fields)
         {
             var value = answers[field.Key];
@@ -50,6 +54,13 @@ internal sealed record FormReferences(
                 case FieldType.Signature when value is JsonObject signature && Guid.TryParse(signature["attachmentId"]?.ToString(), out var s):
                     files.Add(s);
                     break;
+                case FieldType.ConfigurationItem:
+                    foreach (var item in value is JsonArray list ? [.. list] : new[] { value })
+                    {
+                        if (Guid.TryParse(item?.ToString(), out var c)) items.Add(c);
+                    }
+
+                    break;
             }
         }
 
@@ -59,7 +70,9 @@ internal sealed record FormReferences(
         return new FormReferences(
             names.ToDictionary(n => n.Key.ToString(), n => n.Value),
             locations.Select(l => tree.RefOf(l)).Where(r => r is not null).ToDictionary(r => r!.Id.ToString(), r => r!.Path),
-            fileRows.ToDictionary(f => f.Id.ToString(), f => new FormFileRef(f.Id, f.FileName, f.ContentType, f.Size, f.ScanStatus, f.TicketId)));
+            fileRows.ToDictionary(f => f.Id.ToString(), f => new FormFileRef(f.Id, f.FileName, f.ContentType, f.Size, f.ScanStatus, f.TicketId)),
+            items.Count == 0 ? new Dictionary<string, string>() : await db.ConfigurationItems.AsNoTracking().Where(i => items.Contains(i.Id))
+                .ToDictionaryAsync(i => i.Id.ToString(), i => $"{i.Number} {i.Name}", cancellationToken));
     }
 }
 
@@ -86,6 +99,9 @@ internal sealed class PreparedFormResponse(ResolvedForm form, FormAnswerResult a
         {
             upload.TicketId = ticket.Id;
         }
+
+        // Task G1: configuration items picked in the form are the ticket's items.
+        Cmdb.CmdbTicketEndpoints.LinkFromForm(db, null, ticket, answers.ConfigurationItems.Select(c => c.Id), submittedBy);
     }
 }
 
@@ -204,6 +220,8 @@ internal static class FormSubmission
                 result.Errors.Add(new(field, "location-unknown", "Choose an active location."));
             }
         }
+
+        await Cmdb.CmdbPicker.CheckAsync(db, user, result, cancellationToken);
 
         var fileIds = result.Files.Select(f => f.AttachmentId).Distinct().ToList();
         var files = fileIds.Count == 0 ? [] : await db.TicketAttachments.Where(a => fileIds.Contains(a.Id)).ToDictionaryAsync(a => a.Id, cancellationToken);

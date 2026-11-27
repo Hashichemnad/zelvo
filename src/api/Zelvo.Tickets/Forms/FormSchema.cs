@@ -44,6 +44,13 @@ public enum FieldType
 
     /// <summary>Formatted text in Markdown (never rendered as HTML).</summary>
     RichText,
+
+    /// <summary>
+    /// A configuration item of the CMDB (task G1, the picker C1 deferred to module 18), or several
+    /// with <see cref="FormField.Multiple"/>; <see cref="FormField.ConfigurationItemClasses"/> limits
+    /// the classes. Picked items are linked to the ticket.
+    /// </summary>
+    ConfigurationItem,
 }
 
 /// <summary>Formats a text field can be checked against.</summary>
@@ -236,8 +243,15 @@ public sealed record FormField
     /// <summary>Text: several lines.</summary>
     public bool Multiline { get; init; }
 
-    /// <summary>Dropdown: several choices.</summary>
+    /// <summary>Dropdown and configuration item: several choices.</summary>
     public bool Multiple { get; init; }
+
+    /// <summary>
+    /// Configuration item: the classes items may be picked from (each with the classes below it);
+    /// empty or <see langword="null"/>: any class. People without <c>cmdb.read</c> only ever see
+    /// items of classes marked for requesters.
+    /// </summary>
+    public IReadOnlyList<Guid>? ConfigurationItemClasses { get; init; }
 
     /// <summary>Dropdown and radio: the options.</summary>
     public IReadOnlyList<FieldOption>? Options { get; init; }
