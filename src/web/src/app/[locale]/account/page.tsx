@@ -105,6 +105,13 @@ export default async function AccountPage({ params }: PageProps<"/[locale]/accou
         />
       </section>
 
+      {/* Task J3: passkeys. */}
+      <section aria-labelledby="security-link-heading" className="space-y-2">
+        <h2 id="security-link-heading" className="text-xl font-bold">{t("security.heading")}</h2>
+        <p className="max-w-2xl text-ink-muted">{t("security.intro")}</p>
+        <Link href="/account/security" className="font-semibold text-brand underline" data-testid="account-security-link">{t("security.link")}</Link>
+      </section>
+
       {/* Task K4: the agent's own wellbeing figures. */}
       {isStaff && (
         <section aria-labelledby="workload-heading" className="space-y-2">

@@ -2428,11 +2428,15 @@ public sealed partial class ZelvoDbContext(DbContextOptions<ZelvoDbContext> opti
         modelBuilder.Entity<IdentitySettings>(settings =>
         {
             settings.ToTable("identity_settings", table =>
+            {
                 table.HasCheckConstraint("ck_identity_settings_email_code_sign_in",
-                    EnumCheck("email_code_sign_in", Enum.GetNames<EmailCodeSignIn>())));
+                    EnumCheck("email_code_sign_in", Enum.GetNames<EmailCodeSignIn>()));
+                table.HasCheckConstraint("ck_identity_settings_passkeys", EnumCheck("passkeys", Enum.GetNames<PasskeySignIn>()));
+            });
             settings.HasKey(s => s.TenantId);
             settings.HasOne<Tenant>().WithMany().HasForeignKey(s => s.TenantId).OnDelete(DeleteBehavior.Restrict);
             settings.Property(s => s.EmailCodeSignIn).HasConversion<string>().HasMaxLength(20);
+            settings.Property(s => s.Passkeys).HasConversion<string>().HasMaxLength(20);
             settings.Property(s => s.Version).IsRowVersion();
         });
     }

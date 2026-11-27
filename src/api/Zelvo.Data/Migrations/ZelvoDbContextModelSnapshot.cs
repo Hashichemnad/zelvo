@@ -5765,6 +5765,12 @@ namespace Zelvo.Data.Migrations
                         .HasColumnType("character varying(20)")
                         .HasColumnName("email_code_sign_in");
 
+                    b.Property<string>("Passkeys")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("character varying(20)")
+                        .HasColumnName("passkeys");
+
                     b.Property<DateTimeOffset>("UpdatedAt")
                         .HasColumnType("timestamp with time zone")
                         .HasColumnName("updated_at");
@@ -5781,6 +5787,8 @@ namespace Zelvo.Data.Migrations
                     b.ToTable("identity_settings", null, t =>
                         {
                             t.HasCheckConstraint("ck_identity_settings_email_code_sign_in", "email_code_sign_in IN ('KnownUsers', 'AllowedDomains', 'Anyone')");
+
+                            t.HasCheckConstraint("ck_identity_settings_passkeys", "passkeys IN ('Off', 'Allowed', 'RequiredForStaff')");
                         });
                 });
 
