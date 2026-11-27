@@ -8,7 +8,7 @@ Covers the first part of module 18 in `docs/requirements.md`:
 - impact traversal ("what depends on this item"), used later by problems (H1) and changes (H3, H5);
 - configuration items on incidents and service requests, and the CI picker field that C1 deferred.
 
-Import, discovery and reconciliation come with G2. Assets, contracts, licences and labels come with G3.
+Import, discovery and reconciliation came with G2, assets, contracts, licences and labels with G3 (both below).
 
 Product owner decisions that shape it (2026-11-26, Phase 2 plan):
 
@@ -170,10 +170,175 @@ Seeder `g1-cmdb` (order 270) gives both sample organisations Zelvo's standard cl
 - **Who uses the services.** The main service is "used by" the customer happiness or sales department and by the VIP customer group. Email or billing is used by finance.
 - **Tickets.** Sample incidents are linked to the items they are about: the portal outage, the printer, the email delay, the invoices, the VPN and the docking station.
 
+## Import, discovery and reconciliation (task G2)
+
+Covers module 18's "import and sync from Excel, the API and discovery tools; duplicate detection and reconciliation". Product owner decision 4 of 2026-11-26: the discovery sources are a **discovery API**, **Microsoft Intune**, **Azure**, **Active Directory and Entra ID computers** and **VMware vCenter**; **AWS is deferred** until a customer asks.
+
+### Code
+
+| Piece | Where |
+| --- | --- |
+| Tables `ci_discovery_sources`, `ci_source_records`, `ci_installed_software`, `ci_review_items`; columns `configuration_items.attribute_sources`, `missing_since`, `merged_into_id` and the database-kept `identifiers`; `ci_classes.identification_rules` (row-level security; migration `CmdbDiscovery`) | `src/api/Zelvo.Data/Cmdb/DiscoveryEntities.cs`, `ZelvoDbContext.Cmdb.cs` |
+| Discovery clients (Intune, Entra ID devices, Azure Resource Graph, Active Directory computers, vCenter) and their settings | `src/api/Zelvo.Connectors/DiscoveryClients.cs` (`IDiscoveryClients`, part of `ConnectorClients`) |
+| Identification rules, precedence, reconciliation, duplicates, merging | `src/api/Zelvo.Api/Cmdb/CmdbReconciliation.cs` |
+| Sources, the discovery API, records, the review queue | `CmdbDiscoveryEndpoints.cs` |
+| The scheduled sync | `CmdbDiscoveryJobs.cs` (`CmdbDiscoveryRunner`, `CmdbDiscoveryJobs`) |
+| CSV and Excel | `ConfigurationItemsBulkType.cs` (bulk type `configuration-items`) |
+| Demo seeder `g2-discovery` | `src/api/Zelvo.Api/Demo/DemoDiscoverySeeder.cs` |
+| Pages: Settings → CMDB (Discovery, Import and export, identification rules on classes, precedence of people's values), `/cmdb/review`, the Discovery panel on `/cmdb/[id]`, "No longer reported" on `/cmdb` | `src/web/src/components/cmdb/DiscoverySources.tsx`, `CiImportExport.tsx`, `ReviewQueue.tsx`, `CiDiscoveryPanel.tsx` |
+
+### Sources
+
+| Kind | Reads | Uses | Classes it reports |
+| --- | --- | --- | --- |
+| Discovery API | Nothing: a tool pushes `POST /cmdb/discovery/sources/{id}/records` (up to 1,000 records a call) with an API key or OAuth client holding `cmdb.manage` | — | Whatever the tool names (class keys) |
+| Microsoft Intune | Graph `deviceManagement/managedDevices` and, optionally, `detectedApps` with their devices (at most 2,000 apps per sync) | An Entra ID connector's app (`DeviceManagementManagedDevices.Read.All`) | `computer` (Windows, macOS; host name, serial, MAC, model, OS), `mobile-device` (iOS, iPadOS, Android; IMEI) |
+| Entra ID devices | Graph `devices` (disabled ones left out) | An Entra ID connector's app (`Device.Read.All`) | `computer`, `mobile-device` |
+| Azure | Resource Graph (`2022-10-01`), the chosen subscriptions (or all the app may read) and resource types | An Entra ID connector's app with the Reader role | `virtual-machine`, `cloud-database`, `storage`, `cloud-resource` (resource id, region, provider) |
+| Active Directory computers | LDAP search with the source's base DN and filter (`(objectCategory=computer)`); disabled accounts left out | An LDAP connector's read-only connection | `server` (a server operating system), `computer` |
+| VMware vCenter | `api/session`, `api/vcenter/cluster`, `host`, `vm` per host and each VM's `guest/identity` (VMware Tools; errors ignored) | Its own address, read-only account and password (encrypted with `Zelvo.Secrets`, needed again for a new address or account), optionally a SHA-256 certificate fingerprint for an untrusted certificate | `virtualisation-cluster` (new standard class), `server` (hosts), `virtual-machine` (CPU, memory, guest host name and system); a VM *runs on* its host, a cluster *depends on* its hosts |
+
+- **Class keys** are Zelvo's standard keys; a source's `classMap` maps them to a tenant's own keys. Records of a class the tenant does not have are counted (`unknownClass`) and left out.
+- **Schedule.** Pull sources sync every 15 minutes to 7 days (default daily) in the API (`CmdbDiscoveryJobs`, every minute, `FOR UPDATE SKIP LOCKED` lease per source, tenants from `zelvo_cmdb_discovery_tenants()`), because numbering, checks and search documents live there. "Sync now" makes a source due at once; "Test" reads it and shows the counts per class and the first records without changing anything.
+- **Every call** of a sync or test goes to the integration log (`cmdb.discovery.<kind>.sync` or `.test`, at most 200 exchanges a sync, bodies masked; the vCenter session id is never kept). Each sync is audited (`cmdb.discovery.synced` with its counts), as are pushes (`cmdb.discovery.pushed`), completed snapshots and "Sync now".
+- Every connection follows the connectors' outgoing-request policy (`Connectors:Network:AllowedPrivateNetworks`; `Connectors:ManagementUrl` for sovereign clouds).
+
+### Reconciliation
+
+- **Identification rules** per class: a list of rules, each 1–3 attribute keys (or `name`), tried in order, for example `serialNumber`, then `hostName + macAddress`. A class without rules takes the nearest class above's, and at the top Zelvo's defaults: serial number, cloud resource id, MAC address, host name, IMEI. Administrators set them on the class (Settings → CMDB → Classes).
+- **Matching.** A record is found by its source's own id first (`ci_source_records`). Otherwise the rules are tried among items under the same top class (a "computer" from Active Directory matches a "laptop" entered by hand), not retired and not merged. Comparison ignores case and surrounding spaces; MAC addresses are normalised to `AA:BB:CC:DD:EE:FF` by the clients. The database keeps every item's identifying values (`identifiers`, `key=value` in lower case, by a trigger whoever writes the item) behind one GIN index, so matching stays fast with hundreds of thousands of items.
+  - One match: the record is linked to it.
+  - None: a new item is made (`CI-…` number, status Active).
+  - Several: the record waits in the **review queue** (*Ambiguous*) and is not applied until a person links it or makes a new item.
+- **Precedence.** Each value remembers who set it last (`attribute_sources`: a source or `manual` for people, imports and the API). A source overwrites a value only when its priority for that key (per attribute where set, else the source's own, 1 most trusted to 100) is the same or better than the last setter's. People's values have the tenant setting `cmdb.manualPriority` (default 10; sources default to 50), so corrections stay unless an administrator ranks a source above people for that value. The name works the same way (`name`). Sources never clear values; values that fail the class's C1 checks are left out and counted (`valuesRefused`); user and location values are never taken from sources.
+- **Missing, never deleted.** A pull sync is a complete list: the source's records it no longer saw are marked (`missing_since`), and an item none of whose records is still reported is marked "No longer reported" (`configuration_items.missing_since`, list filter `missing=true`). Reported again, both marks go. A tool that pushes a full snapshot in several calls ends it with `POST …/snapshot-complete {startedAt}`.
+- **Installed software** (Intune's detected apps, the discovery API's `software`) is kept per item and source with a normalised product key (`publisher|name`), replaced at each report, for G3's licence compliance.
+- **Relationships** a source reports (vCenter, the discovery API's `relationships` by the other record's id) are added when missing, never removed.
+- **Duplicates.** When a linked item's values change, other items under the same top class that share the values of one of its rules (names alone never count) are raised as a *possible duplicate*. A pair is raised once, whatever was decided.
+
+### Review queue
+
+`/cmdb/review` (`cmdb.manage`) shows each question with the values side by side (the keys matched on first), the items' status, tickets and sources.
+
+- **Possible duplicate:** *Merge, keeping …* moves the other item's tickets, relationships (except ones the kept item already has or that would point at itself), source records and software to the one kept, fills the kept item's empty values (with who set them), retires the other and points it at the one kept (`merged_into_id`; the item page shows it); audited `cmdb.items.merged` on both. *They are different* is final for the pair.
+- **Ambiguous record:** *It is …* links it to one of the items it matched and applies its values; *It is a new item* makes one.
+- One decision at a time (row lock); decisions are audited (`cmdb.review.decided`). Questions about an item that was merged away are closed.
+
+### Import and export
+
+The E1 bulk framework's type `configuration-items` (CSV and Excel, Settings → CMDB → Import and export; export `cmdb.read`, import `cmdb.manage`): columns `number`, `class`, `name`, `descriptionEn`, `descriptionAr`, `status`, `ownerGroup` (name), `location` (path), `attributes` (JSON, `null` clears a value) and `attr.<key>` columns (typed by the attribute). A row with a number changes that item; one without is matched by the identification rules (one match: changed, merged over its values; none: new; several: a problem; two rows describing the same item: a problem). Every row is checked with the class's checks first; nothing changes while any row has a problem. Imported values count as set by people. Audited `bulk.configuration-items.exported`, `.imported`.
+
+### API
+
+| Endpoint | Who | Does |
+| --- | --- | --- |
+| `GET`, `POST /cmdb/discovery/sources`, `PATCH`, `DELETE /cmdb/discovery/sources/{id}` | `cmdb.discovery.manage` | Sources (the password is never returned) |
+| `POST …/{id}/test`, `POST …/{id}/sync`, `GET …/{id}/records` | `cmdb.discovery.manage` | Read without changing, sync now, what it reports |
+| `POST …/{id}/records`, `POST …/{id}/snapshot-complete` | `cmdb.manage` | The discovery API |
+| `GET /cmdb/items/{id}/discovery` | `cmdb.read` | Sources, who set each value, software, missing and merged |
+| `GET /cmdb/review`, `POST /cmdb/review/{id}/merge`, `/keep-apart`, `/link`, `/create` | `cmdb.manage` | The review queue |
+| `GET /bulk/configuration-items/export`, `/template`, `POST …/import` | `cmdb.read` / `cmdb.manage` | CSV and Excel |
+
+`cmdb.discovery.manage` belongs to tenant administrators and is **not available to integrations** (for the product owner's approval, like `connectors.manage`: sources use connectors' stored credentials). Problem codes: `source-not-found`, `review-not-found`, `connector-required`, `connector-not-used`, `credential-required`, `credential-not-used`, `not-a-push-source`, `not-a-pull-source`, `source-inactive`, `name-taken`, the settings codes (`url-not-https`, `subscription-invalid`, `resource-type-invalid`, `filter-invalid`, `thumbprint-invalid`, `class-map-invalid`, `priority-invalid`) and the rule codes `rule-invalid`, `rule-key-unknown`, `too-many-rules`.
+
+### Demo
+
+Seeder `g2-discovery` (order 272): a discovery API source in each organisation (*Network scanner*, *Endpoint agent*) whose records were reconciled with the G1 items (servers linked by serial number and host name, new switches, desktops and laptops with Microsoft 365 and other software, a relationship), a record that matched an item and an older hand-made copy (*Ambiguous*), a hand-made item sharing a serial number (*possible duplicate*), an item no longer reported, and an Intune (government entity) or Active Directory (company) source on the E7 connector, turned off like the connector.
+
+### Tests
+
+- Integration against PostgreSQL (`CmdbDiscoveryTests`): the discovery API linking by serial number with people's values winning until a source is ranked above them per attribute, refused values, unknown classes, software and relationships, snapshots marking items missing and reports clearing it, API keys that may push but not manage sources; Intune synced by the job with the connector's credential, the review queue linking an ambiguous record, the next sync raising a possible duplicate and marking an item missing, merging (tickets and relationships move, retired, merged into), keeping apart once only; vCenter's password write-only and needed again for a new address, test and sync, removed sources leaving their items; imports checked first, rows matched by a class's own rules, the same item twice refused, export for `cmdb.read`.
+- Unit (`DiscoveryClientTests`): Intune devices and apps with the app token, Entra devices without disabled ones, Azure across pages with subscriptions and types, vCenter's session, header, hosts and VMs without the session in the log, Active Directory computers, MAC normalisation and settings checks.
+- Web (`discovery.test.tsx`): a source's last sync and test, adding an Intune source on an Entra connector with precedence, the write-only vCenter password in Arabic, the review queue's merge and Arabic link choices, the item's discovery panel.
+
+### Not in G2
+
+- AWS (decision 4), other discovery tools' native formats (they use the discovery API), agent software of Zelvo's own.
+- Writing back to the sources; relationships removed when a source stops reporting them.
+- Sources that change an item's class or status (people decide), and deleting items a source no longer reports (they are marked).
+- Not tried against real Intune, Entra ID, Azure, Active Directory or vCenter systems in this session (no access); the clients follow the documented APIs and are tested against recorded requests. Not run in Docker Compose here (no image builds in this environment).
+
+## Assets (task G3)
+
+Covers module 18's asset lifecycle (requested, ordered, received, in stock, assigned, in repair, retired, disposed), contracts, warranties and software licences with expiry alerts, software licence compliance (installed against owned), barcode and QR labels scanned with the phone's camera, and assets assigned to people and shown on their tickets. Product owner decision 16 of 2026-11-26: a ZXing-based library for scanning (MIT or Apache-2.0); labels carry the asset tag only, as a QR code and Code 128.
+
+### Code
+
+| Piece | Where |
+| --- | --- |
+| Tables `assets` (one per configuration item), `asset_tag_sequences`, `asset_contracts`, `asset_contract_items`, `software_licenses` (row-level security; migration `Assets`); export kind `AssetLabels` | `src/api/Zelvo.Data/Cmdb/AssetEntities.cs`, `ZelvoDbContext.Cmdb.cs` |
+| Lifecycle, tags, settings, compliance, warranties | `src/api/Zelvo.Api/Assets/AssetCore.cs` |
+| Assets, lookup, labels, people's assets, settings | `AssetEndpoints.cs` |
+| Contracts, licences, discovered software | `AssetContractEndpoints.cs` |
+| Expiry alerts | `AssetJobs.cs` (`AssetExpiryAlerts`, `AssetJobs`) |
+| QR code and Code 128 encoders, the label sheet | `src/api/Zelvo.Tickets/Exports/Barcodes.cs`, `AssetLabelDocument.cs` (made by the worker's PDF job like F1's exports) |
+| Notifications `asset.contract-expiring`, `asset.license-expiring` | `src/api/Zelvo.Notifications` (events, placeholders, English and formal Arabic templates) |
+| Demo seeder `g3-assets` | `src/api/Zelvo.Api/Demo/DemoAssetsSeeder.cs` |
+| Pages: `/assets`, `/assets/[id]`, `/assets/new`, `/assets/contracts`, `/assets/licenses`, `/assets/scan`, `/my-assets`, Settings → Assets; "My assets" on My tickets; the requester's assets in the workspace's customer panel; "Scan an asset label" on the configuration items panel of incidents and requests | `src/web/src/components/assets`, `src/web/src/app/[locale]/assets` |
+
+### Assets and their lifecycle
+
+- **An asset is a hardware or software configuration item with a tag** (`POST /assets` with the item; families Hardware and Software only, `not-an-asset-class` otherwise; one asset per item). The tag is typed (capital letters, digits and hyphens, at most 32, unique in the tenant) or generated as `AST-000123` (prefix `assets.tagPrefix`, its own sequence; a typed tag that takes a generated number is skipped).
+- **Lifecycle** (`POST /assets/{id}/state` with If-Match): requested → ordered, received, in stock or retired; ordered → received or retired; received → in stock, assigned or in repair; in stock → assigned, in repair or retired; assigned → in stock, in repair, retired or assigned to someone else; in repair → in stock, assigned or retired; retired → in stock or disposed; disposed is final. Other moves answer 409 `state-not-allowed`. Assigned assets, and only they, name an active person (`assigned_to_id`, `assigned_at`); leaving Assigned clears the person. Each move is audited (`assets.state-changed` with from, to, the people and a note).
+- **The item's status follows**: requested, ordered and received → Planned; in stock and assigned → Active; in repair → Maintenance; retired and disposed → Retired (and the search document follows).
+- **Details**: the service request that asked for it (`request_ticket_id`, a `ServiceRequest` ticket), purchase date, cost in AED, supplier, order number and notes (`PATCH /assets/{id}`).
+- **Who sees what.** `assets.read` (agents, team leads, executives, administrators) sees assets, contracts, licences and compliance and prints labels; `assets.manage` (administrators) changes them. Both are open to integrations. Every person sees the assets assigned to them (`GET /me/assets`, without ticket counts).
+
+### On tickets
+
+- **Customer panel** (B4): `GET /incidents/{id}/customer` includes the requester's assigned assets for callers with `assets.read`: tag, name, class, warranty end and how many tickets each is on (the module 18 story: the laptop, its warranty and its past incidents, to decide repair or replace). Also `GET /users/{id}/assets`.
+- **My assets** (`/my-assets`) and a section on My tickets.
+- **Scanning onto a ticket**: the configuration items panel of incidents and service requests has "Scan an asset label" for staff with the ticket's edit permission and `assets.read`; the item of the asset found is added to the ticket.
+
+### Contracts, warranties and licences
+
+- **Contracts** (`/assets/contracts`): kind (Warranty, Support, Maintenance, Lease), name, reference, supplier, start and end dates, cost in AED, notes, an owner and the assets they cover (up to 1,000). An asset's warranty is the latest end of its warranty contracts.
+- **Software licences** (`/assets/licenses`): name, publisher, the **discovered products** they cover (1–20 product keys from G2's installed software, chosen from `GET /assets/software`), per device or per person, quantity, dates, supplier, reference, cost and owner.
+- **Compliance** (`LicenseCompliance`): the devices (not retired, not merged) with one of the products installed; per person, devices assigned to the same person count once and devices assigned to nobody once each. `used`, `shortfall` (used above quantity) and `spare` are shown per licence and on each asset's licences.
+- **Expiry alerts** (`AssetJobs`, hourly in the API, advisory lock per tenant, tenants from `zelvo_asset_job_tenants()`): contracts and licences that end within `assets.expiryWarningDays` (default 30, 1–365) are announced **once per end date** to the holders of `assets.manage` and the owner (at most 50 people), in the app and by email (`asset.contract-expiring` with the contract's name, kind, supplier, end date and number of assets; `asset.license-expiring` with the name, quantity and end date), audited `assets.contract.expiry-alerted`, `assets.license.expiry-alerted`. A new end date gets a new alert. End dates are given as `YYYY-MM-DD` in the wording. Administrators switch and word the events in Settings → Notifications like the others.
+
+### Labels and scanning
+
+- **Label sheets** (`POST /assets/labels/exports?ids=…&layout=Small|Large`, at most 200, `assets.read`): a PDF made by the worker's headless Chromium (F1's `document_exports`, kind `AssetLabels`, downloaded only by the person who asked, kept a day), A4 with 3 × 8 labels of 70 × 37 mm or 2 × 5 of 99 × 57 mm. Each label has the **asset tag as a QR code and as Code 128** (decision 16), the tag in text, the item's name and the organisation in its brand colour, in English or Arabic. Audited `assets.labels.requested`.
+- **Encoders**: Zelvo's own (`Barcodes`), drawn as SVG because the renderer runs no scripts: QR codes in byte mode with error correction level M, versions 1–3 with the lowest-penalty mask; Code 128 with code set B and its check symbol. Both were checked with a reference decoder (ZXing-C++) while built; the unit tests keep a verified QR matrix, and a web test decodes it with the app's own library.
+- **Scanning** (`/assets/scan` and the ticket panel): "Take a picture of the label" opens the phone's camera app (`<input capture="environment">`, as J1's camera attachments), and the picture is decoded in the browser with **`@zxing/browser` 0.2.1 (MIT) and `@zxing/library` 0.23.0 (Apache-2.0)**, new dependencies, loaded only when a picture is chosen. The page itself never asks for the camera, so `Permissions-Policy: camera=()` stays. Typing the tag is the equal for keyboard and screen-reader users. `GET /assets/lookup?tag=` finds the asset.
+
+### API
+
+| Endpoint | Who | Does |
+| --- | --- | --- |
+| `GET`, `POST /assets`, `GET`, `PATCH /assets/{id}`, `POST /assets/{id}/state` | `assets.read` / `assets.manage` | Assets and their lifecycle |
+| `GET /assets/lookup?tag=` | `assets.read` | A scanned label |
+| `POST /assets/labels/exports` | `assets.read` | Label sheets |
+| `GET`, `POST /assets/contracts`, `GET`, `PATCH`, `DELETE /assets/contracts/{id}` | `assets.read` / `assets.manage` | Contracts and warranties |
+| `GET`, `POST /assets/licenses`, `PATCH`, `DELETE /assets/licenses/{id}`, `GET /assets/software` | `assets.read` / `assets.manage` | Licences, compliance, discovered software |
+| `GET /users/{id}/assets` | `assets.read` | A person's assets |
+| `GET /me/assets` | signed in | My assets |
+| `GET`, `PUT /assets/settings` | `assets.read` / `assets.manage` | Tag prefix and warning period |
+
+Problem codes: `asset-not-found`, `contract-not-found`, `license-not-found`, `not-an-asset-class`, `already-an-asset`, `tag-taken`, `state-not-allowed`, `too-many-exports`, and the field codes `name-required`, `ends-on-required`, `dates-invalid`, `cost-invalid`, `owner-unknown`, `asset-unknown`, `too-many-items`, `products-required`, `quantity-invalid`.
+
+### Demo
+
+Seeder `g3-assets` (order 274): the government entity's customer service desktop (assigned to the sample requester, warranty ending within the alert period) and printer (in stock), and the company's laptops (one assigned with a warranty ending soon, one in repair, one in stock) with warranties; a support contract each; Microsoft 365 licences: 25 for the government entity (spare) and 2 per device for the company, short against the 3 laptops G2's endpoint agent found it on, and a per-person CRM licence.
+
+### Tests
+
+- Integration against PostgreSQL (`AssetApiTests`): hardware only, generated and typed tags, lifecycle moves and refusals with the item's status following, assignment, the warranty, the customer panel and `/users/{id}/assets`, My assets for the requester only, lookup, retire and dispose; licence compliance per device and per person against G2's discovered software, the expiry alerts once per end date and again for a new one, settings; label sheets made by the worker with two QR codes and two Code 128 symbols, in Arabic, and a real PDF with Chromium where the computer has it.
+- Unit (`BarcodeTests`): the verified QR matrix of `AST-000123`, versions by length, too-long text refused, Code 128 values and check symbol.
+- Web (`assets.test.tsx`): dates without a time, the scanner from a picture and by typing (Arabic), label sheets for chosen assets, licence shortfall, a lifecycle move with its ETag and person, a person's assets in Arabic, Settings → Assets for `assets.manage`, and the app's ZXing decoding the label's QR code.
+
+### Not in G3
+
+- Live camera scanning in the page (video): it would need `Permissions-Policy: camera=(self)`; the camera app's picture works on every phone without it (for the product owner).
+- Purchase orders, depreciation and stock levels; licence entitlements by agreement other than counts; automatic assignment from discovery's primary user (the records keep it for later).
+- A separately licensed asset module (Phase 2 modules are not licensed yet, for the product owner).
+- Not run in Docker Compose here (no image builds in this environment).
+
 ## Not in G1
 
-- Import from Excel and CSV, the discovery API and the discovery sources, identification rules, reconciliation and duplicates (G2).
-- Assets, lifecycle, contracts, warranties, licences, labels and scanning (G3).
+- Import from Excel and CSV, the discovery API and the discovery sources, identification rules, reconciliation and duplicates (G2, above).
+- Assets, lifecycle, contracts, warranties, licences, labels and scanning (G3, above).
 - CIs on problems and changes (H1, H3; the table is ready).
 - A separately licensed CMDB module (for the product owner).
 - The load test with 50,000 and 500,000 items (L1).

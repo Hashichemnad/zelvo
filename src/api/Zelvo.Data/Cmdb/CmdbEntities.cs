@@ -142,6 +142,14 @@ public sealed class CiClass : ITenantOwned, IAuditedEntity
     /// <summary>Inactive classes keep their items but take no new ones.</summary>
     public bool Active { get; set; } = true;
 
+    /// <summary>
+    /// Identification rules (task G2): a JSON list of rules, each a list of attribute keys whose
+    /// values together identify an item, tried in order, for example
+    /// <c>[["serialNumber"],["hostName"]]</c>. <see langword="null"/>: the class above decides, and at
+    /// the top Zelvo's defaults (serial number, cloud resource id, MAC address, host name).
+    /// </summary>
+    public string? IdentificationRules { get; set; }
+
     /// <summary>When the class was created.</summary>
     public DateTimeOffset CreatedAt { get; init; } = DateTimeOffset.UtcNow;
 
@@ -203,6 +211,20 @@ public sealed class ConfigurationItem : ITenantOwned, IAuditedEntity
 
     /// <summary>Attribute values by key, checked against the class's attributes (JSON object).</summary>
     public string Attributes { get; set; } = "{}";
+
+    /// <summary>
+    /// Who set each value last (task G2): a JSON object from attribute key (and <c>name</c>) to a
+    /// discovery source id, or <c>manual</c> for people and imports. Reconciliation lets a source
+    /// overwrite a value only when its precedence for the key is at least that of the last setter.
+    /// </summary>
+    [AuditLengthOnly]
+    public string AttributeSources { get; set; } = "{}";
+
+    /// <summary>Since when every source that reported the item stopped reporting it (task G2). Items are marked, never deleted.</summary>
+    public DateTimeOffset? MissingSince { get; set; }
+
+    /// <summary>The item this one was merged into from the review queue (it is then retired).</summary>
+    public Guid? MergedIntoId { get; set; }
 
     /// <summary>When the item was created.</summary>
     public DateTimeOffset CreatedAt { get; init; } = DateTimeOffset.UtcNow;

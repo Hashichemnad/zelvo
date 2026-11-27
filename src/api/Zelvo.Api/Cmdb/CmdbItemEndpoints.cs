@@ -164,6 +164,12 @@ internal static class CmdbItemEndpoints
             query = query.Where(i => i.OwnerGroupId == groupId);
         }
 
+        // Task G2: items no source reports any more.
+        if (filter.Missing == true)
+        {
+            query = query.Where(i => i.MissingSince != null);
+        }
+
         if (filter.LocationId is { } locationId)
         {
             var tree = new TreeIndex<Location>(await db.Locations.AsNoTracking().ToListAsync(cancellationToken));
@@ -233,6 +239,8 @@ internal static class CmdbItemEndpoints
             OwnerGroupId = request.OwnerGroupId,
             LocationId = request.LocationId,
             Attributes = values.ToJsonString(),
+            // Task G2: what people set wins over discovery unless an administrator ranks a source higher.
+            AttributeSources = CmdbPrecedence.MarkManual("{}", [], values, nameChanged: true),
         };
         db.ConfigurationItems.Add(item);
         indexer.Upsert(CmdbSearch.Document(item, classes, await CmdbSearch.ReaderRolesAsync(db, cancellationToken)));
@@ -270,6 +278,7 @@ internal static class CmdbItemEndpoints
             item.ClassId = classId;
         }
 
+        var nameBefore = item.Name;
         if (request.Name is not null)
         {
             var name = request.Name.Trim();
@@ -333,8 +342,14 @@ internal static class CmdbItemEndpoints
 
             if (values.ToJsonString() != JsonNode.Parse(item.Attributes)!.ToJsonString())
             {
+                item.AttributeSources = CmdbPrecedence.MarkManual(item.AttributeSources, JsonNode.Parse(item.Attributes)!.AsObject(), values, nameChanged: false);
                 item.Attributes = values.ToJsonString();
             }
+        }
+
+        if (item.Name != nameBefore)
+        {
+            item.AttributeSources = CmdbPrecedence.MarkManual(item.AttributeSources, [], [], nameChanged: true);
         }
 
         item.UpdatedAt = DateTimeOffset.UtcNow;
@@ -798,6 +813,9 @@ public sealed class CiListQuery
 
     /// <summary>Only items of classes of this family.</summary>
     public CiFamily? Family { get; init; }
+
+    /// <summary>Task G2: only items no discovery source reports any more.</summary>
+    public bool? Missing { get; init; }
 
     /// <summary>Only this status.</summary>
     public CiStatus? Status { get; init; }

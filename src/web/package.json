@@ -32,6 +32,8 @@
     "@opentelemetry/sdk-metrics": "^2.12.1",
     "@opentelemetry/sdk-trace-base": "^2.12.1",
     "@vercel/otel": "^2.3.0",
+    "@zxing/browser": "0.2.1",
+    "@zxing/library": "0.23.0",
     "cytoscape": "3.35.0",
     "next": "^16.4.6",
     "next-intl": "^4.16.0",

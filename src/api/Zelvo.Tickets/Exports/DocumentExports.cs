@@ -473,6 +473,15 @@ public sealed partial class DocumentExportJob(IServiceScopeFactory scopes, IPdfR
             return await ReportHtmlAsync(db, export, cancellationToken).ConfigureAwait(false);
         }
 
+        // Task G3: a sheet of asset labels.
+        if (export.Kind == ExportKind.AssetLabels)
+        {
+            var sheet = AssetLabelSheet.Read(export.Parameters) ?? throw new PdfRenderException("The label export has no labels.");
+            var labelBranding = await BrandingReader.PublishedAsync(db, cancellationToken).ConfigureAwait(false);
+            var organisation = await db.Tenants.AsNoTracking().OrderBy(t => t.Id).Select(t => t.Name).FirstAsync(cancellationToken).ConfigureAwait(false);
+            return (AssetLabelDocument.Html(labelBranding, organisation, sheet, export.Language, options.FontsDirectory), $"asset-labels-{export.Language}.pdf");
+        }
+
         var ticket = await db.Tickets.AsNoTracking().Include(t => t.Incident).Include(t => t.Requester).Include(t => t.Assignee)
             .Include(t => t.Category).Include(t => t.Group).SingleAsync(t => t.Id == export.EntityId, cancellationToken).ConfigureAwait(false);
         var person = await db.Users.AsNoTracking().SingleAsync(u => u.Id == export.RequestedById, cancellationToken).ConfigureAwait(false);

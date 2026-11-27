@@ -118,7 +118,7 @@ export default async function WorkspacePage({ params, searchParams }: PageProps<
           <div id="workspace-work">
             <IncidentWorkPanel incident={incident} settings={settings} csrfToken={session.data.csrfToken} permissions={permissions} assignees={assignees} directory={directory} />
           </div>
-          <TicketCiPanel key={incident.id} ticketId={incident.id} kind="incidents" canEdit={mayEdit} canOpenItems={permissions.includes("cmdb.read")}
+          <TicketCiPanel key={incident.id} ticketId={incident.id} kind="incidents" canEdit={mayEdit} canOpenItems={permissions.includes("cmdb.read")} canScan={permissions.includes("assets.read")}
             csrfToken={session.data.csrfToken} />
           {(incident.isMajor || updates.length > 0) && (
             <MajorTimeline incidentId={incident.id} updates={updates} canPost={incident.isMajor && !closed && permissions.includes("incidents.major")}

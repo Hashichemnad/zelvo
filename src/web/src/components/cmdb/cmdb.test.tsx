@@ -188,7 +188,8 @@ describe("configuration item field", () => {
 
 const ciClass = (over: Partial<CiClass>): CiClass => ({
   id: id(), key: "server", parentId: null, depth: 1, family: "Hardware", name: { en: "Server", ar: "خادم" }, description: { en: null, ar: null },
-  path: { en: "Server", ar: "خادم" }, attributes: [], inheritedAttributes: [], requesterVisible: false, active: true, selectable: true, itemCount: 0, etag: "\"1\"", ...over,
+  path: { en: "Server", ar: "خادم" }, attributes: [], inheritedAttributes: [], requesterVisible: false, active: true, selectable: true, itemCount: 0, etag: "\"1\"",
+  identificationRules: null, effectiveIdentificationRules: [["serialNumber"], ["hostName"]], ...over,
 });
 
 describe("ClassesEditor", () => {

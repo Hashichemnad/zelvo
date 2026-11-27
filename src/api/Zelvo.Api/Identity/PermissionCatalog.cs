@@ -234,6 +234,18 @@ internal static class Permissions
     public const string CmdbManage = "cmdb.manage";
 
     /// <summary>
+    /// Task G2 (module 18): discovery sources (Intune, Entra ID devices, Azure, Active Directory,
+    /// vCenter and the discovery API), which read other systems with connectors' credentials.
+    /// </summary>
+    public const string CmdbDiscoveryManage = "cmdb.discovery.manage";
+
+    /// <summary>Task G3 (module 18): see assets, contracts, warranties, software licences and compliance; print labels.</summary>
+    public const string AssetsRead = "assets.read";
+
+    /// <summary>Task G3 (module 18): manage assets and their lifecycle, contracts, warranties and licences; Settings → Assets.</summary>
+    public const string AssetsManage = "assets.manage";
+
+    /// <summary>
     /// The wellbeing dashboard (module 21, task K4; product owner decision 2026-11-26): team leads
     /// see each agent of the groups they lead, others with this permission only group totals.
     /// Every agent sees their own figures without it.
@@ -334,6 +346,9 @@ internal static class PermissionCatalog
         Permissions.InstallationManage,
         Permissions.CmdbRead,
         Permissions.CmdbManage,
+        Permissions.CmdbDiscoveryManage,
+        Permissions.AssetsRead,
+        Permissions.AssetsManage,
         Permissions.WellbeingRead,
         Permissions.WellbeingManage,
     ];
@@ -379,6 +394,10 @@ internal static class PermissionCatalog
         // (UAE PDPL) and are for the people who balance work, never for other systems.
         Permissions.WellbeingRead,
         Permissions.WellbeingManage,
+        // Task G2, for the product owner's approval: discovery sources use connectors' stored
+        // credentials and the vCenter password (pushing records through the discovery API needs
+        // only cmdb.manage, which integrations may hold).
+        Permissions.CmdbDiscoveryManage,
     };
 
     /// <summary>Permissions an integration may be given as scopes.</summary>
@@ -440,12 +459,12 @@ internal static class PermissionCatalog
         new(BuiltInRoles.Agent, new LocalizedText("Agent", "موظف الدعم"),
             [Permissions.UsersRead, Permissions.IncidentsRead, Permissions.IncidentsCreate, Permissions.IncidentsEdit, Permissions.IncidentsAssign, Permissions.DirectoryRead,
                 Permissions.KnowledgeRead, Permissions.KnowledgeWrite, Permissions.RequestsRead, Permissions.RequestsEdit, Permissions.RequestsAssign, Permissions.ChatHandle,
-                Permissions.VoiceRead, Permissions.VoiceEdit, Permissions.VoiceAssign, Permissions.CmdbRead],
+                Permissions.VoiceRead, Permissions.VoiceEdit, Permissions.VoiceAssign, Permissions.CmdbRead, Permissions.AssetsRead],
             new Dictionary<string, FieldAccess> { ["users.email"] = FieldAccess.Read }),
         new(BuiltInRoles.TeamLead, new LocalizedText("Team lead", "قائد الفريق"),
             [Permissions.UsersRead, Permissions.IncidentsRead, Permissions.IncidentsCreate, Permissions.IncidentsEdit, Permissions.IncidentsAssign, Permissions.IncidentsMajor, Permissions.DirectoryRead,
                 Permissions.KnowledgeRead, Permissions.KnowledgeWrite, Permissions.KnowledgePublish, Permissions.RequestsRead, Permissions.RequestsEdit, Permissions.RequestsAssign, Permissions.ChatHandle,
-                Permissions.VoiceRead, Permissions.VoiceEdit, Permissions.VoiceAssign, Permissions.VoiceReport, Permissions.ReportsRead, Permissions.CmdbRead, Permissions.WellbeingRead],
+                Permissions.VoiceRead, Permissions.VoiceEdit, Permissions.VoiceAssign, Permissions.VoiceReport, Permissions.ReportsRead, Permissions.CmdbRead, Permissions.AssetsRead, Permissions.WellbeingRead],
             new Dictionary<string, FieldAccess> { ["users.email"] = FieldAccess.Read }),
         new(BuiltInRoles.Approver, new LocalizedText("Approver", "المعتمِد"), [], new Dictionary<string, FieldAccess>()),
         new(BuiltInRoles.TenantAdmin, new LocalizedText("Tenant administrator", "مسؤول الجهة"),
@@ -454,7 +473,7 @@ internal static class PermissionCatalog
         new(BuiltInRoles.ExecutiveAuditor, new LocalizedText("Executive / auditor", "تنفيذي / مدقق"),
             [Permissions.AuditRead, Permissions.UsersRead, Permissions.IncidentsRead, Permissions.DirectoryRead, Permissions.KnowledgeRead, Permissions.RequestsRead,
                 Permissions.VoiceRead, Permissions.VoiceReport, Permissions.ApprovalsRead, Permissions.ReportsRead, Permissions.ReportsAll, Permissions.PaymentsRead,
-                Permissions.CmdbRead, Permissions.WellbeingRead],
+                Permissions.CmdbRead, Permissions.AssetsRead, Permissions.WellbeingRead],
             new Dictionary<string, FieldAccess> { ["users.email"] = FieldAccess.Read }),
     ];
 

@@ -5,6 +5,8 @@ import { ServiceOffers } from "@/components/catalog/ServiceOffers";
 import type { ServiceOffer } from "@/lib/catalog";
 import { Link } from "@/i18n/navigation";
 import { getJsonAs } from "@/lib/api";
+import { PersonAssets } from "@/components/assets/PersonAssets";
+import type { PersonAsset } from "@/lib/assets";
 import { getDisplayFormat } from "@/lib/display";
 import { portalTicketTypes, type PortalTicketPage } from "@/lib/portal";
 import { requireSignedIn } from "@/lib/signed-in";
@@ -24,17 +26,20 @@ export default async function MyTicketsPage({ params, searchParams }: PageProps<
   setRequestLocale(locale);
   const { session, tenant } = await requireSignedIn(locale, `/${locale}/my-tickets`);
   const t = await getTranslations({ locale, namespace: "portal.tickets" });
+  const tAssets = await getTranslations({ locale, namespace: "assets.mine" });
   const search = await searchParams;
   const type = typeof search.type === "string" && (portalTicketTypes as string[]).includes(search.type) ? search.type : "";
   const open = search.open === "false" ? "false" : "true";
   const requested = Number(search.page);
   const page = Number.isInteger(requested) && requested > 0 && requested < 10_000 ? requested : 1;
   const filter: Record<string, string> = { open, ...(type ? { type } : {}) };
-  const [tickets, format, offers] = await Promise.all([
+  const [tickets, format, offers, assets] = await Promise.all([
     getJsonAs<PortalTicketPage>(`/api/v1/me/tickets?${new URLSearchParams({ ...filter, page: String(page), pageSize: "20" })}`, session.data.accessToken, tenant),
     getDisplayFormat(),
     // Task C5: services Zelvo offers the person.
     getJsonAs<ServiceOffer[]>("/api/v1/me/offers", session.data.accessToken, tenant),
+    // Task G3: the assets assigned to the person.
+    getJsonAs<PersonAsset[]>("/api/v1/me/assets", session.data.accessToken, tenant),
   ]);
   const input = "rounded-md border border-line bg-surface px-3 py-2";
   return (
@@ -67,6 +72,13 @@ export default async function MyTicketsPage({ params, searchParams }: PageProps<
           <TicketProgressList tickets={tickets.items} display={{ locale, ...format }} />
           <Pagination page={tickets.page} pageSize={tickets.pageSize} totalCount={tickets.totalCount} query={filter} basePath="/my-tickets" />
         </>
+      )}
+      {assets && assets.length > 0 && (
+        <section aria-labelledby="my-assets-heading" className="space-y-3 rounded-lg border border-line p-4">
+          <h2 id="my-assets-heading" className="text-xl font-bold">{tAssets("title")}</h2>
+          <PersonAssets assets={assets} display={{ locale, ...format }} staff={false} />
+          <Link href="/my-assets" className="text-sm font-semibold text-brand underline-offset-4 hover:underline">{tAssets("open")}</Link>
+        </section>
       )}
       <p className="text-sm text-ink-muted">{t("approvalsLater")}</p>
     </section>

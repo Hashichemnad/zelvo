@@ -5,7 +5,7 @@ import { useLocale, useTranslations } from "next-intl";
 import { BilingualInputs, primaryButton, secondaryButton, smallButton } from "@/components/directory/common";
 import { fieldInput } from "@/components/forms/ui";
 import { ApiError, deleteRequest, getJson, patchJson, postJson } from "@/lib/client-api";
-import { ciFamilies, classesByFamily, maxClassDepth, textIn, type CiClass, type CiFamily } from "@/lib/cmdb";
+import { ciFamilies, classesByFamily, maxClassDepth, rulesToText, textIn, textToRules, type CiClass, type CiFamily } from "@/lib/cmdb";
 import { toInput } from "@/lib/directory";
 import type { FormField, FormProblem } from "@/lib/forms/types";
 import type { Locale } from "@/lib/incidents";
@@ -21,6 +21,8 @@ interface Draft {
   description: { en: string; ar: string };
   requesterVisible: boolean;
   attributes: FormField[];
+  /** Task G2: identification rules as text, one per line (empty: the class above's). */
+  rules: string;
 }
 
 const keyPattern = /^[a-z0-9]+(?:-[a-z0-9]+)*$/;
@@ -35,9 +37,12 @@ function draftOf(editing: NonNullable<Editing>): Draft {
       description: { en: c.description.en ?? "", ar: c.description.ar ?? "" },
       requesterVisible: c.requesterVisible,
       attributes: c.attributes ?? [],
+      rules: rulesToText(c.identificationRules),
     };
   }
-  return { key: "", family: editing.parent?.family ?? editing.family, name: { en: "", ar: "" }, description: { en: "", ar: "" }, requesterVisible: false, attributes: [] };
+  return {
+    key: "", family: editing.parent?.family ?? editing.family, name: { en: "", ar: "" }, description: { en: "", ar: "" }, requesterVisible: false, attributes: [], rules: "",
+  };
 }
 
 /**
@@ -81,6 +86,8 @@ export function ClassesEditor({ initial, csrfToken, canManage }: { initial: CiCl
       description: { en: draft.description.en.trim() || null, ar: draft.description.ar.trim() || null },
       requesterVisible: draft.requesterVisible,
       attributes: draft.attributes,
+      // An empty list goes back to the rules of the class above (or Zelvo's defaults).
+      identificationRules: textToRules(draft.rules),
     };
     const result = await run(async () => {
       try {
@@ -140,6 +147,17 @@ export function ClassesEditor({ initial, csrfToken, canManage }: { initial: CiCl
         {t("requesterVisible")}
       </label>
       <p id={`${id}-visible-hint`} className="ms-8 text-sm text-ink-muted">{t("requesterVisibleHint")}</p>
+      <div className="space-y-1">
+        <label htmlFor={`${id}-rules`} className="block font-semibold">{t("rules")}</label>
+        <textarea id={`${id}-rules`} dir="ltr" rows={3} value={draft.rules} aria-describedby={`${id}-rules-hint`} className={`${fieldInput} max-w-xl font-mono`}
+          onChange={(e) => setDraft({ ...draft, rules: e.target.value })} />
+        <p id={`${id}-rules-hint`} className="text-sm text-ink-muted">
+          {t("rulesHint")}{" "}
+          {editing.mode === "edit" && !draft.rules.trim() && (
+            <span>{t("rulesInherited", { rules: editing.ciClass.effectiveIdentificationRules.map((r) => r.join(" + ")).join("; ") })}</span>
+          )}
+        </p>
+      </div>
       <AttributesEditor attributes={draft.attributes} problems={problems} onChange={(attributes) => setDraft({ ...draft, attributes })}
         inherited={editing.mode === "edit" ? editing.ciClass.inheritedAttributes : inheritedFor(editing.parent)} />
       {problems.some((p) => !draft.attributes.some((a) => a.key === p.field)) && (

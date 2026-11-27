@@ -25,6 +25,7 @@ export interface SettingsSection {
     | "fieldSets"
     | "catalog"
     | "cmdb"
+    | "assets"
     | "customerVoice"
     | "wellbeing"
     | "knowledge"
@@ -85,6 +86,8 @@ export const settingsSections: readonly SettingsSection[] = [
   { key: "catalog", href: "/settings/catalog", permission: "catalog.manage", orPermissions: ["catalog.publish"] },
   // Task G1: CMDB classes, attributes and relationship types (module 18).
   { key: "cmdb", href: "/settings/cmdb", permission: "cmdb.manage" },
+  // Task G3: generated asset tags and expiry alerts.
+  { key: "assets", href: "/settings/assets", permission: "assets.manage" },
   { key: "customerVoice", href: "/settings/customer-voice", permission: "voice.manage" },
   // Task C3: the no-code builder for assignment, approval and notification rules.
   { key: "workflows", href: "/settings/workflows", permission: "workflows.manage" },

@@ -4,6 +4,7 @@ import { formatDateTime, formatNumber, type DateDisplayOptions } from "@/lib/for
 import { inLanguage, type Locale } from "@/lib/incidents";
 import type { Customer } from "@/lib/workspace";
 import { Localized, StateBadge } from "@/components/incidents/StateBadge";
+import { PersonAssets } from "@/components/assets/PersonAssets";
 
 /**
  * The customer beside the ticket (module 5 story): who the requester is, their language and
@@ -69,6 +70,12 @@ export function CustomerPanel({ customer, display }: { customer: Customer | null
                 </li>
               ))}
             </ul>
+          )}
+          {customer.assets && (
+            <>
+              <h3 className="font-semibold">{t("assets")}</h3>
+              <PersonAssets assets={customer.assets} display={display} staff />
+            </>
           )}
         </>
       )}

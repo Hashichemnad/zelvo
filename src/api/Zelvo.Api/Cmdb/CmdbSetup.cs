@@ -11,9 +11,16 @@ internal static class CmdbSetup
         services.AddSearchType(CmdbSearch.Type, requiredPermission: Identity.Permissions.CmdbRead);
         services.AddScoped<ISearchDocumentSource, CmdbSearchSource>();
         services.AddSingleton<IMissingTranslationSource, CmdbMissingTranslations>();
+        // Task G2: import, discovery and reconciliation.
+        services.AddScoped<CmdbReconciler>();
+        services.AddScoped<CmdbMerger>();
+        services.AddScoped<CmdbDiscoveryRunner>();
+        services.AddScoped<Integrations.Bulk.IBulkType, ConfigurationItemsBulkType>();
+        services.AddSingleton<CmdbDiscoveryJobs>();
+        services.AddHostedService(sp => sp.GetRequiredService<CmdbDiscoveryJobs>());
         return services;
     }
 
     public static RouteGroupBuilder MapZelvoCmdbEndpoints(this RouteGroupBuilder group) =>
-        group.MapCmdbSettingsEndpoints().MapCmdbItemEndpoints().MapCmdbTicketEndpoints();
+        group.MapCmdbSettingsEndpoints().MapCmdbItemEndpoints().MapCmdbTicketEndpoints().MapCmdbDiscoveryEndpoints();
 }

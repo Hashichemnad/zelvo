@@ -137,6 +137,14 @@ public static class NotificationSamples
             [Placeholders.DefinitionsVersion] = new PlaceholderValue { Number = 28191 },
             [Placeholders.DefinitionsBuiltAt] = PlaceholderValue.OfDate(now.AddDays(-9)),
             [Placeholders.DefinitionsDays] = new PlaceholderValue { Number = 7 },
+            [Placeholders.ContractName] = PlaceholderValue.OfText("Laptop warranty, 3 years"),
+            [Placeholders.ContractKind] = PlaceholderValue.OfTerm("asset.contractKind.Warranty"),
+            [Placeholders.ContractSupplier] = PlaceholderValue.OfText("Fictional Laptops FZ-LLC"),
+            [Placeholders.ContractEndsOn] = PlaceholderValue.OfText(now.AddDays(30).ToString("yyyy-MM-dd", System.Globalization.CultureInfo.InvariantCulture)),
+            [Placeholders.ContractAssets] = new PlaceholderValue { Number = 12 },
+            [Placeholders.LicenseName] = PlaceholderValue.OfText("Microsoft 365 Apps for enterprise"),
+            [Placeholders.LicenseQuantity] = new PlaceholderValue { Number = 250 },
+            [Placeholders.LicenseEndsOn] = PlaceholderValue.OfText(now.AddDays(30).ToString("yyyy-MM-dd", System.Globalization.CultureInfo.InvariantCulture)),
         };
     }
 }

@@ -854,7 +854,7 @@ internal static partial class BrandingEndpoints
             return ExportNotFound();
         }
 
-        audit.Add(AuditCategory.View, "export.downloaded", export.Kind == ExportKind.Report ? "report" : "ticket", export.EntityId?.ToString(), new Dictionary<string, object?>(StringComparer.Ordinal) { ["exportId"] = export.Id.ToString() });
+        audit.Add(AuditCategory.View, "export.downloaded", export.Kind switch { ExportKind.Report => "report", ExportKind.AssetLabels => "asset-labels", _ => "ticket" }, export.EntityId?.ToString(), new Dictionary<string, object?>(StringComparer.Ordinal) { ["exportId"] = export.Id.ToString() });
         await db.SaveChangesAsync(cancellationToken);
         return TypedResults.File(export.Content, "application/pdf", export.FileName);
     }

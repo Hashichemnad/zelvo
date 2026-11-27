@@ -92,6 +92,10 @@ Every row goes through the outgoing-request policy above, except the ones Keyclo
 | AD/LDAP sync (E7) | Worker, API | Directory servers, LDAPS 636 (default) or 389 with required StartTLS | LDAP | Required | Read-only service account | `Connectors:Network:*` |
 | CRMs (E7) | Worker, API | Dynamics 365 (`*.dynamics.com`), Salesforce (`*.salesforce.com` only), `api.hubapi.com`, `www.zohoapis.com`, `accounts.zoho.com` | HTTPS | Yes | Client credentials, private app token or refresh token | `Connectors:Network:*` |
 | REST connectors (E7) | Worker (`connector_calls`), API (test) | The connector's base address | HTTPS | Required unless allowed | Key header, Basic, Bearer or OAuth 2.0 client credentials | `Connectors:Network:*` |
+| CMDB discovery: Intune, Entra ID devices (G2) | API (`CmdbDiscoveryJobs`, test) | `graph.microsoft.com`, `login.microsoftonline.com` | HTTPS | Yes | The Entra ID connector's app secret | `Connectors:Network:*` |
+| CMDB discovery: Azure (G2) | API | `management.azure.com` (`Connectors:ManagementUrl`), `login.microsoftonline.com` | HTTPS | Yes | The Entra ID connector's app secret | `Connectors:Network:*` |
+| CMDB discovery: Active Directory computers (G2) | API | The LDAP connector's directory servers | LDAP | As the connector | The connector's read-only service account | `Connectors:Network:*` |
+| CMDB discovery: VMware vCenter (G2) | API | The source's vCenter address | HTTPS | Required; an untrusted certificate only with its SHA-256 fingerprint | Read-only account and password (encrypted) | `Connectors:Network:*` |
 | UAE PASS sign-in (D3) | Keycloak | `id.uaepass.ae`, `stg-id.uaepass.ae` | HTTPS | Yes | Client id and secret (stored only in Keycloak) | Keycloak |
 | Entra sign-in (E7) | Keycloak | `login.microsoftonline.com` | HTTPS | Yes | Client secret, PKCE | Keycloak |
 | LDAP sign-in federation (E7) | Keycloak | Directory servers | LDAPS or StartTLS | As configured | Bind account | Keycloak |

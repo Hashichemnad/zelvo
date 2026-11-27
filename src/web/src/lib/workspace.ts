@@ -4,6 +4,7 @@
  * their tests share.
  */
 
+import type { PersonAsset } from "./assets";
 import type { Bilingual, Person, TicketState } from "./incidents";
 
 export type CommentVisibility = "Public" | "Internal";
@@ -101,6 +102,8 @@ export interface Customer {
   openCount: number;
   totalCount: number;
   recent: { id: string; number: string; title: string; state: TicketState; priority: number; createdAt: string; resolvedAt: string | null }[];
+  /** Task G3: the assets assigned to them, for staff with assets.read (null otherwise). */
+  assets?: PersonAsset[] | null;
 }
 
 export type BulkAction = "Assign" | "Assignment" | "Route" | "Transition" | "Priority" | "Category" | "Location" | "Reply";

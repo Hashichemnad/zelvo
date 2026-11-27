@@ -87,6 +87,8 @@ internal static class CmdbStandardClasses
         new("virtual-machine", "cloud-resource", CiFamily.CloudResource, new("Virtual machine", "جهاز افتراضي"), new(null, null),
             [Text("hostName", "Host name", "اسم المضيف", 253), Text("operatingSystem", "Operating system", "نظام التشغيل", 100),
                 Number("cpuCores", "CPU cores", "أنوية المعالج", 1, 1024), Number("memoryGb", "Memory (GB)", "الذاكرة (غيغابايت)", 1, 65536), Environment]),
+        new("virtualisation-cluster", "cloud-resource", CiFamily.CloudResource, new("Virtualisation cluster", "عنقود افتراضي"),
+            new("Clusters of virtualisation hosts, for example in VMware vCenter.", "عناقيد مضيفات المحاكاة الافتراضية، مثل VMware vCenter."), []),
         new("cloud-database", "cloud-resource", CiFamily.CloudResource, new("Cloud database", "قاعدة بيانات سحابية"), new(null, null), []),
         new("storage", "cloud-resource", CiFamily.CloudResource, new("Storage", "التخزين"), new(null, null), [Number("capacityGb", "Capacity (GB)", "السعة (غيغابايت)", 1, 100_000_000)]),
     ];

@@ -4,7 +4,7 @@ import { NextIntlClientProvider } from "next-intl";
 import ar from "../../../messages/ar.json";
 import en from "../../../messages/en.json";
 import type { Page } from "@/lib/integrations";
-import type { AppNotification, NotificationDelivery, NotificationEventSettings, NotificationPreference } from "@/lib/notifications";
+import { eventKey, type AppNotification, type NotificationDelivery, type NotificationEventSettings, type NotificationPreference } from "@/lib/notifications";
 import { sectionsFor } from "@/lib/settings-sections";
 import { DeliveryLogPanel } from "./DeliveryLogPanel";
 import { NotificationBell, bellPollMilliseconds } from "./NotificationBell";
@@ -255,5 +255,20 @@ describe("DeliveryLogPanel", () => {
 describe("Settings menu", () => {
   it("shows Notifications to those who may manage them", () => {
     expect(sectionsFor(["notifications.manage"]).map((s) => s.key)).toEqual(["notifications"]);
+  });
+});
+
+describe("event names", () => {
+  it("names every event the notification engine defines, in English and Arabic", async () => {
+    // Zelvo.Notifications' own wording lists every event; a missing name here shows the raw key
+    // on Settings → Notifications and Account → Notifications.
+    const { readFileSync } = await import("node:fs");
+    const { join } = await import("node:path");
+    const texts = JSON.parse(readFileSync(join(__dirname, "../../../../api/Zelvo.Notifications/Texts/en.json"), "utf8")) as { templates: Record<string, unknown> };
+    const missing = Object.keys(texts.templates).flatMap((type) =>
+      ([["en", en], ["ar", ar]] as const)
+        .filter(([, messages]) => !(eventKey(type) in (messages.notifications.events as Record<string, string>)))
+        .map(([language]) => `${language}: ${type}`));
+    expect(missing).toEqual([]);
   });
 });

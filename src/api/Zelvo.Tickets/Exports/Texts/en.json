@@ -27,5 +27,6 @@
     "Resolved": "Resolved",
     "Closed": "Closed",
     "Reopened": "Reopened"
-  }
+  },
+  "assetLabels": "Asset labels"
 }

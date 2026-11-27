@@ -52,6 +52,7 @@ export default async function CmdbPage({ params, searchParams }: PageProps<"/[lo
   for (const key of ["classId", "groupId", "locationId"]) if (isId(value(key))) query[key] = value(key);
   if ((ciStatuses as readonly string[]).includes(value("status"))) query.status = value("status");
   if (value("includeRetired") === "true") query.includeRetired = "true";
+  if (value("missing") === "true") query.missing = "true";
   const pageNumber = Number(value("page"));
   const page = Number.isInteger(pageNumber) && pageNumber > 0 && pageNumber < 10000 ? pageNumber : 1;
 
@@ -68,7 +69,10 @@ export default async function CmdbPage({ params, searchParams }: PageProps<"/[lo
       <div className="flex flex-wrap items-center justify-between gap-4">
         <h1 id="cmdb-heading" className="text-3xl font-bold text-brand">{t("title")}</h1>
         {permissions.includes("cmdb.manage") && (
-          <Link href="/cmdb/new" className="rounded-md bg-brand px-4 py-2 font-semibold text-surface">{t("new")}</Link>
+          <div className="flex flex-wrap gap-2">
+            <Link href="/cmdb/review" className="rounded-md border border-line px-4 py-2 font-semibold text-brand">{t("review")}</Link>
+            <Link href="/cmdb/new" className="rounded-md bg-brand px-4 py-2 font-semibold text-surface">{t("new")}</Link>
+          </div>
         )}
       </div>
       <p className="max-w-3xl">{t("intro")}</p>
@@ -111,6 +115,10 @@ export default async function CmdbPage({ params, searchParams }: PageProps<"/[lo
           <input type="checkbox" name="includeRetired" value="true" defaultChecked={query.includeRetired === "true"} className="size-5 accent-brand" />
           {t("includeRetired")}
         </label>
+        <label className="flex items-center gap-2 text-sm">
+          <input type="checkbox" name="missing" value="true" defaultChecked={query.missing === "true"} className="size-5 accent-brand" />
+          {t("onlyMissing")}
+        </label>
         <button type="submit" className="rounded-md bg-brand px-4 py-2 font-semibold text-surface">{t("apply")}</button>
         <Link href="/cmdb" className="px-2 py-2 font-semibold text-brand underline-offset-4 hover:underline">{t("clear")}</Link>
       </form>
@@ -145,7 +153,10 @@ export default async function CmdbPage({ params, searchParams }: PageProps<"/[lo
                         <Localized text={item.class.path} locale={l} />
                         <span className="block text-xs text-ink-muted"><FamilyLabel family={item.class.family} /></span>
                       </td>
-                      <td className={cellClass}><CiStatusBadge status={item.status} /></td>
+                      <td className={cellClass}>
+                        <CiStatusBadge status={item.status} />
+                        {item.missingSince && <span className="mt-1 block text-xs font-semibold text-bad">{t("notReported")}</span>}
+                      </td>
                       <td className={cellClass}>{item.ownerGroup ? <Localized text={item.ownerGroup.name} locale={l} /> : "—"}</td>
                       <td className={cellClass}>{item.location ? <Localized text={item.location.path} locale={l} /> : "—"}</td>
                     </tr>
