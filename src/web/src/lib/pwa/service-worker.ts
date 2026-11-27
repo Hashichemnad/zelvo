@@ -12,6 +12,11 @@
  *   only while the tenant allows offline data.
  *
  * The version changes with every build, so a new release replaces the shell and the offline page.
+ *
+ * Task J2: **web push**. The message (RFC 8291, decrypted by the browser) holds the event's title
+ * in the person's language, the reference number and the page to open, never names or ticket
+ * text. It is shown with the app's icon in the right language and direction; a tap opens or focuses
+ * the page, only ever a page of this site.
  */
 export function serviceWorkerSource(version: string): string {
   const config = JSON.stringify({
@@ -62,6 +67,44 @@ self.addEventListener("message", (event) => {
     event.waitUntil(caches.keys().then((names) => Promise.all(names.filter((n) => n.startsWith("zelvo-")).map((n) => caches.delete(n)))));
   }
 });
+
+// Task J2: web push.
+self.addEventListener("push", (event) => {
+  let data = {};
+  try {
+    data = event.data ? event.data.json() : {};
+  } catch (error) {
+    data = {};
+  }
+  const lang = data.lang === "ar" ? "ar" : "en";
+  const title = typeof data.title === "string" && data.title ? data.title : lang === "ar" ? "إشعار جديد" : "New notification";
+  event.waitUntil(self.registration.showNotification(title, {
+    body: typeof data.body === "string" ? data.body : "",
+    lang,
+    dir: data.dir === "rtl" ? "rtl" : "ltr",
+    tag: typeof data.tag === "string" ? data.tag : undefined,
+    icon: "/zelvo-icons/any-192.png",
+    badge: "/zelvo-icons/any-192.png",
+    data: { url: sameSitePath(data.url, lang) },
+  }));
+});
+
+self.addEventListener("notificationclick", (event) => {
+  event.notification.close();
+  const target = new URL(sameSitePath(event.notification.data && event.notification.data.url, "en"), self.location.origin).href;
+  event.waitUntil((async () => {
+    const windows = await self.clients.matchAll({ type: "window", includeUncontrolled: true });
+    for (const client of windows) {
+      if (client.url === target && "focus" in client) return client.focus();
+    }
+    return self.clients.openWindow(target);
+  })());
+});
+
+// Only a path of this site (never another site's address), else the notifications page.
+function sameSitePath(value, lang) {
+  return typeof value === "string" && value.startsWith("/") && !value.startsWith("//") && !value.includes("\\\\") ? value : "/" + lang + "/notifications";
+}
 
 function isShellFile(url) {
   return url.pathname.startsWith("/_next/static/") || url.pathname.startsWith("/zelvo-icons/");

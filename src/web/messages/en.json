@@ -111,6 +111,27 @@
       "heading": "My workload",
       "intro": "When your organisation turns on workload balancing, you can see the same figures your team leads see about you.",
       "link": "See my workload"
+    },
+    "push": {
+      "heading": "Notifications on your devices",
+      "intro": "Web push shows notifications on this phone or computer, also when Zelvo is closed. They name what happened and the reference number only, never names or ticket text.",
+      "notAvailable": "Notifications on devices (web push) are not available in this installation: they need a connection to the internet. Notifications still reach you in Zelvo and by email.",
+      "turnOn": "Turn on notifications on this device",
+      "thisDeviceOn": "This device receives notifications.",
+      "turnedOn": "Notifications are on for this device.",
+      "denied": "This browser does not allow notifications from this site. Allow them in the browser's site settings, then try again.",
+      "homeScreen": "On iPhone and iPad, notifications work in the app added to the Home Screen. Add it with Share, then Add to Home Screen, open it from there and turn notifications on.",
+      "unsupported": "This browser cannot receive web push notifications.",
+      "devices": "Your devices",
+      "noDevices": "No device receives notifications yet.",
+      "added": "Added {date}",
+      "lastNotified": "last notification {date}",
+      "remove": "Remove",
+      "removeDevice": "Remove {device}",
+      "removed": "The device is removed and gets no more notifications.",
+      "test": "Send a test notification",
+      "testSent": "A test notification is on its way to your devices.",
+      "failed": "That did not work. Please try again."
     }
   },
   "signInProblem": {
@@ -1255,7 +1276,10 @@
         "close": "Close",
         "previous": "Previous page",
         "next": "Next page"
-      }
+      },
+      "push": "Web push",
+      "pushNote": "Web push needs this installation's connection to the internet (the browsers' push services). Messages name the event and the reference number only.",
+      "pushNotAvailable": "Web push is off in this installation because it has no connection to the internet. People get notifications in Zelvo, by email and in Microsoft Teams."
     },
     "branding": {
       "intro": "Run Zelvo under your own brand. Changes are a draft until you publish them; the preview shows them in English and Arabic, in light and dark mode.",
@@ -2621,14 +2645,15 @@
     },
     "preferences": {
       "heading": "Notifications",
-      "intro": "Notifications always appear in Zelvo. Choose which ones also reach you by email.",
+      "intro": "Notifications always appear in Zelvo. Choose which ones also reach you by email, and by web push on the devices you turned on below.",
       "email": "Also send me an email",
       "alwaysEmail": "Always sent by email; it cannot be turned off.",
       "offByOrganisation": "Your organisation has turned this notification off.",
       "appOnlyByOrganisation": "Your organisation sends this notification in Zelvo only.",
-      "save": "Save email choices",
-      "saved": "Your email choices are saved.",
-      "failed": "Your choices could not be saved. Please try again."
+      "save": "Save notification choices",
+      "saved": "Your notification choices are saved.",
+      "failed": "Your choices could not be saved. Please try again.",
+      "push": "Also on my devices (web push)"
     }
   },
   "forms": {

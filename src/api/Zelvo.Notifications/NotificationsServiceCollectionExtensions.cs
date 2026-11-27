@@ -21,6 +21,10 @@ public static class NotificationsServiceCollectionExtensions
         services.TryAddScoped<NotificationComposer>();
         services.TryAddScoped<NotificationProcessor>();
         services.TryAddScoped<PendingNotifications>();
+        // Task J2: web push.
+        services.TryAddScoped<WebPush.WebPushKeys>();
+        services.TryAddScoped<WebPush.PushProcessor>();
+        services.TryAddSingleton<WebPush.IWebPushSender, WebPush.WebPushSender>();
         if (!services.Any(d => d.ImplementationType == typeof(NotificationInterceptor)))
         {
             services.AddZelvoSaveChangesInterceptor<NotificationInterceptor>();

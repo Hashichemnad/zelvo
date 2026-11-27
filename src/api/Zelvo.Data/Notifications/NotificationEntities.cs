@@ -244,6 +244,161 @@ public sealed class NotificationPreference : ITenantOwned, IAuditedEntity
     /// <summary>Whether they get an email for it.</summary>
     public bool Email { get; set; }
 
+    /// <summary>Task J2: whether it also comes by web push to their devices (on unless they turned it off).</summary>
+    public bool Push { get; set; } = true;
+
     /// <summary>When it was last changed.</summary>
     public DateTimeOffset UpdatedAt { get; set; } = DateTimeOffset.UtcNow;
+}
+
+/// <summary>
+/// The tenant's web push key pair (module 19, task J2; RFC 8292 VAPID): made by Zelvo the first time
+/// someone subscribes a device, the private key encrypted with <c>Zelvo.Secrets</c>. Browsers tie
+/// their subscriptions to the public key, so it is never replaced while subscriptions exist.
+/// </summary>
+public sealed class WebPushKey : ITenantOwned, IAuditedEntity
+{
+    /// <inheritdoc />
+    public Guid TenantId { get; set; }
+
+    /// <summary>Public key: the uncompressed P-256 point, base64url (the browser's <c>applicationServerKey</c>).</summary>
+    public required string PublicKey { get; init; }
+
+    /// <summary>Private key (PKCS #8, base64url) encrypted with the tenant's data key (<c>Zelvo.Secrets</c>, purpose <c>web-push.vapid</c>).</summary>
+    [SensitiveData]
+    public required string PrivateKey { get; init; }
+
+    /// <summary>When it was made.</summary>
+    public DateTimeOffset CreatedAt { get; init; } = DateTimeOffset.UtcNow;
+}
+
+/// <summary>
+/// One browser or installed app of one person that receives web push (task J2): the push
+/// service's address and the browser's keys (RFC 8291). Removed when the person removes the
+/// device, signs out on it, or the push service says the subscription is gone (404 or 410).
+/// </summary>
+public sealed class PushSubscription : ITenantOwned, IAuditedEntity
+{
+    /// <summary>Maximum length of <see cref="Endpoint"/>.</summary>
+    public const int EndpointMaxLength = 2048;
+
+    /// <summary>Maximum length of <see cref="DeviceName"/>.</summary>
+    public const int DeviceNameMaxLength = 100;
+
+    /// <summary>Unique id (UUID version 7).</summary>
+    public Guid Id { get; init; } = Guid.CreateVersion7();
+
+    /// <inheritdoc />
+    public Guid TenantId { get; set; }
+
+    /// <summary>The person.</summary>
+    public Guid UserId { get; init; }
+
+    /// <summary>The push service's address for this browser (a capability: whoever has it can send to the device).</summary>
+    [SensitiveData]
+    public required string Endpoint { get; init; }
+
+    /// <summary>The browser's P-256 public key, base64url.</summary>
+    [SensitiveData]
+    public required string P256dh { get; set; }
+
+    /// <summary>The browser's 16-byte auth secret, base64url.</summary>
+    [SensitiveData]
+    public required string Auth { get; set; }
+
+    /// <summary>A name the person recognises, for example "Chrome on Android", from the browser.</summary>
+    public required string DeviceName { get; set; }
+
+    /// <summary>When it was added.</summary>
+    public DateTimeOffset CreatedAt { get; init; } = DateTimeOffset.UtcNow;
+
+    /// <summary>When a message last reached the push service for it.</summary>
+    public DateTimeOffset? LastSuccessAt { get; set; }
+}
+
+/// <summary>Where a web push message stands.</summary>
+public enum PushDeliveryStatus
+{
+    /// <summary>Waiting to be sent, or to be tried again.</summary>
+    Pending,
+
+    /// <summary>The push service accepted it.</summary>
+    Sent,
+
+    /// <summary>Given up: refused, or still failing after the last retry.</summary>
+    Failed,
+}
+
+/// <summary>
+/// One web push message for one device (task J2): the queue and the delivery log, kept 30 days
+/// like emails. The text holds no personal data beyond the event and the reference number
+/// (product owner decision 2026-11-26).
+/// </summary>
+public sealed class PushDelivery : ITenantOwned
+{
+    /// <summary>Maximum length of <see cref="Title"/>.</summary>
+    public const int TitleMaxLength = 200;
+
+    /// <summary>Maximum length of <see cref="Body"/>.</summary>
+    public const int BodyMaxLength = 200;
+
+    /// <summary>Maximum length of <see cref="LastError"/>.</summary>
+    public const int ErrorMaxLength = 1000;
+
+    /// <summary>Id.</summary>
+    public long Id { get; init; }
+
+    /// <inheritdoc />
+    public Guid TenantId { get; set; }
+
+    /// <summary>The notification it carries (none for a test).</summary>
+    public Guid? NotificationId { get; init; }
+
+    /// <summary>The device.</summary>
+    public Guid? SubscriptionId { get; set; }
+
+    /// <summary>The person.</summary>
+    public Guid? RecipientId { get; init; }
+
+    /// <summary>Event type, or <c>push.test</c>.</summary>
+    public required string EventType { get; init; }
+
+    /// <summary>Language of the text.</summary>
+    public required string Language { get; init; }
+
+    /// <summary>Title: what happened, in the recipient's language.</summary>
+    public required string Title { get; init; }
+
+    /// <summary>Body: the reference number, or the test text.</summary>
+    public required string Body { get; init; }
+
+    /// <summary>Page in the web app it opens, with the language (for example <c>/en/my-incidents/…</c>).</summary>
+    public string? Url { get; init; }
+
+    /// <summary>Messages with the same tag replace each other on the device (one per ticket).</summary>
+    public string? Tag { get; init; }
+
+    /// <summary>Pending, sent or failed.</summary>
+    public PushDeliveryStatus Status { get; set; } = PushDeliveryStatus.Pending;
+
+    /// <summary>Attempts made.</summary>
+    public int Attempts { get; set; }
+
+    /// <summary>When it is tried next.</summary>
+    public DateTimeOffset? NextAttemptAt { get; set; } = DateTimeOffset.UtcNow;
+
+    /// <summary>A worker is sending it until this time.</summary>
+    public DateTimeOffset? LeaseUntil { get; set; }
+
+    /// <summary>Last attempt.</summary>
+    public DateTimeOffset? LastAttemptAt { get; set; }
+
+    /// <summary>Why the last attempt failed.</summary>
+    public string? LastError { get; set; }
+
+    /// <summary>When it was queued.</summary>
+    public DateTimeOffset CreatedAt { get; init; } = DateTimeOffset.UtcNow;
+
+    /// <summary>When the push service accepted it.</summary>
+    public DateTimeOffset? SentAt { get; set; }
 }

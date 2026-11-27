@@ -6,6 +6,8 @@ import { PreferencesForm } from "@/components/PreferencesForm";
 import { AvailabilitySwitch } from "@/components/directory/AvailabilitySwitch";
 import { NotificationPreferencesForm } from "@/components/notifications/NotificationPreferencesForm";
 import { NotificationChannelsForm } from "@/components/notifications/NotificationChannelsForm";
+import { PushDevicesPanel } from "@/components/notifications/PushDevicesPanel";
+import type { PushStatus } from "@/lib/pwa/push";
 import type { MyNotificationChannels } from "@/lib/messaging";
 import { getCurrentUser, getJsonAs, getLocalizationSettings, type LocalizedText } from "@/lib/api";
 import type { NotificationPreference } from "@/lib/notifications";
@@ -38,7 +40,7 @@ export default async function AccountPage({ params }: PageProps<"/[locale]/accou
     redirect(`/auth/login?${new URLSearchParams({ locale, returnTo: `/${locale}/account` })}`);
   }
   const tenant = (await getRequestAuthConfig()).tenant;
-  const [user, tenantSettings, t, tPreferences, tNotifications, notificationPreferences, notificationChannels] = await Promise.all([
+  const [user, tenantSettings, t, tPreferences, tNotifications, notificationPreferences, notificationChannels, push] = await Promise.all([
     getCurrentUser(session.data.accessToken, tenant),
     getLocalizationSettings(tenant),
     getTranslations({ locale, namespace: "account" }),
@@ -47,6 +49,8 @@ export default async function AccountPage({ params }: PageProps<"/[locale]/accou
     getJsonAs<NotificationPreference[]>("/api/v1/me/notification-preferences", session.data.accessToken, tenant),
     // Task E3: WhatsApp, SMS and Teams.
     getJsonAs<MyNotificationChannels>("/api/v1/me/notification-channels", session.data.accessToken, tenant),
+    // Task J2: web push devices.
+    getJsonAs<PushStatus>("/api/v1/me/push", session.data.accessToken, tenant),
   ]);
 
   if (!user) {
@@ -123,6 +127,7 @@ export default async function AccountPage({ params }: PageProps<"/[locale]/accou
           </h2>
           <p className="max-w-2xl text-ink-muted">{tNotifications("intro")}</p>
           <NotificationPreferencesForm initial={notificationPreferences} csrfToken={session.data.csrfToken} />
+          {push && <PushDevicesPanel initial={push} csrfToken={session.data.csrfToken} />}
           {notificationChannels && <NotificationChannelsForm initial={notificationChannels} csrfToken={session.data.csrfToken} />}
         </section>
       )}

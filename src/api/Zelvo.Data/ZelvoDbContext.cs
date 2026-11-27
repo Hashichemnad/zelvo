@@ -289,6 +289,15 @@ public sealed partial class ZelvoDbContext(DbContextOptions<ZelvoDbContext> opti
     /// <summary>People's email choices per event.</summary>
     public DbSet<NotificationPreference> NotificationPreferences => Set<NotificationPreference>();
 
+    /// <summary>Task J2: each tenant's web push key pair.</summary>
+    public DbSet<WebPushKey> WebPushKeys => Set<WebPushKey>();
+
+    /// <summary>Task J2: people's devices that receive web push.</summary>
+    public DbSet<PushSubscription> PushSubscriptions => Set<PushSubscription>();
+
+    /// <summary>Task J2: web push queue and delivery log.</summary>
+    public DbSet<PushDelivery> PushDeliveries => Set<PushDelivery>();
+
     /// <summary>Public replies and internal notes on tickets (module 5, task B4).</summary>
     public DbSet<TicketComment> TicketComments => Set<TicketComment>();
 
@@ -1675,6 +1684,59 @@ public sealed partial class ZelvoDbContext(DbContextOptions<ZelvoDbContext> opti
             preference.HasOne<UserAccount>().WithMany().HasForeignKey(p => p.UserId).OnDelete(DeleteBehavior.Cascade);
             preference.Property(p => p.EventType).HasMaxLength(Notification.EventTypeMaxLength);
             preference.HasIndex(p => p.TenantId);
+        });
+
+        // Task J2: web push.
+        modelBuilder.Entity<WebPushKey>(key =>
+        {
+            key.ToTable("web_push_keys");
+            key.HasKey(k => k.TenantId);
+            key.HasOne<Tenant>().WithMany().HasForeignKey(k => k.TenantId).OnDelete(DeleteBehavior.Restrict);
+            key.Property(k => k.PublicKey).HasMaxLength(100);
+            key.Property(k => k.PrivateKey).HasMaxLength(1000);
+        });
+
+        modelBuilder.Entity<PushSubscription>(subscription =>
+        {
+            subscription.ToTable("push_subscriptions");
+            subscription.HasKey(s => s.Id);
+            subscription.Property(s => s.Id).ValueGeneratedNever();
+            subscription.HasOne<Tenant>().WithMany().HasForeignKey(s => s.TenantId).OnDelete(DeleteBehavior.Restrict);
+            subscription.HasOne<UserAccount>().WithMany().HasForeignKey(s => s.UserId).OnDelete(DeleteBehavior.Cascade);
+            subscription.Property(s => s.Endpoint).HasMaxLength(PushSubscription.EndpointMaxLength);
+            subscription.Property(s => s.P256dh).HasMaxLength(100);
+            subscription.Property(s => s.Auth).HasMaxLength(50);
+            subscription.Property(s => s.DeviceName).HasMaxLength(PushSubscription.DeviceNameMaxLength);
+            subscription.HasIndex(s => new { s.TenantId, s.Endpoint }).IsUnique();
+            subscription.HasIndex(s => s.UserId);
+        });
+
+        modelBuilder.Entity<PushDelivery>(delivery =>
+        {
+            delivery.ToTable("push_deliveries", table =>
+            {
+                table.HasCheckConstraint("ck_push_deliveries_status", EnumCheck("status", Enum.GetNames<PushDeliveryStatus>()));
+                table.HasCheckConstraint("ck_push_deliveries_language", "language IN ('en', 'ar')");
+            });
+            delivery.HasKey(d => d.Id);
+            delivery.Property(d => d.Id).UseIdentityAlwaysColumn();
+            delivery.HasOne<Tenant>().WithMany().HasForeignKey(d => d.TenantId).OnDelete(DeleteBehavior.Restrict);
+            delivery.HasOne<Notification>().WithMany().HasForeignKey(d => d.NotificationId).OnDelete(DeleteBehavior.SetNull);
+            delivery.HasOne<PushSubscription>().WithMany().HasForeignKey(d => d.SubscriptionId).OnDelete(DeleteBehavior.SetNull);
+            delivery.HasOne<UserAccount>().WithMany().HasForeignKey(d => d.RecipientId).OnDelete(DeleteBehavior.SetNull);
+            delivery.Property(d => d.EventType).HasMaxLength(Notification.EventTypeMaxLength);
+            delivery.Property(d => d.Language).HasMaxLength(2);
+            delivery.Property(d => d.Title).HasMaxLength(PushDelivery.TitleMaxLength);
+            delivery.Property(d => d.Body).HasMaxLength(PushDelivery.BodyMaxLength);
+            delivery.Property(d => d.Url).HasMaxLength(Notification.LinkPathMaxLength + 3);
+            delivery.Property(d => d.Tag).HasMaxLength(100);
+            delivery.Property(d => d.Status).HasConversion<string>().HasMaxLength(20);
+            delivery.Property(d => d.LastError).HasMaxLength(PushDelivery.ErrorMaxLength);
+            delivery.HasIndex(d => new { d.TenantId, d.NextAttemptAt }).HasFilter("status = 'Pending'");
+            delivery.HasIndex(d => new { d.TenantId, d.CreatedAt });
+            delivery.HasIndex(d => d.NotificationId);
+            delivery.HasIndex(d => d.SubscriptionId);
+            delivery.HasIndex(d => d.RecipientId);
         });
     }
 

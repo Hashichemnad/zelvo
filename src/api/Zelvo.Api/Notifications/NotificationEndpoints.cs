@@ -172,13 +172,13 @@ internal static class NotificationEndpoints
         return TypedResults.Ok(new UnreadCountResponse(count));
     }
 
-    internal static async Task<IResult> PreferencesAsync(CurrentUser user, ZelvoDbContext db, CancellationToken cancellationToken) =>
-        TypedResults.Ok(await PreferenceListAsync(user, db, cancellationToken));
+    internal static async Task<IResult> PreferencesAsync(CurrentUser user, ZelvoDbContext db, NotificationOptions options, CancellationToken cancellationToken) =>
+        TypedResults.Ok(await PreferenceListAsync(user, db, options, cancellationToken));
 
     internal static async Task<IResult> UpdatePreferencesAsync(
-        UpdateNotificationPreferencesRequest request, CurrentUser user, ZelvoDbContext db, CancellationToken cancellationToken)
+        UpdateNotificationPreferencesRequest request, CurrentUser user, ZelvoDbContext db, NotificationOptions options, CancellationToken cancellationToken)
     {
-        var mine = await PreferenceListAsync(user, db, cancellationToken);
+        var mine = await PreferenceListAsync(user, db, options, cancellationToken);
         var me = user.Account!.Id;
         var rows = await db.NotificationPreferences.Where(p => p.UserId == me).ToDictionaryAsync(p => p.EventType, StringComparer.Ordinal, cancellationToken);
         foreach (var change in request.Events ?? [])
@@ -194,34 +194,40 @@ internal static class NotificationEndpoints
                 return UserEndpoints.Validation("events", $"The email of '{change.EventType}' cannot be turned off.");
             }
 
+            // Task J2: push is everyone's own choice for every event (left out: unchanged).
+            var email = current.CanChange ? change.Email : true;
+            var push = change.Push ?? current.Push;
             if (rows.TryGetValue(change.EventType, out var row))
             {
-                if (row.Email != change.Email)
+                if (row.Email != email || row.Push != push)
                 {
-                    row.Email = change.Email;
+                    row.Email = email;
+                    row.Push = push;
                     row.UpdatedAt = DateTimeOffset.UtcNow;
                 }
             }
-            else if (!change.Email)
+            else if (!email || !push)
             {
-                var added = new NotificationPreference { UserId = me, EventType = change.EventType, Email = false };
+                var added = new NotificationPreference { UserId = me, EventType = change.EventType, Email = email, Push = push };
                 db.NotificationPreferences.Add(added);
                 rows[change.EventType] = added;
             }
         }
 
         await db.SaveChangesAsync(cancellationToken);
-        return TypedResults.Ok(await PreferenceListAsync(user, db, cancellationToken));
+        return TypedResults.Ok(await PreferenceListAsync(user, db, options, cancellationToken));
     }
 
     /// <summary>Events that can reach <paramref name="user"/>, by what they may do (including permissions waiting for their second factor).</summary>
-    private static async Task<IReadOnlyList<NotificationPreferenceResponse>> PreferenceListAsync(CurrentUser user, ZelvoDbContext db, CancellationToken cancellationToken)
+    private static async Task<IReadOnlyList<NotificationPreferenceResponse>> PreferenceListAsync(
+        CurrentUser user, ZelvoDbContext db, NotificationOptions options, CancellationToken cancellationToken)
     {
+        var pushAvailable = options.Push.Enabled;
         bool May(string permission) => user.Has(permission) || user.PendingMfaPermissions.Contains(permission);
         var settings = await NotificationSettings.ReadAsync(db, cancellationToken);
         var me = user.Account!.Id;
         var choices = await db.NotificationPreferences.AsNoTracking().Where(p => p.UserId == me)
-            .ToDictionaryAsync(p => p.EventType, p => p.Email, StringComparer.Ordinal, cancellationToken);
+            .ToDictionaryAsync(p => p.EventType, p => (p.Email, p.Push), StringComparer.Ordinal, cancellationToken);
         return
         [
             .. NotificationEvents.All
@@ -234,8 +240,9 @@ internal static class NotificationEndpoints
                 .Select(e =>
                 {
                     var setting = NotificationSettings.For(settings, e.Type);
-                    return new NotificationPreferenceResponse(e.Type, e.Audience, !e.EmailOptional || choices.GetValueOrDefault(e.Type, true),
-                        e.EmailOptional, setting.Enabled, setting.Enabled && setting.Email);
+                    var choice = choices.TryGetValue(e.Type, out var c) ? c : (Email: true, Push: true);
+                    return new NotificationPreferenceResponse(e.Type, e.Audience, !e.EmailOptional || choice.Email,
+                        e.EmailOptional, setting.Enabled, setting.Enabled && setting.Email, choice.Push, setting.Enabled && setting.Push && pushAvailable);
                 }),
         ];
     }
@@ -246,7 +253,8 @@ internal static class NotificationEndpoints
         var templates = await db.NotificationTemplates.AsNoTracking().ToDictionaryAsync(t => t.EventType, StringComparer.Ordinal, cancellationToken);
         return TypedResults.Ok(new NotificationSettingsResponse(
             options.Smtp.Configured,
-            [.. NotificationEvents.All.Select(e => NotificationEventResponse.From(e, settings, templates.GetValueOrDefault(e.Type)))]));
+            [.. NotificationEvents.All.Select(e => NotificationEventResponse.From(e, settings, templates.GetValueOrDefault(e.Type)))],
+            options.Push.Enabled));
     }
 
     internal static async Task<IResult> UpdateEventAsync(
@@ -257,10 +265,9 @@ internal static class NotificationEndpoints
             return EventNotFound();
         }
 
-        var current = new Dictionary<string, EventSetting>(await store.GetAsync(Events, cancellationToken), StringComparer.Ordinal)
-        {
-            [definition.Type] = new EventSetting(request.Enabled, request.Email, request.Messaging ?? true),
-        };
+        var current = new Dictionary<string, EventSetting>(await store.GetAsync(Events, cancellationToken), StringComparer.Ordinal);
+        var before = NotificationSettings.For(current, definition.Type);
+        current[definition.Type] = new EventSetting(request.Enabled, request.Email, request.Messaging ?? true, request.Push ?? before.Push);
         await store.SetAsync<IReadOnlyDictionary<string, EventSetting>>(Events, current, cancellationToken);
         await db.SaveChangesAsync(cancellationToken);
         return TypedResults.Ok(await EventAsync(definition, db, cancellationToken));
@@ -482,7 +489,10 @@ internal sealed record UnreadCountResponse(int Count);
 /// <param name="CanChange">Whether you may turn its email off.</param>
 /// <param name="Enabled">Whether your organisation has it on.</param>
 /// <param name="EmailEnabled">Whether your organisation sends its email.</param>
-internal sealed record NotificationPreferenceResponse(string EventType, NotificationAudience Audience, bool Email, bool CanChange, bool Enabled, bool EmailEnabled);
+/// <param name="Push">Task J2: whether it also comes by web push to your devices.</param>
+/// <param name="PushEnabled">Task J2: whether your organisation and this installation send it by web push.</param>
+internal sealed record NotificationPreferenceResponse(
+    string EventType, NotificationAudience Audience, bool Email, bool CanChange, bool Enabled, bool EmailEnabled, bool Push = true, bool PushEnabled = false);
 
 /// <summary>Your email choices.</summary>
 public sealed class UpdateNotificationPreferencesRequest
@@ -499,12 +509,16 @@ public sealed class NotificationPreferenceInput
 
     /// <summary>Whether you want its email.</summary>
     public bool Email { get; init; }
+
+    /// <summary>Task J2: whether you want it by web push (unchanged when left out).</summary>
+    public bool? Push { get; init; }
 }
 
 /// <summary>Settings → Notifications.</summary>
 /// <param name="MailServerConfigured">Whether the installation has a mail server (Notifications:Smtp:Host); without one only in-app notifications work.</param>
 /// <param name="Events">Every event.</param>
-internal sealed record NotificationSettingsResponse(bool MailServerConfigured, IReadOnlyList<NotificationEventResponse> Events);
+/// <param name="PushAvailable">Task J2: whether this installation offers web push (it needs outgoing internet to the browsers' push services).</param>
+internal sealed record NotificationSettingsResponse(bool MailServerConfigured, IReadOnlyList<NotificationEventResponse> Events, bool PushAvailable = false);
 
 /// <summary>Wording of a notification in both languages.</summary>
 /// <param name="Subject">Subject and in-app title.</param>
@@ -524,9 +538,10 @@ internal sealed record NotificationTemplateDto(LocalizedTextDto Subject, Localiz
 /// <param name="Template">The tenant's wording, or <see langword="null"/> when it uses Zelvo's.</param>
 /// <param name="Default">Zelvo's default wording.</param>
 /// <param name="Messaging">Task E3: whether it also goes by WhatsApp, SMS and Teams.</param>
+/// <param name="Push">Task J2: whether it also goes by web push.</param>
 internal sealed record NotificationEventResponse(
     string EventType, NotificationAudience Audience, bool EmailOptional, bool Enabled, bool Email, IReadOnlyList<string> Placeholders,
-    bool Customised, NotificationTemplateDto? Template, NotificationTemplateDto Default, bool Messaging = true)
+    bool Customised, NotificationTemplateDto? Template, NotificationTemplateDto Default, bool Messaging = true, bool Push = true)
 {
     public static NotificationEventResponse From(NotificationEventDefinition definition, IReadOnlyDictionary<string, EventSetting> settings, NotificationTemplate? row)
     {
@@ -539,7 +554,7 @@ internal sealed record NotificationEventResponse(
             ? null
             : new NotificationTemplateDto(LocalizedTextDto.From(row.Subject), LocalizedTextDto.From(row.Body), LocalizedTextDto.From(row.InApp), LocalizedTextDto.From(row.Action));
         return new(definition.Type, definition.Audience, definition.EmailOptional, setting.Enabled, setting.Email, definition.AllPlaceholders,
-            row is not null, template, defaults, setting.Messaging);
+            row is not null, template, defaults, setting.Messaging, setting.Push);
     }
 }
 
@@ -554,6 +569,9 @@ public sealed class UpdateNotificationEventRequest
 
     /// <summary>Task E3: whether it also goes by WhatsApp, SMS and Teams to people who chose them (on when left out).</summary>
     public bool? Messaging { get; init; }
+
+    /// <summary>Task J2: whether it also goes by web push to people's devices (unchanged when left out).</summary>
+    public bool? Push { get; init; }
 }
 
 /// <summary>One field of a template in both languages (either may be empty).</summary>
