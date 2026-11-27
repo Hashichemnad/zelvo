@@ -27,7 +27,7 @@ Development Compose allows plain HTTP and the private ranges `10.0.0.0/8`, `172.
 | WhatsApp (Meta), Twilio, generic SMS gateways, Microsoft Teams (Bot Framework), monitoring tools | Caddy `/hooks/{tenant}/…` → API `/api/v1/hooks/…` | HTTPS 443 | Yes (Caddy) | Meta HMAC-SHA256; Twilio signature; gateway token; Bot Framework JWT; monitoring source token | Caddy sets `X-Zelvo-Tenant` from the path |
 | Payment gateways (notifications and payer return) | Caddy → web app `/payments/callback/{reference}` | HTTPS 443 | Yes | Gateway HMAC when configured; every notification only triggers a status API check by Zelvo | `payments.md` |
 | Customer websites embedding the chat widget | Caddy → web app `/chat-widget/…`, `chat-widget.js` | HTTPS 443 | Yes | Chat token per visitor; `frame-ancestors` limited to the widget's websites | `channels.md` |
-| Integrations (API keys, OAuth clients) and MCP clients (`/api/v1/mcp`) | API | HTTP 8080 (Compose publishes `127.0.0.1:8080`) | **No** in Compose; the proxy does not route `/api` today | `X-Api-Key` or OAuth client-credentials token | Not routed by the proxy in the hardened install either (F6 routes the web app, `/auth` and `/hooks/` only): an open point for the product owner, `docs/release-readiness/pentest-pack.md` section 2 |
+| Integrations (API keys, OAuth clients) and MCP clients (`/api/v1/mcp`) | Caddy `/api/v1/…` → API | HTTPS 443 | Yes (Caddy) | `X-Api-Key` or OAuth client-credentials token | Task M2: the proxy routes `/api/v1/*` to the API in Compose, the hardened Compose and Helm, with HSTS and the TRACE refusal; `/api/v1/hooks` is not routed (webhooks use `/hooks/{tenant}/…`); tenants other than the default send `X-Zelvo-Tenant` |
 | Operators | Grafana, RabbitMQ management, OpenSearch, PostgreSQL, Valkey | Published on `127.0.0.1` only in Compose | Grafana and RabbitMQ management plain HTTP; OpenSearch HTTPS | Each tool's own sign-in; Grafana has no anonymous access or sign-up | Not published in F6 |
 | Operators (USB) | Updates inbox (`updates` volume) | File system | n/a | Server access | Packages are signed (`updates.md`) |
 
@@ -107,4 +107,4 @@ Every row goes through the outgoing-request policy above, except the ones Keyclo
 - Keycloak behind HTTPS (the proxy or its own TLS), `start --optimized`, production settings; plain ports no longer published.
 - TLS with the installation's CA for PostgreSQL, Valkey, the Keycloak back channel, the web app to API calls and OTLP (or a service mesh on Kubernetes); separate Valkey users per service.
 - An internal-only Docker network for the data and observability services; outbound access only for the API, worker, Keycloak, Caddy and ClamAV's updater; Kubernetes NetworkPolicies in Helm; an optional egress proxy setting.
-- A public route for integrations and MCP clients to the API.
+- A public route for integrations and MCP clients to the API: done in task M2 (`/api/v1/*` through the proxy).

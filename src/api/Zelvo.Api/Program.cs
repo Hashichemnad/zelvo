@@ -162,6 +162,8 @@ v1.MapMeEndpoints();
 v1.MapUserEndpoints();
 v1.MapRoleEndpoints();
 v1.MapIdentitySettingsEndpoints();
+// Task M2: the first administrator's one-time setup link (hardened installs).
+v1.MapAccountSetupEndpoints();
 v1.MapUaePassEndpoints();
 v1.MapPreferenceEndpoints();
 v1.MapSettingsEndpoints();

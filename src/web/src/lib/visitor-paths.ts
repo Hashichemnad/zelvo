@@ -29,6 +29,10 @@ export function isVisitorPath(method: string, path: string[]): boolean {
     }
     return id === "track" && (sub === undefined || sub === "comments" || sub === "confirmation" || sub === "happiness");
   }
+  // Task M2: the first administrator's one-time setup link (check it, then choose a password).
+  if (area === "identity" && kind === "account-setup" && sub === undefined) {
+    return method === "POST" && (id === undefined || id === "check");
+  }
   // Task F5: the published privacy notice, which visitors read before they chat or send a message.
   if (area === "privacy" && kind === "notice" && id === undefined) {
     return method === "GET";

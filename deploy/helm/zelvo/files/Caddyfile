@@ -34,6 +34,19 @@
 			header_up X-Zelvo-Tenant {re.hooks.1}
 		}
 	}
+	# Task M2 (pentest pack, open point 3): the REST API for integrations (API keys, OAuth
+	# clients) and the MCP server at /api/v1, with the API's own rate limits and authentication;
+	# HSTS and the TRACE refusal above apply as for pages. Tenants other than the installation's
+	# default are named with the X-Zelvo-Tenant header. Provider webhooks stay under
+	# /hooks/<tenant>/..., where the proxy names the tenant, so /api/v1/hooks is not routed.
+	handle /api/v1/* {
+		@api_hooks path /api/v1/hooks /api/v1/hooks/*
+		respond @api_hooks 404
+		reverse_proxy {$ZELVO_API} {
+			# Streamable HTTP (MCP) and Server-Sent Events go out as they come.
+			flush_interval -1
+		}
+	}
 	@keycloak_admin path /auth/admin /auth/admin/*
 	handle @keycloak_admin {
 		respond 404

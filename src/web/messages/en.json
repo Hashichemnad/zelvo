@@ -6588,5 +6588,34 @@
       "readOnly": "As you last saw it (last changed {updated}). You cannot change it while offline.",
       "ticketsHelp": "Only your own tickets you opened on this device are kept, and they are removed when you sign out."
     }
+  },
+  "accountSetup": {
+    "title": "Set up your account",
+    "checking": "Checking the link…",
+    "invalid": "This setup link does not work: it was used already, it expired, or it is not complete. Ask the installation's operator for a new one.",
+    "intro": "Choose the password for <address>{email}</address>. After that you sign in and set up the authenticator app on your phone.",
+    "password": "New password",
+    "repeat": "Repeat the password",
+    "hint": "Use a long password you do not use anywhere else.",
+    "save": "Save the password",
+    "saving": "Saving…",
+    "mismatch": "The two passwords are not the same.",
+    "refused": "The password does not meet the password rules. Choose another one.",
+    "failed": "The password could not be saved. Try again.",
+    "rateLimited": "Too many requests in a short time. Please wait a minute, then try again.",
+    "done": "Your password is saved and the link no longer works. Sign in now; you will be asked to set up the authenticator app.",
+    "signIn": "Sign in",
+    "policies": {
+      "invalidPasswordMinLengthMessage": "The password is too short.",
+      "invalidPasswordMaxLengthMessage": "The password is too long.",
+      "invalidPasswordNotUsernameMessage": "The password cannot be your email address or user name.",
+      "invalidPasswordNotEmailMessage": "The password cannot be your email address.",
+      "invalidPasswordHistoryMessage": "You used this password before. Choose another one.",
+      "invalidPasswordBlacklistedMessage": "This password is too common. Choose another one.",
+      "invalidPasswordMinDigitsMessage": "The password needs more digits.",
+      "invalidPasswordMinUpperCaseCharsMessage": "The password needs more capital letters.",
+      "invalidPasswordMinLowerCaseCharsMessage": "The password needs more small letters.",
+      "invalidPasswordMinSpecialCharsMessage": "The password needs more special characters."
+    }
   }
 }

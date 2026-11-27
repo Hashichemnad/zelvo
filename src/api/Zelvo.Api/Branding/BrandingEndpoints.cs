@@ -424,12 +424,12 @@ internal static partial class BrandingEndpoints
     /// </summary>
     internal static async Task ApplyToSignInAsync(
         ZelvoDbContext db, IKeycloakAdmin keycloak, IdentityOptions identity, string webUrlSetting, string slug, ILoggerFactory loggers,
-        CancellationToken cancellationToken)
+        CancellationToken cancellationToken, string? fallbackName = null)
     {
         var value = BrandingValue.Read(await db.TenantBrandings.AsNoTracking().Select(b => b.Published).FirstOrDefaultAsync(cancellationToken));
         var webUrl = webUrlSetting.TrimEnd('/');
         var hosts = await db.TenantDomains.AsNoTracking().Where(d => d.Status == DomainStatus.Verified).Select(d => d.Host).OrderBy(h => h).ToListAsync(cancellationToken);
-        var name = value.ProductName.En ?? value.ProductName.Ar;
+        var name = value.ProductName.En ?? value.ProductName.Ar ?? fallbackName;
         var html = WebUtility.HtmlEncode(name ?? slug);
         if (await BrandingReader.ImageAsync(db, value, BrandingSlot.LoginImage, cancellationToken) is { } image)
         {

@@ -194,7 +194,7 @@ jobs:
           cd deploy/compose
           sed 's/=change-me/=ci-value/' .env.production.example > /tmp/ci-production.env
           for setting in ZELVO_PUBLIC_HOST=zelvo.test ZELVO_ACME_EMAIL=ops@zelvo.test ZELVO_VERSION=ci ZELVO_COMPOSE_DIR=/opt/zelvo \
-              ZELVO_DEFAULT_TENANT_NAME_EN=Zelvo ZELVO_DEFAULT_TENANT_NAME_AR=زيلفو ZELVO_SMTP_HOST=mail.zelvo.test ZELVO_SMTP_FROM=no-reply@zelvo.test; do
+              ZELVO_DEFAULT_TENANT_NAME_EN=Zelvo ZELVO_DEFAULT_TENANT_NAME_AR=زيلفو ZELVO_FIRST_ADMIN_EMAIL=it.admin@zelvo.test ZELVO_SMTP_HOST=mail.zelvo.test ZELVO_SMTP_FROM=no-reply@zelvo.test; do
             sed -i "s#^${setting%%=*}=.*#${setting}#" /tmp/ci-production.env
           done
           docker compose -f compose.production.yaml --env-file /tmp/ci-production.env --profile observability config --quiet
@@ -225,7 +225,7 @@ jobs:
           # Staging: the test bundle is a development build (no vendor key in CI), which refuses
           # to run in Production by design; release builds never use the development license.
           for setting in ZELVO_ENVIRONMENT=Staging ZELVO_PUBLIC_HOST=localhost ZELVO_PUBLIC_TLS=internal ZELVO_ACME_EMAIL=ops@zelvo.test \
-              ZELVO_DEFAULT_TENANT_NAME_EN=Zelvo ZELVO_DEFAULT_TENANT_NAME_AR=زيلفو ZELVO_SMTP_HOST=mail.zelvo.test ZELVO_SMTP_FROM=no-reply@zelvo.test; do
+              ZELVO_DEFAULT_TENANT_NAME_EN=Zelvo ZELVO_DEFAULT_TENANT_NAME_AR=زيلفو ZELVO_FIRST_ADMIN_EMAIL=it.admin@zelvo.test ZELVO_SMTP_HOST=mail.zelvo.test ZELVO_SMTP_FROM=no-reply@zelvo.test; do
             sudo sed -i "s#^${setting%%=*}=.*#${setting}#" /opt/zelvo/.env
           done
           sudo /tmp/unpacked/zelvo-0.0.1/install.sh
@@ -239,6 +239,32 @@ jobs:
           curl -fsk https://localhost/auth/realms/zelvo-default/.well-known/openid-configuration | grep -q '"issuer":"https://localhost/auth/realms/zelvo-default"'
           test "$(curl -sk -o /dev/null -w '%{http_code}' https://localhost/auth/admin/master/console/)" = 404
           sudo docker compose --project-directory /opt/zelvo exec -T web wget -qO- http://api:8080/api/v1/system/info | grep -q '"activated":true'
+      - name: The REST API is published at /api/v1 (task M2), provider webhooks only under /hooks
+        run: |
+          curl -fsk https://localhost/api/v1/system/info | grep -q '"activated":true'
+          test "$(curl -sk -o /dev/null -w '%{http_code}' https://localhost/api/v1/incidents)" = 401
+          test "$(curl -sk -o /dev/null -w '%{http_code}' https://localhost/api/v1/hooks/whatsapp)" = 404
+          curl -sk -D - -o /dev/null https://localhost/api/v1/system/info | grep -qi '^strict-transport-security\|^cache-control: no-store'
+      - name: The first administrator chooses a password with the one-time setup link (task M2)
+        run: |
+          link=$(sudo docker compose --project-directory /opt/zelvo logs --no-log-prefix migrate | grep -o 'ZELVO-SETUP-LINK [^ "]*' | tail -n 1 | cut -d' ' -f2)
+          token=${link#*#}
+          test -n "$token"
+          curl -fsk -H 'Origin: https://localhost' -H 'Content-Type: application/json' -d "{\"token\":\"$token\"}" \
+            https://localhost/bff/api/v1/identity/account-setup/check | grep -q '"email":"it.admin@zelvo.test"'
+          password="Ci-$(openssl rand -hex 16)"
+          test "$(curl -sk -o /dev/null -w '%{http_code}' -H 'Origin: https://localhost' -H 'Content-Type: application/json' \
+            -d "{\"token\":\"$token\",\"password\":\"$password\"}" https://localhost/bff/api/v1/identity/account-setup)" = 204
+          # Used once only.
+          test "$(curl -sk -o /dev/null -w '%{http_code}' -H 'Origin: https://localhost' -H 'Content-Type: application/json' \
+            -d "{\"token\":\"$token\"}" https://localhost/bff/api/v1/identity/account-setup/check)" = 404
+      - name: A second organisation on its own host (task M2)
+        run: |
+          sudo /opt/zelvo/add-tenant.sh --slug city --name-en "City Municipality" --name-ar "بلدية المدينة" \
+            --host support.city.zelvo.test --admin admin@city.zelvo.test | tee /tmp/add-tenant.log
+          grep -q 'ZELVO-SETUP-LINK\|https://support.city.zelvo.test/en/account-setup#' /tmp/add-tenant.log
+          curl -fsk https://localhost/api/v1/platform/hosts/support.city.zelvo.test | grep -q '"tenant":"city"'
+          curl -fsk https://localhost/auth/realms/zelvo-city/.well-known/openid-configuration | grep -q '"issuer":"https://localhost/auth/realms/zelvo-city"'
       - name: Backup and point-in-time restore drill
         run: sudo scripts/backup/drill.sh /opt/zelvo
       - name: Service logs on failure

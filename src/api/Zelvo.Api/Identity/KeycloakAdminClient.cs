@@ -84,6 +84,13 @@ internal interface IKeycloakAdmin
     /// token refresh, within the access token's lifetime.
     /// </summary>
     Task SignOutAsync(string realm, string? subject, CancellationToken cancellationToken);
+
+    /// <summary>
+    /// Task M2: sets a person's password (not temporary) when they use their one-time setup link.
+    /// The realm's password policy decides: a refused password throws <see cref="KeycloakAdminException"/>
+    /// with status 400.
+    /// </summary>
+    Task SetPasswordAsync(string realm, string subject, string password, CancellationToken cancellationToken);
 }
 
 /// <summary>Which directory sign-in (task E7).</summary>
@@ -440,6 +447,12 @@ internal sealed class KeycloakAdminClient : IKeycloakAdmin
         {
             await SignOutAsync(realm, subject, cancellationToken).ConfigureAwait(false);
         }
+    }
+
+    public async Task SetPasswordAsync(string realm, string subject, string password, CancellationToken cancellationToken)
+    {
+        using var _ = await SendAsync(HttpMethod.Put, $"realms/{E(realm)}/users/{E(subject)}/reset-password",
+            new JsonObject { ["type"] = "password", ["value"] = password, ["temporary"] = false }, cancellationToken).ConfigureAwait(false);
     }
 
     public async Task SignOutAsync(string realm, string? subject, CancellationToken cancellationToken)
