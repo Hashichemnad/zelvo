@@ -258,11 +258,31 @@ public sealed class DemoModeTests(DatabaseFixture database) : IAsyncDisposable
         (await client.GetAsync(new Uri("/api/v1/me/push", UriKind.Relative), Ct)).EnsureSuccessStatusCode();
         var auditBefore = await AuditCountAsync(gov);
 
+        // The reset runs as a background job: the request only starts it.
         var response = await client.PostAsync(ResetUri, null, Ct);
-        var body = await response.Content.ReadFromJsonAsync<ResetBody>(Ct);
+        var started = await response.Content.ReadFromJsonAsync<ResetStatusBody>(Ct);
 
-        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
-        Assert.Equal(["demo-municipality", "demo-company"], body!.Organisations);
+        Assert.Equal(HttpStatusCode.Accepted, response.StatusCode);
+        Assert.Equal("/api/v1/demo/reset", response.Headers.Location?.OriginalString);
+        Assert.Equal("Running", started!.State);
+        Assert.True(started.Total > 2 * 30, $"Steps: {started.Total}");
+
+        // While it runs, the sample organisations wait (so nobody's first request makes them a new
+        // account), except the panel's own status, which a visitor may read as well.
+        var meDuring = await client.GetAsync(new Uri("/api/v1/me", UriKind.Relative), Ct);
+        Assert.Equal(HttpStatusCode.ServiceUnavailable, meDuring.StatusCode);
+        Assert.Equal("demo-reset-running", (await meDuring.Content.ReadFromJsonAsync<ProblemBody>(Ct))!.Code);
+        var again = await client.PostAsync(ResetUri, null, Ct);
+        Assert.Equal(HttpStatusCode.ServiceUnavailable, again.StatusCode);
+        using var visitorDuring = _demo.ForTenant(company);
+        var during = await visitorDuring.GetFromJsonAsync<ResetStatusBody>(ResetUri, Ct);
+        Assert.Equal(started.Id, during!.Id);
+
+        var body = await FollowResetAsync(client, started.Id);
+        Assert.Equal("Succeeded", body.State);
+        Assert.Equal(body.Total, body.Done);
+        Assert.Equal(100, body.Percent);
+        Assert.Equal(["demo-municipality", "demo-company"], body.Organisations);
 
         await using (var db = TestData.AppContext(database, gov))
         {
@@ -274,6 +294,10 @@ public sealed class DemoModeTests(DatabaseFixture database) : IAsyncDisposable
             Assert.True(actions.Count > auditBefore, "The audit log keeps its earlier entries and records the reset.");
             Assert.Contains("demo.reset", actions);
             Assert.Contains("demo.reset-requested", actions);
+
+            // The administrator who asked is told it finished, on their recreated record.
+            var adminNow = await db.Users.SingleAsync(u => u.Subject == admin.Subject, Ct);
+            Assert.True(await db.Notifications.AnyAsync(n => n.RecipientId == adminNow.Id && n.EventType == "demo.reset-finished", Ct));
         }
 
         await using (var db = TestData.AppContext(database, company))
@@ -388,7 +412,29 @@ public sealed class DemoModeTests(DatabaseFixture database) : IAsyncDisposable
 
     private sealed record DemoBody(string Organisation, List<OrganisationBody> Organisations, List<UserBody> Users, DateTimeOffset? LastResetAt);
 
-    private sealed record ResetBody(DateTimeOffset ResetAt, List<string> Organisations);
+    private sealed record ResetStatusBody(string State, Guid? Id, string? Organisation, string? Stage, int Done, int Total, int Percent, List<string> Organisations);
+
+    /// <summary>Follows the reset as the demo panel does, until it is no longer running.</summary>
+    private static async Task<ResetStatusBody> FollowResetAsync(HttpClient client, Guid? id)
+    {
+        // Generous: CI runners are slower than developer machines, and a reset reseeds both organisations.
+        var deadline = DateTimeOffset.UtcNow.AddMinutes(10);
+        var lastDone = -1;
+        while (true)
+        {
+            var status = (await client.GetFromJsonAsync<ResetStatusBody>(ResetUri, Ct))!;
+            Assert.Equal(id, status.Id);
+            Assert.True(status.Done >= lastDone, "Progress never goes back.");
+            lastDone = status.Done;
+            if (status.State != "Running")
+            {
+                return status;
+            }
+
+            Assert.True(DateTimeOffset.UtcNow < deadline, $"The reset is still running at step {status.Done} of {status.Total} ({status.Organisation}, {status.Stage}).");
+            await Task.Delay(TimeSpan.FromMilliseconds(500), Ct);
+        }
+    }
 
     private sealed record VerificationBody(bool Valid);
 }

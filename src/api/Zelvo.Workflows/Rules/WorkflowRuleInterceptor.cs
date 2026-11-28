@@ -55,9 +55,14 @@ public sealed class WorkflowRuleInterceptor(ITenantContext tenantContext, Pendin
         }
 
         _running = true;
+        // Changes are detected once here; looking up tracked entries for each ticket below must not
+        // detect them again every time (with many tickets in one save that grew quadratically).
+        // SaveChanges detects the rules' own changes after the interceptors ran.
+        var autoDetect = db.ChangeTracker.AutoDetectChangesEnabled;
         try
         {
             db.ChangeTracker.DetectChanges();
+            db.ChangeTracker.AutoDetectChangesEnabled = false;
             var work = Collect(db);
             if (work.Count == 0)
             {
@@ -74,6 +79,7 @@ public sealed class WorkflowRuleInterceptor(ITenantContext tenantContext, Pendin
             }
 
             var now = DateTimeOffset.UtcNow;
+            var lookups = new RuleFactLookups();
             foreach (var (ticket, trigger) in work)
             {
                 var candidates = rules.Where(r => r.Trigger == trigger && (r.RecordType is null || r.RecordType == ticket.Type)
@@ -83,7 +89,7 @@ public sealed class WorkflowRuleInterceptor(ITenantContext tenantContext, Pendin
                     continue;
                 }
 
-                var facts = await RuleFacts.LoadAsync(db, ticket, cancellationToken).ConfigureAwait(false);
+                var facts = await RuleFacts.LoadAsync(db, ticket, lookups, cancellationToken).ConfigureAwait(false);
                 foreach (var rule in candidates)
                 {
                     if (!RuleDocuments.Holds(RuleDocuments.ReadConditions(rule.Conditions), rule.Match, facts.Subject))
@@ -133,6 +139,7 @@ public sealed class WorkflowRuleInterceptor(ITenantContext tenantContext, Pendin
         }
         finally
         {
+            db.ChangeTracker.AutoDetectChangesEnabled = autoDetect;
             _running = false;
         }
     }
@@ -334,14 +341,19 @@ public sealed class WorkflowRuleInterceptor(ITenantContext tenantContext, Pendin
 public sealed record RuleFacts(RuleSubject Subject, UserAccount? Requester, Data.Localization.LocalizedText? ServiceName, Guid? ServiceId)
 {
     /// <summary>Loads the facts of <paramref name="ticket"/>.</summary>
-    public static async Task<RuleFacts> LoadAsync(ZelvoDbContext db, Ticket ticket, CancellationToken cancellationToken)
+    public static Task<RuleFacts> LoadAsync(ZelvoDbContext db, Ticket ticket, CancellationToken cancellationToken) =>
+        LoadAsync(db, ticket, new RuleFactLookups(), cancellationToken);
+
+    /// <summary>Loads the facts of <paramref name="ticket"/>, reusing what <paramref name="lookups"/> already read in this save.</summary>
+    public static async Task<RuleFacts> LoadAsync(ZelvoDbContext db, Ticket ticket, RuleFactLookups lookups, CancellationToken cancellationToken)
     {
         ArgumentNullException.ThrowIfNull(db);
         ArgumentNullException.ThrowIfNull(ticket);
+        ArgumentNullException.ThrowIfNull(lookups);
         var requester = db.ChangeTracker.Entries<UserAccount>().FirstOrDefault(e => e.Entity.Id == ticket.RequesterId)?.Entity
             ?? await db.Users.AsNoTracking().FirstOrDefaultAsync(u => u.Id == ticket.RequesterId, cancellationToken).ConfigureAwait(false);
-        var categories = await TicketRouter.AncestryAsync(db.Categories, ticket.CategoryId, cancellationToken).ConfigureAwait(false);
-        var locations = await TicketRouter.AncestryAsync(db.Locations, ticket.LocationId, cancellationToken).ConfigureAwait(false);
+        var categories = await lookups.AncestryAsync(db.Categories, ticket.CategoryId, cancellationToken).ConfigureAwait(false);
+        var locations = await lookups.AncestryAsync(db.Locations, ticket.LocationId, cancellationToken).ConfigureAwait(false);
         var priority = db.ChangeTracker.Entries<Incident>().FirstOrDefault(e => e.Entity.TicketId == ticket.Id)?.Entity.Priority
             ?? (ticket.Type == TicketType.Incident
                 ? await db.Incidents.AsNoTracking().Where(i => i.TicketId == ticket.Id).Select(i => (int?)i.Priority).FirstOrDefaultAsync(cancellationToken).ConfigureAwait(false)
@@ -382,7 +394,8 @@ public sealed record RuleFacts(RuleSubject Subject, UserAccount? Requester, Data
         }
 
         var language = requester?.PreferredLanguage is Data.Localization.LocalizedText.English or Data.Localization.LocalizedText.Arabic ? requester.PreferredLanguage : null;
-        var customerGroups = await CustomerGroupsAsync(db, requester, cancellationToken).ConfigureAwait(false);
+        var customerGroups = requester is null ? [] : lookups.CustomerGroups.TryGetValue(requester.Id, out var known) ? known
+            : lookups.CustomerGroups[requester.Id] = await CustomerGroupsAsync(db, requester, cancellationToken).ConfigureAwait(false);
         var subject = new RuleSubject(ticket.Type, ticket.State, ticket.Channel, serviceId, fee, categories, locations, priority, ticket.GroupId,
             requester?.DepartmentId, language, answers, customerGroups);
         return new RuleFacts(subject, requester, serviceName, serviceId);
@@ -410,5 +423,35 @@ public sealed record RuleFacts(RuleSubject Subject, UserAccount? Requester, Data
         }
 
         return fee["paid"]?.GetValue<bool>() == true && fee["amountAed"] is JsonValue amount && amount.TryGetValue<decimal>(out var aed) ? aed : 0m;
+    }
+}
+
+/// <summary>
+/// What loading rule facts read that is the same for many tickets of one save: the ancestry of a
+/// category or location and a requester's customer groups.
+/// </summary>
+public sealed class RuleFactLookups
+{
+    private readonly Dictionary<(Type, Guid), IReadOnlyList<Guid>> _ancestry = [];
+
+    /// <summary>Customer groups per requester.</summary>
+    internal Dictionary<Guid, IReadOnlyCollection<Guid>> CustomerGroups { get; } = [];
+
+    /// <summary>The node and the nodes above it, read once per node.</summary>
+    public async Task<IReadOnlyList<Guid>> AncestryAsync<TNode>(IQueryable<TNode> nodes, Guid? id, CancellationToken cancellationToken)
+        where TNode : TreeNode
+    {
+        if (id is not { } nodeId)
+        {
+            return [];
+        }
+
+        if (!_ancestry.TryGetValue((typeof(TNode), nodeId), out var ancestry))
+        {
+            ancestry = await TicketRouter.AncestryAsync(nodes, nodeId, cancellationToken).ConfigureAwait(false);
+            _ancestry[(typeof(TNode), nodeId)] = ancestry;
+        }
+
+        return ancestry;
     }
 }

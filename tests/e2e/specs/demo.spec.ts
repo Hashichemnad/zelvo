@@ -20,6 +20,12 @@ async function lastResetAt(tenant: string): Promise<string | null> {
   return ((await response.json()) as { lastResetAt: string | null }).lastResetAt;
 }
 
+/** The demo reset job's state (a background job since the L1 fix). */
+async function resetState(tenant: string): Promise<string> {
+  const response = await fetch(`${apiUrl}/api/v1/demo/reset`, { headers: { "X-Zelvo-Tenant": tenant } });
+  return ((await response.json()) as { state: string }).state;
+}
+
 test.describe.configure({ mode: "serial" });
 
 test.describe("demo mode", () => {
@@ -70,9 +76,12 @@ test.describe("demo mode", () => {
     await expect(panel.getByText(/The audit log is kept/)).toBeVisible();
     await panel.getByRole("button", { name: "Reset now" }).click();
 
-    await expect.poll(() => lastResetAt("demo-company"), { timeout: 180_000 }).not.toBe(before);
-    // Still signed in after the reset.
-    await expect(page.getByRole("link", { name: /Fatima Al Hammadi/ })).toBeVisible();
+    // The reset runs as a background job; the panel shows its progress until it ends, then reloads.
+    await expect(panel.getByRole("progressbar", { name: "Progress of the reset" })).toBeVisible();
+    await expect.poll(() => resetState("demo-municipality"), { timeout: 180_000 }).toBe("Succeeded");
+    expect(await lastResetAt("demo-company")).not.toBe(before);
+    // Still signed in after the reset, and told it finished.
+    await expect(page.getByRole("link", { name: /Fatima Al Hammadi/ })).toBeVisible({ timeout: 30_000 });
   });
 
   test("requesters do not see the reset, and the panel opens the other sample organisation", async ({ page }) => {

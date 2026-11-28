@@ -70,7 +70,7 @@ Demo panel ──POST /auth/demo──▶ web: end Zelvo session, end Keycloak s
 
 ## Reset demo
 
-`POST /api/v1/demo/reset` needs `demo.reset` and a second factor (the demo sign-in gives one). One reset runs at a time; a second one meanwhile gets 409 `demo-reset-running`. For each sample organisation it:
+`POST /api/v1/demo/reset` needs `demo.reset` and a second factor (the demo sign-in gives one). It **starts a background job** and answers 202 at once with the job's progress (`DemoResetJobs`); the demo panel follows it with `GET /api/v1/demo/reset`. Since Phase 2 a reset reseeds two organisations with about 35 seeders each, which took longer than the browser, the web proxy or an HTTP client waits (the API test timed out after 100 seconds), so the request no longer waits for it. One reset runs at a time; the job stops only when the API shuts down, never because the person who asked went away. For each sample organisation it:
 
 1. Deletes every row of every tenant-owned table **except `audit_events`**, children before parents, in one transaction.
    - The tables come from the EF model (`ITenantOwned`), so later modules' tables are included automatically.
@@ -80,14 +80,27 @@ Demo panel ──POST /auth/demo──▶ web: end Zelvo session, end Keycloak s
 4. Gives the tenant its built-in roles again, then runs every seeder.
 5. Records `demo.reset` (Admin, system actor `demo-reset`, with the row counts and who asked) and rebuilds the search index.
 
-The request's own tenant also records `demo.reset-requested` by the user who pressed the button. The audit log keeps growing across demos, and its hash chain stays valid (tested). A reset takes seconds.
+The request's own tenant also records `demo.reset-requested` by the user who pressed the button (before the job starts). The audit log keeps growing across demos, and its hash chain stays valid (tested).
+
+**Progress.** The job counts steps: for each organisation, emptying its tables, each seeder and indexing (about 70 in all). `GET /api/v1/demo/reset` answers the state (`Idle` when no reset ran since the API started, `Running`, `Succeeded`, `Failed`), the organisation and stage (`Emptying`, `Seeding` with the seeder's key, `Indexing`), steps done, the total and a percentage. It is open to visitors: it says nothing but progress, and the panel must read it while the presenter's own account is being recreated. Demo installations run one API, so the job's state is kept in memory; after a restart the panel shows the last reset from the tenant settings.
+
+**While it runs**, the sample organisations' tables are empty or half seeded. `DemoResetGuardMiddleware` (right after the tenant is resolved, before sign-in) answers every other API request to a sample organisation with 503 `demo-reset-running` and `Retry-After: 5`, a second `POST /demo/reset` included. Without it, a signed-in person's first request while the users table is empty would create them a new requester account. `GET /api/v1/demo` and `GET /api/v1/demo/reset` are answered without the sign-in.
+
+**When it ends**, the person who asked gets `demo.reset-finished` or `demo.reset-failed` (in the app and by email, English and formal Arabic), found by their sign-in because the reset recreated their Zelvo record. A failure is logged with the error and audited `demo.reset-failed`; the panel says the reset failed and offers it again.
+
+**Demo panel.** After "Reset now" it shows a progress bar (`aria-label` "Progress of the reset"), the percentage in the person's digits and the step ("Gulf Horizon Trading: adding the sample data") in a polite live region, asking every 2 seconds; it reloads the page when the reset finished. A reset already running when the panel opens (another tab or administrator) is followed the same way.
+
+**Speed.** Seeding was also made faster (a reset took about 130 seconds on a developer machine before, about 45 after; the seeding test, one organisation on a fresh database, about 53 then 29 seconds):
+- Each seeder runs in its own scope and database context. One shared context kept every earlier seeder's rows in its change tracker, and each save's interceptors (audit, notifications, webhooks, workflow rules and the others) looked at all of them, so every seeder was slower than the one before.
+- The workflow rule interceptor (C3) detects changes once per save and turns automatic change detection off while it loads each ticket's facts; each of its tracked-entry lookups had detected changes again over the whole save, which made a save of many new tickets quadratic. It also reads a category's or location's ancestry and a requester's customer groups once per save (`RuleFactLookups`). This helps every large save, not only the demo (bulk actions, imports).
 
 ## API
 
 | Endpoint | Access | Returns |
 | --- | --- | --- |
 | `GET /api/v1/demo` | anonymous, sample tenants of a demo only | this organisation, all organisations, its demo users (persona, role, bilingual role name, name, username), last reset |
-| `POST /api/v1/demo/reset` | `demo.reset` | reset time and the organisations reset |
+| `POST /api/v1/demo/reset` | `demo.reset` | 202 and the job's progress (`Location: /api/v1/demo/reset`); 503 `demo-reset-running` while one runs |
+| `GET /api/v1/demo/reset` | anonymous, sample tenants of a demo only | the running or last reset: state, organisation, stage, seeder, steps done and in all, percentage, organisations reset |
 
 ## Running it
 
@@ -104,10 +117,10 @@ make demo-down    # stop, keep data; make demo-wipe also deletes it
   - The stub's demo kind; unknown profiles are refused; Production is still refused.
   - Nothing demo-related outside demo installations or outside sample tenants.
   - What seeding creates; seeders run once.
-  - Reset: changed settings, a visitor account and a changed demo user are restored; the audit log is kept and verifies; the presenter stays signed in.
+  - Reset: started as a job (202), other requests to the sample organisations answer 503 while it runs, its progress only grows, it ends Succeeded with every step done; changed settings, a visitor account and a changed demo user are restored; the audit log is kept and verifies; the presenter stays signed in and is notified.
   - Who may reset; the tables reset covers.
 - **Keycloak extension.** Policy and authenticator tests (`mvn verify`).
-- **Web.** Tenant choice (`tenant.test.ts`). Demo panel and reset button: forms and fields, Arabic, current user, confirmation, failure (`DemoPanel.test.tsx`).
+- **Web.** Tenant choice (`tenant.test.ts`). Demo panel and reset button: forms and fields, Arabic, current user, confirmation, the job's progress until it ends, a reset already running when the panel opens, failure (`DemoPanel.test.tsx`).
 - **End to end (`tests/e2e/specs/demo.spec.ts`, project `demo`, CI job `e2e-demo`).**
   - The panel, with axe checks in both languages.
   - One click to the agent, then to the admin, with Settings open (second factor counted).

@@ -9,6 +9,7 @@ internal static class DemoServiceCollectionExtensions
     {
         services.TryAddSingleton<DemoSeeding>();
         services.TryAddScoped<DemoReset>();
+        services.TryAddSingleton<DemoResetJobs>();
         // Task G2: the discovery seeder reconciles its sample records like a real source (also in migrate).
         services.TryAddSingleton(TimeProvider.System);
         services.TryAddScoped<Cmdb.CmdbReconciler>();

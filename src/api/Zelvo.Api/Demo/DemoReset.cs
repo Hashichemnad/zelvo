@@ -10,6 +10,22 @@ using Zelvo.Search;
 
 namespace Zelvo.Api.Demo;
 
+/// <summary>Where a reset is: which organisation, and emptying, running a seeder or indexing.</summary>
+internal sealed record DemoResetStep(string Organisation, DemoResetStage Stage, string? Seeder);
+
+/// <summary>The stages of resetting one organisation.</summary>
+internal enum DemoResetStage
+{
+    /// <summary>Emptying its tables and restoring its users and roles.</summary>
+    Emptying,
+
+    /// <summary>Running a seeder.</summary>
+    Seeding,
+
+    /// <summary>Recording the reset and rebuilding the search index.</summary>
+    Indexing,
+}
+
 /// <summary>What one sample organisation looked like after a reset.</summary>
 internal sealed record DemoOrganisationReset(string Slug, IReadOnlyDictionary<string, int> RowsDeleted, int KeycloakUsersDeleted, IReadOnlyList<string> Seeders);
 
@@ -19,7 +35,7 @@ internal sealed record DemoOrganisationReset(string Slug, IReadOnlyDictionary<st
 /// except the audit log, which is append-only and keeps growing across demos; deletes Keycloak
 /// users that are not demo users and restores the demo users; gives the tenant its built-in roles
 /// again; runs every seeder; rebuilds the search index; and records <c>demo.reset</c> in the
-/// tenant's audit log. Only one reset runs at a time.
+/// tenant's audit log. It runs as a background job (<see cref="DemoResetJobs"/>), one at a time.
 /// </summary>
 internal sealed class DemoReset(
     IServiceScopeFactory scopes,
@@ -28,35 +44,29 @@ internal sealed class DemoReset(
     IOptions<IdentityOptions> identity,
     IConfiguration configuration)
 {
-    private static readonly SemaphoreSlim Gate = new(1, 1);
+    /// <summary>Steps of one organisation besides its seeders: emptying its tables, and indexing.</summary>
+    internal const int StepsBesidesSeeders = 2;
 
-    /// <summary>Resets the demo; <see langword="null"/> when another reset is running.</summary>
-    public async Task<IReadOnlyList<DemoOrganisationReset>?> ResetAsync(string requestedBy, string requestedIn, CancellationToken cancellationToken)
+    /// <summary>
+    /// Resets every sample organisation, one after another, reporting each step to
+    /// <paramref name="progress"/>. One reset at a time is the caller's job (<see cref="DemoResetJobs"/>).
+    /// </summary>
+    public async Task<IReadOnlyList<DemoOrganisationReset>> ResetAsync(
+        string requestedBy, string requestedIn, IProgress<DemoResetStep>? progress, CancellationToken cancellationToken)
     {
-        if (!await Gate.WaitAsync(0, cancellationToken).ConfigureAwait(false))
+        var results = new List<DemoOrganisationReset>();
+        foreach (var organisation in DemoCatalog.Organisations)
         {
-            return null;
+            results.Add(await ResetOrganisationAsync(organisation, requestedBy, requestedIn, progress, cancellationToken).ConfigureAwait(false));
         }
 
-        try
-        {
-            var results = new List<DemoOrganisationReset>();
-            foreach (var organisation in DemoCatalog.Organisations)
-            {
-                results.Add(await ResetOrganisationAsync(organisation, requestedBy, requestedIn, cancellationToken).ConfigureAwait(false));
-            }
-
-            return results;
-        }
-        finally
-        {
-            Gate.Release();
-        }
+        return results;
     }
 
     private async Task<DemoOrganisationReset> ResetOrganisationAsync(
-        DemoOrganisation organisation, string requestedBy, string requestedIn, CancellationToken cancellationToken)
+        DemoOrganisation organisation, string requestedBy, string requestedIn, IProgress<DemoResetStep>? progress, CancellationToken cancellationToken)
     {
+        progress?.Report(new DemoResetStep(organisation.Slug, DemoResetStage.Emptying, null));
         var tenant = await FindTenantAsync(organisation.Slug, cancellationToken).ConfigureAwait(false)
             ?? throw new InvalidOperationException($"Sample tenant {organisation.Slug} does not exist; run migrate first.");
 
@@ -95,7 +105,10 @@ internal sealed class DemoReset(
         var appConnection = configuration.GetConnectionString("Postgres")
             ?? throw new InvalidOperationException("ConnectionStrings:Postgres is required to reset the demo.");
         await IdentityProvisioning.EnsureTenantIdentityAsync(appConnection, tenant, cancellationToken).ConfigureAwait(false);
-        var seeders = await seeding.SeedPendingAsync(organisation, tenant, cancellationToken).ConfigureAwait(false);
+        var seeders = await seeding.SeedPendingAsync(organisation, tenant, cancellationToken,
+            progress is null ? null : new SeedProgress(p => { if (p.Seeder is { } key) progress.Report(new DemoResetStep(organisation.Slug, DemoResetStage.Seeding, key)); })).ConfigureAwait(false);
+
+        progress?.Report(new DemoResetStep(organisation.Slug, DemoResetStage.Indexing, null));
 
         await using (var scope = DemoSeeding.CreateTenantScope(scopes, tenant, "demo-reset", "Reset demo"))
         {
@@ -115,6 +128,12 @@ internal sealed class DemoReset(
         }
 
         return new DemoOrganisationReset(organisation.Slug, deleted, keycloakDeleted, seeders);
+    }
+
+    // Reports at once on the reporting thread (Progress<T> would post to the thread pool, out of order).
+    private sealed class SeedProgress(Action<DemoSeedProgress> report) : IProgress<DemoSeedProgress>
+    {
+        public void Report(DemoSeedProgress value) => report(value);
     }
 
     /// <summary>Elsa tables that hold a tenant's workflow instances.</summary>

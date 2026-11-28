@@ -153,6 +153,8 @@ app.UseZelvoEnvironmentHeader();
 
 // The tenant comes first: tokens are checked against the tenant's own Keycloak realm.
 app.UseMiddleware<TenantResolutionMiddleware>();
+// Demo mode: while "Reset demo" replaces the sample data, the sample organisations wait.
+app.UseMiddleware<Zelvo.Api.Demo.DemoResetGuardMiddleware>();
 app.UseAuthentication();
 app.UseMiddleware<RateLimitingMiddleware>();
 app.UseMiddleware<AuditContextMiddleware>();

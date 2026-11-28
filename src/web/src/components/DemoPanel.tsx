@@ -1,5 +1,6 @@
 import { useLocale, useTranslations } from "next-intl";
 import type { DemoInfo, LocalizedText } from "@/lib/api";
+import type { DigitSystem } from "@/lib/format";
 import { DemoResetButton } from "./DemoResetButton";
 
 export interface DemoPanelProps {
@@ -12,6 +13,8 @@ export interface DemoPanelProps {
   canReset: boolean;
   /** When the demo was last reset, already formatted in the user's calendar and digits. */
   lastReset: string | null;
+  /** The person's digits, for the reset's progress. */
+  digits?: DigitSystem;
 }
 
 const buttonClass =
@@ -26,7 +29,7 @@ function pick(text: LocalizedText, locale: string): string {
  * ready-made demo user of a persona, or opens the other sample organisation; administrators can
  * reset the demo. Plain forms (POST /auth/demo), so it works without JavaScript and by keyboard.
  */
-export function DemoPanel({ demo, currentUsername, csrfToken, canReset, lastReset }: DemoPanelProps) {
+export function DemoPanel({ demo, currentUsername, csrfToken, canReset, lastReset, digits = "latn" }: DemoPanelProps) {
   const t = useTranslations("demo");
   const locale = useLocale();
   const organisation = demo.organisations.find((o) => o.slug === demo.organisation);
@@ -91,7 +94,13 @@ export function DemoPanel({ demo, currentUsername, csrfToken, canReset, lastRese
               </div>
             )}
             {lastReset && <p className="text-sm text-ink-muted">{t("lastReset", { date: lastReset })}</p>}
-            {canReset && csrfToken && <DemoResetButton csrfToken={csrfToken} />}
+            {canReset && csrfToken && (
+              <DemoResetButton
+                csrfToken={csrfToken}
+                digits={digits}
+                organisationNames={Object.fromEntries(demo.organisations.map((o) => [o.slug, pick(o.name, locale)]))}
+              />
+            )}
           </div>
         </div>
       </details>

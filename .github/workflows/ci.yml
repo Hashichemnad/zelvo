@@ -97,8 +97,10 @@ jobs:
           for script in agents api-latency; do
             docker run --rm -v "$PWD/tests/load:/load" -w /load grafana/k6:2.4.0 inspect -e LOAD_CREDENTIALS=/load/k6/fixtures/sample-load.json "k6/$script.js" > /dev/null
           done
-      - name: Live-connection script parses
-        run: node --check tests/load/live/live-connections.mjs
+      - name: Live-connection and CMDB provisioning scripts parse
+        run: |
+          node --check tests/load/live/live-connections.mjs
+          node --check tests/load/cmdb/provision-cmdb.mjs
       - name: End-to-end and provisioning specs type-check
         working-directory: tests/e2e
         run: |

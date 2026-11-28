@@ -1521,7 +1521,14 @@
     "resetCancel": "Cancel",
     "resetting": "Resetting…",
     "resetDone": "The demo was reset.",
-    "resetFailed": "The demo could not be reset. Try again."
+    "resetFailed": "The demo could not be reset. Try again.",
+    "resetRunning": "The demo is being reset. The sample organisations are unavailable until it ends; you will get a notification when it is done.",
+    "resetBusy": "A reset of the demo is already running.",
+    "resetProgress": "Progress of the reset",
+    "resetPercent": "{percent} % done",
+    "resetStageEmptying": "{organisation}: removing the demo's changes",
+    "resetStageSeeding": "{organisation}: adding the sample data",
+    "resetStageIndexing": "{organisation}: rebuilding the search index"
   },
   "incidents": {
     "nav": {
@@ -2699,6 +2706,8 @@
       "workflow_rule": "A workflow rule's notification",
       "malware_definitions_outdated": "Malware definitions are out of date",
       "wellbeing_enabled": "Workload balancing is now on",
+      "demo_reset_finished": "The demo was reset",
+      "demo_reset_failed": "The demo could not be reset",
       "asset_contract_expiring": "A contract or warranty ends soon",
       "asset_license_expiring": "A software licence ends soon",
       "problem_assigned": "A problem is assigned to you",
