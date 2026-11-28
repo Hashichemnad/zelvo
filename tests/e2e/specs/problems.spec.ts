@@ -6,7 +6,8 @@ import { expect, test, type Page } from "@playwright/test";
  * `make e2e-demo`), whose government entity has a problem raised from the e-services portal's
  * outage with a known error. An agent opens it from the header, reads the analysis and the
  * known error, then sees the workaround on one of its incidents in the workspace and pastes it
- * into the reply (not sent). Runs after the demo tests (project demo-problems).
+ * into the reply (not sent). Task H2: the team lead raises a problem from the sample group of similar
+ * incidents in the suggested problems. Runs after the demo tests (project demo-problems).
  */
 
 const wcag = ["wcag2a", "wcag2aa", "wcag21a", "wcag21aa", "wcag22aa"];
@@ -42,5 +43,23 @@ test.describe("Problems", () => {
     await expect(panel).toContainText("مشكلة مرتبطة");
     await panel.getByRole("button", { name: "إدراج في الرد (العربية)" }).click();
     await expect(page.getByTestId("composer-body")).toHaveValue(/التطبيق الذكي/);
+  });
+
+  // Task H2: the team lead, a problem manager, raises a problem from the suggested group of similar incidents.
+  test("a problem manager raises a problem from a suggested group of similar incidents", async ({ page, baseURL }) => {
+    await signInAs(page, "lead", baseURL ?? "http://localhost:3000");
+    await page.goto("/ar/problems");
+    await page.getByRole("link", { name: /المشكلات المقترحة/ }).click();
+    await expect(page).toHaveURL(/\/ar\/problems\/suggestions$/);
+    const card = page.getByTestId("problem-suggestion").filter({ hasText: "انحشار الورق المتكرر" });
+    await expect(card).toContainText("بلاغات متشابهة");
+    await expect(card.getByRole("listitem")).toHaveCount(6);
+    await expect(page.getByTestId("problem-suggestion").filter({ hasText: "اتجاه متصاعد" }).first()).toBeVisible();
+    expect((await new AxeBuilder({ page }).withTags(wcag).analyze()).violations).toEqual([]);
+
+    await card.getByRole("button", { name: "إنشاء المشكلة" }).click();
+    await expect(page).toHaveURL(/\/ar\/problems\/[0-9a-f-]{36}$/);
+    await expect(page.getByRole("heading", { level: 1, name: "انحشار الورق المتكرر في طابعة مركز إسعاد المتعاملين" })).toBeVisible();
+    await expect(page.getByTestId("problem-incidents").getByRole("link")).toHaveCount(6);
   });
 });

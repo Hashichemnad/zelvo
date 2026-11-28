@@ -165,3 +165,77 @@ export interface ComposeInsertDetail {
 export function insertIntoReply(detail: ComposeInsertDetail): void {
   window.dispatchEvent(new CustomEvent<ComposeInsertDetail>(composeInsertEvent, { detail }));
 }
+
+/** Task H2: why Zelvo suggests a problem. */
+export type ProblemSuggestionKind = "SimilarIncidents" | "Trend";
+export type ProblemSuggestionStatus = "Open" | "Accepted" | "Dismissed";
+export const problemSuggestionStatuses: readonly ProblemSuggestionStatus[] = ["Open", "Accepted", "Dismissed"];
+export type ProblemTrendDimension = "Category" | "ConfigurationItem" | "Service";
+
+export interface SuggestionIncident {
+  id: string;
+  number: string;
+  title: string;
+  state: TicketState;
+  priority: number | null;
+  createdAt: string;
+}
+
+/** A suggested problem (task H2): similar incidents judged by the AI, or a rising trend. */
+export interface ProblemSuggestion {
+  id: string;
+  kind: ProblemSuggestionKind;
+  status: ProblemSuggestionStatus;
+  title: string | null;
+  suggestedTitle: Bilingual;
+  reason: string | null;
+  confidence: number | null;
+  language: "en" | "ar" | null;
+  dimension: ProblemTrendDimension | null;
+  category: PathRef | null;
+  configurationItem: { id: string; number: string; name: string } | null;
+  windowStart: string;
+  windowEnd: string;
+  incidentCount: number;
+  baseline: number | null;
+  incidents: SuggestionIncident[];
+  problem: { id: string; number: string } | null;
+  decidedBy: Person | null;
+  decidedAt: string | null;
+  dismissReason: string | null;
+  etag: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface ProblemSuggestionPage {
+  items: ProblemSuggestion[];
+  page: number;
+  pageSize: number;
+  totalCount: number;
+}
+
+/** Settings → Problems → Problem detection (task H2). */
+export interface ProblemDetectionSettings {
+  similarEnabled: boolean;
+  windowDays: number;
+  minimumIncidents: number;
+  trendsEnabled: boolean;
+  trendMinimum: number;
+  trendFactor: number;
+  aiAvailable: boolean;
+  aiReason: string | null;
+}
+
+export interface ProblemDetectionRun {
+  similar: number;
+  trends: number;
+  updated: number;
+  similarSkipped: string | null;
+}
+
+/** The title a suggestion proposes for the problem, in the page's language when there is one. */
+export function suggestionTitle(s: Pick<ProblemSuggestion, "title" | "suggestedTitle">, locale: string): string {
+  const preferred = locale === "ar" ? s.suggestedTitle.ar : s.suggestedTitle.en;
+  return preferred ?? s.title ?? s.suggestedTitle.en ?? s.suggestedTitle.ar ?? "";
+}

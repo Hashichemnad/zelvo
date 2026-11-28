@@ -9754,6 +9754,180 @@ namespace Zelvo.Data.Migrations
                         });
                 });
 
+            modelBuilder.Entity("Zelvo.Data.Problems.ProblemSuggestion", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<long?>("AiCallId")
+                        .HasColumnType("bigint")
+                        .HasColumnName("ai_call_id");
+
+                    b.Property<double?>("Baseline")
+                        .HasColumnType("double precision")
+                        .HasColumnName("baseline");
+
+                    b.Property<Guid?>("CategoryId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("category_id");
+
+                    b.Property<int?>("Confidence")
+                        .HasColumnType("integer")
+                        .HasColumnName("confidence");
+
+                    b.Property<Guid?>("ConfigurationItemId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("configuration_item_id");
+
+                    b.Property<DateTimeOffset>("CreatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("created_at");
+
+                    b.Property<DateTimeOffset?>("DecidedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("decided_at");
+
+                    b.Property<Guid?>("DecidedById")
+                        .HasColumnType("uuid")
+                        .HasColumnName("decided_by_id");
+
+                    b.Property<string>("Dimension")
+                        .HasMaxLength(30)
+                        .HasColumnType("character varying(30)")
+                        .HasColumnName("dimension");
+
+                    b.Property<string>("DismissReason")
+                        .HasMaxLength(1000)
+                        .HasColumnType("character varying(1000)")
+                        .HasColumnName("dismiss_reason");
+
+                    b.Property<int>("IncidentCount")
+                        .HasColumnType("integer")
+                        .HasColumnName("incident_count");
+
+                    b.Property<string>("Kind")
+                        .IsRequired()
+                        .HasMaxLength(30)
+                        .HasColumnType("character varying(30)")
+                        .HasColumnName("kind");
+
+                    b.Property<string>("Language")
+                        .HasMaxLength(2)
+                        .HasColumnType("character varying(2)")
+                        .HasColumnName("language");
+
+                    b.Property<Guid?>("ProblemId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("problem_id");
+
+                    b.Property<string>("Reason")
+                        .HasMaxLength(1000)
+                        .HasColumnType("character varying(1000)")
+                        .HasColumnName("reason");
+
+                    b.Property<string>("Status")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("character varying(20)")
+                        .HasColumnName("status");
+
+                    b.Property<Guid>("TenantId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("tenant_id");
+
+                    b.Property<string>("Title")
+                        .HasMaxLength(300)
+                        .HasColumnType("character varying(300)")
+                        .HasColumnName("title");
+
+                    b.Property<DateTimeOffset>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("updated_at");
+
+                    b.Property<uint>("Version")
+                        .IsConcurrencyToken()
+                        .ValueGeneratedOnAddOrUpdate()
+                        .HasColumnType("xid")
+                        .HasColumnName("xmin");
+
+                    b.Property<DateTimeOffset>("WindowEnd")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("window_end");
+
+                    b.Property<DateTimeOffset>("WindowStart")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("window_start");
+
+                    b.HasKey("Id")
+                        .HasName("pk_problem_suggestions");
+
+                    b.HasIndex("CategoryId")
+                        .HasDatabaseName("ix_problem_suggestions_category_id");
+
+                    b.HasIndex("ConfigurationItemId")
+                        .HasDatabaseName("ix_problem_suggestions_configuration_item_id");
+
+                    b.HasIndex("DecidedById")
+                        .HasDatabaseName("ix_problem_suggestions_decided_by_id");
+
+                    b.HasIndex("ProblemId")
+                        .HasDatabaseName("ix_problem_suggestions_problem_id");
+
+                    b.HasIndex("TenantId", "Status", "CreatedAt")
+                        .HasDatabaseName("ix_problem_suggestions_tenant_id_status_created_at");
+
+                    b.HasIndex("TenantId", "Kind", "Dimension", "CategoryId", "ConfigurationItemId")
+                        .HasDatabaseName("ix_problem_suggestions_tenant_id_kind_dimension_category_id_co");
+
+                    b.ToTable("problem_suggestions", null, t =>
+                        {
+                            t.HasCheckConstraint("ck_problem_suggestions_accepted", "(status = 'Accepted') = (problem_id IS NOT NULL)");
+
+                            t.HasCheckConstraint("ck_problem_suggestions_confidence", "confidence IS NULL OR confidence BETWEEN 0 AND 100");
+
+                            t.HasCheckConstraint("ck_problem_suggestions_count", "incident_count >= 0");
+
+                            t.HasCheckConstraint("ck_problem_suggestions_dimension", "dimension IS NULL OR dimension IN ('Category', 'ConfigurationItem', 'Service')");
+
+                            t.HasCheckConstraint("ck_problem_suggestions_dismissed", "status <> 'Dismissed' OR length(btrim(dismiss_reason)) > 0");
+
+                            t.HasCheckConstraint("ck_problem_suggestions_kind", "kind IN ('SimilarIncidents', 'Trend')");
+
+                            t.HasCheckConstraint("ck_problem_suggestions_language", "language IS NULL OR language IN ('en', 'ar')");
+
+                            t.HasCheckConstraint("ck_problem_suggestions_status", "status IN ('Open', 'Accepted', 'Dismissed', 'NotConfirmed')");
+
+                            t.HasCheckConstraint("ck_problem_suggestions_trend", "(kind = 'Trend') = (dimension IS NOT NULL)");
+                        });
+                });
+
+            modelBuilder.Entity("Zelvo.Data.Problems.ProblemSuggestionIncident", b =>
+                {
+                    b.Property<Guid>("SuggestionId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("suggestion_id");
+
+                    b.Property<Guid>("IncidentId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("incident_id");
+
+                    b.Property<Guid>("TenantId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("tenant_id");
+
+                    b.HasKey("SuggestionId", "IncidentId")
+                        .HasName("pk_problem_suggestion_incidents");
+
+                    b.HasIndex("IncidentId")
+                        .HasDatabaseName("ix_problem_suggestion_incidents_incident_id");
+
+                    b.HasIndex("TenantId", "IncidentId")
+                        .HasDatabaseName("ix_problem_suggestion_incidents_tenant_id_incident_id");
+
+                    b.ToTable("problem_suggestion_incidents", (string)null);
+                });
+
             modelBuilder.Entity("Zelvo.Data.Records.CustomRecord", b =>
                 {
                     b.Property<Guid>("TicketId")
@@ -15132,6 +15306,64 @@ namespace Zelvo.Data.Migrations
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired()
                         .HasConstraintName("fk_problems_tickets_ticket_id");
+                });
+
+            modelBuilder.Entity("Zelvo.Data.Problems.ProblemSuggestion", b =>
+                {
+                    b.HasOne("Zelvo.Data.Directory.Category", null)
+                        .WithMany()
+                        .HasForeignKey("CategoryId")
+                        .OnDelete(DeleteBehavior.SetNull)
+                        .HasConstraintName("fk_problem_suggestions_categories_category_id");
+
+                    b.HasOne("Zelvo.Data.Cmdb.ConfigurationItem", null)
+                        .WithMany()
+                        .HasForeignKey("ConfigurationItemId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .HasConstraintName("fk_problem_suggestions_configuration_items_configuration_item_");
+
+                    b.HasOne("Zelvo.Data.Identity.UserAccount", null)
+                        .WithMany()
+                        .HasForeignKey("DecidedById")
+                        .OnDelete(DeleteBehavior.SetNull)
+                        .HasConstraintName("fk_problem_suggestions_users_decided_by_id");
+
+                    b.HasOne("Zelvo.Data.Tickets.Ticket", null)
+                        .WithMany()
+                        .HasForeignKey("ProblemId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .HasConstraintName("fk_problem_suggestions_tickets_problem_id");
+
+                    b.HasOne("Zelvo.Data.Tenancy.Tenant", null)
+                        .WithMany()
+                        .HasForeignKey("TenantId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired()
+                        .HasConstraintName("fk_problem_suggestions_tenants_tenant_id");
+                });
+
+            modelBuilder.Entity("Zelvo.Data.Problems.ProblemSuggestionIncident", b =>
+                {
+                    b.HasOne("Zelvo.Data.Tickets.Ticket", null)
+                        .WithMany()
+                        .HasForeignKey("IncidentId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired()
+                        .HasConstraintName("fk_problem_suggestion_incidents_tickets_incident_id");
+
+                    b.HasOne("Zelvo.Data.Problems.ProblemSuggestion", null)
+                        .WithMany()
+                        .HasForeignKey("SuggestionId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired()
+                        .HasConstraintName("fk_problem_suggestion_incidents_problem_suggestions_suggestion");
+
+                    b.HasOne("Zelvo.Data.Tenancy.Tenant", null)
+                        .WithMany()
+                        .HasForeignKey("TenantId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired()
+                        .HasConstraintName("fk_problem_suggestion_incidents_tenants_tenant_id");
                 });
 
             modelBuilder.Entity("Zelvo.Data.Records.CustomRecord", b =>
