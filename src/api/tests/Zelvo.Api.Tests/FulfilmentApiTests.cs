@@ -108,7 +108,10 @@ public sealed class FulfilmentApiTests(DatabaseFixture database) : IAsyncDisposa
         Assert.Equal(60, (int?)Clock(dubaiView, "Response")["targetMinutes"]);
         var created = DateTimeOffset.Parse((string)dubaiView["createdAt"]!, System.Globalization.CultureInfo.InvariantCulture);
         var due = new DateTimeOffset(created.UtcDateTime.Date.AddDays(3), TimeSpan.Zero);
-        Assert.Equal((int)Math.Ceiling((due - created).TotalSeconds / 60), (int?)Clock(dubaiView, "Resolution")["targetMinutes"]);
+        // The server works the target out from its own clock a moment after createdAt, so a minute
+        // boundary between the two makes it one minute shorter.
+        var expectedMinutes = (int)Math.Ceiling((due - created).TotalSeconds / 60);
+        Assert.InRange((int)Clock(dubaiView, "Resolution")["targetMinutes"]!, expectedMinutes - 1, expectedMinutes);
         Assert.Null(Clock(dubaiView, "Resolution")["policy"]);
 
         await using var db = TestData.AppContext(database, tenant);

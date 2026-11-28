@@ -63,7 +63,7 @@ internal static class PortalEndpoints
                 // Only the caller's own tickets: their user reader, not the roles staff search with.
                 var hits = await search.SearchAsync(new SearchQuery(q, TicketTypes, [SearchReaders.User(me.Id)], null, 1, HitsPerGroup * 2), cancellationToken);
                 var ids = hits.Items.Select(h => Guid.TryParse(h.Id, out var id) ? id : Guid.Empty).Where(id => id != Guid.Empty).ToList();
-                var rows = await db.Tickets.AsNoTracking().Include(t => t.Voice).Where(t => ids.Contains(t.Id) && t.RequesterId == me.Id && t.Type != TicketType.Problem).ToListAsync(cancellationToken);
+                var rows = await db.Tickets.AsNoTracking().Include(t => t.Voice).Where(t => ids.Contains(t.Id) && t.RequesterId == me.Id && t.Type != TicketType.Problem && t.Type != TicketType.Change).ToListAsync(cancellationToken);
                 var context = await PortalTicketContext.LoadAsync(db, rows, cancellationToken);
                 // In the order search ranked them; open ones first.
                 tickets = [.. ids.Select(id => rows.FirstOrDefault(r => r.Id == id)).OfType<Ticket>()
@@ -89,7 +89,7 @@ internal static class PortalEndpoints
         var tickets = db.Tickets.AsNoTracking().Include(t => t.Voice)
             .Where(t => t.RequesterId == me && !(t.Type == TicketType.ServiceRequest && t.ParentId != null)
                 // Task H1: a problem's requester is the staff member who raised it; problems are not their own requests.
-                && t.Type != TicketType.Problem);
+                && t.Type != TicketType.Problem && t.Type != TicketType.Change);
         if (query.Open == true)
         {
             tickets = tickets.Where(t => t.State != TicketState.Resolved && t.State != TicketState.Closed);

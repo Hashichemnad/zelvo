@@ -87,7 +87,7 @@ internal static class ProblemEndpoints
             .WithSummary("Unlink a knowledge article. Needs problems.edit; audited.")
             .RequirePermission(Permissions.ProblemsEdit).Produces(StatusCodes.Status204NoContent);
         problems.MapGet("/{id:guid}/timeline", TimelineAsync).WithName("GetProblemTimeline")
-            .WithSummary("The timeline of the problem and its linked incidents (raised, linked, resolved, closed; the known error), oldest first. Changes join it with task H3. Needs problems.read.")
+            .WithSummary("The timeline of the problem, its linked incidents (raised, linked, resolved, closed; the known error) and the changes that fix it (raised, linked, scheduled, implemented, closed), oldest first. Needs problems.read.")
             .RequirePermission(Permissions.ProblemsRead).Produces<IReadOnlyList<TimelineEntryResponse>>();
 
         group.MapGet("/incidents/{id:guid}/problems", ProblemsOfIncidentAsync).WithName("ListIncidentProblems").WithTags("Problems").RequireTenant()
@@ -705,6 +705,30 @@ internal static class ProblemEndpoints
             entries.Add(new(link.Ticket.CreatedAt, "incident.created", incident));
             entries.Add(new(link.LinkedAt, "incident.linked", incident));
             AddEnds(entries, link.Ticket, incident, "incident");
+        }
+
+        // Task H3: the changes that fix the problem.
+        var changes = await db.ChangeLinks.AsNoTracking().Where(l => l.TicketId == id && l.Kind == Data.Changes.ChangeLinkKind.Fixes)
+            .Join(db.Tickets.AsNoTracking().Include(t => t.Change), l => l.ChangeId, t => t.Id, (l, t) => new { l.LinkedAt, Ticket = t }).ToListAsync(cancellationToken);
+        foreach (var link in changes)
+        {
+            var change = new TimelineTicket(link.Ticket.Id, link.Ticket.Number, link.Ticket.Type, link.Ticket.Title);
+            entries.Add(new(link.Ticket.CreatedAt, "change.created", change));
+            entries.Add(new(link.LinkedAt, "change.linked", change));
+            if (link.Ticket.Change?.ApprovedAt is { } approved)
+            {
+                entries.Add(new(approved, "change.scheduled", change));
+            }
+
+            if (link.Ticket.Change?.ActualEnd is { } implemented)
+            {
+                entries.Add(new(implemented, "change.implemented", change));
+            }
+
+            if (link.Ticket.ClosedAt is { } closed)
+            {
+                entries.Add(new(closed, "change.closed", change, link.Ticket.Change?.Closure?.ToString()));
+            }
         }
 
         return TypedResults.Ok(entries.OrderBy(e => e.At).ThenBy(e => e.Kind, StringComparer.Ordinal).ToList());

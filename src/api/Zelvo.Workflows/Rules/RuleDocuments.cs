@@ -254,6 +254,18 @@ public enum ApproverKind
 
     /// <summary>The person chosen in a user-picker answer of the form.</summary>
     AnswerUser,
+
+    /// <summary>Everyone whose roles grant a permission (<see cref="ApproverRef.Key"/>), for example the change managers (task H3).</summary>
+    Permission,
+
+    /// <summary>
+    /// The change advisory board (task H4): its chair and deputy chair, who record the board's
+    /// decision in a meeting (decision 8); the change managers while the board has no chair.
+    /// </summary>
+    ChangeBoard,
+
+    /// <summary>The emergency board's members (task H4), who decide without a meeting; board members while it has none.</summary>
+    EmergencyBoard,
 }
 
 /// <summary>An approver of a level.</summary>
@@ -265,7 +277,7 @@ public sealed record ApproverRef
     /// <summary>The user or group.</summary>
     public Guid? Id { get; init; }
 
-    /// <summary>The role key, or the form field key.</summary>
+    /// <summary>The role key, the form field key, or the permission key.</summary>
     public string? Key { get; init; }
 }
 
@@ -524,6 +536,8 @@ public static class RuleDocuments
                     ApproverKind.User or ApproverKind.Group or ApproverKind.GroupLeads => approver.Id is not null,
                     ApproverKind.Role => !string.IsNullOrWhiteSpace(approver.Key) && approver.Key.Length <= 60,
                     ApproverKind.AnswerUser => approver.Key is { Length: > 0 and <= 60 } k && k.All(char.IsAsciiLetterOrDigit),
+                    ApproverKind.Permission => approver.Key is { Length: > 0 and <= 60 } p && p.All(c => char.IsAsciiLetterLower(c) || c == '.'),
+                    ApproverKind.ChangeBoard or ApproverKind.EmergencyBoard => true,
                     _ => false,
                 };
                 if (!ok)

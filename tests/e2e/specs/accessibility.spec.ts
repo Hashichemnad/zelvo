@@ -74,16 +74,22 @@ const pages: Record<Persona, Target[]> = {
     { from: "/assets", link: /\/assets\/[0-9a-f-]{36}$/, name: "/assets/[id]" },
     // Task H1: problems, one with its analysis and known error, and the known error database.
     { from: "/problems", link: /\/problems\/[0-9a-f-]{36}$/, name: "/problems/[id]" },
+    // Task H3: changes, the calendar, raising a change and one change with its plans, risk and tasks.
+    "/changes", "/changes/new", "/changes/calendar",
+    { from: "/changes", link: /\/changes\/[0-9a-f-]{36}$/, name: "/changes/[id]" },
     // Task K2: the demo's facilities record type and one of its records.
     { from: "/records/facilities", link: /\/records\/facilities\/[0-9a-f-]{36}$/, name: "/records/[type]/[id]" }],
-  lead: ["/knowledge/review", "/reports", "/reports/agents", "/settings/canned-responses"],
+  // Task H2: the problem managers' queue of suggested problems (team leads are problem managers).
+  lead: ["/knowledge/review", "/reports", "/reports/agents", "/settings/canned-responses", "/problems/suggestions",
+    // Task H4: the change advisory board and its planned meeting (the team lead chairs it).
+    "/changes/board", { from: "/changes/board", link: /\/changes\/board\/[0-9a-f-]{36}$/, name: "/changes/board/[id]" }],
   // Detail pages marked optional depend on sample data the demo may not have at that moment
   // (an approval waiting for this approver, a webhook, a paid receipt); they are listed as skipped.
   approver: ["/approvals", { from: "/approvals", link: /\/approvals\/[0-9a-f-]{36}$/, name: "/approvals/[id]", optional: true }],
   admin: ["/settings", "/setup", "/privacy-requests", "/payments", "/reports/schedules", "/reports/schedules/new", "/cmdb/new", "/cmdb/review", "/assets/new",
     "/settings/ai", "/settings/ai/features", "/settings/ai/log", "/settings/ai/mcp", "/settings/ai/mcp-servers", "/settings/ai/prices",
     "/settings/ai/usage", "/settings/assignment", "/settings/attachments", "/settings/branding", "/settings/business-calendars",
-    "/settings/assets", "/settings/catalog", "/settings/categories", "/settings/cmdb", "/settings/problems", "/settings/record-types", "/settings/apps", "/settings/apps/hr", "/settings/data-lists", "/settings/chat", "/settings/connectors", "/settings/customer-groups",
+    "/settings/assets", "/settings/catalog", "/settings/categories", "/settings/cmdb", "/settings/problems", "/settings/changes", "/settings/record-types", "/settings/apps", "/settings/apps/hr", "/settings/data-lists", "/settings/chat", "/settings/connectors", "/settings/customer-groups",
     "/settings/customer-voice", "/settings/departments", "/settings/field-sets", "/settings/forms", "/settings/groups",
     "/settings/import-export", "/settings/incidents", "/settings/integrations", "/settings/integrations/log",
     "/settings/integrations/webhooks", "/settings/knowledge", "/settings/language", "/settings/license", "/settings/locations",

@@ -37,6 +37,7 @@ export async function SiteHeader() {
   const tAssets = await getTranslations("assets");
   const tWellbeing = await getTranslations("wellbeing");
   const tProblems = await getTranslations("problems");
+  const tChanges = await getTranslations("changes");
   const tRecords = await getTranslations("records");
   const config = await getRequestAuthConfig();
   const locale = await getLocale();
@@ -186,6 +187,14 @@ export async function SiteHeader() {
                     <li>
                       <Link href="/problems" className="text-brand underline-offset-4 hover:underline" data-testid="nav-problems">
                         {tProblems("nav")}
+                      </Link>
+                    </li>
+                  )}
+                  {/* Task H3: change management. */}
+                  {user.permissions.includes("changes.read") && (
+                    <li>
+                      <Link href="/changes" className="text-brand underline-offset-4 hover:underline" data-testid="nav-changes">
+                        {tChanges("nav")}
                       </Link>
                     </li>
                   )}

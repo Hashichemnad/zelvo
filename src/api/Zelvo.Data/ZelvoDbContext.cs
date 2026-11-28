@@ -462,6 +462,7 @@ public sealed partial class ZelvoDbContext(DbContextOptions<ZelvoDbContext> opti
         ConfigureConnectors(modelBuilder);
         ConfigureCmdb(modelBuilder);
         ConfigureProblems(modelBuilder);
+        ConfigureChanges(modelBuilder);
         ConfigureRecords(modelBuilder);
         ConfigureApps(modelBuilder);
 
@@ -930,6 +931,7 @@ public sealed partial class ZelvoDbContext(DbContextOptions<ZelvoDbContext> opti
             ticket.HasOne(t => t.Incident).WithOne().HasForeignKey<Incident>(i => i.TicketId).OnDelete(DeleteBehavior.Cascade);
             ticket.HasOne(t => t.Voice).WithOne().HasForeignKey<Voice.CustomerVoiceRecord>(v => v.TicketId).OnDelete(DeleteBehavior.Cascade);
             ticket.HasOne(t => t.Problem).WithOne().HasForeignKey<Problems.ProblemRecord>(p => p.TicketId).OnDelete(DeleteBehavior.Cascade);
+            ticket.HasOne(t => t.Change).WithOne().HasForeignKey<Changes.ChangeRecord>(c => c.TicketId).OnDelete(DeleteBehavior.Cascade);
             // Task K2: custom records of one type share a series; tickets of other types have no record type.
             ticket.HasOne(t => t.Custom).WithOne().HasForeignKey<Records.CustomRecord>(r => r.TicketId).OnDelete(DeleteBehavior.Cascade);
             ticket.HasOne<Records.RecordType>().WithMany().HasForeignKey(t => t.RecordTypeId).OnDelete(DeleteBehavior.Restrict);

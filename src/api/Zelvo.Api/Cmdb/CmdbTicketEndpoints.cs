@@ -25,6 +25,8 @@ internal static class CmdbTicketEndpoints
         new("service-requests", "Service requests", TicketType.ServiceRequest, Permissions.RequestsRead, Permissions.RequestsEdit),
         // Task H1: configuration items a problem is about.
         new("problems", "Problems", TicketType.Problem, Permissions.ProblemsRead, Permissions.ProblemsEdit),
+        // Task H3: the configuration items a change affects.
+        new("changes", "Changes", TicketType.Change, Permissions.ChangesRead, Permissions.ChangesEdit),
     ];
 
     public static RouteGroupBuilder MapCmdbTicketEndpoints(this RouteGroupBuilder group)
@@ -80,6 +82,11 @@ internal static class CmdbTicketEndpoints
         if (user.Has(Permissions.ProblemsRead))
         {
             types.Add(TicketType.Problem);
+        }
+
+        if (user.Has(Permissions.ChangesRead))
+        {
+            types.Add(TicketType.Change);
         }
 
         return types;

@@ -18,7 +18,11 @@ namespace Zelvo.Workflows.Approvals;
 /// Nobody named by the level could be asked (for example the requester has no manager), so the
 /// tenant's workflow administrators were asked instead.
 /// </param>
-public sealed record PlannedLevel(LocalizedText Name, ApprovalMode Mode, IReadOnlyList<Guid> ApproverIds, bool Fallback);
+/// <param name="Board">
+/// Task H4: <c>Advisory</c> when the level is the change advisory board (decided in a meeting by its
+/// chair), <c>Emergency</c> for the emergency board; <see langword="null"/> otherwise.
+/// </param>
+public sealed record PlannedLevel(LocalizedText Name, ApprovalMode Mode, IReadOnlyList<Guid> ApproverIds, bool Fallback, string? Board = null);
 
 /// <summary>
 /// Plans approval processes (task C3): the service's levels for the stage, then the levels of
@@ -31,6 +35,12 @@ public static class ApprovalPlanner
 {
     /// <summary>The permission whose holders approve when a level names nobody who can (<c>workflows.manage</c>).</summary>
     public const string FallbackPermission = "workflows.manage";
+
+    /// <summary>Task H4: who decides for the change advisory board while it has no chair (<c>changes.manage</c>).</summary>
+    public const string ChangeManagerPermission = "changes.manage";
+
+    /// <summary>Task H4: who decides emergency changes while the emergency board has no members (<c>changes.approve</c>).</summary>
+    public const string BoardMemberPermission = "changes.approve";
 
     private static readonly JsonSerializerOptions Json = new(JsonSerializerDefaults.Web) { Converters = { new JsonStringEnumConverter() } };
 
@@ -72,6 +82,10 @@ public static class ApprovalPlanner
                 people.AddRange(await ApproversAsync(db, approver, facts, cancellationToken).ConfigureAwait(false));
             }
 
+            // Task H4: a level naming a board is that board's.
+            var board = level.Approvers.Any(a => a.Kind == ApproverKind.ChangeBoard) ? nameof(Data.Changes.ChangeBoardKind.Advisory)
+                : level.Approvers.Any(a => a.Kind == ApproverKind.EmergencyBoard) ? nameof(Data.Changes.ChangeBoardKind.Emergency) : null;
+
             people = [.. people.Distinct().Where(p => p != ticket.RequesterId)];
             var usedFallback = false;
             if (people.Count == 0)
@@ -83,7 +97,7 @@ public static class ApprovalPlanner
 
             if (people.Count > 0)
             {
-                planned.Add(new PlannedLevel(level.Name, level.Mode, people, usedFallback));
+                planned.Add(new PlannedLevel(level.Name, level.Mode, people, usedFallback, board));
             }
         }
 
@@ -123,6 +137,20 @@ public static class ApprovalPlanner
                     _ => new List<Guid>(),
                 };
                 return await active.Where(u => picked.Contains(u.Id)).Select(u => u.Id).ToListAsync(cancellationToken).ConfigureAwait(false);
+            case ApproverKind.Permission when approver.Key is { } permission:
+                return await active.Where(u => u.Roles.Any(r => db.RoleGrants.Any(g => g.RoleId == r.RoleId && g.Permission == permission)))
+                    .Select(u => u.Id).ToListAsync(cancellationToken).ConfigureAwait(false);
+            case ApproverKind.ChangeBoard:
+                var advisory = await db.ChangeBoards.AsNoTracking().Where(b => b.Kind == Data.Changes.ChangeBoardKind.Advisory)
+                    .Select(b => new { b.ChairId, b.DeputyChairId }).FirstOrDefaultAsync(cancellationToken).ConfigureAwait(false);
+                var chairs = new[] { advisory?.ChairId, advisory?.DeputyChairId }.OfType<Guid>().ToList();
+                var found = await active.Where(u => chairs.Contains(u.Id)).Select(u => u.Id).ToListAsync(cancellationToken).ConfigureAwait(false);
+                return found.Count > 0 ? found : await ApproversAsync(db, new ApproverRef { Kind = ApproverKind.Permission, Key = ChangeManagerPermission }, facts, cancellationToken).ConfigureAwait(false);
+            case ApproverKind.EmergencyBoard:
+                var members = await db.ChangeBoardMembers.AsNoTracking()
+                    .Where(m => db.ChangeBoards.Any(b => b.Id == m.BoardId && b.Kind == Data.Changes.ChangeBoardKind.Emergency) && db.Users.Any(u => u.Id == m.UserId && u.Status == UserStatus.Active))
+                    .Select(m => m.UserId).ToListAsync(cancellationToken).ConfigureAwait(false);
+                return members.Count > 0 ? members : await ApproversAsync(db, new ApproverRef { Kind = ApproverKind.Permission, Key = BoardMemberPermission }, facts, cancellationToken).ConfigureAwait(false);
             default:
                 return [];
         }

@@ -1,7 +1,7 @@
 // Development AI provider mock (Compose only). Speaks the OpenAI Chat Completions API, so
 // Settings → AI can be tried and the end-to-end tests can run without a real provider or key:
 // add an "OpenAI-compatible" provider with the endpoint http://ai-mock:8097/v1. It answers
-// connection tests with "OK", the AI features of task E5 and the K1 rule builder (recognised by the "Task: …" line of
+// connection tests with "OK", the AI features of task E5, the K1 rule builder, H2 problem detection and the H5 what-if explanation (recognised by the "Task: …" line of
 // their instructions) with fixed answers of the shape each one needs, and anything else with a
 // fixed sentence; counts tokens roughly, and records what it received (GET /received) so tests can
 // check that personal data was masked. Never part of an installation.
@@ -72,6 +72,14 @@ function featureAnswer(system, prompt) {
         handover,
       });
     }
+    case "changeWhatIf": {
+      // Task H5: a short explanation of the simulation in the language asked for, from its figures.
+      const people = /People affected: (\d+)/.exec(block("blast"))?.[1] ?? "0";
+      const level = /Predicted risk: (\w+)/.exec(block("predicted"))?.[1] ?? "Low";
+      return /Arabic/.test(block("language"))
+        ? `قد يمسّ هذا التغيير ${people} شخصًا من خلال الخدمات المعتمدة على العناصر التي يغيّرها. وتشير نتائج التغييرات المماثلة السابقة إلى مخاطر متوقعة بمستوى ${level}. (شرح تجريبي)`
+        : `This change could affect ${people} people through the services that depend on the items it touches. Similar past changes put its predicted risk at ${level}. (Development mock explanation.)`;
+    }
     case "ruleBuilder": {
       // Task K1: a rule from the description, picking the first listed items it mentions.
       const text = block("description");
@@ -100,6 +108,17 @@ function featureAnswer(system, prompt) {
           body: { en: "Dear {{recipient.name}}, {{requester.name}} raised {{ticket.number}}.", ar: "حضرة {{recipient.name}}، قدّم {{requester.name}} البلاغ {{ticket.number}}." },
         }] : [],
         unmapped: /hours|ساعات/i.test(text) ? ["Working hours only"] : [],
+      });
+    }
+    case "problemDetection": {
+      // Task H2: the group shares a cause; the title in the language asked for.
+      const arabicTitle = /in Arabic/.test(system);
+      return JSON.stringify({
+        related: true,
+        confidence: 78,
+        title: arabicTitle ? "أعطال متكررة بالسبب نفسه (خدمة تجريبية)" : "Recurring fault with one cause (development mock)",
+        reason: "Development mock: the incidents describe the same fault.",
+        exclude: [],
       });
     }
     case "articleDraft":

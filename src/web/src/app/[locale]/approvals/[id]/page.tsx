@@ -1,10 +1,12 @@
 import { notFound } from "next/navigation";
 import { getTranslations, setRequestLocale } from "next-intl/server";
+import { ChangeWhatIf } from "@/components/changes/ChangeWhatIf";
 import { FormAnswersView } from "@/components/forms/FormAnswersView";
 import { Localized } from "@/components/directory/common";
 import { ApprovalDecisionForm, ApprovalProcessTimeline } from "@/components/workflows/Approvals";
 import { Link } from "@/i18n/navigation";
 import { getJsonAs } from "@/lib/api";
+import type { WhatIf } from "@/lib/changes";
 import { getDisplayFormat } from "@/lib/display";
 import type { TicketFormView } from "@/lib/forms/types";
 import { isId } from "@/lib/incident-pages";
@@ -44,6 +46,13 @@ export default async function ApprovalPage({ params, searchParams }: PageProps<"
     );
   }
   const ticket = detail.approval.ticket;
+  // Task H5: approvers of a change see its what-if simulation before deciding.
+  const [whatIf, ai] = ticket.type === "Change"
+    ? await Promise.all([
+        getJsonAs<WhatIf>(`/api/v1/changes/${ticket.id}/what-if`, session.data.accessToken, tenant),
+        getJsonAs<{ available: boolean }>("/api/v1/changes/what-if/availability", session.data.accessToken, tenant),
+      ])
+    : [null, null];
   return (
     <article aria-labelledby="approval-heading" className="space-y-6">
       <Link href="/approvals" className="text-sm font-semibold text-brand underline-offset-4 hover:underline">{t("back")}</Link>
@@ -56,6 +65,11 @@ export default async function ApprovalPage({ params, searchParams }: PageProps<"
         </p>
       </header>
       {detail.description && <p className="whitespace-pre-wrap" dir="auto">{detail.description}</p>}
+      {/* Task H3: approvers of a change open it to see its plans, risk and conflicts. */}
+      {ticket.type === "Change" && (
+        <p><Link href={`/changes/${ticket.id}`} className="font-semibold text-brand underline">{t("openChange")}</Link></p>
+      )}
+      {whatIf && <ChangeWhatIf initial={whatIf} aiAvailable={ai?.available ?? false} csrfToken={session.data.csrfToken} display={display} compact />}
       {detail.form ? <FormAnswersView view={detail.form as TicketFormView} attachmentBase={`/bff/api/v1/service-requests/${ticket.id}/attachments`} /> : null}
       <ApprovalDecisionForm detail={detail} csrfToken={session.data.csrfToken} fromEmail={decision !== null}
         initialChoice={decision === "approve" ? "Approve" : decision === "reject" ? "Reject" : null} />

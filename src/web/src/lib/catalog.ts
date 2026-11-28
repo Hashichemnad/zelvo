@@ -108,6 +108,8 @@ export type RequestTaskState = "Waiting" | "Open" | "InProgress" | "Done" | "Can
 export interface RequestTask {
   id: string;
   requestId: string;
+  /** Task H3: changes have tasks too. */
+  requestType?: "ServiceRequest" | "Change";
   requestNumber: string;
   requestTitle: string;
   key: string;

@@ -113,7 +113,7 @@ public static partial class TicketNumbers
         {
             [TicketType.Incident] = "INC", [TicketType.ServiceRequest] = "REQ",
             [TicketType.Complaint] = "CMP", [TicketType.Inquiry] = "INQ", [TicketType.Suggestion] = "SUG",
-            [TicketType.Problem] = "PRB",
+            [TicketType.Problem] = "PRB", [TicketType.Change] = "CHG",
         };
 
     /// <summary>Record types with a prefix of their own in the tenant setting: every one except custom records (task K2), whose types carry theirs.</summary>

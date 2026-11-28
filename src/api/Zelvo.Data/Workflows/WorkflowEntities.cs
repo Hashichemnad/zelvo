@@ -189,6 +189,9 @@ public enum ApprovalStage
 
     /// <summary>The completed work is signed off before the request is resolved (quality or supervisor sign-off).</summary>
     AfterFulfilment,
+
+    /// <summary>A change's approval path, chosen by its type and risk level (module 17, task H3).</summary>
+    ChangeAuthorisation,
 }
 
 /// <summary>States of an approval process.</summary>

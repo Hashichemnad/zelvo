@@ -27,6 +27,7 @@ export interface SettingsSection {
     | "cmdb"
     | "assets"
     | "problems"
+    | "changes"
     | "recordTypes"
     | "apps"
     | "dataLists"
@@ -94,6 +95,8 @@ export const settingsSections: readonly SettingsSection[] = [
   { key: "assets", href: "/settings/assets", permission: "assets.manage" },
   // Task H1: the known error prefix and the fishbone template (module 16).
   { key: "problems", href: "/settings/problems", permission: "problems.manage" },
+  // Task H3: the risk questionnaire, approval paths, blackout periods and standard changes (module 17).
+  { key: "changes", href: "/settings/changes", permission: "changes.manage" },
   // Task K2: custom record types on the ticket core (module 20).
   { key: "recordTypes", href: "/settings/record-types", permission: "recordtypes.manage" },
   // Task K3: the low-code app builder and data lists (module 20).

@@ -30,17 +30,17 @@ internal static class RequestTaskEndpoints
     {
         var tasks = group.MapGroup("/request-tasks").WithTags("Service requests").RequireTenant();
         tasks.MapGet("/", ListAsync).WithName("ListRequestTasks")
-            .WithSummary("Open and in-progress tasks (state= for others): assignee=me (default) or none, group=mine or a group id, overdue=true. Needs requests.read.")
-            .RequirePermission(Permissions.RequestsRead).Produces<PageResult<RequestTaskResponse>>();
+            .WithSummary("Open and in-progress tasks of service requests (requests.read) and changes (changes.read, task H3) (state= for others): assignee=me (default) or none, group=mine or a group id, overdue=true.")
+            .RequireAuthorization().Produces<PageResult<RequestTaskResponse>>();
         tasks.MapPost("/{id:guid}/start", StartAsync).WithName("StartRequestTask")
-            .WithSummary("Start an open task; it is assigned to the caller when nobody has it. Its assignee or members of its group, with requests.edit; audited.")
-            .RequirePerson().RequirePermission(Permissions.RequestsEdit).Produces<RequestTaskResponse>();
+            .WithSummary("Start an open task; it is assigned to the caller when nobody has it. Its assignee or members of its group, with requests.edit (changes.edit for a change's tasks); audited.")
+            .RequirePerson().RequireAuthorization().Produces<RequestTaskResponse>();
         tasks.MapPost("/{id:guid}/complete", CompleteAsync).WithName("CompleteRequestTask")
-            .WithSummary("Mark an open or started task done, with notes. Opens the next stage, or resolves the request when every task is done (its sign-off first, if any). Needs requests.edit; audited.")
-            .RequirePerson().RequirePermission(Permissions.RequestsEdit).Produces<RequestTaskResponse>().ProducesValidationProblem();
+            .WithSummary("Mark an open or started task done, with notes. Opens the next stage, or resolves the request when every task is done (its sign-off first, if any; a change is marked implemented by a person). Needs requests.edit (changes.edit for a change's tasks); audited.")
+            .RequirePerson().RequireAuthorization().Produces<RequestTaskResponse>().ProducesValidationProblem();
         tasks.MapPut("/{id:guid}/assignment", AssignAsync).WithName("AssignRequestTask")
-            .WithSummary("Give a task to a member of its group (null: nobody). Holders of requests.assign, or the group's team leads; audited.")
-            .RequirePerson().RequirePermission(Permissions.RequestsEdit).Produces<RequestTaskResponse>().ProducesValidationProblem();
+            .WithSummary("Give a task to a member of its group (null: nobody). Holders of requests.assign (changes.manage for a change's tasks), or the group's team leads; audited.")
+            .RequirePerson().RequireAuthorization().Produces<RequestTaskResponse>().ProducesValidationProblem();
         group.MapGet("/service-requests/{id:guid}/tasks", ForRequestAsync).WithName("ListServiceRequestTasks").WithTags("Service requests").RequireTenant()
             .WithSummary("The request's tasks in order, with their stage, group, assignee, state and due time. Needs requests.read.")
             .RequirePermission(Permissions.RequestsRead).Produces<IReadOnlyList<RequestTaskResponse>>();
@@ -51,7 +51,13 @@ internal static class RequestTaskEndpoints
         [AsParameters] PageQuery page, [AsParameters] RequestTaskListQuery query, ZelvoDbContext db, CurrentUser user, CancellationToken cancellationToken)
     {
         var me = user.Account?.Id;
-        var tasks = db.RequestTasks.AsNoTracking();
+        var types = ReadableTypes(user);
+        if (types.Count == 0)
+        {
+            return ApiProblem.Create(StatusCodes.Status403Forbidden, "forbidden", "You do not have permission to do this.");
+        }
+
+        var tasks = db.RequestTasks.AsNoTracking().Where(t => db.Tickets.Any(k => k.Id == t.TicketId && types.Contains(k.Type)));
         tasks = query.State is { } state
             ? tasks.Where(t => t.State == state)
             : tasks.Where(t => t.State == RequestTaskState.Open || t.State == RequestTaskState.InProgress);
@@ -104,7 +110,7 @@ internal static class RequestTaskEndpoints
         }
 
         var me = user.Account!.Id;
-        if (!await MayWorkOnAsync(db, user, task!, cancellationToken))
+        if (!user.Has(EditPermission(ticket!)) || !await MayWorkOnAsync(db, user, task!, cancellationToken))
         {
             return ApiProblem.Create(StatusCodes.Status403Forbidden, "forbidden", "Only members of the task's group work on it.");
         }
@@ -120,7 +126,15 @@ internal static class RequestTaskEndpoints
         task.AssigneeId ??= me;
 
         // Starting work on a task is starting work on the request (it stops the ownership clock).
-        if (ticket!.AssigneeId is null && ticket.GroupId is { } group && await db.SupportGroupMembers.AnyAsync(m => m.GroupId == group && m.UserId == me, cancellationToken))
+        // Task H3: a change is already being implemented when its tasks are open.
+        if (ticket!.Type == TicketType.Change)
+        {
+            await db.SaveChangesAsync(cancellationToken);
+            await transaction.CommitAsync(cancellationToken);
+            return TypedResults.Ok((await ResponsesAsync(db, user, [task], cancellationToken)).Single());
+        }
+
+        if (ticket.AssigneeId is null && ticket.GroupId is { } group && await db.SupportGroupMembers.AnyAsync(m => m.GroupId == group && m.UserId == me, cancellationToken))
         {
             TicketWorkflow.Assign(ticket, me, now);
         }
@@ -148,7 +162,7 @@ internal static class RequestTaskEndpoints
             return problem;
         }
 
-        if (!await MayWorkOnAsync(db, user, task!, cancellationToken))
+        if (!user.Has(EditPermission(ticket!)) || !await MayWorkOnAsync(db, user, task!, cancellationToken))
         {
             return ApiProblem.Create(StatusCodes.Status403Forbidden, "forbidden", "Only members of the task's group work on it.");
         }
@@ -181,7 +195,7 @@ internal static class RequestTaskEndpoints
     internal static async Task<IResult> AssignAsync(Guid id, AssignTaskRequest request, ZelvoDbContext db, CurrentUser user, CancellationToken cancellationToken)
     {
         await using var transaction = await db.Database.BeginTransactionAsync(cancellationToken);
-        var (task, _, problem) = await LockAsync(db, id, cancellationToken);
+        var (task, ticket, problem) = await LockAsync(db, id, cancellationToken);
         if (problem is not null)
         {
             return problem;
@@ -189,7 +203,7 @@ internal static class RequestTaskEndpoints
 
         var me = user.Account!.Id;
         var lead = task!.GroupId is { } g && await db.SupportGroupMembers.AnyAsync(m => m.GroupId == g && m.UserId == me && m.IsLead, cancellationToken);
-        if (!user.Has(Permissions.RequestsAssign) && !lead)
+        if (!user.Has(EditPermission(ticket!)) || (!user.Has(AssignPermission(ticket!)) && !lead))
         {
             return ApiProblem.Create(StatusCodes.Status403Forbidden, "forbidden", "Only team leads of the task's group or holders of requests.assign give tasks to people.");
         }
@@ -212,6 +226,27 @@ internal static class RequestTaskEndpoints
     }
 
     // ---- helpers ----
+
+    /// <summary>The record types whose tasks the caller sees: service requests and changes (task H3).</summary>
+    internal static List<TicketType> ReadableTypes(CurrentUser user)
+    {
+        var types = new List<TicketType>();
+        if (user.Has(Permissions.RequestsRead))
+        {
+            types.Add(TicketType.ServiceRequest);
+        }
+
+        if (user.Has(Permissions.ChangesRead))
+        {
+            types.Add(TicketType.Change);
+        }
+
+        return types;
+    }
+
+    private static string EditPermission(Ticket ticket) => ticket.Type == TicketType.Change ? Permissions.ChangesEdit : Permissions.RequestsEdit;
+
+    private static string AssignPermission(Ticket ticket) => ticket.Type == TicketType.Change ? Permissions.ChangesManage : Permissions.RequestsAssign;
 
     /// <summary>The task and its request, with the request's row locked so that tasks finishing at the same time advance the stages once.</summary>
     private static async Task<(RequestTask? Task, Ticket? Ticket, IResult? Problem)> LockAsync(ZelvoDbContext db, Guid id, CancellationToken cancellationToken)
@@ -245,7 +280,7 @@ internal static class RequestTaskEndpoints
         return task.GroupId is { } group && await db.SupportGroupMembers.AnyAsync(m => m.GroupId == group && m.UserId == me, cancellationToken);
     }
 
-    private static async Task<List<RequestTaskResponse>> ResponsesAsync(ZelvoDbContext db, CurrentUser user, IReadOnlyList<RequestTask> tasks, CancellationToken cancellationToken)
+    internal static async Task<List<RequestTaskResponse>> ResponsesAsync(ZelvoDbContext db, CurrentUser user, IReadOnlyList<RequestTask> tasks, CancellationToken cancellationToken)
     {
         var ticketIds = tasks.Select(t => t.TicketId).Distinct().ToList();
         var tickets = await db.Tickets.AsNoTracking().Where(t => ticketIds.Contains(t.Id)).ToDictionaryAsync(t => t.Id, cancellationToken);
@@ -259,10 +294,12 @@ internal static class RequestTaskEndpoints
         return [.. tasks.Select(t =>
         {
             var ticket = tickets.GetValueOrDefault(t.TicketId);
-            var mayWork = user.Has(Permissions.RequestsEdit) && (t.AssigneeId == me || (t.GroupId is { } g && mine.Contains(g)));
-            var mayAssign = user.Has(Permissions.RequestsAssign) || (t.GroupId is { } lg && leads.Contains(lg));
+            var change = ticket?.Type == TicketType.Change;
+            var mayWork = user.Has(change ? Permissions.ChangesEdit : Permissions.RequestsEdit) && (t.AssigneeId == me || (t.GroupId is { } g && mine.Contains(g)));
+            var mayAssign = user.Has(change ? Permissions.ChangesEdit : Permissions.RequestsEdit)
+                && (user.Has(change ? Permissions.ChangesManage : Permissions.RequestsAssign) || (t.GroupId is { } lg && leads.Contains(lg)));
             return new RequestTaskResponse(
-                t.Id, t.TicketId, ticket?.Number ?? string.Empty, ticket?.Title ?? string.Empty, t.Key, LocalizedTextDto.From(t.Name), LocalizedTextDto.From(t.Description),
+                t.Id, t.TicketId, ticket?.Type ?? TicketType.ServiceRequest, ticket?.Number ?? string.Empty, ticket?.Title ?? string.Empty, t.Key, LocalizedTextDto.From(t.Name), LocalizedTextDto.From(t.Description),
                 t.Position, t.Stage, t.State,
                 t.GroupId is { } gid && groups.TryGetValue(gid, out var gname) ? NamedRef.From(gid, gname) : null,
                 t.AssigneeId is { } a ? new PersonResponse(a, names.GetValueOrDefault(a)) : null,
@@ -310,6 +347,6 @@ internal sealed class AssignTaskRequest
 
 /// <summary>A fulfilment task.</summary>
 internal sealed record RequestTaskResponse(
-    Guid Id, Guid RequestId, string RequestNumber, string RequestTitle, string Key, LocalizedTextDto Name, LocalizedTextDto Description, int Position, int Stage,
+    Guid Id, Guid RequestId, TicketType RequestType, string RequestNumber, string RequestTitle, string Key, LocalizedTextDto Name, LocalizedTextDto Description, int Position, int Stage,
     RequestTaskState State, NamedRef? Group, PersonResponse? Assignee, int? TargetMinutes, DateTimeOffset? DueAt, bool Overdue, string? Notes,
     DateTimeOffset? OpenedAt, DateTimeOffset? StartedAt, DateTimeOffset? CompletedAt, PersonResponse? CompletedBy, bool MayWork, bool MayAssign, string Etag);

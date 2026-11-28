@@ -115,11 +115,45 @@ internal static class RequestTasks
             return;
         }
 
-        var stage = 0;
-        var created = new List<RequestTask>();
-        for (var i = 0; i < card.Fulfilment.Tasks.Count; i++)
+        var created = Add(db, ticket, card.Fulfilment.Tasks, 0, 0, now);
+        await OpenStageAsync(db, created, 0, now, cancellationToken);
+    }
+
+    /// <summary>
+    /// Adds <paramref name="templates"/> as waiting tasks of <paramref name="ticket"/> after the
+    /// tasks it has (task H3: a change's tasks wait until its implementation starts).
+    /// </summary>
+    public static async Task<List<RequestTask>> AddWaitingAsync(
+        ZelvoDbContext db, Ticket ticket, IReadOnlyList<FulfilmentTask> templates, DateTimeOffset now, CancellationToken cancellationToken)
+    {
+        var last = await db.RequestTasks.Where(t => t.TicketId == ticket.Id).OrderByDescending(t => t.Position)
+            .Select(t => new { t.Position, t.Stage }).FirstOrDefaultAsync(cancellationToken);
+        return Add(db, ticket, templates, last is null ? 0 : last.Position + 1, last is null ? 0 : last.Stage + 1, now);
+    }
+
+    /// <summary>Opens the first stage that still waits (task H3: implementation of a change starts).</summary>
+    public static async Task OpenNextStageAsync(ZelvoDbContext db, Guid ticketId, DateTimeOffset now, CancellationToken cancellationToken)
+    {
+        var tasks = await db.RequestTasks.Where(t => t.TicketId == ticketId).OrderBy(t => t.Position).ToListAsync(cancellationToken);
+        if (tasks.Any(t => t.State is RequestTaskState.Open or RequestTaskState.InProgress))
         {
-            var template = card.Fulfilment.Tasks[i];
+            return;
+        }
+
+        if (tasks.Where(t => t.State == RequestTaskState.Waiting).Select(t => (int?)t.Stage).Min() is { } next)
+        {
+            await OpenStageAsync(db, tasks, next, now, cancellationToken);
+        }
+    }
+
+    private static List<RequestTask> Add(ZelvoDbContext db, Ticket ticket, IReadOnlyList<FulfilmentTask> templates, int firstPosition, int firstStage, DateTimeOffset now)
+    {
+        // Added after existing tasks: the first one joins the last stage when it runs in parallel with it.
+        var stage = firstPosition > 0 && templates.Count > 0 && templates[0].ParallelWithPrevious ? Math.Max(0, firstStage - 1) : firstStage;
+        var created = new List<RequestTask>();
+        for (var i = 0; i < templates.Count; i++)
+        {
+            var template = templates[i];
             if (i > 0 && !template.ParallelWithPrevious)
             {
                 stage++;
@@ -131,7 +165,7 @@ internal static class RequestTasks
                 Key = template.Key,
                 Name = template.Name,
                 Description = template.Description,
-                Position = i,
+                Position = firstPosition + i,
                 Stage = stage,
                 GroupId = template.GroupId ?? ticket.GroupId,
                 TargetMinutes = template.TargetMinutes,
@@ -141,7 +175,7 @@ internal static class RequestTasks
             db.RequestTasks.Add(task);
         }
 
-        await OpenStageAsync(db, created, 0, now, cancellationToken);
+        return created;
     }
 
     /// <summary>
@@ -163,7 +197,8 @@ internal static class RequestTasks
             return;
         }
 
-        if (!TicketWorkflow.IsOpen(ticket.State) || ticket.AwaitingApproval || tasks.All(t => t.State == RequestTaskState.Cancelled))
+        // Task H3: a change is marked implemented by a person once its tasks are done.
+        if (ticket.Type == TicketType.Change || !TicketWorkflow.IsOpen(ticket.State) || ticket.AwaitingApproval || tasks.All(t => t.State == RequestTaskState.Cancelled))
         {
             return;
         }

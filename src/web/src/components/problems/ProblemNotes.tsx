@@ -70,8 +70,8 @@ export function ProblemTimeline({ entries, display }: { entries: TimelineEntry[]
             return (
             <li key={i}>
               <time dateTime={e.at} className="text-sm text-ink-muted">{formatDateTime(new Date(e.at), display)}</time>{" "}
-              {e.ticket.type === "Incident" ? (
-                <Link href={`/incidents/${e.ticket.id}`} className="text-brand underline underline-offset-4">{label}</Link>
+              {e.ticket.type === "Incident" || e.ticket.type === "Change" ? (
+                <Link href={e.ticket.type === "Change" ? `/changes/${e.ticket.id}` : `/incidents/${e.ticket.id}`} className="text-brand underline underline-offset-4">{label}</Link>
               ) : (
                 <span>{label}</span>
               )}
