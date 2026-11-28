@@ -29,7 +29,7 @@ function withIntl(node: React.ReactNode, locale: "en" | "ar" = "en") {
 
 const ok = (body: unknown, status = 200) => new Response(JSON.stringify(body), { status, headers: { "content-type": "application/json" } });
 const id = () => crypto.randomUUID();
-const display = { locale: "en", calendar: "gregory", digits: "latn" } as const;
+const display = { locale: "en", calendar: "gregory", digits: "latn", timeZone: "Asia/Dubai" } as const;
 
 function incidents(count: number) {
   return Array.from({ length: count }, (_, i) => ({
