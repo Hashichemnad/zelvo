@@ -6,5 +6,22 @@
   "requesterId": "00000000-0000-7000-8000-000000000001",
   "apiKeys": [{ "id": "00000000-0000-7000-8000-000000000002", "key": "placeholder-not-a-key" }],
   "incidentIds": ["00000000-0000-7000-8000-000000000003"],
-  "sessions": [{ "cookie": "zelvo-session=placeholder", "csrf": "placeholder" }]
+  "sessions": [{ "cookie": "zelvo-session=placeholder", "csrf": "placeholder" }],
+  "problems": [{ "id": "00000000-0000-7000-8000-000000000004", "incidentIds": ["00000000-0000-7000-8000-000000000003"] }],
+  "changes": [
+    {
+      "id": "00000000-0000-7000-8000-000000000005",
+      "plannedStart": "2026-11-27T18:00:00Z",
+      "plannedEnd": "2026-11-27T21:00:00Z",
+      "configurationItemIds": ["00000000-0000-7000-8000-000000000006"]
+    }
+  ],
+  "cmdb": {
+    "sourceId": "00000000-0000-7000-8000-000000000007",
+    "key": { "id": "00000000-0000-7000-8000-000000000008", "key": "placeholder-not-a-key" },
+    "items": 1,
+    "itemIds": ["00000000-0000-7000-8000-000000000006"],
+    "impactIds": ["00000000-0000-7000-8000-000000000006"],
+    "mapIds": ["00000000-0000-7000-8000-000000000006"]
+  }
 }

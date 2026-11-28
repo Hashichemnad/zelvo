@@ -349,7 +349,7 @@ export function ConnectorForm({ connector, kind, csrfToken, groups, onSaved, onC
       )}
       <label className="flex items-center gap-2"><input type="checkbox" checked={active} onChange={(e) => setActive(e.target.checked)} />{t("fields.active")}</label>
       <div aria-live="polite">
-        {errors.length > 0 && <ul role="alert" className="list-disc ps-5 text-bad">{errors.map((e, i) => <li key={i} dir="auto">{e}</li>)}</ul>}
+        {errors.length > 0 && <ul role="alert" className="list-disc ps-5 text-bad">{errors.map((e, i) => <li key={i}><span dir="auto">{e}</span></li>)}</ul>}
         {saved && <p className="text-ok">{t("saved")}</p>}
       </div>
       <div className="flex gap-2">

@@ -1,7 +1,7 @@
 import { mkdirSync, writeFileSync } from "node:fs";
 import path from "node:path";
 import AxeBuilder from "@axe-core/playwright";
-import { expect, test, type Page } from "@playwright/test";
+import { devices, expect, test, type Page } from "@playwright/test";
 
 /**
  * Task F7: the WCAG 2.2 AA audit of every page, in English and Arabic, against the demo
@@ -60,7 +60,8 @@ const pages: Record<Persona, Target[]> = {
     { from: "/my-voice", link: /\/my-voice\/[0-9a-f-]{36}$/, name: "/my-voice/[id]" },
     { from: "/catalog", link: /\/catalog\/[0-9a-f-]{36}$/, name: "/catalog/[id]" },
     { from: "/contact", link: /\/contact\/[a-z-]+$/, name: "/contact/[type]" }],
-  agent: ["/workspace", "/incidents", "/incidents/new", "/requests", "/tasks", "/chats", "/customer-voice", "/knowledge", "/knowledge/new",
+  // Task K4: every agent's own workload figures.
+  agent: ["/account/workload", "/workspace", "/incidents", "/incidents/new", "/requests", "/tasks", "/chats", "/customer-voice", "/knowledge", "/knowledge/new",
     "/ai-approvals", "/notifications", "/cmdb", "/problems", "/problems/new", "/known-errors", "/records", "/records/facilities", "/apps/hr",
     { from: "/incidents", link: /\/incidents\/[0-9a-f-]{36}$/, name: "/incidents/[id]" },
     { from: "/requests", link: /\/requests\/[0-9a-f-]{36}$/, name: "/requests/[id]" },
@@ -80,7 +81,8 @@ const pages: Record<Persona, Target[]> = {
     // Task K2: the demo's facilities record type and one of its records.
     { from: "/records/facilities", link: /\/records\/facilities\/[0-9a-f-]{36}$/, name: "/records/[type]/[id]" }],
   // Task H2: the problem managers' queue of suggested problems (team leads are problem managers).
-  lead: ["/knowledge/review", "/reports", "/reports/agents", "/settings/canned-responses", "/problems/suggestions",
+  // Task K4: the team lead's wellbeing dashboard of the groups they lead.
+  lead: ["/knowledge/review", "/reports", "/reports/agents", "/settings/canned-responses", "/problems/suggestions", "/wellbeing",
     // Task H4: the change advisory board and its planned meeting (the team lead chairs it).
     "/changes/board", { from: "/changes/board", link: /\/changes\/board\/[0-9a-f-]{36}$/, name: "/changes/board/[id]" }],
   // Detail pages marked optional depend on sample data the demo may not have at that moment
@@ -96,7 +98,7 @@ const pages: Record<Persona, Target[]> = {
     "/settings/mailboxes", "/settings/messaging", "/settings/monitoring", "/settings/notifications",
     "/settings/notifications/deliveries", "/settings/payments", "/settings/privacy", "/settings/reports", "/settings/roles",
     "/settings/search", "/settings/sign-in", "/settings/sign-in/uae-pass", "/settings/sign-in/passkeys", "/settings/skills", "/settings/sla-policies",
-    "/settings/translations", "/settings/updates", "/settings/updates/malware-definitions", "/settings/users", "/settings/workflows",
+    "/settings/translations", "/settings/updates", "/settings/updates/malware-definitions", "/settings/users", "/settings/workflows", "/settings/wellbeing",
     { from: "/settings/users", link: /\/settings\/users\/[0-9a-f-]{36}$/, name: "/settings/users/[id]" },
     { from: "/settings/roles", link: /\/settings\/roles\/[a-z0-9-]+$/, name: "/settings/roles/[key]" },
     { from: "/settings/groups", link: /\/settings\/groups\/[0-9a-f-]{36}$/, name: "/settings/groups/[id]" },
@@ -106,6 +108,8 @@ const pages: Record<Persona, Target[]> = {
     { from: "/settings/mailboxes", link: /\/settings\/mailboxes\/[0-9a-f-]{36}$/, name: "/settings/mailboxes/[id]" },
     { from: "/settings/integrations/webhooks", link: /\/settings\/integrations\/webhooks\/[0-9a-f-]{36}$/, name: "/settings/integrations/webhooks/[id]", optional: true },
     { from: "/privacy-requests", link: /\/privacy-requests\/[0-9a-f-]{36}$/, name: "/privacy-requests/[id]" },
+    // Task K3: an imported app package's review (the demo installs its HR app without an import, so only when one exists).
+    { from: "/settings/apps", link: /\/settings\/apps\/imports\/[0-9a-f-]{36}$/, name: "/settings/apps/imports/[id]", optional: true },
     { from: "/payments", link: /\/payments\/[0-9a-f-]{36}\/receipt$/, name: "/payments/[id]/receipt", optional: true }],
   executive: ["/reports", "/reports/volumes", "/reports/backlog", "/reports/sla", "/reports/happiness", "/customer-voice/report"],
 };
@@ -306,3 +310,74 @@ for (const { persona, paths } of reflowPages) {
     expect(wide).toEqual([]);
   });
 }
+
+/**
+ * Task L1: the Phase 2 pages (CMDB, assets, problems, changes and the board, custom records and
+ * apps, wellbeing, passkeys, malware definitions) on a phone, in English and Arabic: WCAG 2.2 AA
+ * with axe in the phone layout (task J1: the header's links behind the Menu button below the `sm`
+ * width), no sideways scrolling, and the Menu button that opens the header's links. Pixel 7: a
+ * touch screen, 412 CSS pixels wide.
+ */
+const phonePages: Partial<Record<Persona, Target[]>> = {
+  requester: ["/my-tickets", "/my-assets", "/records", "/records/facilities/new", "/apps", "/apps/hr", "/account/security", "/offline"],
+  agent: ["/account/workload", "/cmdb", "/assets", "/assets/scan", "/problems", "/known-errors", "/changes", "/changes/calendar", "/records/facilities",
+    { from: "/cmdb", link: /\/cmdb\/[0-9a-f-]{36}$/, name: "/cmdb/[id]" },
+    { from: "/assets", link: /\/assets\/[0-9a-f-]{36}$/, name: "/assets/[id]" },
+    { from: "/problems", link: /\/problems\/[0-9a-f-]{36}$/, name: "/problems/[id]" },
+    { from: "/changes", link: /\/changes\/[0-9a-f-]{36}$/, name: "/changes/[id]" }],
+  lead: ["/wellbeing", "/problems/suggestions", "/changes/board",
+    { from: "/changes/board", link: /\/changes\/board\/[0-9a-f-]{36}$/, name: "/changes/board/[id]" }],
+  admin: ["/cmdb/review", "/settings/cmdb", "/settings/assets", "/settings/problems", "/settings/changes", "/settings/record-types", "/settings/apps",
+    "/settings/data-lists", "/settings/wellbeing", "/settings/sign-in/passkeys", "/settings/updates/malware-definitions"],
+};
+
+test.describe("on a phone", () => {
+  // The device's screen, not its browser type (the project's browser stays; Playwright refuses that in a describe).
+  const { viewport, deviceScaleFactor, isMobile, hasTouch, userAgent } = devices["Pixel 7"];
+  test.use({ viewport, deviceScaleFactor, isMobile, hasTouch, userAgent });
+
+  for (const persona of Object.keys(phonePages) as Persona[]) {
+    test(`the ${persona}'s Phase 2 pages meet WCAG 2.2 AA on a phone in English and Arabic`, async ({ page, baseURL }) => {
+      test.setTimeout(15 * 60_000);
+      // The phone pass runs in the other sample organisation, like the reflow tests (one rate limit per person).
+      await signInAs(page, persona, baseURL ?? "http://localhost:3000", reflowTenant);
+      const findings: Finding[] = [];
+      const problems: string[] = [];
+      for (const language of ["en", "ar"]) {
+        for (const target of phonePages[persona] ?? []) {
+          const { name, url } = await resolve(page, language, target);
+          if (!url) {
+            problems.push(`${language} ${name}: no sample data to follow`);
+            continue;
+          }
+          await visit(page, url);
+          await settle(page);
+          await expect(page.locator("html")).toHaveAttribute("dir", language === "ar" ? "rtl" : "ltr");
+          const overflow = await page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth);
+          if (overflow > 1) {
+            problems.push(`${language} ${name}: ${overflow} px wider than the screen`);
+          }
+          const results = await new AxeBuilder({ page }).withTags(wcag).analyze();
+          for (const v of results.violations) {
+            findings.push({ page: name, language, rule: v.id, impact: v.impact, help: v.help, targets: v.nodes.slice(0, 5).map((n) => n.target.join(" ")) });
+          }
+        }
+
+        // The header's links are behind the Menu button on a phone, which says whether it is open.
+        await visit(page, `/${language}/my-tickets`);
+        await settle(page);
+        const menu = page.locator("header").getByRole("button", { name: language === "ar" ? "القائمة" : "Menu", exact: true });
+        if (await menu.count() === 0) {
+          problems.push(`${language}: no Menu button in the header on a phone`);
+        } else {
+          await menu.first().click();
+          await expect(menu.first()).toHaveAttribute("aria-expanded", "true");
+        }
+      }
+      mkdirSync(reportDir, { recursive: true });
+      writeFileSync(path.join(reportDir, `${persona}-phone.json`), JSON.stringify({ persona, findings, problems }, null, 2));
+      expect(findings, `axe findings for the ${persona} on a phone (details in accessibility-report/${persona}-phone.json)`).toEqual([]);
+      expect(problems).toEqual([]);
+    });
+  }
+});

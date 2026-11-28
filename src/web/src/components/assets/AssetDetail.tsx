@@ -170,7 +170,7 @@ export function AssetDetail({ initial, canManage, csrfToken, display, warningDay
       <section aria-labelledby={`${id}-licenses`} className="space-y-2">
         <h2 id={`${id}-licenses`} className="text-xl font-bold">{t("licensesHeading")}</h2>
         {asset.licenses.length === 0 ? <p>{t("noLicenses")}</p> : (
-          <ul className="list-disc space-y-1 ps-5">{asset.licenses.map((l) => <li key={l.id} dir="auto">{l.name}</li>)}</ul>
+          <ul className="list-disc space-y-1 ps-5">{asset.licenses.map((l) => <li key={l.id}><span dir="auto">{l.name}</span></li>)}</ul>
         )}
       </section>
     </div>

@@ -1,13 +1,14 @@
-# Load-test guide (task F7)
+# Load-test guide (tasks F7 and L1)
 
 Step-by-step instructions for running Zelvo's load tests on a dedicated test server and judging the results against the performance targets. The scripts and what they do are described in `tests/load/README.md`; this guide is the runbook around them.
 
-**Targets** (`docs/requirements.md`, non-functional requirements):
+**Targets** (`docs/requirements.md`, non-functional requirements; the CMDB size from `docs/phase2-build-plan.md`):
 
 | Target | Measured by | Passes when |
 | --- | --- | --- |
 | API under 200 ms at the 95th percentile | `tests/load/k6/api-latency.js` | p95 of every endpoint and of all calls under 200 ms; failed requests under 1 % |
 | 1,000 concurrent agents per tenant | `tests/load/k6/agents.js` with `tests/load/live/live-connections.mjs` | the same p95 and error rate with 1,000 agents working at once; at least 990 of 1,000 live-update connections open while holding, connecting in under 1 s at p95 |
+| CMDB size (Phase 2 plan, decision 12): 50,000 configuration items per tenant on Small, 500,000 on Medium | Runs A to C with 50,000 items, D and E with 500,000 (`tests/load/cmdb/provision-cmdb.mjs` fills the CMDB) | the problem, change and CMDB endpoints meet the same p95 and error rate as the rest with that many items |
 | Server sizing is right | All runs, with Grafana | the published sizes (table below) carry their number of agents within the targets |
 
 ## 1. What to run, on which hardware
@@ -20,6 +21,9 @@ The published sizes (`docs/requirements.md`, "Server sizing") rate the **Small**
 | B. Rated agents | Small | `agents.js`, `AGENTS=50`, with 50 live connections | the Small server carries its rated 50 agents |
 | C. Small ceiling | Small | `agents.js` at 100, 200, 400 and 800 agents, one run each | how far the Small server goes before p95 crosses 200 ms; confirms or corrects the sizing table |
 | D. 1,000 agents | Large test server (below) | `agents.js`, `AGENTS=1000`, with 1,000 live connections | the 1,000-agent target |
+| E. Medium CMDB | Large test server | `api-latency.js` as in run A, with 500,000 configuration items | the API stays under 200 ms at p95 with a Medium installation's CMDB |
+
+Since task L1 both scripts also send rounds on problems, changes and the CMDB (see `tests/load/README.md`). Runs A to C run with **50,000 configuration items** in the tenant (the Small target), runs D and E with **500,000** (the Medium target), so the large test server is provisioned once with 500,000.
 
 **The Small test server** (the published minimum):
 
@@ -40,7 +44,7 @@ Running the generator on the test server itself makes the results worse than rea
 
 ## 2. Which installation is measured
 
-The load tests run on the **development Compose installation** (`make up`), with the provisioning script's development users. The hardened install (F6) has no development users and no way yet to create the first tenant administrator from the command line (see `pentest-pack.md`, "Before the test"), so provisioning cannot run there today.
+The load tests run on the **development Compose installation** (`make up`), with the provisioning script's development users. The hardened install (F6) has no development users: since task M2 it creates only the first tenant administrator (`ZELVO_FIRST_ADMIN_EMAIL` and the one-time setup link), and the provisioning script still expects the development users of each persona, so provisioning runs on the development Compose installation.
 
 What differs from a customer's hardened install, and what that means for the results:
 
@@ -51,7 +55,7 @@ What differs from a customer's hardened install, and what that means for the res
 | No TLS between the services and PostgreSQL and Valkey (hardened installs use TLS 1.3 for both) | Slightly optimistic: TLS adds a little CPU per new connection; connections are pooled. |
 | `ASPNETCORE_ENVIRONMENT=Development` (detailed errors, OpenAPI on) | None on timings measured so far. |
 
-When the first administrator can be created on hardened installs, repeat run B there and compare. A difference over 10 % at p95 goes into the release-readiness report.
+To compare with a hardened install, create the persona users there by hand (Settings → Users, from the first administrator of task M2), repeat run B and compare. A difference over 10 % at p95 goes into the release-readiness report.
 
 ## 3. Prepare the test server
 
@@ -83,11 +87,19 @@ All commands run on the test server as a user in the `docker` group, unless mark
    docker compose -f deploy/compose/compose.yaml ps --format '{{.Service}} {{.Health}}'
    ```
 
-5. Provision the load-test credentials and sample incidents (Node.js 24 and Playwright's Chromium on the test server, because the development users sign in through `localhost`). Raise `LOAD_INCIDENTS` to 5000 for runs C and D, so lists and searches work on a realistic amount of data (it takes longer):
+5. Provision the load-test credentials, sample incidents, problems and changes (Node.js 24 and Playwright's Chromium on the test server, because the development users sign in through `localhost`). Raise `LOAD_INCIDENTS` to 5000 for runs C to E, so lists and searches work on a realistic amount of data (it takes longer). `LOAD_PROBLEMS` (50) and `LOAD_CHANGES` (100) stay as they are:
 
    ```bash
    cd tests/e2e && npm ci && npx playwright install chromium && E2E_LOAD=1 LOAD_INCIDENTS=500 npx playwright test --project=load-provision
    ```
+
+   Then fill the CMDB through the discovery API: 50,000 items on the Small server, 500,000 on the large test server. It runs from the repository's root, takes long for 500,000 (run it in `tmux`), prints each call's time and can be continued with `CMDB_FROM=<record>` if it stops:
+
+   ```bash
+   cd ../.. && mkdir -p tests/load/results && CMDB_ITEMS=50000 node tests/load/cmdb/provision-cmdb.mjs 2>&1 | tee tests/load/results/cmdb-provision.log
+   ```
+
+   It ends with a `Wrote …` line naming the number of items, the sample items and the linked problems and changes. Check the number in Zelvo too (Settings → CMDB lists the items per class). Wait until the search indexing has caught up before the first run ("Search indexing" on the Grafana dashboard back at 0, or Settings → Search without pending updates), since 50,000 new items each send a search document.
 
    This writes `tests/load/.credentials/load.json` (git-ignored, mode 0600). Copy it to the load generator over SSH and to nowhere else; it holds real API keys and session cookies:
 
@@ -95,7 +107,7 @@ All commands run on the test server as a user in the `docker` group, unless mark
    scp tests/load/.credentials/load.json <load generator>:zelvo/tests/load/.credentials/load.json
    ```
 
-6. Note the starting point for the report: the commit, `docker compose -f deploy/compose/compose.yaml images`, `nproc`, `free -g`, `df -h /var/lib/docker`, and the number of incidents (`LOAD_INCIDENTS`).
+6. Note the starting point for the report: the commit, `docker compose -f deploy/compose/compose.yaml images`, `nproc`, `free -g`, `df -h /var/lib/docker`, the number of incidents (`LOAD_INCIDENTS`), problems, changes and configuration items, and how long the CMDB push took (its log's last lines).
 
 ## 4. Run the tests (on the load generator)
 
@@ -149,6 +161,12 @@ k6 run --summary-export tests/load/results/D-agents.json tests/load/k6/agents.js
 
 Wait for the live-connection script to finish too (`wait`), then check its exit code (`echo $?` straight after `wait`; 0 is a pass).
 
+**Run E, the Medium CMDB** (on the large test server with 500,000 items, after run D, about 12 minutes):
+
+```bash
+k6 run --summary-export tests/load/results/E-api-latency.json tests/load/k6/api-latency.js 2>&1 | tee tests/load/results/E-api-latency.txt
+```
+
 While each run holds its load, take screenshots of Grafana's **Zelvo → Zelvo overview** dashboard with the time range of the run (section 6).
 
 ## 5. Read the results
@@ -159,7 +177,7 @@ While each run holds its load, take screenshots of Grafana's **Zelvo → Zelvo o
 
 | Threshold | Meaning | Target |
 | --- | --- | --- |
-| `http_req_duration{name:<endpoint>}` `p(95)<200` | p95 of one endpoint, for each of `incident-queue`, `incident-open`, `incident-comments`, `incident-history`, `incident-customer`, `workspace-views`, `search`, `notifications-unread`, `comment-add`, `incident-update` | under 200 ms |
+| `http_req_duration{name:<endpoint>}` `p(95)<200` | p95 of one endpoint, for each of `incident-queue`, `incident-open`, `incident-comments`, `incident-history`, `incident-customer`, `workspace-views`, `search`, `notifications-unread`, `comment-add`, `incident-update`; since L1 also `problem-list`, `problem-open`, `problem-incidents`, `problem-timeline`, `known-error-search`, `incident-known-errors`, `incident-problems`, `change-list`, `change-open`, `change-items`, `change-what-if`, `change-calendar`, `change-conflicts`, `ci-list`, `ci-search`, `ci-lookup`, `ci-search-index`, `ci-open`, `ci-relationships`, `ci-tickets`, `ci-impact`, `ci-map` (only when provisioning wrote problems, changes and the CMDB; `tests/load/README.md` says which call each is) | under 200 ms |
 | `http_req_duration{via:api}` / `{via:web}` | p95 of all calls on that path (straight to the API, or through the web app) | under 200 ms |
 | `http_req_failed{via:…}` | share of failed HTTP requests (status 400 and up, or no answer) | under 1 % |
 | `checks` | share of calls that got a 2xx answer | over 99 % |
@@ -203,6 +221,8 @@ docker compose -f deploy/compose/compose.yaml exec postgres sh -c 'psql -U "$POS
 | "Rate-limited requests" above 0 | `compose.load.yaml` not applied, or the API keys' limits | Repeat step 3 |
 | "Queue depth (RabbitMQ)" or "Search indexing" falling behind | Search indexing cannot keep up | Normal during a burst; a run fails only if the queue keeps growing after the load ends |
 | "Memory (working set)" of a .NET service rising without levelling off | A leak | Report it as a defect, with the dashboard screenshot |
+| `ci-search`, `ci-lookup` or `ci-list` slow only with many items | The item list and picker search names with `ILIKE`, and pages with an offset | The query's trace in Tempo; a trigram index on names (through a migration) is the usual fix |
+| `ci-impact`, `ci-map` or `change-what-if` slow | Impact traversal reads relationships level by level (up to 5,000 items); what-if also scores past changes | The trace shows how many queries a call makes; note the item and the depth |
 | "Server errors" above 0 | A defect | "Warnings and errors" (or Explore → Loki, `{service_namespace="zelvo"} \| detected_level="error"`) has the exceptions |
 
 Keep the `docker stats` output from the hold phase of each run in the results folder.
@@ -212,7 +232,7 @@ Keep the `docker stats` output from the hold phase of each run in the results fo
 Every time, also after a failed run:
 
 1. Stop the live-connection script if it still runs (`kill %1`).
-2. In Zelvo, sign in as the development administrator and revoke the "Load test …" API keys (Settings → Integrations).
+2. In Zelvo, sign in as the development administrator and revoke the "Load test …" API keys, also "Load test CMDB …" (Settings → Integrations). The "Load test discovery" source and its items go with step 4.
 3. Delete the credentials on both machines:
 
    ```bash
@@ -227,10 +247,11 @@ Every time, also after a failed run:
 
 ## 8. Report
 
-Write a short release-readiness report with, for each run: the run letter, date, commit, server size (vCPU, RAM, disk type), number of agents and incidents, the k6 summary's p95 per endpoint and error rate, the live-connection `Done:` line, pass or fail, and the dashboard screenshots. Then:
+Write a short release-readiness report with, for each run: the run letter, date, commit, server size (vCPU, RAM, disk type), number of agents, incidents, problems, changes and configuration items (and how long the CMDB push took), the k6 summary's p95 per endpoint and error rate, the live-connection `Done:` line, pass or fail, and the dashboard screenshots. Then:
 
 - Update the **Server sizing** table in `docs/requirements.md` with what was measured (run C for Small, run D for 1,000 agents), with the product owner's approval.
 - Record defects found as issues, with the trace or log that shows them.
-- Mark the load-test step of F7 done in `CLAUDE.md`.
+- Say for the CMDB size target whether 50,000 items on Small (runs A to C) and 500,000 on the large test server (runs D and E) met it, naming any `ci-`, `problem-` or `change-` endpoint that did not; until the Helm chart has run on a Medium cluster, record that the 500,000 figures are from a single server.
+- Mark the load-test step of F7 and L1 done in `CLAUDE.md`.
 
 The k6 summaries and logs in `tests/load/results/` are git-ignored; attach them to the report instead of committing them.

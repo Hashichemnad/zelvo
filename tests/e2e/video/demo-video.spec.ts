@@ -8,7 +8,12 @@ import { test, type Page } from "@playwright/test";
  * E2E_VIDEO=1 (project demo-video, 1920×1080, slowed down; workflow "Demo video"). Each step signs
  * in as its persona with the demo sign-in, opens a page, shows a short caption naming the step and
  * holds it long enough to watch. Clicks and typing that only make the video livelier never fail the
- * recording: if the sample data has changed, the step still shows its page.
+ * recording: if the sample data has changed, the step still shows its page. Since task L1 it also
+ * covers Phase 2 (CMDB, discovery, assets, problems, changes and the advisory board, plain-language
+ * rules, custom record types, the HR app, wellbeing, the installable app and passkeys): 58 steps.
+ * Two of them change the sample data, as the live walkthrough does: the English run submits the
+ * high-risk sample change for approval and the board's chair saves a vote on it (the Arabic run then
+ * finds it on the agenda). Reset the demo after recording against `make demo`.
  *
  * The videos are written to tests/e2e/demo-video/<n>-<language>.webm; the workflow joins them.
  */
@@ -46,6 +51,29 @@ const openHref = (href: RegExp) => async (page: Page) => {
   const index = hrefs.findIndex((h) => href.test(h.split("?")[0] ?? ""));
   if (index >= 0) {
     await links.nth(index).click({ timeout: 5_000 });
+  }
+};
+
+/** Scrolls the part of the page with this test id into the middle of the screen. */
+const scrollTo = (testId: string) => async (page: Page) => {
+  const part = page.getByTestId(testId).first();
+  await part.waitFor({ state: "visible", timeout: 15_000 });
+  await part.evaluate((el) => el.scrollIntoView({ block: "center" }));
+};
+
+/** Presses the first button whose name matches, when the page has one (sample data may have moved on). */
+const pressIfThere = (name: RegExp) => async (page: Page) => {
+  const button = page.getByRole("button", { name });
+  if ((await button.count()) > 0) {
+    await button.first().click({ timeout: 5_000 });
+    await page.waitForTimeout(1_500);
+  }
+};
+
+/** Does several things in order. */
+const all = (...acts: NonNullable<Step["act"]>[]) => async (page: Page, language: Language) => {
+  for (const act of acts) {
+    await act(page, language);
   }
 };
 
@@ -115,6 +143,77 @@ const steps: Step[] = [
   { persona: "admin", tenant: gov, path: "/settings/privacy", caption: { en: "UAE privacy law: notice, consent, retention and requests", ar: "قانون حماية البيانات الشخصية: الإشعار والموافقة والاحتفاظ والطلبات" } },
   { persona: "admin", tenant: gov, path: "/settings/license", caption: { en: "Licensing: offline activation and release integrity", ar: "الترخيص: تفعيل دون اتصال وسلامة الإصدار" } },
   { persona: "admin", tenant: gov, path: "/settings/updates", caption: { en: "Offline update packages with backup and automatic rollback", ar: "حزم التحديث دون اتصال مع نسخ احتياطي وتراجع تلقائي" } },
+
+  // Phase 2 (modules 16–21): CMDB, discovery and assets (18).
+  {
+    persona: "agent", tenant: gov, path: "/cmdb?q=srv-web-01",
+    caption: { en: "CMDB: a server, what a fault of it affects and its relationship map", ar: "قاعدة بيانات إدارة التهيئة: خادم وما يتأثر بعطله وخريطة علاقاته" },
+    act: all(openHref(/\/cmdb\/[0-9a-f-]{36}$/), scrollTo("ci-impact")),
+  },
+  { persona: "admin", tenant: gov, path: "/cmdb/review", caption: { en: "Discovery and reconciliation: possible duplicates and doubtful matches wait for review", ar: "الاكتشاف والمطابقة: العناصر المكررة المحتملة والمطابقات غير المؤكدة بانتظار المراجعة" } },
+  { persona: "agent", tenant: company, path: "/assets/licenses", caption: { en: "Asset management: software licences against what discovery found installed", ar: "إدارة الأصول: تراخيص البرمجيات مقارنة بالبرمجيات المثبّتة التي رصدها الاكتشاف" } },
+
+  // Problem management and problem detection (16).
+  {
+    persona: "agent", tenant: gov, path: "/problems?stage=KnownError",
+    caption: { en: "Problem management: 5 Whys, fishbone and the known error", ar: "إدارة المشكلات: الأسئلة الخمسة ومخطط هيكل السمكة والخطأ المعروف" },
+    act: all(openHref(/\/problems\/[0-9a-f-]{36}$/), scrollTo("fishbone-list")),
+  },
+  {
+    persona: "agent", tenant: gov, path: "/workspace",
+    caption: { en: "The known error's workaround, inserted into the reply in one click", ar: "إدراج الحل البديل للخطأ المعروف في الرد بنقرة واحدة" },
+    act: all(openLink(/انقطاع بوابة الخدمات الإلكترونية/), async (page, language) => {
+      const name = language === "ar" ? /إدراج في الرد \(العربية\)/ : /Insert into reply \(English\)/;
+      await page.getByTestId("incident-known-errors").getByRole("button", { name }).first().click({ timeout: 15_000 });
+    }, scrollTo("composer-body")),
+  },
+  { persona: "lead", tenant: gov, path: "/problems/suggestions", caption: { en: "Problem detection: similar incidents and rising trends suggested to the problem manager", ar: "اكتشاف المشكلات: بلاغات متشابهة واتجاهات متصاعدة تُقترح على مدير المشكلات" } },
+
+  // Change management, the change advisory board and the what-if simulation (17).
+  { persona: "lead", tenant: gov, path: "/changes/calendar", caption: { en: "Change calendar: planned windows, conflicts and blackout periods", ar: "تقويم التغييرات: النوافذ المخطط لها والتعارضات وفترات الحظر" } },
+  {
+    // The high-risk sample change; the English run submits it, so the board has it on its agenda.
+    persona: "lead", tenant: gov, path: "/changes?riskLevel=High&kind=Normal",
+    caption: { en: "Change management: risk questionnaire, conflicts and submission for approval", ar: "إدارة التغيير: استبيان المخاطر والتعارضات والتقديم للاعتماد" },
+    act: all(openHref(/\/changes\/[0-9a-f-]{36}$/), scrollTo("change-work"), pressIfThere(/Submit for approval|تقديم للاعتماد/), scrollTo("change-risk")),
+  },
+  {
+    persona: "lead", tenant: gov, path: "/changes?riskLevel=High&kind=Normal",
+    caption: { en: "What-if simulation: blast radius, similar past changes and predicted risk", ar: "محاكاة «ماذا لو»: نطاق الأثر والتغييرات السابقة المماثلة والمخاطر المتوقعة" },
+    act: all(openHref(/\/changes\/[0-9a-f-]{36}$/), scrollTo("what-if-blast")),
+  },
+  {
+    persona: "lead", tenant: gov, path: "/changes/board",
+    caption: { en: "Change advisory board: the agenda, the members' votes and the chair's decision", ar: "المجلس الاستشاري للتغيير: جدول الأعمال وأصوات الأعضاء وقرار الرئيس" },
+    act: all(openHref(/\/changes\/board\/[0-9a-f-]{36}$/), scrollTo("meeting-facts"), pressIfThere(/Update the agenda|تحديث جدول الأعمال/), async (page) => {
+      const item = page.getByTestId("agenda-item").first();
+      await item.scrollIntoViewIfNeeded({ timeout: 5_000 });
+      await item.getByTestId("vote-form").getByRole("radio", { name: /^(Approve|موافقة)$/ }).check({ timeout: 5_000 });
+      await item.getByRole("button", { name: /Save my vote|حفظ صوتي/ }).click({ timeout: 5_000 });
+    }),
+  },
+
+  // Plain-language rules, custom record types and the app builder (20).
+  {
+    persona: "admin", tenant: gov, path: "/settings/workflows",
+    caption: { en: "Plain-language rules: described in Arabic or English, run only once approved", ar: "القواعد باللغة الطبيعية: توصف بالعربية أو الإنجليزية ولا تُطبَّق إلا بعد اعتمادها" },
+    act: scrollTo("rule-drafts"),
+  },
+  {
+    persona: "agent", tenant: gov, path: "/records/facilities",
+    caption: { en: "Custom record types: facilities requests with their own states, numbers and SLA", ar: "أنواع السجلات المخصصة: طلبات المرافق بحالاتها وأرقامها ومستوى خدمتها" },
+    act: openHref(/\/records\/facilities\/[0-9a-f-]{36}$/),
+  },
+  { persona: "requester", tenant: company, path: "/apps/hr", caption: { en: "App builder: the HR app with its leave requests, made on screen without code", ar: "منشئ التطبيقات: تطبيق الموارد البشرية وطلبات الإجازة، مُعدّ من الشاشة دون برمجة" } },
+
+  // Agent wellbeing (21).
+  { persona: "lead", tenant: company, path: "/wellbeing", caption: { en: "Agent wellbeing: balancing workload before anyone is overloaded, not for ranking", ar: "رفاهية الموظفين: موازنة أعباء العمل قبل أن تتجاوز طاقة أي موظف، دون ترتيب أو تقييم" } },
+  { persona: "agent", tenant: company, path: "/account/workload", caption: { en: "My workload: every agent sees the figures their team leads see", ar: "أعباء عملي: يطّلع كل موظف على الأرقام التي يطّلع عليها قادة فريقه" } },
+
+  // Installable app and passkeys (19).
+  { persona: "visitor", tenant: gov, path: "/offline", caption: { en: "Installable app: your name and icon on the home screen, and an offline page", ar: "التطبيق القابل للتثبيت: اسم جهتكم وشعارها على الشاشة الرئيسية، مع صفحة لعدم الاتصال" } },
+  { persona: "requester", tenant: gov, path: "/account/security", caption: { en: "Passkeys: sign in with a fingerprint or face, which also counts as the second factor", ar: "مفاتيح المرور: تسجيل الدخول ببصمة الإصبع أو الوجه، ويُعدّ ذلك عاملًا ثانيًا للتحقق" } },
+
   { persona: "admin", tenant: gov, path: "", caption: { en: "Demo mode: one-click users and Reset demo. Thank you.", ar: "وضع العرض التوضيحي: تبديل المستخدمين بنقرة وإعادة الضبط. شكرًا لكم." } },
 ];
 

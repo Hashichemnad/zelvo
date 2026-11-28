@@ -35,7 +35,7 @@ export default async function AssetPage({ params }: PageProps<"/[locale]/assets/
   if (!asset) notFound();
   return (
     <article aria-labelledby="asset-heading" className="space-y-6">
-      <Link href="/assets" className="text-sm font-semibold text-brand underline-offset-4 hover:underline">{t("back")}</Link>
+      <Link href="/assets" className="inline-block min-h-6 py-0.5 text-sm font-semibold text-brand underline-offset-4 hover:underline">{t("back")}</Link>
       <AssetsNav current="assets" />
       <header className="space-y-1">
         <p className="font-mono text-ink-muted" dir="ltr">{asset.tag}</p>
