@@ -130,5 +130,30 @@ stay open in activation mode, so the first administrator can sign in and import 
 
 ## Not in A2
 
-- Passkeys (WebAuthn) as a second factor. Keycloak needs a different flow shape so that people without any second factor are asked to set one up. Follow-up.
+- Passkeys (WebAuthn) as a second factor: came with task J3 (see "Passkeys" below).
 - UAE PASS (D3, see `uae-pass.md`), Entra ID / LDAP (E7), API keys and OAuth clients (E1), Settings screens for users and roles (B2), demo user switching (D), rate limiting (A5), tenant branding of the Keycloak pages (F1). The Settings screens for users and roles came with B2.
+
+## Passkeys (task J3)
+
+Module 19's "biometric sign-in where the device supports it", through **Keycloak's own WebAuthn support** (product owner decision 15 of 2026-11-26): a passkey signs a person in with the device's fingerprint, face or PIN and, because the device verifies the person, **counts as staff's second factor**.
+
+- **Setting** (`identity_settings.passkeys`, Settings → Sign-in → Passkeys, `identity.manage`, `PUT /identity/settings/passkeys`, audited, applied to the realm in the same transaction; 502 and nothing changed when Keycloak refuses): **Off** (nobody adds or uses passkeys; staff use an authenticator app), **Allowed** (default, also for existing tenants; anyone may add passkeys and sign in with them; staff's second factor is a passkey sign-in or an authenticator app code) or **RequiredForStaff** (staff who sign in with a password or an email code confirm with a passkey, and add one at that sign-in if they have none; authenticator apps no longer count; requesters choose for themselves). UAE PASS sign-ins keep their own second-factor rules (`uae-pass.md`).
+- **Realm policy** (`KeycloakAdminClient.SetPasskeysAsync`, by `migrate` and on every change): Keycloak's WebAuthn *passwordless* policy with **user verification required**, discoverable credentials (`webAuthnPolicyPasswordlessResidentKey = "required"`, lower case: Keycloak 26.8.2 passes the stored value to the browser unchanged, and browsers ignore `Required`), ES256 and RS256, the realm's display name as the relying party name, no fixed relying-party id (the host of the sign-in page), one passkey per device, and **passkeys on the sign-in page** (`webAuthnPolicyPasswordlessPasskeysEnabled`: the username form offers "Sign in with a passkey" and the browser's passkey autofill). Keycloak ignores partial updates of this policy, so Zelvo always sends the whole policy. The required action `webauthn-register-passwordless` ("add a passkey") is on while passkeys are offered.
+- **Sign-in flow.** Level 1 is unchanged (password or email code in Keycloak's username form, which now also takes a passkey). Level 2, asked for with `acr_values=mfa`, became:
+
+  ```
+  zelvo level 2 (CONDITIONAL)
+    level of authentication 2 (condition)
+    allow access (REQUIRED; level 2 is reached even when the step below is skipped)
+    zelvo second factor (CONDITIONAL)
+      condition: no webauthn-passwordless credential used in this sign-in (Keycloak's conditional-credential)
+      authenticator app code (REQUIRED; DISABLED when required for staff)
+      passkey (DISABLED; REQUIRED when required for staff)
+  ```
+
+  `migrate` builds it for new realms and replaces the authenticator app step of realms made before J3 once (`EnsureSecondFactorFlowAsync`). The second factor stays one required step, not alternatives, so Keycloak asks staff without one to set it up. Checked against Keycloak 26.8.2 with Playwright's virtual authenticator (user verification on): a passkey sign-in asking for `acr_values=mfa` returned `acr=mfa` with no code; a password sign-in was asked for the authenticator app (Allowed) or the passkey (RequiredForStaff).
+- **Account → Security** (`/account/security`): the person's passkeys (`GET /me/passkeys`: setting, whether their roles need a second factor, the passkeys from Keycloak with name and date), **Add a passkey** (the web app's `/auth/login?action=passkey` asks Keycloak for the application-initiated action `kc_action=webauthn-register-passwordless`, with `acr_values=mfa` for staff, and comes back with `?passkey=added|cancelled|error` from `kc_action_status`), **Remove** (`DELETE /me/passkeys/{id}`, only one's own `webauthn-passwordless` credentials, audited `identity.passkey.removed`). Administrators remove every passkey of a person after a lost phone (`DELETE /users/{id}/passkeys`, `users.manage`, audited `identity.passkeys.removed-by-admin`).
+- **Addresses.** A passkey belongs to the host it was added on (WebAuthn's relying party): people who use a tenant's custom domain add their passkey there. Settings says so.
+- **Theme.** The zelvo login theme words Keycloak's passkey pages in English and formal Arabic ("مفتاح المرور", for the product owner's approval; Keycloak's own Arabic says "مفتاح أمان", security key).
+- **Tests.** `PasskeyApiTests` (own passkeys listed and removed only, staff told it is their second factor, Keycloak down, the setting for administrators only and applied with the change, removal by administrators, the realm policy), `RealKeycloakPasskeyTests` (opt-in, `ZELVO_TEST_KEYCLOAK`: the real provisioner against Keycloak with the Zelvo extension, a pre-J3 realm rebuilt, each setting), web tests for Account → Security and the setting.
+- **Not in J3:** passkeys as the second factor after a UAE PASS sign-in; recovery codes; a demo seeder (passkeys are made by real devices; demo users sign in through the demo step). Not tried on real phones yet.

@@ -1,4 +1,5 @@
 import { useLocale, useTranslations } from "next-intl";
+import { SignOutForm } from "./SignOutForm";
 
 export interface AccountMenuProps {
   /** The signed-in user's name, or null when nobody is signed in. */
@@ -40,13 +41,11 @@ export function AccountMenu({ userName, csrfToken, showSettings = false }: Accou
           {t("settings")}
         </a>
       )}
-      <form action="/auth/logout" method="post">
-        <input type="hidden" name="csrf" value={csrfToken} />
-        <input type="hidden" name="locale" value={locale} />
+      <SignOutForm csrfToken={csrfToken} locale={locale}>
         <button type="submit" className={buttonClass}>
           {t("signOut")}
         </button>
-      </form>
+      </SignOutForm>
     </div>
   );
 }

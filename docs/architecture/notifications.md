@@ -137,3 +137,49 @@ Requester notifications of tickets that came in by email go out **from the ticke
 ## Branding (task F1)
 
 The letterhead follows the tenant's published branding: brand colour for the heading, links and button, the light logo embedded as `cid:zelvo-logo`, and the product name beside "Powered by Zelvo". With a verified sender domain, emails go out from the tenant's own address, signed with its DKIM key. See `branding.md`.
+
+## Web push (task J2)
+
+Covers module 19's "web push notifications to the installed app and the browser, chosen per event like email" and module 10's channels. Product owner decisions of 2026-11-26: web push **needs outgoing internet** to the browsers' push services, so offline installations get email, in-app and Teams notifications only, and Settings says so (decision 14); Zelvo **implements the push protocols itself** (no library).
+
+Code: `src/api/Zelvo.Notifications/WebPush` (`WebPushCrypto`: RFC 8291 and RFC 8292; `PushNotifications.cs`: key store, queueing, sender, worker processor), `src/api/Zelvo.Api/Notifications/PushEndpoints.cs`, the entities `WebPushKey`, `PushSubscription`, `PushDelivery` (migration `WebPush`), `src/web/src/lib/pwa/push.ts`, `src/components/notifications/PushDevicesPanel.tsx`, the service worker's `push` and `notificationclick` handlers (`lib/pwa/service-worker.ts`) and `SignOutForm.tsx`.
+
+```
+notification rendered (worker) ──► PushNotifications: push offered, event's push on, person's push on, one row per device
+                                           │
+                                           ▼
+           push_deliveries (Pending) ──► NotificationDispatcher claims (lease, SKIP LOCKED) ──► PushProcessor
+                                           │  payload {title, body, url, tag, lang, dir} encrypted for the browser (RFC 8291)
+                                           ▼  POST to the push service with TTL, Urgency and VAPID (RFC 8030, 8292)
+                         201 Sent · 404/410 device removed · 400/401/403/413 failed · 429/5xx/network retried like email
+```
+
+- **Protocols.** Each message gets a new P-256 key and a 16-byte salt; ECDH with the browser's key, HKDF-SHA-256 with its auth secret, AES-128-GCM in one `aes128gcm` record (RFC 8188), at most 3,993 bytes. Requests carry `TTL` (`Notifications:Push:TimeToLive`, one day), `Urgency` (`high` for SLA breaches, approvals, assignments and major-incident updates, otherwise `normal`) and `Authorization: vapid t=<JWT>, k=<public key>`: an ES256 token for the push service's origin, valid 12 hours, with the contact `Notifications:Push:Subject` (else the web app's HTTPS address, else `mailto:` the sender address).
+- **Keys.** Each tenant has its own VAPID key pair (`web_push_keys`), made the first time someone opens their push settings, the private key encrypted with `Zelvo.Secrets` (purpose `web-push.vapid`), never rotated while subscriptions exist (browsers would have to subscribe again). The plan said "an installation key pair"; it is per tenant because `Zelvo.Secrets` encrypts per tenant and a tenant's key then never signs for another.
+- **What a message says.** The event's push title in the recipient's language (`push.title.<event>` in `Texts/en.json`, `ar.json`; formal Arabic, checked by a test) and the **reference number only** (ticket, article or privacy request number), with the page to open and the language and direction. Never names, titles, descriptions or replies: push services and lock screens see them. Messages about the same ticket replace each other on the device (`tag`).
+- **Devices** (`push_subscriptions`, row-level security, audited with the address and keys masked): one row per browser or installed app, named from the browser ("Chrome on Android") or by the page. Only **addresses of the known push services** are accepted (`Notifications:Push:AllowedHosts`: `fcm.googleapis.com`, `push.services.mozilla.com`, `push.apple.com`, `notify.windows.com` and their subdomains; HTTPS, no user info), checked when subscribing and again before every send, and requests go through the push network policy (after DNS, no redirects), so a subscription can never make Zelvo call anything else. Subscribing a browser that someone else's subscription already uses moves it to the new person. At most 20 per person (the one unused longest goes). Removed when the person removes it, **when they sign out on it** (the page remembers the device's push address when it subscribes; the sign-out form sends it along without waiting, the web app's sign-out route removes the device through `POST /me/push/subscriptions/remove` before ending the session, and the browser's own subscription is ended in the background), and when the push service answers 404 or 410. Erasure (F5) removes them; the copy of a person's data lists their device names and dates.
+- **Choices.** Administrators switch push per event in Settings → Notifications (`push` in `notifications.events`, on by default). Each person turns push on per device under Account → Notifications and chooses it per event next to email (`notification_preferences.push`, on by default; SLA alerts' email cannot be turned off, their push can). "Send a test notification" queues one to the person's devices in their language (audited `notifications.push.test`).
+- **Delivery log.** `push_deliveries` keeps the text, status, attempts and last error for 30 days (`Notifications:DeliveryRetention`, purged with emails); retries as for email (`Notifications:RetryDelays`).
+- **Browsers.** The service worker shows the message with the app's icon, language and direction and opens the page on a tap, only ever a path of the same site. On iPhone and iPad, web push works only in the app added to the Home Screen (iOS 16.4 and later); Account → Notifications says so in a browser tab.
+
+| Endpoint | Who | Does |
+| --- | --- | --- |
+| `GET /me/push` | Signed-in people | Whether push is offered, the tenant's public key, their devices |
+| `POST /me/push/subscriptions` | Signed-in people | Add this browser (`endpoint`, `p256dh`, `auth`, optional `deviceName`); 400 for other addresses or broken keys, 409 `push-not-available` |
+| `DELETE /me/push/subscriptions/{id}`, `POST /me/push/subscriptions/remove` | Signed-in people | Remove one of their devices (by id, or by address when signing out) |
+| `POST /me/push/test` | Signed-in people | Test notification to their devices or one (409 `no-push-devices`) |
+
+Also: `notification-preferences` items carry `push` and `pushEnabled`, input `push`; Settings → Notifications' events carry `push` and the settings `pushAvailable`; `PUT /notifications/settings/events/{event}` takes `push` (unchanged when left out). Settings → Notifications now sends each event's other switches along when one changes, so changing email no longer turned WhatsApp, SMS and Teams back on (found while adding push).
+
+| Setting | Default | Meaning |
+| --- | --- | --- |
+| `Notifications:Push:Enabled` | `true` (Compose for development); `false` in the hardened Compose (`ZELVO_PUSH_ENABLED`) and Helm (`push.enabled`) | Whether web push is offered; installations without outgoing internet leave it off |
+| `Notifications:Push:AllowedHosts` | the four push services | Push services subscriptions may use |
+| `Notifications:Push:AllowedPrivateNetworks`, `AllowInsecureHttp` | none, false | Push network policy (tests and special networks only) |
+| `Notifications:Push:Subject`, `TimeToLive`, `Timeout` | see above, 1 day, 15 s | VAPID contact, how long push services keep a message, request timeout |
+
+**Demo:** no sample devices (subscriptions are made by real browsers); in a demo installation with internet, any persona turns notifications on under Account → Notifications. "Reset demo" keeps the tenant's data keys (`tenant_data_keys`, which the database never lets anyone delete) like the audit log; opening Account → Notifications makes the push key and so the first data key of a sample organisation, which made the reset fail before.
+
+**Tests:** `WebPushProtocolTests` (encryption decrypted with .NET's HKDF as a browser does, fresh keys per message, other browsers cannot read it; subscription keys; the VAPID token verified with the public key; allowed push services; device names; the sender's headers and answers, never contacting other addresses; push titles in both languages) and `WebPushApiTests` against PostgreSQL (the tenant's key made once and stored encrypted, refused addresses and keys, an assignment pushed with the number only, the person's and the organisation's choices, test notifications, devices removed when gone, moving to another person and at sign-out, installations without push); web tests for the service worker's handlers, the devices panel and the push choices.
+
+**Not in J2:** the browsers' push services are not called from the build environment or CI (they need internet and real browsers); not tried on real phones yet. Notifications of workflow rules use the generic title "New update" (their wording is the administrator's own and could hold anything).

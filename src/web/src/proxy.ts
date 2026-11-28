@@ -3,9 +3,10 @@ import { NextResponse, type NextRequest } from "next/server";
 import { routing } from "./i18n/routing";
 import { getLocalizationSettings, getWidgetOrigins } from "./lib/api";
 import { authConfigFor } from "./lib/auth/config";
-import { sessionCookieName } from "./lib/auth/session";
+import { sessionCookieName, teamsSessionCookieName } from "./lib/auth/session";
 import { addRequestHeaders, contentSecurityPolicy, newNonce } from "./lib/csp";
 import { hasLanguagePrefix, languageCookieName, resolveLanguage, withLanguage } from "./lib/localization";
+import { teamsConnectSources, teamsFrameAncestors } from "./lib/teams";
 
 const intl = createMiddleware(routing);
 
@@ -19,10 +20,11 @@ export default async function proxy(request: NextRequest) {
   // the nonce from the request's policy and puts it on its scripts; layouts read `x-nonce`.
   const nonce = newNonce();
   const config = await authConfigFor(request);
-  const policy = (frameAncestors?: string[]) =>
+  const policy = (frameAncestors?: string[], connectSources?: string[]) =>
     contentSecurityPolicy({
       nonce,
       frameAncestors,
+      connectSources,
       development: process.env.NODE_ENV === "development",
       upgradeInsecureRequests: config.appUrl.protocol === "https:",
     });
@@ -43,7 +45,10 @@ export default async function proxy(request: NextRequest) {
     return response;
   }
   if (hasLanguagePrefix(pathname)) {
-    const csp = policy();
+    // Task J4: Teams may frame the Teams tab's own pages, and any page opened with the Teams tab's
+    // partitioned session cookie (which only exists inside Teams); every other page stays unframed.
+    const inTeams = /^\/(en|ar)\/teams\/tab(\/|$)/.test(pathname) || request.cookies.has(teamsSessionCookieName(config));
+    const csp = inTeams ? policy(teamsFrameAncestors(), teamsConnectSources) : policy();
     const response = intl(request);
     addRequestHeaders(response, request, pageHeaders(csp));
     response.headers.set("Content-Security-Policy", csp);

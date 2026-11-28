@@ -32,3 +32,21 @@ describe("AccountMenu", () => {
     expect(container.querySelector('input[name="locale"]')).toHaveValue("en");
   });
 });
+
+describe("sign-out and web push (task J2)", () => {
+  it("sends this device's push address along without holding the form", () => {
+    const endpoint = `https://fcm.googleapis.com/fcm/send/${crypto.randomUUID()}`;
+    localStorage.setItem("zelvo-push-endpoint", endpoint);
+    const { container } = render(
+      <NextIntlClientProvider locale="en" messages={en}>
+        <AccountMenu userName="Aisha Admin" csrfToken="token-123" />
+      </NextIntlClientProvider>,
+    );
+    const form = container.querySelector("form")!;
+    const event = new Event("submit", { bubbles: true, cancelable: true });
+    form.dispatchEvent(event);
+    expect(event.defaultPrevented).toBe(false);
+    expect(container.querySelector('input[name="pushEndpoint"]')).toHaveValue(endpoint);
+    expect(localStorage.getItem("zelvo-push-endpoint")).toBeNull();
+  });
+});

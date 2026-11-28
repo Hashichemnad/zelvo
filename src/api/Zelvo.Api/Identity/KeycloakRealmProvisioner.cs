@@ -515,12 +515,11 @@ internal sealed class KeycloakRealmProvisioner(KeycloakAdminClient admin, Identi
             await AddFlowAsync(realm, "zelvo forms", "zelvo level 2", "CONDITIONAL", cancellationToken).ConfigureAwait(false);
             await AddExecutionAsync(realm, "zelvo level 2", "conditional-level-of-authentication", "REQUIRED", cancellationToken,
                 new Dictionary<string, string>(StringComparer.Ordinal) { ["loa-condition-level"] = "2", ["loa-max-age"] = "36000" }).ConfigureAwait(false);
-            // Required, not one of several alternatives: Keycloak then asks staff without an
-            // authenticator app to set one up, instead of failing the sign-in.
-            await AddExecutionAsync(realm, "zelvo level 2", "auth-otp-form", "REQUIRED", cancellationToken).ConfigureAwait(false);
         }
 
+        await EnsureSecondFactorFlowAsync(realm, cancellationToken).ConfigureAwait(false);
         await admin.SetEmailCodeSignInAsync(realm, settings.EmailCodeSignIn, settings.AllowedDomains, cancellationToken).ConfigureAwait(false);
+        await admin.SetPasskeysAsync(realm, settings.Passkeys, cancellationToken).ConfigureAwait(false);
 
         var representation = await admin.GetAsync($"realms/{E(realm)}", cancellationToken).ConfigureAwait(false);
         if ((string?)representation?["browserFlow"] != KeycloakAdminClient.BrowserFlow)
@@ -528,6 +527,45 @@ internal sealed class KeycloakRealmProvisioner(KeycloakAdminClient admin, Identi
             using var _ = await admin.SendAsync(HttpMethod.Put, $"realms/{E(realm)}",
                 new JsonObject { ["realm"] = realm, ["browserFlow"] = KeycloakAdminClient.BrowserFlow }, cancellationToken).ConfigureAwait(false);
         }
+    }
+
+    /// <summary>
+    /// Task J3: level 2 of the browser flow (staff's second factor) as
+    /// <code>
+    /// zelvo level 2 (CONDITIONAL)
+    ///   level of authentication 2 (condition)
+    ///   allow access (REQUIRED; level 2 is reached even when the step below is skipped)
+    ///   zelvo second factor (CONDITIONAL)
+    ///     credential condition: no passkey used in this sign-in
+    ///     authenticator app code (REQUIRED, or DISABLED when passkeys are required for staff)
+    ///     passkey (DISABLED, or REQUIRED when passkeys are required for staff)
+    /// </code>
+    /// so a passkey sign-in, where the device verified the person, is the second factor itself
+    /// (decision 15). Realms built before J3 had the authenticator app code straight under level 2;
+    /// it is replaced once. The second factor stays required (not one of several alternatives), so
+    /// Keycloak asks staff without one to set it up instead of failing the sign-in.
+    /// </summary>
+    private async Task EnsureSecondFactorFlowAsync(string realm, CancellationToken cancellationToken)
+    {
+        const string level2 = "zelvo level 2";
+        var steps = await admin.GetArrayAsync($"realms/{E(realm)}/authentication/flows/{E(level2)}/executions", cancellationToken).ConfigureAwait(false);
+        if (steps.Any(s => s is not null && (int?)s["level"] == 0 && (string?)s["displayName"] == KeycloakAdminClient.SecondFactorFlow))
+        {
+            return;
+        }
+
+        foreach (var old in steps.Where(s => s is not null && (int?)s["level"] == 0 && (string?)s["providerId"] == "auth-otp-form"))
+        {
+            using var _ = await admin.SendAsync(HttpMethod.Delete, $"realms/{E(realm)}/authentication/executions/{E((string)old!["id"]!)}", null, cancellationToken)
+                .ConfigureAwait(false);
+        }
+
+        await AddExecutionAsync(realm, level2, "allow-access-authenticator", "REQUIRED", cancellationToken).ConfigureAwait(false);
+        await AddFlowAsync(realm, level2, KeycloakAdminClient.SecondFactorFlow, "CONDITIONAL", cancellationToken).ConfigureAwait(false);
+        await AddExecutionAsync(realm, KeycloakAdminClient.SecondFactorFlow, "conditional-credential", "REQUIRED", cancellationToken,
+            new Dictionary<string, string>(StringComparer.Ordinal) { ["credentials"] = KeycloakAdminClient.PasskeyCredentialType, ["included"] = "false" }).ConfigureAwait(false);
+        await AddExecutionAsync(realm, KeycloakAdminClient.SecondFactorFlow, "auth-otp-form", "REQUIRED", cancellationToken).ConfigureAwait(false);
+        await AddExecutionAsync(realm, KeycloakAdminClient.SecondFactorFlow, "webauthn-authenticator-passwordless", "DISABLED", cancellationToken).ConfigureAwait(false);
     }
 
     /// <summary>

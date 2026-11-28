@@ -65,6 +65,11 @@ smtp:
   user: ""
   from: ""
 
+# Web push notifications (task J2): they go through the browsers' push services, so the api and
+# worker need outgoing internet (HTTPS) to them; leave false for clusters without it.
+push:
+  enabled: false
+
 # The signed release manifest of the release (from the bundle's release/ folder):
 #   --set-file release.manifest=release/release-manifest.json --set-file release.signature=release/release-manifest.json.sig
 # Every Zelvo service checks itself against it and refuses to start without it in release builds.

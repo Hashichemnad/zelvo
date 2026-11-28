@@ -588,9 +588,32 @@ internal static partial class MessagingEndpoints
     private static partial Regex Domain();
 }
 
-/// <summary>The Teams app package an administrator uploads to Teams (manifest 1.17, English and Arabic, icons).</summary>
+/// <summary>
+/// The Teams app package an administrator uploads to Teams (manifest 1.17, English and Arabic,
+/// icons). Task J4 (version 1.1.0): personal tabs (My tickets, the agent's list, approvals), the
+/// bot's commands and the message action "Raise a ticket".
+/// </summary>
 internal static class TeamsAppPackage
 {
+    /// <summary>The app's version; Teams asks administrators to update when it grows.</summary>
+    public const string Version = "1.1.0";
+
+    /// <summary>The personal tabs: entity id, view of the Teams tab page, the term of its name.</summary>
+    internal static readonly (string Id, string View, string Term)[] Tabs =
+    [
+        ("my-tickets", "my-tickets", "teams.tab.my-tickets"),
+        ("work", "workspace", "teams.tab.work"),
+        ("approvals", "approvals", "teams.tab.approvals"),
+    ];
+
+    /// <summary>The bot's commands: the words the person sends (see <see cref="TeamsApp.CommandOf"/>) and the term of their description.</summary>
+    internal static readonly (string Title, string Term)[] Commands =
+    [
+        ("teams.command.raise", "teams.command.raise.help"),
+        ("teams.command.status", "teams.command.status.help"),
+        ("teams.command.help", "teams.command.help.help"),
+    ];
+
     public static byte[] Build(MessagingChannel channel, string nameEn, string nameAr, Uri webUrl)
     {
         var en = NotificationTexts.For("en").Terms;
@@ -600,7 +623,7 @@ internal static class TeamsAppPackage
         {
             ["$schema"] = "https://developer.microsoft.com/json-schemas/teams/v1.17/MicrosoftTeams.schema.json",
             ["manifestVersion"] = "1.17",
-            ["version"] = "1.0.0",
+            ["version"] = Version,
             ["id"] = channel.AccountId,
             ["developer"] = new JsonObject
             {
@@ -619,6 +642,34 @@ internal static class TeamsAppPackage
                 ["scopes"] = new JsonArray("personal"),
                 ["supportsFiles"] = false,
                 ["isNotificationOnly"] = false,
+                ["commandLists"] = new JsonArray(new JsonObject
+                {
+                    ["scopes"] = new JsonArray("personal"),
+                    ["commands"] = new JsonArray([.. Commands.Select(c => (JsonNode)new JsonObject { ["title"] = en.GetValueOrDefault(c.Title), ["description"] = en.GetValueOrDefault(c.Term) })]),
+                }),
+            }),
+            // Task J4: the Zelvo web app inside Teams; the tab page picks the language from Teams' {locale}.
+            ["staticTabs"] = new JsonArray([.. Tabs.Select(t => (JsonNode)new JsonObject
+            {
+                ["entityId"] = t.Id,
+                ["name"] = en.GetValueOrDefault(t.Term),
+                ["contentUrl"] = $"{webUrl.GetLeftPart(UriPartial.Authority)}/auth/teams/tab?view={t.View}&locale={{locale}}",
+                ["websiteUrl"] = new Uri(webUrl, $"en/teams/tab?view={t.View}").AbsoluteUri,
+                ["scopes"] = new JsonArray("personal"),
+            })]),
+            // Task J4: "Raise a ticket" on any message, in a dialog.
+            ["composeExtensions"] = new JsonArray(new JsonObject
+            {
+                ["botId"] = channel.AccountId,
+                ["commands"] = new JsonArray(new JsonObject
+                {
+                    ["id"] = TeamsApp.MessageActionCommand,
+                    ["type"] = "action",
+                    ["context"] = new JsonArray("message"),
+                    ["fetchTask"] = true,
+                    ["title"] = en.GetValueOrDefault("teams.command.raise"),
+                    ["description"] = en.GetValueOrDefault("teams.message-action.help"),
+                }),
             }),
             ["permissions"] = new JsonArray("identity", "messageTeamMembers"),
             ["validDomains"] = new JsonArray(webUrl.Host),
@@ -635,7 +686,19 @@ internal static class TeamsAppPackage
             ["name.full"] = nameAr,
             ["description.short"] = ar.GetValueOrDefault("teams.app.short"),
             ["description.full"] = ar.GetValueOrDefault("teams.app.full"),
+            ["composeExtensions[0].commands[0].title"] = ar.GetValueOrDefault("teams.command.raise"),
+            ["composeExtensions[0].commands[0].description"] = ar.GetValueOrDefault("teams.message-action.help"),
         };
+        for (var i = 0; i < Tabs.Length; i++)
+        {
+            arabic[$"staticTabs[{i}].name"] = ar.GetValueOrDefault(Tabs[i].Term);
+        }
+
+        for (var i = 0; i < Commands.Length; i++)
+        {
+            arabic[$"bots[0].commandLists[0].commands[{i}].title"] = ar.GetValueOrDefault(Commands[i].Title);
+            arabic[$"bots[0].commandLists[0].commands[{i}].description"] = ar.GetValueOrDefault(Commands[i].Term);
+        }
         using var stream = new MemoryStream();
         using (var zip = new ZipArchive(stream, ZipArchiveMode.Create, leaveOpen: true))
         {

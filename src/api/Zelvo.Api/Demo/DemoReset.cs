@@ -141,13 +141,17 @@ internal sealed class DemoReset(
     }
 
     /// <summary>
-    /// Every tenant-owned table except the audit log, children before the tables they refer to.
-    /// Tables later modules add are included automatically (they implement <see cref="ITenantOwned"/>).
+    /// Every tenant-owned table except the audit log and the tenant's data keys, children before
+    /// the tables they refer to. Tables later modules add are included automatically (they
+    /// implement <see cref="ITenantOwned"/>). Data keys are never deleted (a trigger refuses it,
+    /// task A5: retired instead); keeping them is harmless, as nothing encrypted with them is left,
+    /// and the first secret made after a reset (for example task J2's web push key) reuses them.
     /// </summary>
     internal static IReadOnlyList<string> TablesToEmpty(IModel model)
     {
         var remaining = model.GetEntityTypes()
-            .Where(e => typeof(ITenantOwned).IsAssignableFrom(e.ClrType) && e.ClrType != typeof(AuditEvent) && e.GetTableName() is not null)
+            .Where(e => typeof(ITenantOwned).IsAssignableFrom(e.ClrType) && e.ClrType != typeof(AuditEvent)
+                && e.ClrType != typeof(Zelvo.Data.Secrets.TenantDataKey) && e.GetTableName() is not null)
             .ToList();
         var ordered = new List<string>();
         while (remaining.Count > 0)

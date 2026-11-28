@@ -104,6 +104,51 @@ internal sealed class FakeKeycloakAdmin : IKeycloakAdmin
         return Task.CompletedTask;
     }
 
+    /// <summary>Task J3: passkey settings applied per realm.</summary>
+    public List<(string Realm, Zelvo.Data.Identity.PasskeySignIn Mode)> PasskeyCalls { get; } = [];
+
+    /// <summary>Task J3: passkeys per (realm, subject).</summary>
+    public Dictionary<(string Realm, string Subject), List<KeycloakPasskey>> Passkeys { get; } = [];
+
+    /// <summary>Task J3: Keycloak refuses passkey requests.</summary>
+    public bool FailPasskeys { get; set; }
+
+    public Task SetPasskeysAsync(string realm, Zelvo.Data.Identity.PasskeySignIn mode, CancellationToken cancellationToken)
+    {
+        if (FailPasskeys)
+        {
+            throw new KeycloakAdminException("Keycloak is down.");
+        }
+
+        lock (PasskeyCalls)
+        {
+            PasskeyCalls.Add((realm, mode));
+        }
+
+        return Task.CompletedTask;
+    }
+
+    public Task<IReadOnlyList<KeycloakPasskey>> ListPasskeysAsync(string realm, string subject, CancellationToken cancellationToken)
+    {
+        if (FailPasskeys)
+        {
+            throw new KeycloakAdminException("Keycloak is down.");
+        }
+
+        lock (Passkeys)
+        {
+            return Task.FromResult<IReadOnlyList<KeycloakPasskey>>(Passkeys.TryGetValue((realm, subject), out var list) ? [.. list] : []);
+        }
+    }
+
+    public Task<bool> DeletePasskeyAsync(string realm, string subject, string credentialId, CancellationToken cancellationToken)
+    {
+        lock (Passkeys)
+        {
+            return Task.FromResult(Passkeys.TryGetValue((realm, subject), out var list) && list.RemoveAll(p => p.Id == credentialId) > 0);
+        }
+    }
+
     public Task DeleteUserAsync(string realm, string subject, CancellationToken cancellationToken)
     {
         lock (DeletedUsers)
