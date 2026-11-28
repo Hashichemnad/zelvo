@@ -256,6 +256,13 @@ public sealed record FormField
     /// <summary>Dropdown and radio: the options.</summary>
     public IReadOnlyList<FieldOption>? Options { get; init; }
 
+    /// <summary>
+    /// Task K3: dropdown and radio fields take their options from this data list (its key) instead
+    /// of options of their own; the published form gets the list's active items as options when it
+    /// is filled in, so answers are checked against them like any options.
+    /// </summary>
+    public string? DataList { get; init; }
+
     /// <summary>Checks on the answer.</summary>
     public FieldValidation? Validation { get; init; }
 

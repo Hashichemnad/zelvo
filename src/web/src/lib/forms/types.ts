@@ -127,6 +127,8 @@ export interface FormField {
   /** Configuration item (task G1): the classes items may be picked from, each with the classes below it; empty: any class. */
   configurationItemClasses?: string[] | null;
   options?: FieldOption[] | null;
+  /** Task K3: dropdown and radio fields take their options from this data list (its key) when the form is filled in. */
+  dataList?: string | null;
   validation?: FieldValidation | null;
   defaultValue?: JsonValue;
   profileDefault?: ProfileSource | null;

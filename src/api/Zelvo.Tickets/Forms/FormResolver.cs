@@ -71,7 +71,9 @@ public static class FormResolver
         var version = await db.FormVersions.AsNoTracking().SingleAsync(v => v.Id == versionId, cancellationToken).ConfigureAwait(false);
         var schema = FormJson.ReadForm(version.Schema) ?? new FormSchema();
         var sets = await PublishedFieldSetsAsync(db, FieldSetIds(schema), cancellationToken).ConfigureAwait(false);
-        return new ResolvedForm(form, version, Expand(schema, sets));
+
+        // Task K3: options of fields that take them from a data list.
+        return new ResolvedForm(form, version, await DataListOptions.FillAsync(db, Expand(schema, sets), cancellationToken).ConfigureAwait(false));
     }
 
     /// <summary>

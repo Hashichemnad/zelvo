@@ -52,6 +52,10 @@ export async function SiteHeader() {
   const user = session ? await getCurrentUser(session.data.accessToken, config.tenant) : null;
   // Demo installations only: the API says whether this is one.
   const demo = config.demoTenants.length > 0 ? await getDemo(config.tenant) : null;
+  // Task K3: the "Apps" link appears once an app has entries the person may use.
+  const appCount = session && user
+    ? ((await getJsonAs<{ active: boolean }[]>("/api/v1/apps", session.data.accessToken, config.tenant)) ?? []).filter((a) => a.active).length
+    : 0;
   const unread = session && user
     ? await getJsonAs<{ count: number }>("/api/v1/me/notifications/unread-count", session.data.accessToken, config.tenant)
     : null;
@@ -199,6 +203,13 @@ export async function SiteHeader() {
                     <li>
                       <Link href="/records" className="text-brand underline-offset-4 hover:underline" data-testid="nav-records">
                         {tRecords("nav")}
+                      </Link>
+                    </li>
+                  )}
+                  {appCount > 0 && (
+                    <li>
+                      <Link href="/apps" className="text-brand underline-offset-4 hover:underline" data-testid="nav-apps">
+                        {tRecords("appsNav")}
                       </Link>
                     </li>
                   )}

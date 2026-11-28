@@ -54,6 +54,9 @@ public sealed class RecordType : ITenantOwned, IAuditedEntity
     /// <summary>New records can be raised; inactive types keep their records.</summary>
     public bool Active { get; set; } = true;
 
+    /// <summary>The app it belongs to (task K3), if any.</summary>
+    public Guid? AppId { get; set; }
+
     /// <summary>Last number given in the type's series.</summary>
     public long LastNumber { get; set; }
 

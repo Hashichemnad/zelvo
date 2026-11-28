@@ -464,6 +464,7 @@ public sealed partial class ZelvoDbContext(DbContextOptions<ZelvoDbContext> opti
         ConfigureProblems(modelBuilder);
         ConfigureChanges(modelBuilder);
         ConfigureRecords(modelBuilder);
+        ConfigureApps(modelBuilder);
 
         modelBuilder.Entity<TenantDataKey>(key =>
         {

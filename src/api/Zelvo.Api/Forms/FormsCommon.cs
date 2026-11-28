@@ -101,6 +101,15 @@ internal static partial class FormsCommon
         }
 
         problems.AddRange(FormDefinitionCheck.Check([.. fields.Select(f => f.Field)]));
+
+        // Task K3: data lists that fields take their options from must exist.
+        var lists = fields.SelectMany(f => DataListOptions.Keys(f.Field)).Distinct(StringComparer.Ordinal).ToList();
+        if (lists.Count > 0)
+        {
+            var known = await db.DataLists.AsNoTracking().Where(l => lists.Contains(l.Key)).Select(l => l.Key).ToListAsync(cancellationToken);
+            problems.AddRange(lists.Except(known, StringComparer.Ordinal).Select(k => new FormProblem(null, "data-list-unknown", $"There is no data list '{k}'.")));
+        }
+
         return (fields, problems);
     }
 
