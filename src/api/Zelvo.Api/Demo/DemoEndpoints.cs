@@ -24,10 +24,15 @@ internal static class DemoEndpoints
             .WithSummary("Demo installations only: the sample organisations, the demo users of this one, and when the demo was last reset. Open to anonymous visitors.")
             .AllowAnonymousAccess();
 
-        demo.MapPost("/reset", ResetAsync)
+        demo.MapPost("/reset", Reset)
             .WithName("ResetDemo")
-            .WithSummary("Demo installations only: restores every sample organisation to its clean sample state. The audit log is kept. Needs demo.reset; audited.")
+            .WithSummary("Demo installations only: starts restoring every sample organisation to its clean sample state, as a background job (202 with its progress; 409 demo-reset-running while one runs). The audit log is kept. Needs demo.reset; audited. The person who asked is notified when it ends.")
             .RequirePermission(Permissions.DemoReset);
+
+        demo.MapGet("/reset", GetReset)
+            .WithName("GetDemoReset")
+            .WithSummary("Demo installations only: the running or last reset of the demo and how far it has got (organisation, step, steps done of all). Open to anonymous visitors, as the demo panel follows it while the sample data is being replaced.")
+            .AllowAnonymousAccess();
 
         return group;
     }
@@ -48,33 +53,38 @@ internal static class DemoEndpoints
             lastReset == DateTimeOffset.MinValue ? null : lastReset));
     }
 
-    internal static async Task<Results<Ok<DemoResetResponse>, ProblemHttpResult>> ResetAsync(
-        ILicenseService license, ITenantContext tenant, CurrentUser user, DemoReset reset, IAuditLog audit, IHostApplicationLifetime lifetime)
+    internal static async Task<Results<Accepted<DemoResetStatusResponse>, Conflict<DemoResetStatusResponse>, ProblemHttpResult>> Reset(
+        ILicenseService license, ITenantContext tenant, CurrentUser user, DemoResetJobs jobs, IAuditLog audit, CancellationToken cancellationToken)
     {
-        // A reset empties and reseeds every sample organisation, which takes longer than a browser or
-        // the web proxy may wait; it is never stopped half-way because the caller went away, only when
-        // the API shuts down.
-        var cancellationToken = lifetime.ApplicationStopping;
         if (!license.IsDemo() || DemoCatalog.Find(tenant.Slug ?? string.Empty) is null)
         {
             return NotDemo();
         }
 
-        var requestedBy = user.Account?.Id.ToString() ?? "unknown";
-        var results = await reset.ResetAsync(requestedBy, tenant.Slug!, cancellationToken);
-        if (results is null)
-        {
-            return (ProblemHttpResult)ApiProblem.Create(StatusCodes.Status409Conflict, "demo-reset-running", "A reset of the demo is already running.");
-        }
-
-        // The requester's own record was recreated by the reset; the entry names who asked.
+        // Recorded first: the reset recreates the requester's own record, and the entry names who asked.
         await audit.RecordAsync(AuditCategory.Admin, "demo.reset-requested", "demo", null,
             new Dictionary<string, object?>(StringComparer.Ordinal)
             {
-                ["organisations"] = results.Select(r => r.Slug).ToList(),
+                ["organisations"] = DemoCatalog.Organisations.Select(o => o.Slug).ToList(),
             }, cancellationToken);
 
-        return TypedResults.Ok(new DemoResetResponse(DateTimeOffset.UtcNow, results.Select(r => r.Slug).ToList()));
+        var requestedBy = user.Account?.Id.ToString() ?? "unknown";
+        if (jobs.Start(requestedBy, tenant.Slug!, user.Account?.Subject) is not { } run)
+        {
+            return TypedResults.Conflict(DemoResetStatusResponse.From(jobs.Current));
+        }
+
+        return TypedResults.Accepted("/api/v1/demo/reset", DemoResetStatusResponse.From(run));
+    }
+
+    internal static Results<Ok<DemoResetStatusResponse>, ProblemHttpResult> GetReset(ILicenseService license, ITenantContext tenant, DemoResetJobs jobs)
+    {
+        if (!license.IsDemo() || DemoCatalog.Find(tenant.Slug ?? string.Empty) is null)
+        {
+            return NotDemo();
+        }
+
+        return TypedResults.Ok(DemoResetStatusResponse.From(jobs.Current));
     }
 
     private static ProblemHttpResult NotDemo() =>
@@ -114,5 +124,33 @@ internal sealed record DemoUserResponse(string Persona, string RoleKey, Localize
     }
 }
 
-/// <summary>A finished reset.</summary>
-internal sealed record DemoResetResponse(DateTimeOffset ResetAt, IReadOnlyList<string> Organisations);
+/// <summary>A reset of the demo and how far it has got.</summary>
+/// <param name="State">Idle (none since the API started), Running, Succeeded or Failed.</param>
+/// <param name="Id">The reset.</param>
+/// <param name="StartedAt">When it started.</param>
+/// <param name="FinishedAt">When it finished or failed.</param>
+/// <param name="Organisation">The sample organisation being reset now, or where it failed.</param>
+/// <param name="Stage">Emptying, Seeding or Indexing.</param>
+/// <param name="Seeder">The seeder running now, for example <c>f2-reporting</c>.</param>
+/// <param name="Done">Steps done.</param>
+/// <param name="Total">Steps in all.</param>
+/// <param name="Percent">Steps done as a whole percentage.</param>
+/// <param name="Organisations">The sample organisations a finished reset restored.</param>
+internal sealed record DemoResetStatusResponse(
+    DemoResetState State,
+    Guid? Id,
+    DateTimeOffset? StartedAt,
+    DateTimeOffset? FinishedAt,
+    string? Organisation,
+    DemoResetStage? Stage,
+    string? Seeder,
+    int Done,
+    int Total,
+    int Percent,
+    IReadOnlyList<string> Organisations)
+{
+    public static DemoResetStatusResponse From(DemoResetRun? run) => run is null
+        ? new(DemoResetState.Idle, null, null, null, null, null, null, 0, 0, 0, [])
+        : new(run.State, run.Id, run.StartedAt, run.FinishedAt, run.Organisation, run.Stage, run.Seeder, run.Done, run.Total,
+            run.Total == 0 ? 0 : (int)Math.Floor(run.Done * 100.0 / run.Total), run.Organisations);
+}

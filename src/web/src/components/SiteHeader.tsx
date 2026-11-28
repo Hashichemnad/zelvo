@@ -60,9 +60,9 @@ export async function SiteHeader() {
     ? await getJsonAs<{ count: number }>("/api/v1/me/notifications/unread-count", session.data.accessToken, config.tenant)
     : null;
   let lastReset: string | null = null;
-  if (demo?.lastResetAt) {
-    const format = await getDisplayFormat();
-    lastReset = formatDateTime(new Date(demo.lastResetAt), { locale, ...format });
+  const demoFormat = demo ? await getDisplayFormat() : null;
+  if (demo?.lastResetAt && demoFormat) {
+    lastReset = formatDateTime(new Date(demo.lastResetAt), { locale, ...demoFormat });
   }
 
   return (
@@ -278,6 +278,7 @@ export async function SiteHeader() {
           csrfToken={session?.data.csrfToken ?? null}
           canReset={user?.permissions.includes("demo.reset") ?? false}
           lastReset={lastReset}
+          digits={demoFormat?.digits ?? "latn"}
         />
       )}
     </>

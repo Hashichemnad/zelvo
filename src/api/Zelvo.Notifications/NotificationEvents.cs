@@ -235,6 +235,15 @@ public static class NotificationEvents
     public const string AssetLicenseExpiring = "asset.license-expiring";
 
     /// <summary>
+    /// "Reset demo" finished (demo mode, task D; runs as a background job since task L1's fix); to
+    /// the demo administrator who asked, in the app and by email.
+    /// </summary>
+    public const string DemoResetFinished = "demo.reset-finished";
+
+    /// <summary>"Reset demo" stopped with an error; to the demo administrator who asked.</summary>
+    public const string DemoResetFailed = "demo.reset-failed";
+
+    /// <summary>
     /// A notify action of a workflow rule (task C3). Its wording is the rule's own, carried in the
     /// notification's values; it is not listed in Settings → Notifications or Account → Notifications.
     /// </summary>
@@ -336,6 +345,9 @@ public static class NotificationEvents
         new(AssetContractExpiring, NotificationAudience.Staff, true,
             [Placeholders.ContractName, Placeholders.ContractKind, Placeholders.ContractSupplier, Placeholders.ContractEndsOn, Placeholders.ContractAssets]),
         new(AssetLicenseExpiring, NotificationAudience.Staff, true, [Placeholders.LicenseName, Placeholders.LicenseQuantity, Placeholders.LicenseEndsOn]),
+        // Demo mode: the background reset of the demo ended.
+        new(DemoResetFinished, NotificationAudience.Staff, true, []),
+        new(DemoResetFailed, NotificationAudience.Staff, true, []),
     ];
 
     /// <summary>Events that are not set up in Settings (their wording comes from elsewhere).</summary>

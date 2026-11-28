@@ -1521,7 +1521,14 @@
     "resetCancel": "إلغاء",
     "resetting": "جارٍ إعادة الضبط…",
     "resetDone": "تمت إعادة ضبط العرض التوضيحي.",
-    "resetFailed": "تعذّرت إعادة ضبط العرض التوضيحي. يُرجى المحاولة مرة أخرى."
+    "resetFailed": "تعذّرت إعادة ضبط العرض التوضيحي. يُرجى المحاولة مرة أخرى.",
+    "resetRunning": "تجري الآن إعادة ضبط العرض التوضيحي، ولن تكون الجهات النموذجية متاحة حتى تكتمل، وسيصلكم إشعار عند اكتمالها.",
+    "resetBusy": "تجري إعادة ضبط العرض التوضيحي بالفعل.",
+    "resetProgress": "مدى تقدّم إعادة الضبط",
+    "resetPercent": "اكتمل {percent}٪",
+    "resetStageEmptying": "{organisation}: حذف التغييرات التي أُجريت في العرض التوضيحي",
+    "resetStageSeeding": "{organisation}: إضافة البيانات النموذجية",
+    "resetStageIndexing": "{organisation}: إعادة بناء فهرس البحث"
   },
   "incidents": {
     "nav": {
@@ -2699,6 +2706,8 @@
       "workflow_rule": "إشعار من قاعدة سير عمل",
       "malware_definitions_outdated": "تعريفات البرمجيات الضارة غير محدّثة",
       "wellbeing_enabled": "تفعيل موازنة أعباء العمل",
+      "demo_reset_finished": "اكتملت إعادة ضبط العرض التوضيحي",
+      "demo_reset_failed": "تعذرت إعادة ضبط العرض التوضيحي",
       "asset_contract_expiring": "ينتهي عقد أو ضمان قريبًا",
       "asset_license_expiring": "تنتهي رخصة برنامج قريبًا",
       "problem_assigned": "إسناد مشكلة إليكم",

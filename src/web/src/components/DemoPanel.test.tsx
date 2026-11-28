@@ -69,9 +69,28 @@ describe("DemoPanel", () => {
   });
 });
 
+const json = (body: unknown, status = 200) => new Response(JSON.stringify(body), { status, headers: { "Content-Type": "application/json" } });
+const live = () => document.querySelector("[aria-live=polite]");
+const idle = { state: "Idle", id: null, organisation: null, stage: null, done: 0, total: 0, percent: 0 };
+
 describe("DemoResetButton", () => {
-  it("asks for confirmation, then resets through the API proxy with the CSRF token", async () => {
-    const fetchMock = vi.fn().mockResolvedValue(new Response(JSON.stringify({ resetAt: "x", organisations: [] }), { status: 200 }));
+  afterEach(() => {
+    vi.useRealTimers();
+    vi.unstubAllGlobals();
+  });
+
+  it("asks for confirmation, starts the reset as a job and follows its progress until it ends", async () => {
+    const statuses = [
+      { state: "Running", id: "r1", organisation: "demo-municipality", stage: "Seeding", done: 12, total: 70, percent: 17 },
+      { state: "Running", id: "r1", organisation: "demo-company", stage: "Indexing", done: 69, total: 70, percent: 98 },
+      { state: "Succeeded", id: "r1", organisation: null, stage: null, done: 70, total: 70, percent: 100 },
+    ];
+    const fetchMock = vi.fn((url: string, init?: RequestInit) => {
+      if (init?.method === "POST") {
+        return Promise.resolve(json({ state: "Running", id: "r1", organisation: "demo-municipality", stage: "Emptying", done: 0, total: 70, percent: 0 }, 202));
+      }
+      return Promise.resolve(json(fetchMock.mock.calls.filter(([, i]) => i?.method === "POST").length === 0 ? idle : statuses.shift() ?? statuses[2]));
+    });
     vi.stubGlobal("fetch", fetchMock);
     const reload = vi.fn();
     vi.stubGlobal("location", { ...window.location, reload });
@@ -82,19 +101,41 @@ describe("DemoResetButton", () => {
       </NextIntlClientProvider>,
     );
 
+    await waitFor(() => expect(fetchMock).toHaveBeenCalledWith("/bff/api/v1/demo/reset", expect.objectContaining({ cache: "no-store" })));
     fireEvent.click(screen.getByRole("button", { name: "Reset demo" }));
-    expect(fetchMock).not.toHaveBeenCalled();
+    expect(fetchMock.mock.calls.some(([, init]) => init?.method === "POST")).toBe(false);
     expect(screen.getByText(/The audit log is kept/)).toBeInTheDocument();
+    vi.useFakeTimers({ shouldAdvanceTime: true });
     fireEvent.click(screen.getByRole("button", { name: "Reset now" }));
 
+    await waitFor(() => expect(screen.getByRole("progressbar", { name: "Progress of the reset" })).toBeInTheDocument());
+    const post = fetchMock.mock.calls.find(([, init]) => init?.method === "POST")!;
+    expect(new Headers(post[1]?.headers).get("X-CSRF-Token")).toBe("csrf-9");
+
+    await vi.advanceTimersByTimeAsync(2000);
+    await waitFor(() => expect(live()).toHaveTextContent("17 % done · Department of Municipal Services: adding the sample data"));
+    await vi.advanceTimersByTimeAsync(2000);
+    await waitFor(() => expect(live()).toHaveTextContent("Gulf Horizon Trading: rebuilding the search index"));
+    await vi.advanceTimersByTimeAsync(2000);
     await waitFor(() => expect(screen.getByRole("status")).toHaveTextContent("The demo was reset."));
-    expect(fetchMock).toHaveBeenCalledWith("/bff/api/v1/demo/reset", expect.objectContaining({ method: "POST" }));
-    expect(new Headers(fetchMock.mock.calls[0]?.[1]?.headers).get("X-CSRF-Token")).toBe("csrf-9");
-    vi.unstubAllGlobals();
+    expect(reload).toHaveBeenCalled();
   });
 
-  it("says so when the reset fails, and can be cancelled", async () => {
-    vi.stubGlobal("fetch", vi.fn().mockResolvedValue(new Response(null, { status: 409 })));
+  it("follows a reset that is already running when the panel opens", async () => {
+    vi.stubGlobal("fetch", vi.fn().mockResolvedValue(json({ state: "Running", id: "r2", organisation: "demo-company", stage: "Emptying", done: 36, total: 70, percent: 51 })));
+    render(
+      <NextIntlClientProvider locale="ar" messages={ar}>
+        <DemoPanel demo={demo} currentUsername={null} csrfToken="c" canReset lastReset={null} />
+      </NextIntlClientProvider>,
+    );
+
+    await waitFor(() => expect(screen.getByRole("progressbar", { name: "مدى تقدّم إعادة الضبط" })).toHaveAttribute("value", "51"));
+    expect(live()).toHaveTextContent("أفق الخليج للتجارة: حذف التغييرات");
+    expect(screen.queryByRole("button", { name: "إعادة ضبط العرض التوضيحي" })).not.toBeInTheDocument();
+  });
+
+  it("says so when the reset cannot start, and can be cancelled", async () => {
+    vi.stubGlobal("fetch", vi.fn((_url: string, init?: RequestInit) => Promise.resolve(init?.method === "POST" ? new Response(null, { status: 500 }) : json(idle))));
     render(
       <NextIntlClientProvider locale="ar" messages={ar}>
         <DemoPanel demo={demo} currentUsername={null} csrfToken="c" canReset lastReset={null} />
@@ -108,6 +149,5 @@ describe("DemoResetButton", () => {
     fireEvent.click(screen.getByRole("button", { name: "إعادة الضبط الآن" }));
 
     await waitFor(() => expect(screen.getByRole("status")).toHaveTextContent("تعذّرت إعادة ضبط العرض التوضيحي"));
-    vi.unstubAllGlobals();
   });
 });
