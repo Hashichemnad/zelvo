@@ -77,6 +77,11 @@ export async function GET(request: NextRequest) {
   if (hasLanguagePrefix(returnTo.pathname)) {
     returnTo.pathname = withLanguage(returnTo.pathname, language);
   }
+  // Task J3: the outcome of "add a passkey" (Keycloak's kc_action_status), for Account → Security.
+  const actionStatus = params.get("kc_action_status");
+  if (actionStatus === "success" || actionStatus === "cancelled" || actionStatus === "error") {
+    returnTo.searchParams.set("passkey", actionStatus === "success" ? "added" : actionStatus);
+  }
   const response = NextResponse.redirect(returnTo, 303);
   response.cookies.delete(signInCookieName(config));
   response.cookies.set(sessionCookieName(config), session.id, cookieOptions(config, config.absoluteTimeoutSeconds));

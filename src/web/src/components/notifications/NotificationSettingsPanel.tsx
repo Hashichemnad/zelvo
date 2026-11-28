@@ -41,9 +41,16 @@ export function NotificationSettingsPanel({ initial, csrfToken }: { initial: Not
     setEvents(events.map((e) => (e.eventType === updated.eventType ? updated : e)));
   }
 
-  async function toggle(event: NotificationEventSettings, enabled: boolean, email: boolean) {
+  async function toggle(event: NotificationEventSettings, enabled: boolean, email: boolean, push = event.push ?? true) {
     try {
-      replace(await putJson<NotificationEventSettings>(`/v1/notifications/settings/events/${event.eventType}`, { enabled, email }, csrfToken));
+      // The other switches are sent as they are, so changing one never resets another.
+      replace(
+        await putJson<NotificationEventSettings>(
+          `/v1/notifications/settings/events/${event.eventType}`,
+          { enabled, email, messaging: event.messaging ?? true, push },
+          csrfToken,
+        ),
+      );
       setMessage({ ok: true, text: t("eventSaved") });
     } catch {
       setMessage({ ok: false, text: t("failed") });
@@ -66,6 +73,10 @@ export function NotificationSettingsPanel({ initial, csrfToken }: { initial: Not
           {t("noMailServer")}
         </p>
       )}
+      {/* Task J2: web push needs outgoing internet (product owner decision 2026-11-26). */}
+      <p role="note" className="rounded-md border border-line bg-surface-muted p-3 text-sm" data-testid="push-note">
+        {initial.pushAvailable ? t("pushNote") : t("pushNotAvailable")}
+      </p>
       <button type="button" className={secondaryButton} onClick={testEmail}>
         {t("testEmail")}
       </button>
@@ -81,7 +92,8 @@ export function NotificationSettingsPanel({ initial, csrfToken }: { initial: Not
             event={event}
             editing={editing === event.eventType}
             onEdit={() => setEditing(editing === event.eventType ? null : event.eventType)}
-            onToggle={(enabled, email) => void toggle(event, enabled, email)}
+            onToggle={(enabled, email, push) => void toggle(event, enabled, email, push)}
+            pushAvailable={initial.pushAvailable ?? false}
             onSaved={replace}
             csrfToken={csrfToken}
           />
@@ -98,11 +110,13 @@ function EventRow({
   onToggle,
   onSaved,
   csrfToken,
+  pushAvailable,
 }: {
   event: NotificationEventSettings;
   editing: boolean;
   onEdit: () => void;
-  onToggle: (enabled: boolean, email: boolean) => void;
+  onToggle: (enabled: boolean, email: boolean, push?: boolean) => void;
+  pushAvailable: boolean;
   onSaved: (event: NotificationEventSettings) => void;
   csrfToken: string;
 }) {
@@ -129,6 +143,19 @@ function EventRow({
             <input type="checkbox" checked={event.email} disabled={!event.enabled} onChange={(e) => onToggle(event.enabled, e.target.checked)} aria-describedby={`${id}-name`} />
             {t("email")}
           </label>
+          {pushAvailable && (
+            <label className="flex items-center gap-2">
+              <input
+                type="checkbox"
+                checked={event.push ?? true}
+                disabled={!event.enabled}
+                onChange={(e) => onToggle(event.enabled, event.email, e.target.checked)}
+                aria-describedby={`${id}-name`}
+                data-testid={`push-${event.eventType}`}
+              />
+              {t("push")}
+            </label>
+          )}
           <span id={`${id}-name`} className="sr-only">{name}</span>
           <button type="button" className={secondaryButton} aria-expanded={editing} aria-controls={`${id}-editor`} onClick={onEdit}>
             {editing ? t("closeEditor") : t("edit")}

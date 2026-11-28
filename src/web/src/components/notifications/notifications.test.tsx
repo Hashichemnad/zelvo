@@ -129,9 +129,9 @@ describe("NotificationList", () => {
 
 describe("NotificationPreferencesForm", () => {
   const preferences: NotificationPreference[] = [
-    { eventType: "incident.received", audience: "Requester", email: true, canChange: true, enabled: true, emailEnabled: true },
-    { eventType: "incident.closed", audience: "Requester", email: true, canChange: true, enabled: false, emailEnabled: false },
-    { eventType: "sla.threshold", audience: "Staff", email: true, canChange: false, enabled: true, emailEnabled: true },
+    { eventType: "incident.received", audience: "Requester", email: true, canChange: true, enabled: true, emailEnabled: true, push: true, pushEnabled: false },
+    { eventType: "incident.closed", audience: "Requester", email: true, canChange: true, enabled: false, emailEnabled: false, push: true, pushEnabled: false },
+    { eventType: "sla.threshold", audience: "Staff", email: true, canChange: false, enabled: true, emailEnabled: true, push: true, pushEnabled: false },
   ];
 
   it("groups events, keeps SLA email on and saves the choices that can change", async () => {
@@ -147,20 +147,41 @@ describe("NotificationPreferencesForm", () => {
 
     const received = screen.getByRole("checkbox", { name: /Your incident was received/ });
     fireEvent.click(received);
-    fireEvent.click(screen.getByRole("button", { name: "Save email choices" }));
+    fireEvent.click(screen.getByRole("button", { name: "Save notification choices" }));
 
-    await waitFor(() => expect(screen.getByRole("status")).toHaveTextContent("Your email choices are saved."));
+    await waitFor(() => expect(screen.getByRole("status")).toHaveTextContent("Your notification choices are saved."));
     const body = JSON.parse((fetchMock.mock.calls[0]![1] as RequestInit).body as string);
     expect(body.events).toEqual([
-      { eventType: "incident.received", email: false },
-      { eventType: "incident.closed", email: true },
+      { eventType: "incident.received", email: false, push: true },
+      { eventType: "incident.closed", email: true, push: true },
+      { eventType: "sla.threshold", email: true, push: true },
     ]);
+  });
+
+  it("task J2: offers web push per event when the organisation sends it, and saves the choice", async () => {
+    const withPush = preferences.map((p) => ({ ...p, pushEnabled: p.enabled }));
+    const fetchMock = vi.fn().mockResolvedValue(json(withPush));
+    vi.stubGlobal("fetch", fetchMock);
+    wrap(<NotificationPreferencesForm initial={withPush} csrfToken="c" />);
+
+    // Not for an event the organisation turned off.
+    expect(screen.queryByTestId("push-incident.closed")).not.toBeInTheDocument();
+    const push = screen.getByRole("checkbox", { name: "Also on my devices (web push): Your incident was received" });
+    expect(push).toBeChecked();
+    fireEvent.click(push);
+    // SLA alerts always email, but their push is each person's choice.
+    fireEvent.click(screen.getByTestId("push-sla.threshold"));
+    fireEvent.click(screen.getByRole("button", { name: "Save notification choices" }));
+    await waitFor(() => expect(fetchMock).toHaveBeenCalled());
+    const body = JSON.parse((fetchMock.mock.calls[0]![1] as RequestInit).body as string);
+    expect(body.events).toContainEqual({ eventType: "incident.received", email: true, push: false });
+    expect(body.events).toContainEqual({ eventType: "sla.threshold", email: true, push: false });
   });
 
   it("is in Arabic for Arabic readers", () => {
     wrap(<NotificationPreferencesForm initial={preferences} csrfToken="c" />, "ar");
     expect(screen.getByRole("group", { name: "بلاغاتكم" })).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: "حفظ خيارات البريد الإلكتروني" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "حفظ خيارات الإشعارات" })).toBeInTheDocument();
   });
 });
 
@@ -193,7 +214,22 @@ describe("NotificationSettingsPanel", () => {
 
     await waitFor(() => expect(screen.getByRole("status")).toHaveTextContent("The change is saved."));
     expect(fetchMock.mock.calls[0]![0]).toBe("/bff/api/v1/notifications/settings/events/incident.received");
-    expect(JSON.parse((fetchMock.mock.calls[0]![1] as RequestInit).body as string)).toEqual({ enabled: true, email: false });
+    // The other switches go along unchanged, so one switch never resets another.
+    expect(JSON.parse((fetchMock.mock.calls[0]![1] as RequestInit).body as string)).toEqual({ enabled: true, email: false, messaging: true, push: true });
+    // Task J2: without web push in the installation, Settings says so and offers no push switch.
+    expect(screen.getByTestId("push-note")).toHaveTextContent("Web push is off in this installation");
+    expect(screen.queryByTestId("push-incident.received")).not.toBeInTheDocument();
+  });
+
+  it("task J2: switches an event's web push off and keeps its other switches", async () => {
+    const fetchMock = vi.fn().mockResolvedValue(json({ ...event, messaging: false, push: false }));
+    vi.stubGlobal("fetch", fetchMock);
+    wrap(<NotificationSettingsPanel initial={{ mailServerConfigured: true, pushAvailable: true, events: [{ ...event, messaging: false, push: true }] }} csrfToken="c" />, "ar");
+
+    expect(screen.getByTestId("push-note")).toHaveTextContent("تتطلب الإشعارات الفورية اتصال المنظومة بالإنترنت");
+    fireEvent.click(within(screen.getByTestId("event-incident.received")).getByRole("checkbox", { name: /إشعار فوري/ }));
+    await waitFor(() => expect(fetchMock).toHaveBeenCalled());
+    expect(JSON.parse((fetchMock.mock.calls[0]![1] as RequestInit).body as string)).toEqual({ enabled: true, email: true, messaging: false, push: false });
   });
 
   it("edits both languages side by side, previews the email in a sandbox and shows refused placeholders", async () => {

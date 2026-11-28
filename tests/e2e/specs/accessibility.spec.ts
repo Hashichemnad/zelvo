@@ -50,10 +50,10 @@ type Target = string | { from: string; link: RegExp; name: string; optional?: bo
 const pages: Record<Persona, Target[]> = {
   // Task J1: the installed app's offline page (shown online here; the audit checks its layout and wording);
   // task M2: the setup link page (without a link it says the link does not work).
-  visitor: ["", "/help", "/catalog", "/contact", "/track", "/status", "/privacy", "/sign-in-problem", "/no-such-page", "/offline", "/account-setup",
+  visitor: ["", "/help", "/catalog", "/contact", "/track", "/status", "/privacy", "/sign-in-problem", "/no-such-page", "/offline", "/account-setup", "/teams/tab",
     { from: "/help", link: /\/help\/articles\/[0-9a-f-]{36}$/, name: "/help/articles/[id]" },
     { from: "/catalog", link: /\/catalog\/[0-9a-f-]{36}$/, name: "/catalog/[id]" }],
-  requester: ["", "/account", "/records", "/records/facilities/new", "/account/privacy", "/my-tickets", "/my-assets", "/my-incidents", "/my-incidents/new", "/my-requests", "/my-voice",
+  requester: ["", "/account", "/records", "/records/facilities/new", "/account/privacy", "/account/security", "/my-tickets", "/my-assets", "/my-incidents", "/my-incidents/new", "/my-requests", "/my-voice",
     "/notifications", "/catalog", "/contact",
     { from: "/my-incidents", link: /\/my-incidents\/[0-9a-f-]{36}$/, name: "/my-incidents/[id]" },
     { from: "/my-requests", link: /\/my-requests\/[0-9a-f-]{36}$/, name: "/my-requests/[id]" },
@@ -94,7 +94,7 @@ const pages: Record<Persona, Target[]> = {
     "/settings/integrations/webhooks", "/settings/knowledge", "/settings/language", "/settings/license", "/settings/locations",
     "/settings/mailboxes", "/settings/messaging", "/settings/monitoring", "/settings/notifications",
     "/settings/notifications/deliveries", "/settings/payments", "/settings/privacy", "/settings/reports", "/settings/roles",
-    "/settings/search", "/settings/sign-in", "/settings/sign-in/uae-pass", "/settings/skills", "/settings/sla-policies",
+    "/settings/search", "/settings/sign-in", "/settings/sign-in/uae-pass", "/settings/sign-in/passkeys", "/settings/skills", "/settings/sla-policies",
     "/settings/translations", "/settings/updates", "/settings/updates/malware-definitions", "/settings/users", "/settings/workflows",
     { from: "/settings/users", link: /\/settings\/users\/[0-9a-f-]{36}$/, name: "/settings/users/[id]" },
     { from: "/settings/roles", link: /\/settings\/roles\/[a-z0-9-]+$/, name: "/settings/roles/[key]" },

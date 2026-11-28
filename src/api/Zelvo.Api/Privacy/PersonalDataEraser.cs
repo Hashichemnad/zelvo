@@ -152,6 +152,9 @@ internal sealed class PersonalDataEraser(
         await db.Database.ExecuteSqlInterpolatedAsync($"DELETE FROM user_skills WHERE user_id = {id}", cancellationToken);
         await db.Database.ExecuteSqlInterpolatedAsync($"DELETE FROM customer_group_members WHERE user_id = {id}", cancellationToken);
         await db.Database.ExecuteSqlInterpolatedAsync($"DELETE FROM report_schedule_recipients WHERE user_id = {id}", cancellationToken);
+        // Task J2: the person's devices for web push and their push messages.
+        await db.Database.ExecuteSqlInterpolatedAsync($"DELETE FROM push_deliveries WHERE recipient_id = {id}", cancellationToken);
+        await db.Database.ExecuteSqlInterpolatedAsync($"DELETE FROM push_subscriptions WHERE user_id = {id}", cancellationToken);
         // Task K4: the person's wellbeing figures and alerts.
         await db.Database.ExecuteSqlInterpolatedAsync($"DELETE FROM wellbeing_days WHERE user_id = {id}", cancellationToken);
         await db.Database.ExecuteSqlInterpolatedAsync($"DELETE FROM wellbeing_alerts WHERE user_id = {id}", cancellationToken);

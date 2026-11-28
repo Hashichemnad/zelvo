@@ -91,7 +91,26 @@ internal interface IKeycloakAdmin
     /// with status 400.
     /// </summary>
     Task SetPasswordAsync(string realm, string subject, string password, CancellationToken cancellationToken);
+
+    /// <summary>
+    /// Task J3: applies the tenant's passkey setting to its realm: the WebAuthn passwordless policy
+    /// (user verification required, discoverable credentials, passkeys on the sign-in page), the
+    /// "add a passkey" required action, and which second factor staff use (authenticator app or passkey).
+    /// </summary>
+    Task SetPasskeysAsync(string realm, PasskeySignIn mode, CancellationToken cancellationToken);
+
+    /// <summary>Task J3: a person's passkeys (Keycloak credentials of type <c>webauthn-passwordless</c>).</summary>
+    Task<IReadOnlyList<KeycloakPasskey>> ListPasskeysAsync(string realm, string subject, CancellationToken cancellationToken);
+
+    /// <summary>Task J3: removes one of a person's passkeys; false when it is not theirs or not a passkey.</summary>
+    Task<bool> DeletePasskeyAsync(string realm, string subject, string credentialId, CancellationToken cancellationToken);
 }
+
+/// <summary>A passkey as Keycloak keeps it (task J3).</summary>
+/// <param name="Id">Keycloak's credential id.</param>
+/// <param name="Label">The name the person or their device gave it.</param>
+/// <param name="CreatedAt">When it was added.</param>
+internal sealed record KeycloakPasskey(string Id, string? Label, DateTimeOffset? CreatedAt);
 
 /// <summary>Which directory sign-in (task E7).</summary>
 internal enum DirectorySignInKind
@@ -447,6 +466,110 @@ internal sealed class KeycloakAdminClient : IKeycloakAdmin
         {
             await SignOutAsync(realm, subject, cancellationToken).ConfigureAwait(false);
         }
+    }
+
+    /// <summary>Keycloak's credential type of passkeys (discoverable WebAuthn credentials).</summary>
+    public const string PasskeyCredentialType = "webauthn-passwordless";
+
+    /// <summary>Keycloak's required action that adds a passkey (also the <c>kc_action</c> of Account → Security).</summary>
+    public const string PasskeyRegisterAction = "webauthn-register-passwordless";
+
+    /// <summary>The sub-flow of the browser flow's level 2 that asks for the second factor unless a passkey was used.</summary>
+    public const string SecondFactorFlow = "zelvo second factor";
+
+    public async Task SetPasskeysAsync(string realm, PasskeySignIn mode, CancellationToken cancellationToken)
+    {
+        var representation = await GetAsync($"realms/{E(realm)}", cancellationToken).ConfigureAwait(false)
+            ?? throw new KeycloakAdminException($"Realm {realm} does not exist.");
+        using (await SendAsync(HttpMethod.Put, $"realms/{E(realm)}", PasskeyPolicy(realm, (string?)representation["displayName"], mode), cancellationToken).ConfigureAwait(false))
+        {
+        }
+
+        // The required action that adds a passkey: on while passkeys are offered.
+        var actionPath = $"realms/{E(realm)}/authentication/required-actions/{E(PasskeyRegisterAction)}";
+        var action = await GetAsync(actionPath, cancellationToken).ConfigureAwait(false);
+        if (action is null)
+        {
+            using (await SendAsync(HttpMethod.Post, $"realms/{E(realm)}/authentication/register-required-action",
+                new JsonObject { ["providerId"] = PasskeyRegisterAction, ["name"] = "Webauthn Register Passwordless" }, cancellationToken).ConfigureAwait(false))
+            {
+            }
+
+            action = await GetAsync(actionPath, cancellationToken).ConfigureAwait(false)
+                ?? throw new KeycloakAdminException($"Realm {realm} cannot add passkeys (required action {PasskeyRegisterAction} missing).");
+        }
+
+        action["enabled"] = mode != PasskeySignIn.Off;
+        action["defaultAction"] = false;
+        using (await SendAsync(HttpMethod.Put, actionPath, action, cancellationToken).ConfigureAwait(false))
+        {
+        }
+
+        // Staff's second factor: an authenticator app, or (required) a passkey. A passkey sign-in skips it either way.
+        var steps = await GetArrayAsync($"realms/{E(realm)}/authentication/flows/{E(SecondFactorFlow)}/executions", cancellationToken).ConfigureAwait(false);
+        foreach (var (provider, requirement) in new[]
+        {
+            ("auth-otp-form", mode == PasskeySignIn.RequiredForStaff ? "DISABLED" : "REQUIRED"),
+            ("webauthn-authenticator-passwordless", mode == PasskeySignIn.RequiredForStaff ? "REQUIRED" : "DISABLED"),
+        })
+        {
+            var step = steps.FirstOrDefault(e => e is not null && (int?)e["level"] == 0 && (string?)e["providerId"] == provider)
+                ?? throw new KeycloakAdminException($"The sign-in flow of realm {realm} has no {provider} step; run migrate.");
+            if ((string?)step["requirement"] != requirement)
+            {
+                step["requirement"] = requirement;
+                using (await SendAsync(HttpMethod.Put, $"realms/{E(realm)}/authentication/flows/{E(SecondFactorFlow)}/executions", step.DeepClone(), cancellationToken).ConfigureAwait(false))
+                {
+                }
+            }
+        }
+    }
+
+    /// <summary>
+    /// The realm's WebAuthn passwordless policy (task J3): passkeys are discoverable credentials and
+    /// the device must verify the person (fingerprint, face or PIN), which is why a passkey sign-in
+    /// counts as two factors (decision 15). The relying party is the address the sign-in page is on.
+    /// </summary>
+    internal static JsonObject PasskeyPolicy(string realm, string? displayName, PasskeySignIn mode) => new()
+    {
+        ["realm"] = realm,
+        ["webAuthnPolicyPasswordlessRpEntityName"] = string.IsNullOrWhiteSpace(displayName) ? "Zelvo" : displayName,
+        ["webAuthnPolicyPasswordlessSignatureAlgorithms"] = new JsonArray("ES256", "RS256"),
+        ["webAuthnPolicyPasswordlessRpId"] = "",
+        ["webAuthnPolicyPasswordlessAttestationConveyancePreference"] = "not specified",
+        ["webAuthnPolicyPasswordlessAuthenticatorAttachment"] = "not specified",
+        ["webAuthnPolicyPasswordlessRequireResidentKey"] = "Yes",
+        ["webAuthnPolicyPasswordlessResidentKey"] = "required",
+        ["webAuthnPolicyPasswordlessUserVerificationRequirement"] = "required",
+        ["webAuthnPolicyPasswordlessCreateTimeout"] = 0,
+        ["webAuthnPolicyPasswordlessAvoidSameAuthenticatorRegister"] = true,
+        ["webAuthnPolicyPasswordlessPasskeysEnabled"] = mode != PasskeySignIn.Off,
+    };
+
+    public async Task<IReadOnlyList<KeycloakPasskey>> ListPasskeysAsync(string realm, string subject, CancellationToken cancellationToken)
+    {
+        var credentials = await GetArrayAsync($"realms/{E(realm)}/users/{E(subject)}/credentials", cancellationToken).ConfigureAwait(false);
+        return
+        [
+            .. credentials.Where(c => (string?)c?["type"] == PasskeyCredentialType && (string?)c?["id"] is not null)
+                .Select(c => new KeycloakPasskey((string)c!["id"]!, (string?)c["userLabel"],
+                    (long?)c["createdDate"] is { } created ? DateTimeOffset.FromUnixTimeMilliseconds(created) : null)),
+        ];
+    }
+
+    public async Task<bool> DeletePasskeyAsync(string realm, string subject, string credentialId, CancellationToken cancellationToken)
+    {
+        // Only a passkey of this person: other credentials (passwords, authenticator apps) are never removed here.
+        if ((await ListPasskeysAsync(realm, subject, cancellationToken).ConfigureAwait(false)).All(p => p.Id != credentialId))
+        {
+            return false;
+        }
+
+        using (await SendAsync(HttpMethod.Delete, $"realms/{E(realm)}/users/{E(subject)}/credentials/{E(credentialId)}", null, cancellationToken).ConfigureAwait(false))
+        {
+        }
+
+        return true;
     }
 
     public async Task SetPasswordAsync(string realm, string subject, string password, CancellationToken cancellationToken)
