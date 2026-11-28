@@ -239,6 +239,21 @@ internal static class Permissions
     /// </summary>
     public const string ProblemsManage = Zelvo.Tickets.ProblemPermissions.Manage;
 
+    /// <summary>Task H3 (module 17): see changes, their plans, risk, tasks, links and the change calendar.</summary>
+    public const string ChangesRead = Zelvo.Tickets.ChangePermissions.Read;
+
+    /// <summary>Task H3: raise and plan changes, assess their risk, submit, implement and cancel them.</summary>
+    public const string ChangesEdit = Zelvo.Tickets.ChangePermissions.Edit;
+
+    /// <summary>
+    /// Task H3, the change manager (product owner decision 11 of 2026-11-26): assign changes, record
+    /// post-implementation reviews and close them, and set up change management.
+    /// </summary>
+    public const string ChangesManage = Zelvo.Tickets.ChangePermissions.Manage;
+
+    /// <summary>Task H3, a member of the change advisory board (decision 11): approves changes on the board's path.</summary>
+    public const string ChangesApprove = Zelvo.Tickets.ChangePermissions.Approve;
+
     /// <summary>
     /// Task K2 (module 20): Settings → Record types, the custom record types of the tenant. Making a
     /// type makes its permissions (<c>records.&lt;key&gt;.read</c>, <c>.edit</c>, <c>.assign</c>) and grants them.
@@ -373,6 +388,10 @@ internal static class PermissionCatalog
         Permissions.ProblemsEdit,
         Permissions.ProblemsManage,
         Permissions.RecordTypesManage,
+        Permissions.ChangesRead,
+        Permissions.ChangesEdit,
+        Permissions.ChangesManage,
+        Permissions.ChangesApprove,
     ];
 
     /// <summary>
@@ -422,6 +441,9 @@ internal static class PermissionCatalog
         Permissions.CmdbDiscoveryManage,
         // Task K2, for the product owner's approval: making a record type grants permissions to roles.
         Permissions.RecordTypesManage,
+        // Task H3, for the product owner's approval: the change manager sets who approves changes
+        // (the approval paths) and closes reviews; like workflows.manage it stays with people.
+        Permissions.ChangesManage,
     };
 
     /// <summary>Permissions an integration may be given as scopes.</summary>
@@ -483,13 +505,15 @@ internal static class PermissionCatalog
         new(BuiltInRoles.Agent, new LocalizedText("Agent", "موظف الدعم"),
             [Permissions.UsersRead, Permissions.IncidentsRead, Permissions.IncidentsCreate, Permissions.IncidentsEdit, Permissions.IncidentsAssign, Permissions.DirectoryRead,
                 Permissions.KnowledgeRead, Permissions.KnowledgeWrite, Permissions.RequestsRead, Permissions.RequestsEdit, Permissions.RequestsAssign, Permissions.ChatHandle,
-                Permissions.VoiceRead, Permissions.VoiceEdit, Permissions.VoiceAssign, Permissions.CmdbRead, Permissions.AssetsRead, Permissions.ProblemsRead, Permissions.ProblemsEdit],
+                Permissions.VoiceRead, Permissions.VoiceEdit, Permissions.VoiceAssign, Permissions.CmdbRead, Permissions.AssetsRead, Permissions.ProblemsRead, Permissions.ProblemsEdit,
+                Permissions.ChangesRead, Permissions.ChangesEdit],
             new Dictionary<string, FieldAccess> { ["users.email"] = FieldAccess.Read }),
         new(BuiltInRoles.TeamLead, new LocalizedText("Team lead", "قائد الفريق"),
             [Permissions.UsersRead, Permissions.IncidentsRead, Permissions.IncidentsCreate, Permissions.IncidentsEdit, Permissions.IncidentsAssign, Permissions.IncidentsMajor, Permissions.DirectoryRead,
                 Permissions.KnowledgeRead, Permissions.KnowledgeWrite, Permissions.KnowledgePublish, Permissions.RequestsRead, Permissions.RequestsEdit, Permissions.RequestsAssign, Permissions.ChatHandle,
                 Permissions.VoiceRead, Permissions.VoiceEdit, Permissions.VoiceAssign, Permissions.VoiceReport, Permissions.ReportsRead, Permissions.CmdbRead, Permissions.AssetsRead, Permissions.WellbeingRead,
-                Permissions.ProblemsRead, Permissions.ProblemsEdit, Permissions.ProblemsManage],
+                Permissions.ProblemsRead, Permissions.ProblemsEdit, Permissions.ProblemsManage,
+                Permissions.ChangesRead, Permissions.ChangesEdit, Permissions.ChangesManage, Permissions.ChangesApprove],
             new Dictionary<string, FieldAccess> { ["users.email"] = FieldAccess.Read }),
         new(BuiltInRoles.Approver, new LocalizedText("Approver", "المعتمِد"), [], new Dictionary<string, FieldAccess>()),
         new(BuiltInRoles.TenantAdmin, new LocalizedText("Tenant administrator", "مسؤول الجهة"),
@@ -498,7 +522,8 @@ internal static class PermissionCatalog
         new(BuiltInRoles.ExecutiveAuditor, new LocalizedText("Executive / auditor", "تنفيذي / مدقق"),
             [Permissions.AuditRead, Permissions.UsersRead, Permissions.IncidentsRead, Permissions.DirectoryRead, Permissions.KnowledgeRead, Permissions.RequestsRead,
                 Permissions.VoiceRead, Permissions.VoiceReport, Permissions.ApprovalsRead, Permissions.ReportsRead, Permissions.ReportsAll, Permissions.PaymentsRead,
-                Permissions.CmdbRead, Permissions.AssetsRead, Permissions.WellbeingRead, Permissions.ProblemsRead],
+                Permissions.CmdbRead, Permissions.AssetsRead, Permissions.WellbeingRead, Permissions.ProblemsRead,
+                Permissions.ChangesRead],
             new Dictionary<string, FieldAccess> { ["users.email"] = FieldAccess.Read }),
     ];
 

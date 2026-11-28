@@ -39,7 +39,8 @@ internal enum DecisionError
 /// The ticket waits (<see cref="Ticket.AwaitingApproval"/>, SLA clocks paused) while a process is
 /// pending. Every step is audited. Callers save inside a transaction.
 /// </summary>
-internal sealed class ApprovalService(ZelvoDbContext db, IApprovalEngine engine, ITenantContext tenant, IAuditLog audit, TenantSettingsStore settings, Payments.PaymentService payments)
+internal sealed class ApprovalService(
+    ZelvoDbContext db, IApprovalEngine engine, ITenantContext tenant, IAuditLog audit, TenantSettingsStore settings, Payments.PaymentService payments, Zelvo.Search.ISearchIndexer indexer)
 {
     /// <summary>
     /// Starts a process of <paramref name="levels"/> (at least one) for <paramref name="ticket"/>:
@@ -185,6 +186,10 @@ internal sealed class ApprovalService(ZelvoDbContext db, IApprovalEngine engine,
         ticket.UpdatedAt = now;
         switch (process.Stage, process.State)
         {
+            case (ApprovalStage.ChangeAuthorisation, _):
+                // Task H3: approved changes are scheduled; rejected ones are closed with the reason.
+                await Changes.ChangeApprovals.ApplyOutcomeAsync(db, indexer, ticket, process, now, cancellationToken);
+                break;
             case (ApprovalStage.BeforeAssignment, ApprovalProcessState.Approved) when ticket.Type == TicketType.Custom:
                 // Task K2: an approved custom record goes to the service desk by the assignment rules.
                 await Incidents.IncidentEndpoints.RouteAsync(db, settings, ticket, now, cancellationToken);

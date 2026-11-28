@@ -63,6 +63,10 @@ export default async function ProblemPage({ params }: PageProps<"/[locale]/probl
       <header className="space-y-1">
         <p className="font-mono text-ink-muted" dir="ltr">{problem.number}</p>
         <h1 id="problem-heading" className="text-3xl font-bold text-brand" dir="auto">{problem.title}</h1>
+        {/* Task H3: the change that fixes the problem, linked to it. */}
+        {permissions.includes("changes.edit") && problem.state !== "Closed" && (
+          <Link href={`/changes/new?problem=${encodeURIComponent(problem.number)}`} className="inline-block font-semibold text-brand underline">{t("raiseChange")}</Link>
+        )}
       </header>
       <ProblemFacts key={problem.etag} problem={problem} categories={choices.categories} reasonName={reason ? inLanguage(reason.name, locale as Locale).value : null}
         canEdit={canEdit} csrfToken={csrfToken} display={display} />

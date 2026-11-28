@@ -122,3 +122,6 @@ The tenth feature, `ruleBuilder` (module 20, product owner decisions 2026-11-26)
 
 The eleventh feature, `problemDetection` (module 16), judges whether a group of similar incidents that Zelvo found on its own side (E5's word forms, extended from one new incident against 14 days to groups across 30–90 days) shares one underlying cause, so the problem managers get a suggested problem. It is **off until set up**; with it off, problem detection still finds trends, which need no AI. The AI only judges: it never raises a problem, and a problem manager accepts or dismisses each suggestion. See `problems.md` (Problem detection).
 
+## Change what-if explanation (task H5)
+
+The twelfth feature, `changeWhatIf` (module 17, task H5, product owner decision 7 of 2026-11-26), explains a change's what-if simulation (blast radius, similar past changes, predicted risk) in plain English or Arabic for the requester, approvers and the board. It is **off until set up**. It receives figures and the names of services, departments and changes, never people's names, through the gateway's masking; the instructions forbid recommending approval or rejection: the AI only explains, the predicted risk is worked out by Zelvo from past outcomes and the decision stays with the approvers. See `changes.md` (What-if simulation).

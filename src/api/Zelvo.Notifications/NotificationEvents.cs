@@ -111,6 +111,30 @@ public static class NotificationEvents
     /// <summary>A problem was resolved; the assignees of its incidents and the person who raised it hear about it (task H1).</summary>
     public const string ProblemResolved = "problem.resolved";
 
+    /// <summary>A change was assigned to someone (not by themselves; task H3).</summary>
+    public const string ChangeAssigned = "change.assigned";
+
+    /// <summary>A change arrived in a group's queue without an assignee (task H3).</summary>
+    public const string ChangeQueued = "change.queued";
+
+    /// <summary>A change's approval path asks an approver for their decision (task H3).</summary>
+    public const string ChangeApprovalRequested = "change.approval-requested";
+
+    /// <summary>A change was approved (or a standard change scheduled); its requester and assignee hear about it (task H3).</summary>
+    public const string ChangeApproved = "change.approved";
+
+    /// <summary>A change was rejected by its approval path; its requester and assignee hear about it (task H3).</summary>
+    public const string ChangeRejected = "change.rejected";
+
+    /// <summary>A change was implemented and its post-implementation review is due; its requester and the group's team leads hear about it (task H3).</summary>
+    public const string ChangeImplemented = "change.implemented";
+
+    /// <summary>A member is invited to a change advisory board meeting, or the meeting changed; the email carries a calendar file (task H4).</summary>
+    public const string CabInvited = "cab.invited";
+
+    /// <summary>A board meeting was called off, or the member was taken off it; the email carries the calendar cancellation (task H4).</summary>
+    public const string CabCancelled = "cab.cancelled";
+
     /// <summary>A requester's custom record was received (task K2).</summary>
     public const string RecordReceived = "record.received";
 
@@ -286,6 +310,18 @@ public static class NotificationEvents
         new(ProblemKnownError, NotificationAudience.Staff, true,
             [Placeholders.TicketNumber, Placeholders.TicketTitle, Placeholders.ProblemNumber, Placeholders.KnownErrorNumber, Placeholders.KnownErrorTitle]),
         new(ProblemResolved, NotificationAudience.Staff, true, [Placeholders.TicketNumber, Placeholders.TicketTitle, Placeholders.TicketResolutionNotes]),
+        // Task H3: change management.
+        new(ChangeAssigned, NotificationAudience.Staff, true, [Placeholders.TicketNumber, Placeholders.TicketTitle, Placeholders.TicketGroup, Placeholders.ChangeStart, Placeholders.ChangeEnd]),
+        new(ChangeQueued, NotificationAudience.Staff, true, [Placeholders.TicketNumber, Placeholders.TicketTitle, Placeholders.TicketGroup, Placeholders.ChangeStart, Placeholders.ChangeEnd]),
+        new(ChangeApprovalRequested, NotificationAudience.Staff, true,
+            [Placeholders.TicketNumber, Placeholders.TicketTitle, Placeholders.RequesterName, Placeholders.ApprovalLevel, Placeholders.ChangeRisk, Placeholders.ChangeStart, Placeholders.ChangeEnd]),
+        new(ChangeApproved, NotificationAudience.Staff, true, [Placeholders.TicketNumber, Placeholders.TicketTitle, Placeholders.ChangeStart, Placeholders.ChangeEnd]),
+        new(ChangeRejected, NotificationAudience.Staff, true, [Placeholders.TicketNumber, Placeholders.TicketTitle, Placeholders.ApprovalReason]),
+        new(ChangeImplemented, NotificationAudience.Staff, true, [Placeholders.TicketNumber, Placeholders.TicketTitle, Placeholders.TicketResolutionNotes]),
+        // Task H4: board meetings; the invitation's email carries the calendar file, so it cannot be turned off.
+        new(CabInvited, NotificationAudience.Staff, false,
+            [Placeholders.MeetingTitle, Placeholders.MeetingStart, Placeholders.MeetingEnd, Placeholders.MeetingLocation, Placeholders.MeetingItems]),
+        new(CabCancelled, NotificationAudience.Staff, false, [Placeholders.MeetingTitle, Placeholders.MeetingStart, Placeholders.MeetingEnd]),
         // Task K2: custom records, with the type's own name as {{ticket.type}}.
         new(RecordReceived, NotificationAudience.Requester, true, [Placeholders.TicketNumber, Placeholders.TicketTitle, Placeholders.TicketType, Placeholders.TicketCreatedAt]),
         new(RecordReplied, NotificationAudience.Requester, true, [Placeholders.TicketNumber, Placeholders.TicketTitle, Placeholders.TicketType, Placeholders.CommentText, Placeholders.CommentAuthor]),
@@ -492,4 +528,28 @@ public static class Placeholders
 
     /// <summary>A known error's title in the recipient's language (task H1).</summary>
     public const string KnownErrorTitle = "knownError.title";
+
+    /// <summary>Start of a change's planned window (task H3), in the recipient's calendar and time zone.</summary>
+    public const string ChangeStart = "change.start";
+
+    /// <summary>End of a change's planned window (task H3).</summary>
+    public const string ChangeEnd = "change.end";
+
+    /// <summary>A change's risk level in the recipient's language (task H3).</summary>
+    public const string ChangeRisk = "change.risk";
+
+    /// <summary>A board meeting's title in the recipient's language (task H4).</summary>
+    public const string MeetingTitle = "meeting.title";
+
+    /// <summary>When a board meeting starts (task H4).</summary>
+    public const string MeetingStart = "meeting.start";
+
+    /// <summary>When a board meeting ends (task H4).</summary>
+    public const string MeetingEnd = "meeting.end";
+
+    /// <summary>A board meeting's room or online address (task H4).</summary>
+    public const string MeetingLocation = "meeting.location";
+
+    /// <summary>How many changes are on a board meeting's agenda (task H4).</summary>
+    public const string MeetingItems = "meeting.items";
 }

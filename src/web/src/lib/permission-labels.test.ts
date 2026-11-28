@@ -16,6 +16,7 @@ function catalogPermissions(): string[] {
     readFileSync(join(root, "Zelvo.Tickets/IncidentSearch.cs"), "utf8"),
     readFileSync(join(root, "Zelvo.Tickets/VoiceSearch.cs"), "utf8"),
     readFileSync(join(root, "Zelvo.Tickets/ProblemSearch.cs"), "utf8"),
+    readFileSync(join(root, "Zelvo.Tickets/ChangeSearch.cs"), "utf8"),
   ].join("\n");
   const keys = [...sources.matchAll(/const string \w+ = "([a-z]+(?:\.[a-z]+)+)";/g)].map((m) => m[1]!);
   return [...new Set(keys)].sort();

@@ -9,6 +9,7 @@ import type { Locale } from "@/lib/incidents";
 import {
   answerOperators,
   approverKinds,
+  approverPermissions,
   channelValues,
   conditionFields,
   emptyCondition,
@@ -185,12 +186,13 @@ export function ConditionsEditor({
 }
 
 /** One approver of a level: who, and the group, person, role or form field when the kind needs one. */
-function ApproverRow({ approver, choices, onChange, onRemove, label }: {
+function ApproverRow({ approver, choices, onChange, onRemove, label, kinds = approverKinds }: {
   approver: ApproverRef;
   choices: WorkflowChoices;
   onChange: (a: ApproverRef) => void;
   onRemove: () => void;
   label: string;
+  kinds?: ApproverKind[];
 }) {
   const t = useTranslations("workflows");
   const locale = useLocale() as Locale;
@@ -202,9 +204,18 @@ function ApproverRow({ approver, choices, onChange, onRemove, label }: {
           <label htmlFor={`${id}-kind`} className="block text-sm">{label}</label>
           <select id={`${id}-kind`} className={inputClass} value={approver.kind}
             onChange={(e) => onChange({ kind: e.target.value as ApproverKind })}>
-            {approverKinds.map((k) => <option key={k} value={k}>{t(`approverKinds.${k}`)}</option>)}
+            {kinds.map((k) => <option key={k} value={k}>{t(`approverKinds.${k}`)}</option>)}
           </select>
         </div>
+        {approver.kind === "Permission" && (
+          <div className="space-y-1">
+            <label htmlFor={`${id}-permission`} className="block text-sm">{t("permission")}</label>
+            <select id={`${id}-permission`} className={inputClass} value={approver.key ?? ""} onChange={(e) => onChange({ ...approver, key: e.target.value || null })}>
+              <option value="">{t("choosePermission")}</option>
+              {approverPermissions.map((p) => <option key={p} value={p}>{t(`approverPermissions.${p.replace(".", "_")}`)}</option>)}
+            </select>
+          </div>
+        )}
         {(approver.kind === "Group" || approver.kind === "GroupLeads") && (
           <div className="space-y-1">
             <label htmlFor={`${id}-group`} className="block text-sm">{t("group")}</label>
@@ -250,12 +261,18 @@ export function ApprovalLevelsEditor({
   levels,
   choices,
   onChange,
+  kinds = approverKinds,
+  conditions = true,
 }: {
   legend: string;
   hint?: string;
   levels: ApprovalLevelDefinition[];
   choices: WorkflowChoices;
   onChange: (levels: ApprovalLevelDefinition[]) => void;
+  /** Task H3: the approver kinds offered (changes name permissions and boards). */
+  kinds?: ApproverKind[];
+  /** Whether levels can have conditions. */
+  conditions?: boolean;
 }) {
   const t = useTranslations("workflows");
   const id = useId();
@@ -293,13 +310,13 @@ export function ApprovalLevelsEditor({
             </fieldset>
             <ul className="space-y-2">
               {level.approvers.map((a, j) => (
-                <ApproverRow key={j} approver={a} choices={choices} label={t("approverNumber", { number: j + 1 })}
+                <ApproverRow key={j} approver={a} choices={choices} kinds={kinds} label={t("approverNumber", { number: j + 1 })}
                   onChange={(next) => set(i, { approvers: level.approvers.map((x, k) => (k === j ? next : x)) })}
                   onRemove={() => set(i, { approvers: level.approvers.filter((_, k) => k !== j) })} />
               ))}
             </ul>
-            <button type="button" className={smallButton} onClick={() => set(i, { approvers: [...level.approvers, { kind: "RequesterManager" }] })}>{t("addApprover")}</button>
-            <ConditionsEditor legend={t("levelConditions")} conditions={level.conditions} choices={choices} onChange={(conditions) => set(i, { conditions })} />
+            <button type="button" className={smallButton} onClick={() => set(i, { approvers: [...level.approvers, { kind: kinds[0] ?? "User" }] })}>{t("addApprover")}</button>
+            {conditions && <ConditionsEditor legend={t("levelConditions")} conditions={level.conditions} choices={choices} onChange={(conditions) => set(i, { conditions })} />}
           </li>
         ))}
       </ol>

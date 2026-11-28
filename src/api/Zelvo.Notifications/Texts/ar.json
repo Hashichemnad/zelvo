@@ -175,7 +175,15 @@
     "push.title.record.replied": "رد جديد على طلبكم",
     "push.title.record.resolved": "تم إنجاز طلبكم",
     "push.title.record.assigned": "مسند إليكم",
-    "push.title.record.queued": "عنصر جديد لمجموعتكم"
+    "push.title.record.queued": "عنصر جديد لمجموعتكم",
+    "push.title.change.assigned": "تغيير مسند إليكم",
+    "push.title.change.queued": "تغيير جديد لمجموعتكم",
+    "push.title.change.approval-requested": "تغيير بانتظار اعتمادكم",
+    "push.title.change.approved": "تم اعتماد التغيير",
+    "push.title.change.rejected": "تم رفض التغيير",
+    "push.title.change.implemented": "تم تنفيذ التغيير وتجب مراجعته",
+    "push.title.cab.invited": "اجتماع مجلس استشارات التغيير",
+    "push.title.cab.cancelled": "تم إلغاء اجتماع المجلس"
   },
   "templates": {
     "incident.received": {
@@ -477,6 +485,54 @@
       "inApp": "تم حل المشكلة «{{ticket.title}}».",
       "body": "تحية طيبة، {{recipient.name}}\n\nتم حل المشكلة رقم {{ticket.number}} بعنوان «{{ticket.title}}»:\n\n{{ticket.resolutionNotes}}\n\nمع خالص التحية،\n{{tenant.name}}",
       "action": "فتح المشكلة"
+    },
+    "change.assigned": {
+      "subject": "أُسند إليكم التغيير رقم {{ticket.number}}",
+      "inApp": "أُسند إليكم التغيير «{{ticket.title}}».",
+      "body": "تحية طيبة، {{recipient.name}}\n\nأُسند إليكم التغيير رقم {{ticket.number}} بعنوان «{{ticket.title}}».\n\nالفريق: {{ticket.group}}\nالنافذة المخطط لها: {{change.start}} – {{change.end}}\n\nمع خالص التحية،\n{{tenant.name}}",
+      "action": "فتح التغيير"
+    },
+    "change.queued": {
+      "subject": "تغيير جديد لفريق {{ticket.group}}: {{ticket.number}}",
+      "inApp": "تغيير جديد لفريق {{ticket.group}}: «{{ticket.title}}».",
+      "body": "تحية طيبة، {{recipient.name}}\n\nالتغيير رقم {{ticket.number}} بعنوان «{{ticket.title}}» بانتظار المعالجة في قائمة فريق {{ticket.group}}.\n\nالنافذة المخطط لها: {{change.start}} – {{change.end}}\n\nمع خالص التحية،\n{{tenant.name}}",
+      "action": "فتح التغيير"
+    },
+    "change.approval-requested": {
+      "subject": "{{ticket.number}}: تغيير بانتظار اعتمادكم",
+      "inApp": "التغيير «{{ticket.title}}» بانتظار اعتمادكم ({{approval.level}}).",
+      "body": "تحية طيبة، {{recipient.name}}\n\nقدّم {{requester.name}} التغيير رقم {{ticket.number}} بعنوان «{{ticket.title}}»، وهو بانتظار اعتمادكم في مرحلة «{{approval.level}}».\n\nمستوى المخاطر: {{change.risk}}\nالنافذة المخطط لها: {{change.start}} – {{change.end}}\n\nيرجى مراجعة التغيير وخططه وأي تعارضات، ثم اعتماده أو رفضه. سيُطلب منكم تسجيل الدخول قبل تسجيل قراركم.\n\nمع خالص التحية،\n{{tenant.name}}",
+      "action": "مراجعة التغيير"
+    },
+    "change.approved": {
+      "subject": "{{ticket.number}}: تم اعتماد التغيير",
+      "inApp": "تم اعتماد التغيير «{{ticket.title}}» وجدولته.",
+      "body": "تحية طيبة، {{recipient.name}}\n\nتم اعتماد التغيير رقم {{ticket.number}} بعنوان «{{ticket.title}}» وجدولته في الفترة {{change.start}} – {{change.end}}.\n\nمع خالص التحية،\n{{tenant.name}}",
+      "action": "فتح التغيير"
+    },
+    "change.rejected": {
+      "subject": "{{ticket.number}}: تم رفض التغيير",
+      "inApp": "تم رفض التغيير «{{ticket.title}}».",
+      "body": "تحية طيبة، {{recipient.name}}\n\nتم رفض التغيير رقم {{ticket.number}} بعنوان «{{ticket.title}}» وإغلاقه.\n\nالسبب: {{approval.reason}}\n\nمع خالص التحية،\n{{tenant.name}}",
+      "action": "فتح التغيير"
+    },
+    "change.implemented": {
+      "subject": "{{ticket.number}}: تم تنفيذ التغيير وحان موعد مراجعته",
+      "inApp": "تم تنفيذ التغيير «{{ticket.title}}»، وحان موعد مراجعة ما بعد التنفيذ.",
+      "body": "تحية طيبة، {{recipient.name}}\n\nتم تنفيذ التغيير رقم {{ticket.number}} بعنوان «{{ticket.title}}»:\n\n{{ticket.resolutionNotes}}\n\nوقد حان موعد مراجعة ما بعد التنفيذ.\n\nمع خالص التحية،\n{{tenant.name}}",
+      "action": "مراجعة التغيير"
+    },
+    "cab.invited": {
+      "subject": "المجلس الاستشاري للتغيير: {{meeting.title}}",
+      "inApp": "أنتم مدعوون إلى اجتماع المجلس الاستشاري للتغيير «{{meeting.title}}».",
+      "body": "تحية طيبة، {{recipient.name}}\n\nيسرنا دعوتكم إلى اجتماع المجلس الاستشاري للتغيير «{{meeting.title}}».\n\nالموعد: {{meeting.start}} – {{meeting.end}}\nالمكان: {{meeting.location}}\nعدد التغييرات في جدول الأعمال: {{meeting.items}}\n\nيضيف ملف التقويم المرفق الاجتماع إلى تقويمكم. يرجى مراجعة التغييرات وإبداء رأيكم قبل الاجتماع.\n\nمع خالص التحية،\n{{tenant.name}}",
+      "action": "فتح الاجتماع"
+    },
+    "cab.cancelled": {
+      "subject": "إلغاء الاجتماع: {{meeting.title}}",
+      "inApp": "أُلغي اجتماع المجلس الاستشاري للتغيير «{{meeting.title}}» بالنسبة إليكم.",
+      "body": "تحية طيبة، {{recipient.name}}\n\nنحيطكم علمًا بإلغاء اجتماع المجلس الاستشاري للتغيير «{{meeting.title}}» ({{meeting.start}} – {{meeting.end}}) أو بعدم إدراجكم فيه. ويزيل ملف التقويم المرفق الاجتماع من تقويمكم.\n\nمع خالص التحية،\n{{tenant.name}}",
+      "action": "فتح الاجتماع"
     },
     "record.received": {
       "subject": "رقم {{ticket.number}}: تم استلام طلبكم",

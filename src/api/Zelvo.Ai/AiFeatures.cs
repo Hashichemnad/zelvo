@@ -55,8 +55,15 @@ public static class AiFeatures
     /// </summary>
     public const string ProblemDetection = "problemDetection";
 
+    /// <summary>
+    /// Task H5 (module 17): explain a change's what-if simulation (blast radius, similar past
+    /// changes, predicted risk) in plain language for the requester, approvers and the board. Off
+    /// until set up; the AI only explains, it never decides (product owner decision 7 of 2026-11-26).
+    /// </summary>
+    public const string ChangeWhatIf = "changeWhatIf";
+
     /// <summary>Every feature, in the order Settings shows them.</summary>
-    public static IReadOnlyList<string> All { get; } = [Triage, Summary, Reply, Translation, Duplicates, Sentiment, VirtualAgent, ArticleDrafts, Transcription, RuleBuilder, ProblemDetection];
+    public static IReadOnlyList<string> All { get; } = [Triage, Summary, Reply, Translation, Duplicates, Sentiment, VirtualAgent, ArticleDrafts, Transcription, RuleBuilder, ProblemDetection, ChangeWhatIf];
 
     /// <summary>Whether <paramref name="key"/> is a feature of <see cref="All"/>.</summary>
     public static bool IsFeature(string? key) => key is not null && All.Contains(key, StringComparer.Ordinal);
