@@ -282,10 +282,13 @@ internal static class MessagingHooks
             return Refused();
         }
 
-        // Only the customer's own directory, and only personal chats with the app.
+        // Only the customer's own directory, and only personal chats with the app (task J4: the
+        // message action and dialogs are invokes, also from channels and group chats).
         var directory = JsonPath.Text(activity, "channelData.tenant.id") ?? JsonPath.Text(activity, "conversation.tenantId");
+        var personal = JsonPath.Text(activity, "conversation.conversationType") is not { } conversationType || conversationType == "personal";
+        var invoke = JsonPath.Text(activity, "type") == "invoke";
         if (channel.DirectoryId is { } own && Guid.TryParse(own, out _) && !string.Equals(directory, own, StringComparison.OrdinalIgnoreCase)
-            || JsonPath.Text(activity, "conversation.conversationType") is { } type && type != "personal")
+            || !personal && !invoke)
         {
             return TypedResults.Ok();
         }
@@ -311,6 +314,19 @@ internal static class MessagingHooks
         var teams = new TeamsDetails(serviceUrl!, conversationId, userId);
         var providerId = JsonPath.Text(activity, "id") ?? Guid.NewGuid().ToString("N");
         var locale = JsonPath.Text(activity, "locale");
+        var webUrl = request.HttpContext.RequestServices.GetRequiredService<ChannelOptions>().WebUrl;
+        if (invoke)
+        {
+            // Task J4: the dialog and the message action answer in the invoke response.
+            var contact = await ContactAsync(db, channel, objectId, personal ? teams : null, cancellationToken);
+            await LinkAsync(db, channel, keys, intake, contact, teams, cancellationToken);
+            var user = await ActiveUserAsync(db, contact.UserId, cancellationToken);
+            var language = await LanguageAsync(db, composer, user?.Id, locale, cancellationToken);
+            await db.SaveChangesAsync(cancellationToken);
+            var answer = await TeamsApp.InvokeAsync(TeamsInvoke.Of(activity!), db, request.HttpContext.RequestServices, channel, contact, user, language, webUrl, cancellationToken);
+            return TypedResults.Json(answer, statusCode: StatusCodes.Status200OK);
+        }
+
         switch (JsonPath.Text(activity, "type"))
         {
             case "conversationUpdate" when (activity!["membersAdded"] as JsonArray ?? []).Any(m => JsonPath.Text(m, "id") == JsonPath.Text(activity, "recipient.id")):
@@ -329,6 +345,18 @@ internal static class MessagingHooks
 
             case "message" when activity!["value"] is JsonObject value && JsonPath.Text(value, "zelvo") == "approval":
                 return await DecideAsync(db, channel, keys, intake, approvals, auditContext, sla, composer, value, objectId, teams, locale, cancellationToken);
+
+            case "message" when TeamsApp.CommandOf(StripMentions(JsonPath.Text(activity, "text"))) is { } command:
+            {
+                // Task J4: "Raise a ticket", "My tickets" and "Help" are commands, not new tickets.
+                var contact = await ContactAsync(db, channel, objectId, teams, cancellationToken);
+                await LinkAsync(db, channel, keys, intake, contact, teams, cancellationToken);
+                var user = await ActiveUserAsync(db, contact.UserId, cancellationToken);
+                var language = await LanguageAsync(db, composer, user?.Id, locale, cancellationToken);
+                await TeamsApp.AnswerCommandAsync(db, channel, contact, user, command, language, webUrl, cancellationToken);
+                await db.SaveChangesAsync(cancellationToken);
+                return TypedResults.Ok();
+            }
 
             case "message":
                 await intake.ProcessAsync(channel, keys, new InboundMessage(providerId, objectId, JsonPath.Text(activity, "from.name"), ChannelMessageKind.Text,
@@ -407,6 +435,29 @@ internal static class MessagingHooks
         await transaction.CommitAsync(cancellationToken);
         return TypedResults.Ok();
     }
+
+    // Task J4: the person's contact on the channel; the chat's details only from personal chats (notifications go there).
+    private static async Task<MessagingContact> ContactAsync(ZelvoDbContext db, MessagingChannel channel, string objectId, TeamsDetails? personal, CancellationToken cancellationToken)
+    {
+        var contact = await db.MessagingContacts.FirstOrDefaultAsync(c => c.ChannelId == channel.Id && c.Address == objectId, cancellationToken);
+        if (contact is null)
+        {
+            contact = new MessagingContact { TenantId = channel.TenantId, ChannelId = channel.Id, Address = objectId, CreatedAt = DateTimeOffset.UtcNow };
+            db.MessagingContacts.Add(contact);
+        }
+
+        if (personal is not null)
+        {
+            contact.TeamsServiceUrl = personal.ServiceUrl;
+            contact.TeamsConversationId = personal.ConversationId;
+            contact.TeamsUserId = personal.UserId;
+        }
+
+        return contact;
+    }
+
+    private static async Task<Data.Identity.UserAccount?> ActiveUserAsync(ZelvoDbContext db, Guid? userId, CancellationToken cancellationToken) =>
+        userId is { } id ? await db.Users.AsNoTracking().FirstOrDefaultAsync(u => u.Id == id && u.Status == Data.Identity.UserStatus.Active, cancellationToken) : null;
 
     // Links the Teams account to the Zelvo account with its email, once; nobody is created here.
     private static async Task LinkAsync(ZelvoDbContext db, MessagingChannel channel, MessagingSecrets keys, MessagingIntake intake, MessagingContact contact, TeamsDetails teams,

@@ -7,7 +7,8 @@ export type { PendingSignIn } from "@/lib/auth/sign-in";
 
 /**
  * Starts sign-in at the tenant's Keycloak realm (authorization code flow with PKCE). With
- * `mfa=1` the user is asked for a second factor (`acr_values=mfa`).
+ * `mfa=1` the user is asked for a second factor (`acr_values=mfa`). Task J3: `action=passkey`
+ * asks Keycloak to add a passkey to the signed-in account (`kc_action=webauthn-register-passwordless`).
  */
 export async function GET(request: NextRequest) {
   const config = (await authConfigFor(request));
@@ -17,5 +18,6 @@ export async function GET(request: NextRequest) {
     locale,
     returnTo: safeReturnTo(params.get("returnTo"), locale),
     mfa: params.get("mfa") === "1",
+    ...(params.get("action") === "passkey" ? { action: "webauthn-register-passwordless" as const } : {}),
   });
 }

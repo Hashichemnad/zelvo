@@ -72,8 +72,8 @@ export function AgentChats({
   }
 
   return (
-    <div className="grid gap-6 lg:grid-cols-[18rem_1fr]" data-testid="agent-chats">
-      <div className="space-y-6">
+    <div className="grid gap-6 lg:grid-cols-[18rem_minmax(0,1fr)]" data-testid="agent-chats">
+      <div className="min-w-0 space-y-6">
         <p className="text-sm">
           {queue.available ? t("available", { limit: queue.limit }) : t("unavailableNote")}{" "}
           <button type="button" className="font-semibold text-brand underline" onClick={() => setAvailable(!queue.available)}>
@@ -138,7 +138,7 @@ function ChatList({
         <ul className="space-y-2">
           {chats.map((chat) => (
             <li key={chat.id} className={`rounded-md border p-2 ${selected === chat.id ? "border-brand" : "border-line"}`} data-testid="chat-summary">
-              <p className="font-semibold" dir="auto">{chat.visitorName}</p>
+              <p className="break-words font-semibold" dir="auto">{chat.visitorName}</p>
               <p className="text-xs text-ink-muted">
                 {textIn(chat.group, locale)} · <time dateTime={chat.startedAt}>{formatDateTime(new Date(chat.startedAt), display)}</time>
               </p>
@@ -255,12 +255,12 @@ function ChatPanel({
   const ticketTitle = title ?? (messages.find((m) => m.sender === "Visitor")?.body.split("\n")[0] ?? "").slice(0, 120);
 
   return (
-    <section aria-labelledby={`${id}-title`} className="space-y-4 rounded-md border border-line p-4" data-testid="chat-panel">
+    <section aria-labelledby={`${id}-title`} className="min-w-0 space-y-4 rounded-md border border-line p-4" data-testid="chat-panel">
       <header className="space-y-1">
-        <h2 id={`${id}-title`} className="text-xl font-semibold" dir="auto">{chat.visitorName}</h2>
-        <p className="text-sm text-ink-muted">
-          <span dir="ltr">{chat.visitorEmail}</span> · {t(`languages.${chat.language === "ar" ? "ar" : "en"}`)} · {textIn(chat.group.name, locale)}
-          {chat.origin && <> · <span dir="ltr">{chat.origin}</span></>}
+        <h2 id={`${id}-title`} className="break-words text-xl font-semibold" dir="auto">{chat.visitorName}</h2>
+        <p className="break-words text-sm text-ink-muted">
+          <span dir="ltr" className="break-all">{chat.visitorEmail}</span> · {t(`languages.${chat.language === "ar" ? "ar" : "en"}`)} · {textIn(chat.group.name, locale)}
+          {chat.origin && <> · <span dir="ltr" className="break-all">{chat.origin}</span></>}
         </p>
         <p className="text-sm">{t(`states.${chat.state}`)}</p>
         {chat.ticketId && (
@@ -299,9 +299,9 @@ function ChatPanel({
       )}
       {chat.state !== "Ended" && (
         <div className="flex flex-wrap items-end gap-2">
-          <div>
+          <div className="min-w-0 max-w-full">
             <label htmlFor={`${id}-transfer`} className="block text-sm font-semibold">{t("transferTo")}</label>
-            <select id={`${id}-transfer`} value={target} onChange={(e) => setTarget(e.target.value)} className="rounded-md border border-line bg-surface px-3 py-2">
+            <select id={`${id}-transfer`} value={target} onChange={(e) => setTarget(e.target.value)} className="max-w-full rounded-md border border-line bg-surface px-3 py-2">
               <option value="">{t("choose")}</option>
               <optgroup label={t("colleagues")}>
                 {(group?.members ?? []).filter((m) => m.userId !== chat.agent?.id && m.availableForAssignment).map((m) => (

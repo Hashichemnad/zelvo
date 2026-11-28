@@ -409,7 +409,7 @@ public sealed partial class MessagingIntake(
     }
 
     /// <summary>The first line of <paramref name="text"/>, as a title.</summary>
-    internal static string TitleOf(string text)
+    public static string TitleOf(string text)
     {
         var line = text.Split('\n', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries).FirstOrDefault() ?? text;
         return line.Length <= 120 ? line : string.Concat(line.AsSpan(0, 119), "…");

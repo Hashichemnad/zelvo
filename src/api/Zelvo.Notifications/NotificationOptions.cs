@@ -75,6 +75,9 @@ public sealed class NotificationOptions
     /// <summary>How long in-app notifications are kept.</summary>
     public TimeSpan InAppRetention { get; set; } = TimeSpan.FromDays(90);
 
+    /// <summary>Web push (task J2).</summary>
+    public PushOptions Push { get; set; } = new();
+
     /// <summary>Reads the section; values that are not valid keep the defaults.</summary>
     public static NotificationOptions From(IConfiguration configuration)
     {
@@ -109,6 +112,21 @@ public sealed class NotificationOptions
         s.Security = Enum.TryParse<SmtpSecurity>(smtp["Security"], ignoreCase: true, out var security) ? security : s.Security;
         s.From = smtp["From"] is { Length: > 0 } from ? from.Trim() : s.From;
         s.Timeout = Time(smtp["Timeout"]) is { } timeout && timeout > TimeSpan.Zero ? timeout : s.Timeout;
+
+        var push = section.GetSection("Push");
+        var p = options.Push;
+        p.Enabled = bool.TryParse(push["Enabled"], out var pushEnabled) ? pushEnabled : p.Enabled;
+        p.Subject = push["Subject"] is { Length: > 0 } subject && (subject.StartsWith("mailto:", StringComparison.Ordinal) || subject.StartsWith("https://", StringComparison.Ordinal))
+            ? subject.Trim()
+            : null;
+        p.TimeToLive = Time(push["TimeToLive"]) is { } ttl && ttl >= TimeSpan.Zero && ttl <= TimeSpan.FromDays(28) ? ttl : p.TimeToLive;
+        p.Timeout = Time(push["Timeout"]) is { } pushTimeout && pushTimeout > TimeSpan.Zero ? pushTimeout : p.Timeout;
+        if (push.GetSection("AllowedHosts").GetChildren().Select(c => c.Value?.Trim().ToLowerInvariant()).Where(h => h is { Length: > 0 }).ToList() is { Count: > 0 } hosts)
+        {
+            p.AllowedHosts = [.. hosts!];
+        }
+
+        Zelvo.Integrations.OutboundNetworkOptions.Read(push, p.Network);
         return options;
     }
 
@@ -117,4 +135,45 @@ public sealed class NotificationOptions
 
     private static int? Int(string? value) =>
         int.TryParse(value, NumberStyles.Integer, CultureInfo.InvariantCulture, out var number) ? number : null;
+}
+
+/// <summary>
+/// Web push to the browsers' push services (module 19, task J2; product owner decision
+/// 2026-11-26: it needs outgoing internet, so offline installations turn it off and get email,
+/// in-app and Teams notifications only). Configuration section <c>Notifications:Push</c>.
+/// </summary>
+public sealed class PushOptions
+{
+    /// <summary>Whether web push is offered at all (off for installations without outgoing internet).</summary>
+    public bool Enabled { get; set; } = true;
+
+    /// <summary>
+    /// The VAPID contact (RFC 8292 <c>sub</c>): a <c>mailto:</c> or <c>https:</c> address the push
+    /// services may contact. Empty: the web app's address when it is HTTPS, else the sender address.
+    /// </summary>
+    public string? Subject { get; set; }
+
+    /// <summary>How long a push service keeps a message for a device that is offline (RFC 8030 <c>TTL</c>).</summary>
+    public TimeSpan TimeToLive { get; set; } = TimeSpan.FromDays(1);
+
+    /// <summary>Timeout of one request to a push service.</summary>
+    public TimeSpan Timeout { get; set; } = TimeSpan.FromSeconds(15);
+
+    /// <summary>
+    /// Push services a browser subscription may point at (the host or a domain it ends with), so a
+    /// subscription can never make Zelvo send requests anywhere else: Google (Chrome, Edge on
+    /// Android), Mozilla (Firefox), Apple (Safari) and Microsoft (Edge on Windows).
+    /// </summary>
+    public IReadOnlyList<string> AllowedHosts { get; set; } =
+        ["fcm.googleapis.com", "push.services.mozilla.com", "push.apple.com", "notify.windows.com"];
+
+    /// <summary>Addresses push requests may reach (after DNS): public addresses only unless the operator lists private networks.</summary>
+    public Zelvo.Integrations.OutboundNetworkOptions Network { get; } = new();
+
+    /// <summary>Whether <paramref name="endpoint"/> is an HTTPS address of an allowed push service.</summary>
+    public bool IsAllowedEndpoint(string? endpoint) =>
+        Uri.TryCreate(endpoint, UriKind.Absolute, out var uri)
+        && (uri.Scheme == Uri.UriSchemeHttps || (Network.AllowInsecureHttp && uri.Scheme == Uri.UriSchemeHttp))
+        && string.IsNullOrEmpty(uri.UserInfo)
+        && AllowedHosts.Any(h => string.Equals(uri.IdnHost, h, StringComparison.OrdinalIgnoreCase) || uri.IdnHost.EndsWith("." + h, StringComparison.OrdinalIgnoreCase));
 }

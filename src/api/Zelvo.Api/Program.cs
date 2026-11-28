@@ -173,6 +173,8 @@ v1.MapMeEndpoints();
 v1.MapUserEndpoints();
 v1.MapRoleEndpoints();
 v1.MapIdentitySettingsEndpoints();
+// Task J3: passkeys.
+v1.MapPasskeyEndpoints();
 // Task M2: the first administrator's one-time setup link (hardened installs).
 v1.MapAccountSetupEndpoints();
 v1.MapUaePassEndpoints();
@@ -195,6 +197,8 @@ v1.MapDataSubjectRequestEndpoints();
 v1.MapWellbeingEndpoints();
 v1.MapZelvoWorkflowEndpoints();
 v1.MapNotificationEndpoints();
+// Task J2: web push devices and test notifications.
+v1.MapPushEndpoints();
 v1.MapSetupEndpoints();
 // Task F3: the license screens; the rest of each module answers only when the license includes it.
 v1.MapLicenseEndpoints();

@@ -12,20 +12,22 @@ export interface CspOptions {
   nonce: string;
   /** Who may frame the page: none, or 'self' and the chat widget's websites. */
   frameAncestors?: string[];
+  /** Further sites the page may fetch from (the Teams tab: the Teams SDK's list of Teams' hosts). */
+  connectSources?: string[];
   /** `next dev` needs eval for fast refresh. */
   development?: boolean;
   /** Ask browsers to load http:// resources over HTTPS (only when the site itself is HTTPS). */
   upgradeInsecureRequests?: boolean;
 }
 
-export function contentSecurityPolicy({ nonce, frameAncestors, development = false, upgradeInsecureRequests = false }: CspOptions): string {
+export function contentSecurityPolicy({ nonce, frameAncestors, connectSources = [], development = false, upgradeInsecureRequests = false }: CspOptions): string {
   const directives: [string, ...string[]][] = [
     ["default-src", "'self'"],
     ["script-src", "'self'", `'nonce-${nonce}'`, "'strict-dynamic'", ...(development ? ["'unsafe-eval'"] : [])],
     ["style-src", "'self'", "'unsafe-inline'"],
     ["img-src", "'self'", "blob:", "data:"],
     ["font-src", "'self'"],
-    ["connect-src", "'self'", ...(development ? ["ws:"] : [])],
+    ["connect-src", "'self'", ...connectSources, ...(development ? ["ws:"] : [])],
     ["media-src", "'self'", "blob:"],
     ["frame-src", "'self'"],
     ["worker-src", "'self'", "blob:"],

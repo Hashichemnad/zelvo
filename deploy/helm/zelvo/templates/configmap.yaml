@@ -20,6 +20,7 @@ data:
   Notifications__Smtp__Security: {{ .Values.smtp.security | quote }}
   Notifications__Smtp__User: {{ .Values.smtp.user | quote }}
   Notifications__Smtp__From: {{ .Values.smtp.from | quote }}
+  Notifications__Push__Enabled: {{ .Values.push.enabled | quote }}
   Channels__WebUrl: "https://{{ .Values.publicHost }}/"
   Channels__PublicUrl: "https://{{ .Values.publicHost }}/"
   Payments__PublicUrl: "https://{{ .Values.publicHost }}/"

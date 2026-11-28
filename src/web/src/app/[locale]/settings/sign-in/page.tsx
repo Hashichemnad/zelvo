@@ -39,6 +39,15 @@ export default async function SignInSettingsPage({ params }: PageProps<"/[locale
               </h3>
               <p className="text-sm text-ink-muted">{t("uaePassDescription")}</p>
             </li>
+            {/* Task J3: passkeys. */}
+            <li className="rounded-lg border border-line bg-surface p-4">
+              <h3 className="font-semibold">
+                <Link href="/settings/sign-in/passkeys" className="text-brand underline-offset-4 hover:underline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand">
+                  {t("passkeys.title")}
+                </Link>
+              </h3>
+              <p className="text-sm text-ink-muted">{t("passkeysDescription")}</p>
+            </li>
           </ul>
         </>
       )}

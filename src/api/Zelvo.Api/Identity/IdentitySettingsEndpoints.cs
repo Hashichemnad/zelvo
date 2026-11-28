@@ -93,10 +93,11 @@ internal static partial class IdentitySettingsEndpoints
 /// <param name="EmailCodeSignIn">KnownUsers, AllowedDomains or Anyone.</param>
 /// <param name="AllowedDomains">With AllowedDomains: domains whose people get a requester account.</param>
 /// <param name="UpdatedAt">Last change.</param>
-internal sealed record IdentitySettingsResponse(EmailCodeSignIn EmailCodeSignIn, IReadOnlyList<string> AllowedDomains, DateTimeOffset UpdatedAt)
+/// <param name="Passkeys">Task J3: Off, Allowed or RequiredForStaff (changed with <c>PUT /identity/settings/passkeys</c>).</param>
+internal sealed record IdentitySettingsResponse(EmailCodeSignIn EmailCodeSignIn, IReadOnlyList<string> AllowedDomains, DateTimeOffset UpdatedAt, PasskeySignIn Passkeys)
 {
     public static IdentitySettingsResponse From(IdentitySettings settings) =>
-        new(settings.EmailCodeSignIn, settings.AllowedDomains, settings.UpdatedAt);
+        new(settings.EmailCodeSignIn, settings.AllowedDomains, settings.UpdatedAt, settings.Passkeys);
 }
 
 /// <summary>New sign-in settings.</summary>

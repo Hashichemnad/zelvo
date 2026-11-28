@@ -28,6 +28,11 @@ export interface SignInOptions {
   mfa: boolean;
   /** Demo installations: `zelvo-demo:<username>` signs that demo user in with one click. */
   loginHint?: string;
+  /**
+   * Task J3: a Keycloak application-initiated action (`kc_action`), only "add a passkey"
+   * (`webauthn-register-passwordless`), started from Account → Security.
+   */
+  action?: "webauthn-register-passwordless";
 }
 
 /**
@@ -66,6 +71,7 @@ export async function startSignIn(config: AuthConfig, options: SignInOptions): P
     ui_locales: options.locale,
     ...(options.mfa ? { acr_values: "mfa" } : {}),
     ...(options.loginHint ? { login_hint: options.loginHint } : {}),
+    ...(options.action ? { kc_action: options.action } : {}),
   });
 
   const response = NextResponse.redirect(authorizationUrl, 303);

@@ -14,6 +14,11 @@ export function sessionKey(sessionId: string): string {
   return `zelvo:session:${createHash("sha256").update(sessionId).digest("base64url")}`;
 }
 
+/** Task J4: a one-time code that hands the Teams sign-in pop-up's session to the Teams tab. */
+export function teamsHandoffKey(code: string): string {
+  return `zelvo:teams-handoff:${createHash("sha256").update(code).digest("base64url")}`;
+}
+
 export function pendingSignInKey(state: string): string {
   return `zelvo:signin:${createHash("sha256").update(state).digest("base64url")}`;
 }

@@ -48,6 +48,8 @@ internal sealed class PersonalDataExport(ZelvoDbContext db, IAttachmentStore att
         var payments = await db.Payments.AsNoTracking().Where(p => p.TicketId != null && ticketIds.Contains(p.TicketId.Value)).OrderBy(p => p.CreatedAt).ToListAsync(cancellationToken);
         var decisions = await db.ApprovalDecisions.AsNoTracking().Where(d => d.ApproverId == personId).OrderBy(d => d.CreatedAt).ToListAsync(cancellationToken);
         var requests = await db.DataSubjectRequests.AsNoTracking().Where(r => r.SubjectId == personId).OrderBy(r => r.ReceivedAt).ToListAsync(cancellationToken);
+        // Task J2: the devices that receive web push (names and dates; push addresses and keys are the browser's, not shown).
+        var pushDevices = await db.PushSubscriptions.AsNoTracking().Where(s => s.UserId == personId).OrderBy(s => s.CreatedAt).ToListAsync(cancellationToken);
         // Task K4: the person's daily wellbeing figures and alerts (while wellbeing is on, 90 days).
         var wellbeingDays = await db.WellbeingDays.AsNoTracking().Where(d => d.UserId == personId).OrderBy(d => d.Day).ToListAsync(cancellationToken);
         var wellbeingAlerts = await db.WellbeingAlerts.AsNoTracking().Where(a => a.UserId == personId).OrderBy(a => a.RaisedAt).ToListAsync(cancellationToken);
@@ -146,6 +148,12 @@ internal sealed class PersonalDataExport(ZelvoDbContext db, IAttachmentStore att
                 ["receivedAt"] = r.ReceivedAt,
                 ["details"] = r.Details,
                 ["resolution"] = r.Resolution,
+            })]),
+            ["pushDevices"] = new JsonArray([.. pushDevices.Select(d => (JsonNode)new JsonObject
+            {
+                ["deviceName"] = d.DeviceName,
+                ["addedAt"] = d.CreatedAt,
+                ["lastNotifiedAt"] = d.LastSuccessAt,
             })]),
             ["wellbeing"] = new JsonObject
             {
