@@ -23,7 +23,7 @@ export function NotificationPreferencesForm({ initial, csrfToken }: { initial: N
     try {
       const saved = await putJson<NotificationPreference[]>(
         "/v1/me/notification-preferences",
-        { events: preferences.filter((p) => p.canChange).map((p) => ({ eventType: p.eventType, email: p.email })) },
+        { events: preferences.map((p) => ({ eventType: p.eventType, email: p.canChange ? p.email : true, push: p.push })) },
         csrfToken,
       );
       setPreferences(saved);
@@ -71,6 +71,21 @@ export function NotificationPreferencesForm({ initial, csrfToken }: { initial: N
                       <p id={hintId} className="ms-6 text-sm text-ink-muted">
                         {hint}
                       </p>
+                    )}
+                    {/* Task J2: web push to the person's devices, their own choice for every event. */}
+                    {p.enabled && p.pushEnabled && (
+                      <label className="ms-6 mt-1 flex items-center gap-2 text-sm">
+                        <input
+                          type="checkbox"
+                          checked={p.push}
+                          data-testid={`push-${p.eventType}`}
+                          onChange={(e) => setPreferences(preferences.map((q) => (q.eventType === p.eventType ? { ...q, push: e.target.checked } : q)))}
+                        />
+                        <span>
+                          {t("preferences.push")}
+                          <span className="sr-only">: {t(`events.${eventKey(p.eventType)}`)}</span>
+                        </span>
+                      </label>
                     )}
                   </div>
                 );

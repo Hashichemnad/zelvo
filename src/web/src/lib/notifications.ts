@@ -24,6 +24,10 @@ export interface NotificationPreference {
   canChange: boolean;
   enabled: boolean;
   emailEnabled: boolean;
+  /** Task J2: whether it also comes by web push to the person's devices. */
+  push: boolean;
+  /** Task J2: whether the organisation and the installation send it by web push. */
+  pushEnabled: boolean;
 }
 
 /** A bilingual template field as the API returns it. */
@@ -49,11 +53,17 @@ export interface NotificationEventSettings {
   customised: boolean;
   template: NotificationTemplate | null;
   default: NotificationTemplate;
+  /** Task E3: also by WhatsApp, SMS and Teams. */
+  messaging?: boolean;
+  /** Task J2: also by web push. */
+  push?: boolean;
 }
 
 export interface NotificationSettings {
   mailServerConfigured: boolean;
   events: NotificationEventSettings[];
+  /** Task J2: whether this installation offers web push (it needs outgoing internet). */
+  pushAvailable?: boolean;
 }
 
 export interface NotificationPreview {

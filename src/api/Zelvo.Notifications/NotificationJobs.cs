@@ -10,6 +10,8 @@ using Zelvo.Data.Notifications;
 using Zelvo.Data.Tenancy;
 using Zelvo.Tickets;
 
+using Zelvo.Notifications.WebPush;
+
 namespace Zelvo.Notifications;
 
 /// <summary>
@@ -118,6 +120,10 @@ public sealed partial class NotificationProcessor(
         var ruleChannels = rule ? MessagingNotifications.RuleChannels(values.GetValueOrDefault(Placeholders.RuleChannels)?.Text) : null;
         await new MessagingNotifications(db).QueueAsync(notification, recipient, definition, setting, rendered, format.Language,
             composer.LinksFor(notification.EventType, format.Language, notification.LinkPath), now, cancellationToken, ruleChannels).ConfigureAwait(false);
+
+        // Task J2: web push to the person's devices (event and reference number only).
+        await new PushNotifications(db, options).QueueAsync(notification, recipient, definition, setting, values, format.Language, now, cancellationToken)
+            .ConfigureAwait(false);
 
         // B3 recorded the alert; it counts as delivered once its first notification is out.
         if (notification.SlaAlertId is { } alertId
@@ -326,6 +332,21 @@ public sealed partial class NotificationDispatcher(IServiceScopeFactory scopes, 
         }
         while (deliveries.Count == BatchSize);
 
+        // Task J2: web push messages.
+        List<long> pushes;
+        do
+        {
+            pushes = await ClaimPushesAsync(tenantId, slug, cancellationToken).ConfigureAwait(false);
+            await Parallel.ForEachAsync(pushes,
+                new ParallelOptions { MaxDegreeOfParallelism = options.Concurrency, CancellationToken = cancellationToken },
+                async (id, token) =>
+                {
+                    await InScopeAsync<PushProcessor>(tenantId, slug, p => p.SendAsync(id, token)).ConfigureAwait(false);
+                    Interlocked.Increment(ref handled);
+                }).ConfigureAwait(false);
+        }
+        while (pushes.Count == BatchSize);
+
         return handled;
     }
 
@@ -354,14 +375,17 @@ public sealed partial class NotificationDispatcher(IServiceScopeFactory scopes, 
         }
     }
 
-    private async Task InScopeAsync(Guid tenantId, string slug, Func<NotificationProcessor, Task> work)
+    private Task InScopeAsync(Guid tenantId, string slug, Func<NotificationProcessor, Task> work) => InScopeAsync<NotificationProcessor>(tenantId, slug, work);
+
+    private async Task InScopeAsync<T>(Guid tenantId, string slug, Func<T, Task> work)
+        where T : notnull
     {
         await using var scope = scopes.CreateAsyncScope();
         scope.ServiceProvider.GetRequiredService<ITenantContext>().SetTenant(tenantId, slug);
         scope.ServiceProvider.GetRequiredService<AuditContext>().SetActor(AuditActorType.System, "notifications", "Notifications");
         try
         {
-            await work(scope.ServiceProvider.GetRequiredService<NotificationProcessor>()).ConfigureAwait(false);
+            await work(scope.ServiceProvider.GetRequiredService<T>()).ConfigureAwait(false);
         }
         catch (Exception exception) when (exception is not OperationCanceledException)
         {
@@ -414,6 +438,24 @@ public sealed partial class NotificationDispatcher(IServiceScopeFactory scopes, 
             UPDATE notification_deliveries SET lease_until = {leaseUntil}
             WHERE id IN (
                 SELECT id FROM notification_deliveries
+                WHERE status = 'Pending' AND next_attempt_at <= now() AND (lease_until IS NULL OR lease_until < now())
+                ORDER BY next_attempt_at, id
+                LIMIT {BatchSize}
+                FOR UPDATE SKIP LOCKED)
+            RETURNING id AS "Value"
+            """).ToListAsync(cancellationToken).ConfigureAwait(false);
+    }
+
+    private async Task<List<long>> ClaimPushesAsync(Guid tenantId, string slug, CancellationToken cancellationToken)
+    {
+        await using var scope = scopes.CreateAsyncScope();
+        scope.ServiceProvider.GetRequiredService<ITenantContext>().SetTenant(tenantId, slug);
+        var db = scope.ServiceProvider.GetRequiredService<ZelvoDbContext>();
+        var leaseUntil = DateTimeOffset.UtcNow + Lease;
+        return await db.Database.SqlQuery<long>($"""
+            UPDATE push_deliveries SET lease_until = {leaseUntil}
+            WHERE id IN (
+                SELECT id FROM push_deliveries
                 WHERE status = 'Pending' AND next_attempt_at <= now() AND (lease_until IS NULL OR lease_until < now())
                 ORDER BY next_attempt_at, id
                 LIMIT {BatchSize}

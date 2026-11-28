@@ -65,6 +65,8 @@ export async function postJson<T>(path: string, body: unknown, csrfToken: string
   if (!response.ok) {
     throw await refused(response, `POST ${path}`);
   }
+  // 204 No Content (for example removing a push device) has no body.
+  if (response.status === 204) return undefined as T;
   return (await response.json()) as T;
 }
 

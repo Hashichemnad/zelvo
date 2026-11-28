@@ -18,7 +18,7 @@ public sealed class DemoModeTests(DatabaseFixture database) : IAsyncDisposable
     private static readonly Uri DemoUri = new("/api/v1/demo", UriKind.Relative);
     private static readonly Uri ResetUri = new("/api/v1/demo/reset", UriKind.Relative);
 
-    private readonly ApiFactory _demo = ApiFactory.ForDatabase(database).WithSetting(InstallationProfile.ConfigurationKey, InstallationProfile.Demo);
+    private readonly ApiFactory _demo = ApiFactory.ForDatabase(database).WithMasterKey().WithSetting(InstallationProfile.ConfigurationKey, InstallationProfile.Demo);
     private readonly ApiFactory _standard = ApiFactory.ForDatabase(database);
 
     private static CancellationToken Ct => TestContext.Current.CancellationToken;
@@ -244,6 +244,9 @@ public sealed class DemoModeTests(DatabaseFixture database) : IAsyncDisposable
         var agentOfCompany = await DemoUserAsync(company, "agent");
         await IdentityProvisioning.EnsureUserAsync(database.OwnerConnectionString, company, agentOfCompany.Subject, agentOfCompany.Email,
             "Renamed", [BuiltInRoles.TenantAdmin], Ct);
+        // Task J2: opening Account → Notifications makes the tenant's web push key, encrypted with a
+        // new tenant data key, which the database never lets anyone delete.
+        (await client.GetAsync(new Uri("/api/v1/me/push", UriKind.Relative), Ct)).EnsureSuccessStatusCode();
         var auditBefore = await AuditCountAsync(gov);
 
         var response = await client.PostAsync(ResetUri, null, Ct);
@@ -298,7 +301,7 @@ public sealed class DemoModeTests(DatabaseFixture database) : IAsyncDisposable
     }
 
     [Fact]
-    public async Task Reset_covers_every_tenant_owned_table_except_the_audit_log()
+    public async Task Reset_covers_every_tenant_owned_table_except_the_audit_log_and_the_data_keys()
     {
         await using var db = TestData.AppContext(database, null);
         var tables = DemoReset.TablesToEmpty(db.Model);
@@ -317,7 +320,8 @@ public sealed class DemoModeTests(DatabaseFixture database) : IAsyncDisposable
         }
 
         Assert.DoesNotContain("audit_events", tables);
-        Assert.Equal(withTenant.Where(t => t != "audit_events").Order(StringComparer.Ordinal), tables.Order(StringComparer.Ordinal));
+        Assert.DoesNotContain("tenant_data_keys", tables);
+        Assert.Equal(withTenant.Where(t => t is not "audit_events" and not "tenant_data_keys").Order(StringComparer.Ordinal), tables.Order(StringComparer.Ordinal));
         // Children before parents: role grants go before roles, user roles before users.
         Assert.True(tables.ToList().IndexOf("user_roles") < tables.ToList().IndexOf("users"));
         Assert.True(tables.ToList().IndexOf("user_roles") < tables.ToList().IndexOf("roles"));

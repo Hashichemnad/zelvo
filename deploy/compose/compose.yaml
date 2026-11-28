@@ -64,6 +64,8 @@ x-notifications-env: &notifications-env
   Notifications__Smtp__Security: ${ZELVO_SMTP_SECURITY:-None}
   Notifications__Smtp__User: ${ZELVO_SMTP_USER:-}
   Notifications__Smtp__Password: ${ZELVO_SMTP_PASSWORD:-}
+  # Task J2: web push to the browsers' push services needs outgoing internet; false turns it off.
+  Notifications__Push__Enabled: ${ZELVO_PUSH_ENABLED:-true}
   Notifications__Smtp__From: ${ZELVO_SMTP_FROM:-no-reply@zelvo.test}
 
 # Branding (F1): the installation's public host that custom domains point to, the secret of the

@@ -58,6 +58,8 @@ x-notifications-env: &notifications-env
   Notifications__Smtp__Port: ${ZELVO_SMTP_PORT:-587}
   Notifications__Smtp__Security: ${ZELVO_SMTP_SECURITY:-StartTls}
   Notifications__Smtp__User: ${ZELVO_SMTP_USER:-}
+  # Task J2: web push needs outgoing internet to the browsers' push services (decided 2026-11-26).
+  Notifications__Push__Enabled: ${ZELVO_PUSH_ENABLED:-false}
   Notifications__Smtp__Password: ${ZELVO_SMTP_PASSWORD:-}
   Notifications__Smtp__From: ${ZELVO_SMTP_FROM:?set in .env}
 
